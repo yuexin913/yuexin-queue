@@ -3,150 +3,134 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>悅心診所 · 即時看診進度</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<title>悅心診所 · 看診進度</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&family=DM+Sans:wght@200;300;400&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --cream: #FFF8ED;
-    --warm: #F0E6D3;
-    --brown: #B2A59B;
-    --dark: #6B5E57;
-    --text: #555050;
-    --white: #ffffff;
-    --shadow: rgba(178,165,155,0.25);
-  }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  :root {
+    --green: #7AAB5A;
+    --green-light: #EBF3E4;
+    --green-mid: #C5DEB0;
+    --gray: #A8A8A0;
+    --text: #3A3A35;
+    --bg: #F5F7F2;
+  }
+
   body {
-    background-color: var(--cream);
-    font-family: 'Noto Serif TC', serif;
+    background: var(--bg);
+    font-family: 'Noto Sans TC', sans-serif;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px 20px;
+    padding: 40px 24px;
     position: relative;
     overflow: hidden;
   }
 
-  /* 背景裝飾花 */
   body::before {
     content: '';
     position: fixed;
-    top: -80px; right: -80px;
-    width: 320px; height: 320px;
-    background: url('https://pic03.eapple.com.tw/yuexinpsyclinic/yu_img01.png') no-repeat center/contain;
-    opacity: 0.18;
+    top: -120px; right: -100px;
+    width: 300px; height: 300px;
+    background: var(--green-mid);
+    opacity: 0.25;
+    border-radius: 61% 39% 70% 30% / 45% 55% 45% 55%;
     pointer-events: none;
-    animation: floatA 7s ease-in-out infinite;
   }
   body::after {
     content: '';
     position: fixed;
-    bottom: -60px; left: -60px;
+    bottom: -100px; left: -80px;
     width: 260px; height: 260px;
-    background: url('https://pic03.eapple.com.tw/yuexinpsyclinic/yu_img03.png') no-repeat center/contain;
-    opacity: 0.13;
+    background: var(--green-mid);
+    opacity: 0.2;
+    border-radius: 42% 58% 35% 65% / 55% 42% 58% 45%;
     pointer-events: none;
-    animation: floatB 9s ease-in-out infinite;
   }
 
-  @keyframes floatA { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(14px) rotate(-2deg)} }
-  @keyframes floatB { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-12px) rotate(2deg)} }
-
-  /* Header */
   .header {
     text-align: center;
     margin-bottom: 36px;
-    animation: fadeDown 0.8s ease both;
-  }
-  .logo {
-    width: 140px;
-    margin-bottom: 10px;
-  }
-  .subtitle {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 13px;
-    color: var(--brown);
-    letter-spacing: 0.35em;
-    font-style: italic;
+    animation: fadeDown 0.7s ease both;
   }
 
-  /* 分隔線 */
-  .divider {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin: 0 auto 32px;
-    width: 220px;
-    animation: fadeIn 1s ease 0.3s both;
+  .clinic-name {
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.25em;
   }
-  .divider::before, .divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--brown);
-    opacity: 0.5;
-  }
-  .divider span {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 12px;
-    color: var(--brown);
+
+  .page-title {
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--gray);
     letter-spacing: 0.2em;
-    white-space: nowrap;
+    margin-top: 6px;
   }
 
-  /* 卡片容器 */
   .cards {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 18px;
+    gap: 16px;
     width: 100%;
-    max-width: 400px;
-    animation: fadeUp 0.8s ease 0.2s both;
+    max-width: 320px;
+    animation: fadeUp 0.7s ease 0.15s both;
   }
 
   .card {
-    background: var(--white);
-    border-radius: 24px;
-    padding: 28px 16px 24px;
+    background: #fff;
+    border-radius: 24px 8px 24px 8px;
+    padding: 28px 12px 22px;
     text-align: center;
-    box-shadow: 0 4px 24px var(--shadow);
+    box-shadow: 0 3px 16px rgba(122,171,90,0.12);
     position: relative;
     overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
-  .card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 36px var(--shadow);
-  }
+
   .card::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--warm), var(--brown));
-    border-radius: 24px 24px 0 0;
+    height: 4px;
+    background: var(--green);
+    border-radius: 4px 4px 0 0;
+  }
+
+  .card-blob {
+    width: 44px; height: 44px;
+    background: var(--green-light);
+    border-radius: 58% 42% 62% 38% / 44% 56% 44% 56%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+  }
+
+  .card-blob svg {
+    width: 22px; height: 22px;
+    stroke: var(--green);
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
   }
 
   .card-label {
-    font-size: 13px;
-    color: var(--brown);
-    letter-spacing: 0.12em;
-    margin-bottom: 16px;
-    font-weight: 400;
+    font-size: 12px;
+    color: var(--gray);
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
   }
 
   .card-number {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 68px;
-    font-weight: 300;
-    color: var(--dark);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 60px;
+    font-weight: 200;
+    color: var(--text);
     line-height: 1;
-    transition: all 0.4s ease;
     display: block;
   }
 
@@ -155,63 +139,55 @@
   }
 
   @keyframes pop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.12); color: var(--brown); }
-    100% { transform: scale(1); }
+    0%  { transform: scale(1); }
+    50% { transform: scale(1.12); color: var(--green); }
+    100%{ transform: scale(1); }
   }
 
-  /* 狀態列 */
   .status-bar {
-    margin-top: 28px;
+    margin-top: 24px;
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 7px;
-    animation: fadeIn 1s ease 0.5s both;
+    animation: fadeIn 0.8s ease 0.3s both;
   }
+
   .dot {
     width: 7px; height: 7px;
     border-radius: 50%;
     background: #ccc;
     transition: background 0.3s;
+    flex-shrink: 0;
   }
-  .dot.connected { background: #7DC27E; animation: pulse 2s ease infinite; }
+  .dot.connected {
+    background: var(--green);
+    animation: pulse 2.5s ease infinite;
+  }
   .dot.error { background: #E07070; }
+
   @keyframes pulse {
-    0%,100%{opacity:1} 50%{opacity:0.4}
+    0%,100%{ opacity:1 } 50%{ opacity:0.3 }
   }
+
   .status-text {
     font-size: 11px;
-    color: var(--brown);
-    letter-spacing: 0.1em;
-  }
-
-  /* 更新時間 */
-  .last-update {
-    margin-top: 10px;
-    font-size: 11px;
-    color: #bbb;
+    color: var(--gray);
     letter-spacing: 0.08em;
-    animation: fadeIn 1s ease 0.6s both;
   }
 
-  /* footer */
-  .footer-note {
-    margin-top: 36px;
-    text-align: center;
-    font-size: 11px;
-    color: var(--brown);
-    opacity: 0.6;
-    letter-spacing: 0.1em;
-    animation: fadeIn 1s ease 0.7s both;
+  .last-update {
+    margin-top: 6px;
+    font-size: 10px;
+    color: #C0C0BA;
+    letter-spacing: 0.06em;
   }
 
   @keyframes fadeDown {
-    from { opacity:0; transform: translateY(-20px); }
+    from { opacity:0; transform: translateY(-16px); }
     to   { opacity:1; transform: translateY(0); }
   }
   @keyframes fadeUp {
-    from { opacity:0; transform: translateY(16px); }
+    from { opacity:0; transform: translateY(14px); }
     to   { opacity:1; transform: translateY(0); }
   }
   @keyframes fadeIn {
@@ -222,19 +198,29 @@
 <body>
 
 <div class="header">
-  <img class="logo" src="https://www.doing-housework.com/store_image/yuexinpsyclinic/L172344498539.png" alt="悅心診所">
-  <p class="subtitle">即時看診進度</p>
+  <div class="clinic-name">悅心診所</div>
+  <div class="page-title">即時看診進度</div>
 </div>
-
-<div class="divider"><span>NOW SERVING</span></div>
 
 <div class="cards">
   <div class="card">
-    <div class="card-label">雲端叫號 1診</div>
+    <div class="card-blob">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"/>
+        <polyline points="12 7 12 12 15 15"/>
+      </svg>
+    </div>
+    <div class="card-label">1 診</div>
     <span class="card-number" id="call_num_3060">—</span>
   </div>
   <div class="card">
-    <div class="card-label">雲端叫號 2診</div>
+    <div class="card-blob">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"/>
+        <polyline points="12 7 12 12 15 15"/>
+      </svg>
+    </div>
+    <div class="card-label">2 診</div>
     <span class="card-number" id="call_num_3061">—</span>
   </div>
 </div>
@@ -245,8 +231,6 @@
 </div>
 <div class="last-update" id="last-update"></div>
 
-<div class="footer-note">數字每30秒自動更新 · 資料來自現場叫號系統</div>
-
 <script>
   var ws_socket = null;
   var WS_CLOSED = 3;
@@ -255,9 +239,7 @@
     var dot = document.getElementById('status-dot');
     var txt = document.getElementById('status-text');
     dot.className = 'dot ' + state;
-    if (state === 'connected') txt.textContent = '即時連線中';
-    else if (state === 'error') txt.textContent = '連線中斷，重試中…';
-    else txt.textContent = '連線中…';
+    txt.textContent = state === 'connected' ? '即時連線中' : '連線中斷，重試中…';
   }
 
   function updateTime() {
@@ -265,7 +247,7 @@
     var h = String(now.getHours()).padStart(2,'0');
     var m = String(now.getMinutes()).padStart(2,'0');
     var s = String(now.getSeconds()).padStart(2,'0');
-    document.getElementById('last-update').textContent = '最後更新：' + h + ':' + m + ':' + s;
+    document.getElementById('last-update').textContent = '最後更新 ' + h + ':' + m + ':' + s;
   }
 
   function ws_onmessage(e) {
@@ -276,8 +258,8 @@
         if (el && item.call_nums) {
           try {
             var nums = JSON.parse(item.call_nums);
-            var newVal = nums[0];
-            if (el.textContent !== String(newVal)) {
+            var newVal = String(nums[0]);
+            if (el.textContent !== newVal) {
               el.textContent = newVal;
               el.classList.remove('updated');
               void el.offsetWidth;
@@ -292,17 +274,16 @@
   }
 
   function wsQueryCaller() {
-    var msg = { type: "query", text: "3060,3061" };
-    ws_socket.send(JSON.stringify(msg));
+    ws_socket.send(JSON.stringify({ type: "query", text: "3060,3061" }));
   }
 
-  function ws_onopen(e) { wsQueryCaller(); }
-  function ws_onclose(e) { ws_socket = null; setStatus('error'); }
-  function ws_onerror(e) { ws_socket = null; setStatus('error'); }
+  function ws_onopen()  { wsQueryCaller(); }
+  function ws_onclose() { ws_socket = null; setStatus('error'); }
+  function ws_onerror() { ws_socket = null; setStatus('error'); }
 
   function chkWsSocket() {
     try {
-      if ((ws_socket === null) || (ws_socket.readyState === WS_CLOSED)) {
+      if (!ws_socket || ws_socket.readyState === WS_CLOSED) {
         ws_socket = new WebSocket("wss://www.mainpi.com/.ws_mainpi/?token=ykqk:824a0de7c09c45ee83b515e0d1c4fe87");
         ws_socket.onopen    = ws_onopen;
         ws_socket.onmessage = ws_onmessage;
@@ -313,11 +294,8 @@
   }
 
   function QueryCaller() {
-    if (ws_socket !== null && ws_socket.readyState === 1) {
-      wsQueryCaller();
-    } else {
-      chkWsSocket();
-    }
+    if (ws_socket && ws_socket.readyState === 1) wsQueryCaller();
+    else chkWsSocket();
   }
 
   QueryCaller();
