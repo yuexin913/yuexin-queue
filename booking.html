@@ -427,7 +427,7 @@
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbwoVLPow0Mc1qNMrfv6sQ6RnBFjUFIAjdKbTIkHd6i6OiaT_DZUSAi394TWl7jdu5lAnA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzFTU_FbVLHuZpWVR1GwrlwAMUIHJ-r_X_-mXGp-rHHbDSG4xfWAombrxmnVwNRQ0BWYA/exec";
 const LIFF_ID = "2009340533-JKP6Q8Qg";
 
 let state = {
@@ -552,6 +552,7 @@ function renderSlots() {
     document.getElementById("slotsContainer").innerHTML = '<div class="no-clinic">此日無門診</div>';
     return;
   }
+  const isNewPatient = state.type === "初診";
   const order = ["早上","下午","晚上"];
   let html = "";
   order.forEach(function(session) {
@@ -561,14 +562,21 @@ function renderSlots() {
     if (s.fullyBooked) {
       html += `<div class="fully-booked">此時段已額滿</div>`;
     } else {
-      html += '<div class="slots-grid">';
-      s.slots.forEach(function(slot) {
-        const isSelected = state.session === session && state.timeSlot === slot.time;
-        const cls = "slot-btn" + (!slot.available ? " unavailable" : "") + (isSelected ? " selected" : "");
-        const onclick = slot.available ? `onclick="selectSlot('${session}','${slot.time}','${s.doctor}')"` : "";
-        html += `<div class="${cls}" ${onclick}>${slot.time}</div>`;
-      });
-      html += '</div>';
+      // 初診用 newPatientSlots（每30分鐘），複診用 slots（每10分鐘）
+      const displaySlots = isNewPatient ? (s.newPatientSlots || []) : s.slots;
+      const hasAvailable = displaySlots.some(function(slot) { return slot.available; });
+      if (!hasAvailable) {
+        html += `<div class="fully-booked">此時段初診已額滿</div>`;
+      } else {
+        html += '<div class="slots-grid">';
+        displaySlots.forEach(function(slot) {
+          const isSelected = state.session === session && state.timeSlot === slot.time;
+          const cls = "slot-btn" + (!slot.available ? " unavailable" : "") + (isSelected ? " selected" : "");
+          const onclick = slot.available ? `onclick="selectSlot('${session}','${slot.time}','${s.doctor}')"` : "";
+          html += `<div class="${cls}" ${onclick}>${slot.time}</div>`;
+        });
+        html += '</div>';
+      }
     }
     html += '</div>';
   });
