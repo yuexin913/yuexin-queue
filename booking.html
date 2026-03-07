@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>悅心診所 線上預約</title>
+<title>悅心診所 線上服務</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500&display=swap');
@@ -22,7 +22,6 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
   body {
     font-family: 'Noto Sans TC', sans-serif;
     background: var(--bg);
@@ -36,369 +35,223 @@
     border-bottom: 1px solid var(--border);
     padding: 16px 20px;
     text-align: center;
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    position: sticky; top: 0; z-index: 10;
     box-shadow: var(--shadow);
   }
   .header h1 {
     font-family: 'Noto Serif TC', serif;
-    font-size: 18px;
-    font-weight: 500;
-    color: var(--green-dark);
-    letter-spacing: 2px;
+    font-size: 18px; font-weight: 500;
+    color: var(--green-dark); letter-spacing: 2px;
   }
-  .header p {
-    font-size: 12px;
-    color: var(--text-light);
-    margin-top: 2px;
-  }
+  .header p { font-size: 12px; color: var(--text-light); margin-top: 2px; }
 
   .container { max-width: 480px; margin: 0 auto; padding: 20px 16px; }
 
-  /* Steps */
   .steps {
-    display: flex;
-    justify-content: center;
-    gap: 0;
+    display: flex; justify-content: center; gap: 0;
     margin-bottom: 24px;
   }
   .step {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--text-light);
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-light);
   }
   .step-num {
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    background: var(--border);
-    color: var(--text-light);
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--border); color: var(--text-light);
     display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 500;
-    transition: all 0.3s;
+    font-size: 11px; font-weight: 500; transition: all 0.3s;
   }
-  .step.active .step-num {
-    background: var(--green);
-    color: white;
-  }
+  .step.active .step-num { background: var(--green); color: white; }
   .step.active { color: var(--green-dark); font-weight: 500; }
   .step.done .step-num { background: var(--green-dark); color: white; }
-  .step-line {
-    width: 24px; height: 1px;
-    background: var(--border);
-    margin: 0 4px;
-  }
+  .step-line { width: 24px; height: 1px; background: var(--border); margin: 0 4px; }
 
-  /* Card */
   .card {
-    background: var(--white);
-    border-radius: 16px;
-    padding: 24px 20px;
-    box-shadow: var(--shadow);
-    margin-bottom: 16px;
+    background: var(--white); border-radius: 16px;
+    padding: 24px 20px; box-shadow: var(--shadow); margin-bottom: 16px;
   }
   .card-title {
     font-family: 'Noto Serif TC', serif;
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--green-dark);
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    font-size: 16px; font-weight: 500; color: var(--green-dark);
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
   }
   .card-title::before {
-    content: '';
-    width: 3px; height: 16px;
-    background: var(--green);
-    border-radius: 2px;
+    content: ''; width: 3px; height: 16px;
+    background: var(--green); border-radius: 2px;
   }
 
-  /* Form */
   .form-group { margin-bottom: 16px; }
   label {
-    display: block;
-    font-size: 13px;
-    color: var(--text-light);
-    margin-bottom: 6px;
-    font-weight: 500;
+    display: block; font-size: 13px;
+    color: var(--text-light); margin-bottom: 6px; font-weight: 500;
   }
   label .required { color: var(--error); margin-left: 2px; }
 
-  input[type="text"],
-  input[type="tel"],
-  input[type="date"],
-  input[type="email"],
-  select, textarea {
-    width: 100%;
-    padding: 12px 14px;
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    font-size: 15px;
-    font-family: 'Noto Sans TC', sans-serif;
-    color: var(--text);
-    background: var(--white);
-    transition: border-color 0.2s;
-    outline: none;
-    appearance: none;
+  input[type="text"], input[type="tel"], input[type="date"] {
+    width: 100%; padding: 12px 14px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: 15px; font-family: 'Noto Sans TC', sans-serif;
+    color: var(--text); background: var(--white);
+    transition: border-color 0.2s; outline: none; appearance: none;
   }
-  input:focus, select:focus, textarea:focus {
-    border-color: var(--green);
-  }
-  textarea { min-height: 80px; resize: vertical; }
+  input:focus { border-color: var(--green); }
 
-  /* Type selector */
-  .type-selector {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  .type-btn {
-    padding: 14px;
+  /* 入口三選項 */
+  .entry-options { display: flex; flex-direction: column; gap: 12px; }
+  .entry-btn {
+    display: flex; align-items: center; gap: 16px;
+    padding: 20px 18px;
     border: 1.5px solid var(--border);
-    border-radius: 12px;
-    background: var(--white);
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.2s;
-    font-family: 'Noto Sans TC', sans-serif;
+    border-radius: 14px; background: var(--white);
+    cursor: pointer; transition: all 0.2s;
+    text-align: left;
   }
-  .type-btn .type-icon { font-size: 24px; display: block; margin-bottom: 4px; }
-  .type-btn .type-name { font-size: 15px; font-weight: 500; color: var(--text); }
-  .type-btn .type-desc { font-size: 11px; color: var(--text-light); margin-top: 2px; }
-  .type-btn.selected {
-    border-color: var(--green);
-    background: var(--green-light);
-  }
-  .type-btn.selected .type-name { color: var(--green-dark); }
+  .entry-btn:hover { border-color: var(--green); background: var(--green-light); transform: translateY(-1px); box-shadow: var(--shadow); }
+  .entry-icon { font-size: 28px; flex-shrink: 0; }
+  .entry-text .entry-title { font-size: 17px; font-weight: 500; color: var(--text); }
+  .entry-text .entry-desc { font-size: 12px; color: var(--text-light); margin-top: 3px; }
+  .entry-arrow { margin-left: auto; color: var(--border); font-size: 18px; }
 
-  /* Calendar */
-  .calendar {
-    width: 100%;
-  }
-  .cal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-  }
+  /* 日曆 */
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .cal-nav {
-    width: 32px; height: 32px;
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    background: var(--white);
-    cursor: pointer;
-    font-size: 14px;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--text-light);
-    transition: all 0.2s;
+    width: 32px; height: 32px; border: 1.5px solid var(--border);
+    border-radius: 8px; background: var(--white); cursor: pointer;
+    font-size: 14px; display: flex; align-items: center; justify-content: center;
+    color: var(--text-light); transition: all 0.2s;
   }
   .cal-nav:hover { border-color: var(--green); color: var(--green-dark); }
   .cal-title { font-size: 15px; font-weight: 500; color: var(--text); }
   .cal-weekdays {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    text-align: center;
-    font-size: 11px;
-    color: var(--text-light);
-    margin-bottom: 8px;
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    text-align: center; font-size: 11px; color: var(--text-light); margin-bottom: 8px;
   }
-  .cal-days {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-  }
+  .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
   .cal-day {
-    aspect-ratio: 1;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
     border: 1.5px solid transparent;
   }
-  .cal-day:hover:not(.disabled):not(.empty) {
-    background: var(--green-light);
-    border-color: var(--green);
-  }
-  .cal-day.selected {
-    background: var(--green);
-    color: white;
-    font-weight: 500;
-  }
+  .cal-day:hover:not(.disabled):not(.empty) { background: var(--green-light); border-color: var(--green); }
+  .cal-day.selected { background: var(--green); color: white; font-weight: 500; }
   .cal-day.disabled { color: #ccc; cursor: not-allowed; }
   .cal-day.today { font-weight: 600; color: var(--green-dark); }
   .cal-day.empty { cursor: default; }
 
-  /* Session slots */
+  /* 時段 */
   .session-block { margin-bottom: 16px; }
   .session-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 12px;
-    background: var(--green-light);
-    border-radius: 10px 10px 0 0;
-    border: 1.5px solid var(--border);
-    border-bottom: none;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; background: var(--green-light);
+    border-radius: 10px 10px 0 0; border: 1.5px solid var(--border); border-bottom: none;
   }
   .session-name { font-size: 14px; font-weight: 500; color: var(--green-dark); }
   .session-info { font-size: 11px; color: var(--text-light); }
   .session-doctor { font-size: 12px; color: var(--green-dark); font-weight: 500; }
   .slots-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    padding: 12px;
-    border: 1.5px solid var(--border);
-    border-radius: 0 0 10px 10px;
-    background: var(--white);
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+    padding: 12px; border: 1.5px solid var(--border);
+    border-radius: 0 0 10px 10px; background: var(--white);
   }
   .slot-btn {
-    padding: 8px 4px;
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    background: var(--white);
-    font-size: 12px;
-    font-family: 'Noto Sans TC', sans-serif;
-    color: var(--text);
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.2s;
+    padding: 8px 4px; border: 1.5px solid var(--border);
+    border-radius: 8px; background: var(--white);
+    font-size: 12px; font-family: 'Noto Sans TC', sans-serif;
+    color: var(--text); cursor: pointer; text-align: center; transition: all 0.2s;
   }
-  .slot-btn:hover:not(.unavailable) {
-    border-color: var(--green);
-    background: var(--green-light);
-  }
-  .slot-btn.selected {
-    background: var(--green);
-    border-color: var(--green);
-    color: white;
-    font-weight: 500;
-  }
-  .slot-btn.unavailable {
-    background: #f5f5f5;
-    color: #ccc;
-    cursor: not-allowed;
-    text-decoration: line-through;
-  }
+  .slot-btn:hover:not(.unavailable) { border-color: var(--green); background: var(--green-light); }
+  .slot-btn.selected { background: var(--green); border-color: var(--green); color: white; font-weight: 500; }
+  .slot-btn.unavailable { background: #f5f5f5; color: #ccc; cursor: not-allowed; text-decoration: line-through; }
   .fully-booked {
-    text-align: center;
-    padding: 16px;
-    color: var(--text-light);
-    font-size: 13px;
-    border: 1.5px solid var(--border);
-    border-radius: 0 0 10px 10px;
-    background: #fafafa;
+    text-align: center; padding: 16px; color: var(--text-light); font-size: 13px;
+    border: 1.5px solid var(--border); border-radius: 0 0 10px 10px; background: #fafafa;
   }
 
-  /* Button */
   .btn {
-    width: 100%;
-    padding: 16px;
-    border: none;
-    border-radius: 12px;
-    font-size: 16px;
-    font-family: 'Noto Sans TC', sans-serif;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 1px;
+    width: 100%; padding: 16px; border: none; border-radius: 12px;
+    font-size: 16px; font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 500; cursor: pointer; transition: all 0.2s;
+    letter-spacing: 1px; margin-bottom: 10px;
   }
-  .btn-primary {
-    background: var(--green);
-    color: white;
-  }
+  .btn-primary { background: var(--green); color: white; }
   .btn-primary:hover { background: var(--green-dark); }
   .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
-  .btn-outline {
-    background: white;
-    color: var(--green-dark);
-    border: 1.5px solid var(--green);
-    margin-bottom: 10px;
-  }
+  .btn-outline { background: white; color: var(--green-dark); border: 1.5px solid var(--green); }
+  .btn-danger { background: white; color: var(--error); border: 1.5px solid var(--error); }
+  .btn-danger:hover { background: #fdf0ef; }
 
-  /* Alert */
   .alert {
-    padding: 12px 14px;
-    border-radius: 10px;
-    font-size: 13px;
-    margin-bottom: 16px;
-    line-height: 1.5;
+    padding: 12px 14px; border-radius: 10px;
+    font-size: 13px; margin-bottom: 16px; line-height: 1.5;
   }
   .alert-error { background: #fdf0ef; color: var(--error); border: 1px solid #f5c6c2; }
   .alert-info { background: var(--green-light); color: var(--green-dark); border: 1px solid var(--border); }
   .alert-warn { background: #fef9e7; color: #856404; border: 1px solid #ffeaa7; }
 
-  /* Summary */
   .summary-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 14px;
+    display: flex; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px;
   }
   .summary-row:last-child { border-bottom: none; }
   .summary-label { color: var(--text-light); }
   .summary-value { font-weight: 500; color: var(--text); }
 
-  /* Success */
   .success-icon {
-    width: 64px; height: 64px;
-    border-radius: 50%;
+    width: 64px; height: 64px; border-radius: 50%;
     background: var(--green-light);
     display: flex; align-items: center; justify-content: center;
-    font-size: 28px;
-    margin: 0 auto 16px;
+    font-size: 28px; margin: 0 auto 16px;
   }
   .success-title {
     font-family: 'Noto Serif TC', serif;
-    font-size: 20px;
-    font-weight: 500;
-    color: var(--green-dark);
-    text-align: center;
-    margin-bottom: 8px;
+    font-size: 20px; font-weight: 500; color: var(--green-dark);
+    text-align: center; margin-bottom: 8px;
   }
   .success-sub {
-    text-align: center;
-    font-size: 13px;
-    color: var(--text-light);
-    line-height: 1.6;
-    margin-bottom: 24px;
+    text-align: center; font-size: 13px;
+    color: var(--text-light); line-height: 1.6; margin-bottom: 24px;
   }
 
-  /* Loading */
+  /* 預約列表 */
+  .booking-item {
+    border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 10px; background: var(--white);
+  }
+  .booking-item-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+  }
+  .booking-date { font-size: 15px; font-weight: 500; color: var(--text); }
+  .booking-status {
+    font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 500;
+  }
+  .status-pending { background: #fef9e7; color: #856404; }
+  .status-confirmed { background: var(--green-light); color: var(--green-dark); }
+  .status-cancelled { background: #f5f5f5; color: #999; }
+  .booking-detail { font-size: 13px; color: var(--text-light); line-height: 1.8; }
+  .booking-cancel {
+    margin-top: 10px; padding: 8px; width: 100%;
+    border: 1px solid var(--error); border-radius: 8px;
+    background: white; color: var(--error); font-size: 13px;
+    font-family: 'Noto Sans TC', sans-serif; cursor: pointer; transition: all 0.2s;
+  }
+  .booking-cancel:hover { background: #fdf0ef; }
+
   .loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    color: var(--text-light);
-    font-size: 14px;
-    gap: 10px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px; color: var(--text-light); font-size: 14px; gap: 10px;
   }
   .spinner {
-    width: 20px; height: 20px;
-    border: 2px solid var(--border);
-    border-top-color: var(--green);
-    border-radius: 50%;
+    width: 20px; height: 20px; border: 2px solid var(--border);
+    border-top-color: var(--green); border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .no-clinic {
-    text-align: center;
-    padding: 20px;
-    color: var(--text-light);
-    font-size: 13px;
-    background: #fafafa;
-    border-radius: 10px;
-    border: 1.5px solid var(--border);
+    text-align: center; padding: 20px; color: var(--text-light);
+    font-size: 13px; background: #fafafa; border-radius: 10px; border: 1.5px solid var(--border);
   }
 
-  /* Page visibility */
   .page { display: none; }
   .page.active { display: block; }
 </style>
@@ -407,37 +260,56 @@
 
 <div class="header">
   <h1>悅心診所</h1>
-  <p>線上預約掛號</p>
+  <p id="headerSub">線上服務</p>
 </div>
 
 <div class="container">
-  <!-- Steps -->
-  <div class="steps" id="stepsBar">
-    <div class="step active" id="step1"><div class="step-num">1</div><span>基本資料</span></div>
-    <div class="step-line"></div>
-    <div class="step" id="step2"><div class="step-num">2</div><span>選擇時間</span></div>
-    <div class="step-line"></div>
-    <div class="step" id="step3"><div class="step-num">3</div><span>確認送出</span></div>
-  </div>
 
-  <!-- Page 1: 基本資料 -->
-  <div class="page active" id="page1">
-    <div class="card">
-      <div class="card-title">就診類型</div>
-      <div class="type-selector">
-        <div class="type-btn selected" id="btnFuZhen" onclick="selectType('複診')">
-          <span class="type-icon">🔄</span>
-          <div class="type-name">複診</div>
-          <div class="type-desc">曾在本院看診</div>
+  <!-- 入口頁 -->
+  <div class="page active" id="pageEntry">
+    <div class="card" style="margin-top:8px">
+      <div class="card-title">請選擇服務</div>
+      <div class="entry-options">
+        <div class="entry-btn" onclick="startBooking('複診')">
+          <div class="entry-icon">🔄</div>
+          <div class="entry-text">
+            <div class="entry-title">複診預約</div>
+            <div class="entry-desc">曾在本院看診的患者</div>
+          </div>
+          <div class="entry-arrow">›</div>
         </div>
-        <div class="type-btn" id="btnChuZhen" onclick="selectType('初診')">
-          <span class="type-icon">🌱</span>
-          <div class="type-name">初診</div>
-          <div class="type-desc">首次來診</div>
+        <div class="entry-btn" onclick="startBooking('初診')">
+          <div class="entry-icon">🌱</div>
+          <div class="entry-text">
+            <div class="entry-title">初診預約</div>
+            <div class="entry-desc">首次來診，需填寫初診資料</div>
+          </div>
+          <div class="entry-arrow">›</div>
+        </div>
+        <div class="entry-btn" onclick="startQuery()">
+          <div class="entry-icon">🔍</div>
+          <div class="entry-text">
+            <div class="entry-title">查詢／取消預約</div>
+            <div class="entry-desc">查看或取消已預約的門診</div>
+          </div>
+          <div class="entry-arrow">›</div>
         </div>
       </div>
     </div>
+    <div class="alert alert-info" style="font-size:12px">
+      📞 如需協助請來電：<strong>07-363-1313</strong>
+    </div>
+  </div>
 
+  <!-- 預約：基本資料 -->
+  <div class="page" id="pageInfo">
+    <div class="steps" id="stepsBar">
+      <div class="step active" id="step1"><div class="step-num">1</div><span>基本資料</span></div>
+      <div class="step-line"></div>
+      <div class="step" id="step2"><div class="step-num">2</div><span>選擇時間</span></div>
+      <div class="step-line"></div>
+      <div class="step" id="step3"><div class="step-num">3</div><span>確認送出</span></div>
+    </div>
     <div class="card">
       <div class="card-title">基本資料</div>
       <div class="form-group">
@@ -453,98 +325,120 @@
         <input type="date" id="inputBirth">
       </div>
     </div>
-
     <div id="errorPage1" class="alert alert-error" style="display:none"></div>
-    <button class="btn btn-primary" onclick="goToPage2()">下一步：選擇時間 →</button>
+    <button class="btn btn-outline" onclick="goToEntry()">← 返回</button>
+    <button class="btn btn-primary" onclick="goToPageTime()">下一步：選擇時間 →</button>
   </div>
 
-  <!-- Page 2: 選擇時間 -->
-  <div class="page" id="page2">
+  <!-- 預約：選擇時間 -->
+  <div class="page" id="pageTime">
+    <div class="steps">
+      <div class="step done" id="step1b"><div class="step-num">1</div><span>基本資料</span></div>
+      <div class="step-line"></div>
+      <div class="step active" id="step2b"><div class="step-num">2</div><span>選擇時間</span></div>
+      <div class="step-line"></div>
+      <div class="step" id="step3b"><div class="step-num">3</div><span>確認送出</span></div>
+    </div>
     <div class="card">
       <div class="card-title">選擇日期</div>
-      <div class="calendar">
-        <div class="cal-header">
-          <button class="cal-nav" onclick="changeMonth(-1)">‹</button>
-          <div class="cal-title" id="calTitle"></div>
-          <button class="cal-nav" onclick="changeMonth(1)">›</button>
-        </div>
-        <div class="cal-weekdays">
-          <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
-        </div>
-        <div class="cal-days" id="calDays"></div>
+      <div class="cal-header">
+        <button class="cal-nav" onclick="changeMonth(-1)">‹</button>
+        <div class="cal-title" id="calTitle"></div>
+        <button class="cal-nav" onclick="changeMonth(1)">›</button>
       </div>
+      <div class="cal-weekdays">
+        <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+      </div>
+      <div class="cal-days" id="calDays"></div>
     </div>
-
-    <div id="slotsContainer">
-      <div class="no-clinic">請先選擇日期</div>
-    </div>
-
+    <div id="slotsContainer"><div class="no-clinic">請先選擇日期</div></div>
     <div id="errorPage2" class="alert alert-error" style="display:none"></div>
-    <button class="btn btn-outline" onclick="goToPage1()">← 返回</button>
-    <button class="btn btn-primary" onclick="goToPage3()">下一步：確認預約 →</button>
+    <button class="btn btn-outline" onclick="showPage('pageInfo')">← 返回</button>
+    <button class="btn btn-primary" onclick="goToConfirm()">下一步：確認預約 →</button>
   </div>
 
-  <!-- Page 3: 確認送出 -->
-  <div class="page" id="page3">
+  <!-- 預約：確認送出 -->
+  <div class="page" id="pageConfirm">
+    <div class="steps">
+      <div class="step done"><div class="step-num">1</div><span>基本資料</span></div>
+      <div class="step-line"></div>
+      <div class="step done"><div class="step-num">2</div><span>選擇時間</span></div>
+      <div class="step-line"></div>
+      <div class="step active"><div class="step-num">3</div><span>確認送出</span></div>
+    </div>
     <div class="card">
       <div class="card-title">確認預約資料</div>
       <div id="summaryContent"></div>
     </div>
-
-    <div class="alert alert-warn" style="font-size:13px">
-      ⚠️ 送出後請等待工作人員確認，確認後您將收到 LINE 通知。
-    </div>
-
+    <div class="alert alert-warn">⚠️ 送出後請等待工作人員確認，確認後您將收到 LINE 通知。</div>
     <div id="errorPage3" class="alert alert-error" style="display:none"></div>
-    <button class="btn btn-outline" onclick="goToPage2()">← 返回修改</button>
+    <button class="btn btn-outline" onclick="showPage('pageTime')">← 返回修改</button>
     <button class="btn btn-primary" id="btnSubmit" onclick="submitBooking()">確認送出預約</button>
   </div>
 
-  <!-- Page 4: 成功 -->
-  <div class="page" id="page4">
+  <!-- 預約成功 -->
+  <div class="page" id="pageSuccess">
     <div class="card" style="text-align:center;padding:32px 20px">
       <div class="success-icon">✅</div>
       <div class="success-title">預約申請完成！</div>
       <div class="success-sub">
-        您的預約申請已送出<br>
-        待工作人員確認後將以 LINE 通知您<br><br>
+        您的預約申請已送出<br>待工作人員確認後將以 LINE 通知您<br><br>
         <strong id="bookingIdDisplay"></strong>
       </div>
       <div id="newPatientNotice"></div>
     </div>
-    <div class="alert alert-info">
-      📞 如需取消或更改，請於門診時間來電：<strong>07-363-1313</strong>
+    <div class="alert alert-info">📞 如需取消或更改，請於門診時間來電：<strong>07-363-1313</strong></div>
+    <button class="btn btn-outline" onclick="goToEntry()">返回首頁</button>
+  </div>
+
+  <!-- 查詢：輸入驗證 -->
+  <div class="page" id="pageQuery">
+    <div class="card">
+      <div class="card-title">查詢預約</div>
+      <div class="alert alert-info" style="margin-bottom:16px">請輸入預約時填寫的資料進行驗證</div>
+      <div class="form-group">
+        <label>姓名 <span class="required">*</span></label>
+        <input type="text" id="queryName" placeholder="請輸入姓名">
+      </div>
+      <div class="form-group">
+        <label>電話 <span class="required">*</span></label>
+        <input type="tel" id="queryPhone" placeholder="09xxxxxxxx">
+      </div>
+      <div class="form-group">
+        <label>生日 <span class="required">*</span></label>
+        <input type="date" id="queryBirth">
+      </div>
     </div>
+    <div id="errorQuery" class="alert alert-error" style="display:none"></div>
+    <button class="btn btn-outline" onclick="goToEntry()">← 返回</button>
+    <button class="btn btn-primary" id="btnQuery" onclick="queryBookings()">查詢我的預約</button>
+  </div>
+
+  <!-- 查詢結果 -->
+  <div class="page" id="pageQueryResult">
+    <div class="card">
+      <div class="card-title">我的預約</div>
+      <div id="bookingList"></div>
+    </div>
+    <button class="btn btn-outline" onclick="showPage('pageQuery')">← 重新查詢</button>
+    <button class="btn btn-outline" onclick="goToEntry()">返回首頁</button>
   </div>
 
 </div>
 
 <script>
-// ===================================
-// 設定
-// ===================================
-const API_URL = "https://script.google.com/macros/s/AKfycbzqJiOwHNDVsF4soEoOETyIcihETJxhsaZ2rNGKHz2sL9hBLDogYPmEXwf9Lc0-EnEDOg/exec"; // 部署後填入
-const LIFF_ID = "2009340533-JKP6Q8Qg"; // 現有LIFF ID或新建
+const API_URL = "https://script.google.com/macros/s/AKfycby_Iv5MEObrHGwf4d2nEh1wTNFvT5_3scX2h1n1lbjfwZXrgdk38omLRY_7qQkke8_Pgw/exec";
+const LIFF_ID = "2009340533-JKP6Q8Qg";
 
-// ===================================
-// 狀態
-// ===================================
 let state = {
   lineId: null,
-  lineDisplayName: null,
-  type: "複診",
-  name: "",
-  phone: "",
-  birth: "",
-  date: null,
-  session: null,
-  timeSlot: null,
-  doctor: null,
+  type: "",
+  name: "", phone: "", birth: "",
+  date: null, session: null, timeSlot: null, doctor: null,
   bookingId: null,
   calYear: new Date().getFullYear(),
   calMonth: new Date().getMonth(),
-  slotsData: null,
-  loading: false
+  slotsData: null
 };
 
 // ===================================
@@ -553,53 +447,47 @@ let state = {
 async function initLiff() {
   try {
     await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) {
-      liff.login();
-      return;
-    }
+    if (!liff.isLoggedIn()) { liff.login(); return; }
     const profile = await liff.getProfile();
     state.lineId = profile.userId;
-    state.lineDisplayName = profile.displayName;
   } catch(e) {
-    console.error("LIFF init failed:", e);
-    // 開發模式：允許無LINE ID測試
     state.lineId = "test_user";
   }
 }
 
 // ===================================
-// 就診類型
+// 入口
 // ===================================
-function selectType(type) {
+function goToEntry() {
+  document.getElementById("headerSub").textContent = "線上服務";
+  showPage("pageEntry");
+}
+
+function startBooking(type) {
   state.type = type;
-  document.getElementById("btnFuZhen").classList.toggle("selected", type === "複診");
-  document.getElementById("btnChuZhen").classList.toggle("selected", type === "初診");
+  state.date = null; state.session = null; state.timeSlot = null;
+  document.getElementById("headerSub").textContent = type + "預約";
+  showPage("pageInfo");
+}
+
+function startQuery() {
+  document.getElementById("headerSub").textContent = "查詢／取消預約";
+  showPage("pageQuery");
 }
 
 // ===================================
-// Page 1 → 2
+// 基本資料 → 時間
 // ===================================
-function goToPage1() {
-  showPage("page1");
-  updateSteps(1);
-}
-
-async function goToPage2() {
+async function goToPageTime() {
   const name = document.getElementById("inputName").value.trim();
   const phone = document.getElementById("inputPhone").value.trim();
   const birth = document.getElementById("inputBirth").value;
-
   if (!name) return showError("errorPage1", "請輸入姓名");
   if (!phone || !/^09\d{8}$/.test(phone)) return showError("errorPage1", "請輸入正確的手機號碼");
   if (!birth) return showError("errorPage1", "請選擇生日");
-
   hideError("errorPage1");
-  state.name = name;
-  state.phone = phone;
-  state.birth = birth;
-
-  showPage("page2");
-  updateSteps(2);
+  state.name = name; state.phone = phone; state.birth = birth;
+  showPage("pageTime");
   renderCalendar();
 }
 
@@ -607,41 +495,23 @@ async function goToPage2() {
 // 日曆
 // ===================================
 function renderCalendar() {
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const minDate = new Date(today);
-  minDate.setDate(today.getDate() + 1);
-  const maxDate = new Date(today);
-  maxDate.setDate(today.getDate() + 30);
-
-  const year = state.calYear;
-  const month = state.calMonth;
-
-  document.getElementById("calTitle").textContent =
-    year + " 年 " + (month + 1) + " 月";
-
+  const today = new Date(); today.setHours(0,0,0,0);
+  const minDate = new Date(today); minDate.setDate(today.getDate() + 1);
+  const maxDate = new Date(today); maxDate.setDate(today.getDate() + 30);
+  const year = state.calYear; const month = state.calMonth;
+  document.getElementById("calTitle").textContent = year + " 年 " + (month + 1) + " 月";
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-
   let html = "";
-  for (let i = 0; i < firstDay; i++) {
-    html += '<div class="cal-day empty"></div>';
-  }
+  for (let i = 0; i < firstDay; i++) html += '<div class="cal-day empty"></div>';
   for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month, d);
-    date.setHours(0,0,0,0);
-    const dow = date.getDay();
-    const isSunday = dow === 0;
+    const date = new Date(year, month, d); date.setHours(0,0,0,0);
+    const isSunday = date.getDay() === 0;
     const isDisabled = date < minDate || date > maxDate || isSunday;
     const isToday = date.getTime() === today.getTime();
     const dateStr = formatDateStr(date);
     const isSelected = state.date === dateStr;
-
-    let cls = "cal-day";
-    if (isDisabled) cls += " disabled";
-    if (isToday) cls += " today";
-    if (isSelected) cls += " selected";
-
+    let cls = "cal-day" + (isDisabled ? " disabled" : "") + (isToday ? " today" : "") + (isSelected ? " selected" : "");
     const onclick = isDisabled ? "" : `onclick="selectDate('${dateStr}')"`;
     html += `<div class="${cls}" ${onclick}>${d}</div>`;
   }
@@ -656,56 +526,38 @@ function changeMonth(delta) {
 }
 
 async function selectDate(dateStr) {
-  state.date = dateStr;
-  state.session = null;
-  state.timeSlot = null;
-  state.doctor = null;
+  state.date = dateStr; state.session = null; state.timeSlot = null; state.doctor = null;
   renderCalendar();
   await loadSlots(dateStr);
 }
 
 // ===================================
-// 載入時間格
+// 時間格
 // ===================================
 async function loadSlots(dateStr) {
-  document.getElementById("slotsContainer").innerHTML =
-    '<div class="loading"><div class="spinner"></div>載入中...</div>';
-
+  document.getElementById("slotsContainer").innerHTML = '<div class="loading"><div class="spinner"></div>載入中...</div>';
   try {
     const data = await xhrGet(`${API_URL}?action=getAvailableSlots&date=${dateStr.replace(/\//g,'')}`);
-
     if (!data.success) throw new Error(data.error);
     state.slotsData = data.sessions;
     renderSlots();
   } catch(e) {
-    document.getElementById("slotsContainer").innerHTML =
-      '<div class="alert alert-error">載入失敗，請重試</div>';
+    document.getElementById("slotsContainer").innerHTML = '<div class="alert alert-error">載入失敗，請重試</div>';
   }
 }
 
 function renderSlots() {
   const sessions = state.slotsData;
   if (!sessions || Object.keys(sessions).length === 0) {
-    document.getElementById("slotsContainer").innerHTML =
-      '<div class="no-clinic">此日無門診</div>';
+    document.getElementById("slotsContainer").innerHTML = '<div class="no-clinic">此日無門診</div>';
     return;
   }
-
   const order = ["早上","下午","晚上"];
   let html = "";
-
   order.forEach(function(session) {
     if (!sessions[session]) return;
     const s = sessions[session];
-    html += `<div class="session-block">
-      <div class="session-header">
-        <div>
-          <div class="session-name">${session}</div>
-          <div class="session-info">${s.time}</div>
-        </div>
-        <div class="session-doctor">${s.doctor}</div>
-      </div>`;
-
+    html += `<div class="session-block"><div class="session-header"><div><div class="session-name">${session}</div><div class="session-info">${s.time}</div></div><div class="session-doctor">${s.doctor}</div></div>`;
     if (s.fullyBooked) {
       html += `<div class="fully-booked">此時段已額滿</div>`;
     } else {
@@ -713,53 +565,37 @@ function renderSlots() {
       s.slots.forEach(function(slot) {
         const isSelected = state.session === session && state.timeSlot === slot.time;
         const cls = "slot-btn" + (!slot.available ? " unavailable" : "") + (isSelected ? " selected" : "");
-        const onclick = slot.available ? `onclick="selectSlot('${session}', '${slot.time}', '${s.doctor}')"` : "";
+        const onclick = slot.available ? `onclick="selectSlot('${session}','${slot.time}','${s.doctor}')"` : "";
         html += `<div class="${cls}" ${onclick}>${slot.time}</div>`;
       });
       html += '</div>';
     }
     html += '</div>';
   });
-
   document.getElementById("slotsContainer").innerHTML = html;
 }
 
 function selectSlot(session, time, doctor) {
-  state.session = session;
-  state.timeSlot = time;
-  state.doctor = doctor;
+  state.session = session; state.timeSlot = time; state.doctor = doctor;
   renderSlots();
 }
 
 // ===================================
-// Page 2 → 3
+// 確認頁
 // ===================================
-async function goToPage3() {
+async function goToConfirm() {
   if (!state.date) return showError("errorPage2", "請選擇日期");
   if (!state.session || !state.timeSlot) return showError("errorPage2", "請選擇時間格");
-
   hideError("errorPage2");
-
-  // 檢查預約限制
   try {
     const dateCode = state.date.replace(/\//g,'');
     const data = await xhrGet(`${API_URL}?action=checkLimit&lineId=${state.lineId}&date=${dateCode}`);
+    if (data.sameDayExceeded) return showError("errorPage2", "您當天已有預約，如需更改請取消原預約後再重新預約。若需加掛門診，請於門診時間聯繫診所，由工作人員協助。");
+    if (data.sameWeekExceeded) return showError("errorPage2", "您本週預約已達上限。若需加掛門診，請於門診時間聯繫診所，由工作人員協助。");
+  } catch(e) { return showError("errorPage2", "驗證失敗，請重試"); }
 
-    if (data.sameDayExceeded) {
-      return showError("errorPage2", "您當天已有預約，如需更改請取消原預約後再重新預約。若需加掛門診，請於門診時間聯繫診所，由工作人員協助。");
-    }
-    if (data.sameWeekExceeded) {
-      return showError("errorPage2", "您本週預約已達上限。若需加掛門診，請於門診時間聯繫診所，由工作人員協助。");
-    }
-  } catch(e) {
-    return showError("errorPage2", "驗證失敗，請重試");
-  }
-
-  // 渲染摘要
-  const dateObj = new Date(state.date);
   const weekdays = ["日","一","二","三","四","五","六"];
-  const weekday = weekdays[dateObj.getDay()];
-
+  const weekday = weekdays[new Date(state.date).getDay()];
   document.getElementById("summaryContent").innerHTML = `
     <div class="summary-row"><span class="summary-label">就診類型</span><span class="summary-value">${state.type}</span></div>
     <div class="summary-row"><span class="summary-label">姓名</span><span class="summary-value">${state.name}</span></div>
@@ -767,11 +603,8 @@ async function goToPage3() {
     <div class="summary-row"><span class="summary-label">生日</span><span class="summary-value">${state.birth}</span></div>
     <div class="summary-row"><span class="summary-label">預約日期</span><span class="summary-value">${state.date}（週${weekday}）</span></div>
     <div class="summary-row"><span class="summary-label">時段</span><span class="summary-value">${state.session} ${state.timeSlot}</span></div>
-    <div class="summary-row"><span class="summary-label">醫師</span><span class="summary-value">${state.doctor}</span></div>
-  `;
-
-  showPage("page3");
-  updateSteps(3);
+    <div class="summary-row"><span class="summary-label">醫師</span><span class="summary-value">${state.doctor}</span></div>`;
+  showPage("pageConfirm");
 }
 
 // ===================================
@@ -779,61 +612,104 @@ async function goToPage3() {
 // ===================================
 async function submitBooking() {
   const btn = document.getElementById("btnSubmit");
-  btn.disabled = true;
-  btn.textContent = "送出中...";
-
+  btn.disabled = true; btn.textContent = "送出中...";
   try {
-    const bookingData = {
-      action: "submitBooking",
-      lineId: state.lineId,
-      name: encodeURIComponent(state.name),
-      phone: state.phone,
-      birth: state.birth,
-      date: state.date.replace(/\//g,''),
-      session: encodeURIComponent(state.session),
-      timeSlot: state.timeSlot,
-      type: encodeURIComponent(state.type)
-    };
-    const queryString = Object.entries(bookingData).map(([k,v]) => k+"="+v).join("&");
-    const data = await xhrGet(API_URL + "?" + queryString);
+    const data = await xhrGet(`${API_URL}?action=submitBooking&lineId=${state.lineId}&name=${encodeURIComponent(state.name)}&phone=${state.phone}&birth=${state.birth}&date=${state.date.replace(/\//g,'')}&session=${encodeURIComponent(state.session)}&timeSlot=${state.timeSlot}&type=${encodeURIComponent(state.type)}`);
     if (!data.success) throw new Error(data.error);
-
     state.bookingId = data.bookingId;
     document.getElementById("bookingIdDisplay").textContent = "預約編號：" + data.bookingId;
-
     if (state.type === "初診") {
       document.getElementById("newPatientNotice").innerHTML =
-        '<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 初診患者請繼續填寫初診資料，以便醫師準備。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px">填寫初診資料 →</button></div>';
+        `<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 初診患者請繼續填寫初診資料，以便醫師準備。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px">填寫初診資料 →</button></div>`;
     }
-
-    showPage("page4");
+    showPage("pageSuccess");
   } catch(e) {
     showError("errorPage3", "送出失敗，請重試或電話預約：07-363-1313");
-    btn.disabled = false;
-    btn.textContent = "確認送出預約";
+    btn.disabled = false; btn.textContent = "確認送出預約";
   }
 }
 
-// ===================================
-// 初診表單跳轉
-// ===================================
 function goToNewPatientForm() {
-  const params = new URLSearchParams({
-    bookingId: state.bookingId,
-    name: state.name,
-    lineId: state.lineId
-  });
+  const params = new URLSearchParams({ bookingId: state.bookingId, name: state.name, lineId: state.lineId });
   window.location.href = "new-patient.html?" + params.toString();
 }
 
 // ===================================
-// 工具函式
+// 查詢預約
+// ===================================
+async function queryBookings() {
+  const name = document.getElementById("queryName").value.trim();
+  const phone = document.getElementById("queryPhone").value.trim();
+  const birth = document.getElementById("queryBirth").value;
+  if (!name) return showError("errorQuery", "請輸入姓名");
+  if (!phone) return showError("errorQuery", "請輸入電話");
+  if (!birth) return showError("errorQuery", "請選擇生日");
+  hideError("errorQuery");
+
+  const btn = document.getElementById("btnQuery");
+  btn.disabled = true; btn.textContent = "查詢中...";
+
+  try {
+    const data = await xhrGet(`${API_URL}?action=queryBookings&name=${encodeURIComponent(name)}&phone=${phone}&birth=${birth}`);
+    if (!data.success) throw new Error(data.error);
+    if (!data.found) {
+      showError("errorQuery", "查無符合的預約資料，請確認姓名、電話、生日是否正確。");
+      btn.disabled = false; btn.textContent = "查詢我的預約";
+      return;
+    }
+    renderBookingList(data.bookings);
+    showPage("pageQueryResult");
+  } catch(e) {
+    showError("errorQuery", "查詢失敗，請重試");
+  }
+  btn.disabled = false; btn.textContent = "查詢我的預約";
+}
+
+function renderBookingList(bookings) {
+  if (!bookings || bookings.length === 0) {
+    document.getElementById("bookingList").innerHTML = '<div class="no-clinic">目前沒有預約記錄</div>';
+    return;
+  }
+  const statusMap = { "待確認": "status-pending", "已確認": "status-confirmed", "已取消": "status-cancelled" };
+  let html = "";
+  bookings.forEach(function(b) {
+    const statusCls = statusMap[b.status] || "status-pending";
+    const canCancel = b.status !== "已取消";
+    html += `<div class="booking-item">
+      <div class="booking-item-header">
+        <div class="booking-date">${b.date} ${b.session}</div>
+        <div class="booking-status ${statusCls}">${b.status}</div>
+      </div>
+      <div class="booking-detail">
+        時間：${b.timeSlot}　醫師：${b.doctor || "-"}　類型：${b.type}<br>
+        預約編號：${b.bookingId}
+      </div>
+      ${canCancel ? `<button class="booking-cancel" onclick="cancelBooking('${b.bookingId}', this)">取消此預約</button>` : ""}
+    </div>`;
+  });
+  document.getElementById("bookingList").innerHTML = html;
+}
+
+async function cancelBooking(bookingId, btn) {
+  if (!confirm("確定要取消此預約嗎？")) return;
+  btn.disabled = true; btn.textContent = "取消中...";
+  try {
+    const data = await xhrGet(`${API_URL}?action=cancelBooking&bookingId=${bookingId}&lineId=${state.lineId}`);
+    if (!data.success) throw new Error(data.error);
+    btn.closest(".booking-item").querySelector(".booking-status").textContent = "已取消";
+    btn.closest(".booking-item").querySelector(".booking-status").className = "booking-status status-cancelled";
+    btn.remove();
+  } catch(e) {
+    btn.disabled = false; btn.textContent = "取消此預約";
+    alert("取消失敗，請重試或來電：07-363-1313");
+  }
+}
+
+// ===================================
+// 工具
 // ===================================
 function formatDateStr(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth()+1).padStart(2,'0');
-  const d = String(date.getDate()).padStart(2,'0');
-  return `${y}/${m}/${d}`;
+  return date.getFullYear() + "/" + String(date.getMonth()+1).padStart(2,'0') + "/" + String(date.getDate()).padStart(2,'0');
 }
 
 function showPage(id) {
@@ -842,43 +718,25 @@ function showPage(id) {
   window.scrollTo(0, 0);
 }
 
-function updateSteps(active) {
-  [1,2,3].forEach(function(i) {
-    const el = document.getElementById("step" + i);
-    el.classList.remove("active","done");
-    if (i < active) el.classList.add("done");
-    else if (i === active) el.classList.add("active");
-  });
-  document.getElementById("stepsBar").style.display = active === 4 ? "none" : "flex";
-}
-
 function showError(id, msg) {
   const el = document.getElementById(id);
-  el.textContent = msg;
-  el.style.display = "block";
+  el.textContent = msg; el.style.display = "block";
 }
-function hideError(id) {
-  document.getElementById(id).style.display = "none";
-}
+function hideError(id) { document.getElementById(id).style.display = "none"; }
 
-// XHR helper（LINE瀏覽器相容）
 function xhrGet(url) {
   return new Promise(function(resolve, reject) {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
     xhr.onload = function() {
-      try {
-        resolve(JSON.parse(xhr.responseText));
-      } catch(e) {
-        reject(e);
-      }
+      try { resolve(JSON.parse(xhr.responseText)); }
+      catch(e) { reject(e); }
     };
     xhr.onerror = function() { reject(new Error("Network error")); };
     xhr.send();
   });
 }
 
-// 啟動
 initLiff();
 </script>
 </body>
