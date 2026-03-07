@@ -22,18 +22,13 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Noto Sans TC', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    padding-bottom: 40px;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding-bottom: 40px;
   }
   .header {
-    background: var(--white);
-    border-bottom: 1px solid var(--border);
-    padding: 16px 20px;
-    text-align: center;
-    position: sticky; top: 0; z-index: 10;
-    box-shadow: var(--shadow);
+    background: var(--white); border-bottom: 1px solid var(--border);
+    padding: 16px 20px; text-align: center;
+    position: sticky; top: 0; z-index: 10; box-shadow: var(--shadow);
   }
   .header h1 {
     font-family: 'Noto Serif TC', serif;
@@ -43,76 +38,79 @@
   .header p { font-size: 12px; color: var(--text-light); margin-top: 2px; }
   .container { max-width: 480px; margin: 0 auto; padding: 20px 16px; }
   .card {
-    background: var(--white);
-    border-radius: 16px;
-    padding: 24px 20px;
-    box-shadow: var(--shadow);
-    margin-bottom: 16px;
+    background: var(--white); border-radius: 16px;
+    padding: 24px 20px; box-shadow: var(--shadow); margin-bottom: 16px;
   }
   .card-title {
     font-family: 'Noto Serif TC', serif;
-    font-size: 16px; font-weight: 500;
-    color: var(--green-dark);
-    margin-bottom: 16px;
-    display: flex; align-items: center; gap: 8px;
+    font-size: 15px; font-weight: 500; color: var(--green-dark);
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    line-height: 1.5;
   }
   .card-title::before {
-    content: ''; width: 3px; height: 16px;
+    content: ''; width: 3px; min-width: 3px; height: 16px;
     background: var(--green); border-radius: 2px;
   }
   .form-group { margin-bottom: 20px; }
-  label {
+  .form-group:last-child { margin-bottom: 0; }
+  .form-label {
     display: block; font-size: 13px;
-    color: var(--text-light); margin-bottom: 6px; font-weight: 500;
+    color: var(--text-light); margin-bottom: 8px; font-weight: 500;
   }
-  label .required { color: var(--error); margin-left: 2px; }
-  label .hint { font-weight: 400; color: #aaa; margin-left: 4px; }
+  .form-label .required { color: var(--error); margin-left: 2px; }
+  .sub-hint { font-size: 12px; color: #aaa; margin-bottom: 10px; line-height: 1.5; }
   textarea {
-    width: 100%;
-    padding: 12px 14px;
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    font-size: 14px;
-    font-family: 'Noto Sans TC', sans-serif;
-    color: var(--text);
-    background: var(--white);
-    transition: border-color 0.2s;
-    outline: none;
-    min-height: 90px;
-    resize: vertical;
-    line-height: 1.6;
+    width: 100%; padding: 12px 14px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: 14px; font-family: 'Noto Sans TC', sans-serif;
+    color: var(--text); background: var(--white);
+    transition: border-color 0.2s; outline: none;
+    min-height: 90px; resize: vertical; line-height: 1.6;
   }
   textarea:focus { border-color: var(--green); }
   textarea::placeholder { color: #bbb; }
-
-  .radio-group { display: flex; flex-direction: column; gap: 10px; }
-  .radio-option {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 14px;
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.2s;
+  .other-input {
+    display: none; margin-top: 8px; width: 100%;
+    padding: 10px 12px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 14px;
+    font-family: 'Noto Sans TC', sans-serif; outline: none;
   }
-  .radio-option:hover { border-color: var(--green); background: var(--green-light); }
-  .radio-option input[type="radio"] { display: none; }
+  .other-input:focus { border-color: var(--green); }
+  .other-input.show { display: block; }
+
+  .radio-group, .checkbox-group { display: flex; flex-direction: column; gap: 10px; }
+  .radio-option, .checkbox-option {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border: 1.5px solid var(--border);
+    border-radius: 10px; cursor: pointer; transition: all 0.2s;
+  }
+  .radio-option:hover, .checkbox-option:hover {
+    border-color: var(--green); background: var(--green-light);
+  }
+  .radio-option input, .checkbox-option input { display: none; }
   .radio-dot {
-    width: 18px; height: 18px;
-    border-radius: 50%;
+    width: 18px; height: 18px; border-radius: 50%;
     border: 2px solid var(--border);
     display: flex; align-items: center; justify-content: center;
     transition: all 0.2s; flex-shrink: 0;
   }
+  .check-box {
+    width: 18px; height: 18px; border-radius: 4px;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
+    font-size: 11px; color: transparent;
+  }
   .radio-option.selected { border-color: var(--green); background: var(--green-light); }
-  .radio-option.selected .radio-dot {
-    border-color: var(--green);
-    background: var(--green);
-  }
+  .radio-option.selected .radio-dot { border-color: var(--green); background: var(--green); }
   .radio-option.selected .radio-dot::after {
-    content: ''; width: 6px; height: 6px;
-    border-radius: 50%; background: white;
+    content: ''; width: 6px; height: 6px; border-radius: 50%; background: white;
   }
-  .radio-label { font-size: 14px; color: var(--text); }
+  .checkbox-option.selected { border-color: var(--green); background: var(--green-light); }
+  .checkbox-option.selected .check-box {
+    border-color: var(--green); background: var(--green); color: white;
+  }
+  .radio-label, .checkbox-label { font-size: 14px; color: var(--text); line-height: 1.4; }
 
   .alert {
     padding: 12px 14px; border-radius: 10px;
@@ -122,12 +120,10 @@
   .alert-error { background: #fdf0ef; color: var(--error); border: 1px solid #f5c6c2; }
 
   .btn {
-    width: 100%; padding: 16px;
-    border: none; border-radius: 12px;
+    width: 100%; padding: 16px; border: none; border-radius: 12px;
     font-size: 16px; font-family: 'Noto Sans TC', sans-serif;
-    font-weight: 500; cursor: pointer;
-    transition: all 0.2s; letter-spacing: 1px;
-    margin-bottom: 10px;
+    font-weight: 500; cursor: pointer; transition: all 0.2s;
+    letter-spacing: 1px; margin-bottom: 10px;
   }
   .btn-primary { background: var(--green); color: white; }
   .btn-primary:hover { background: var(--green-dark); }
@@ -138,7 +134,6 @@
     text-decoration: underline; cursor: pointer;
     width: 100%; text-align: center;
   }
-
   .success-icon {
     width: 64px; height: 64px; border-radius: 50%;
     background: var(--green-light);
@@ -154,9 +149,9 @@
     text-align: center; font-size: 13px;
     color: var(--text-light); line-height: 1.6;
   }
-
   .page { display: none; }
   .page.active { display: block; }
+  .hidden { display: none !important; }
 </style>
 </head>
 <body>
@@ -168,61 +163,155 @@
 
 <div class="container">
 
-  <!-- Form Page -->
   <div class="page active" id="pageForm">
     <div class="alert alert-info">
       🌱 以下資料將協助醫師在初診前了解您的狀況，讓看診更有效率。所有資料均受到保護。
     </div>
 
+    <!-- Q1 怎麼知道悅心診所 -->
     <div class="card">
-      <div class="card-title">就診原因</div>
+      <div class="card-title">怎麼知道悅心診所呢？</div>
       <div class="form-group">
-        <label>主訴（來診原因）<span class="required">*</span></label>
-        <textarea id="inputChiefComplaint" placeholder="例如：睡眠困難、情緒低落、焦慮等，請簡單描述您的主要困擾"></textarea>
+        <div class="radio-group" id="referralGroup">
+          <label class="radio-option" onclick="selectRadio('referral','路過')">
+            <input type="radio" name="referral" value="路過">
+            <div class="radio-dot"></div>
+            <span class="radio-label">路過</span>
+          </label>
+          <label class="radio-option" onclick="selectRadio('referral','親友推薦')">
+            <input type="radio" name="referral" value="親友推薦">
+            <div class="radio-dot"></div>
+            <span class="radio-label">親友推薦</span>
+          </label>
+          <label class="radio-option" onclick="selectRadio('referral','醫師轉介')">
+            <input type="radio" name="referral" value="醫師轉介">
+            <div class="radio-dot"></div>
+            <span class="radio-label">醫師轉介</span>
+          </label>
+          <label class="radio-option" onclick="selectRadio('referral','網路搜尋')">
+            <input type="radio" name="referral" value="網路搜尋">
+            <div class="radio-dot"></div>
+            <span class="radio-label">網路搜尋</span>
+          </label>
+          <label class="radio-option" onclick="selectRadio('referral','其他')">
+            <input type="radio" name="referral" value="其他">
+            <div class="radio-dot"></div>
+            <span class="radio-label">其他</span>
+          </label>
+        </div>
+        <input type="text" id="referralOther" class="other-input" placeholder="請說明">
       </div>
     </div>
 
+    <!-- Q2 之前是否看過身心科 -->
     <div class="card">
-      <div class="card-title">健康狀況</div>
+      <div class="card-title">之前是否看過其他身心科或接受過相關治療？</div>
       <div class="form-group">
-        <label>過去病史 <span class="hint">（可略）</span></label>
-        <textarea id="inputMedHistory" placeholder="例如：曾診斷過憂鬱症、高血壓、糖尿病等，或填「無」"></textarea>
-      </div>
-      <div class="form-group">
-        <label>目前用藥 <span class="hint">（可略）</span></label>
-        <textarea id="inputCurrentMeds" placeholder="例如：目前服用的藥物名稱，或填「無」" style="min-height:70px"></textarea>
+        <div class="checkbox-group" id="priorTreatmentGroup">
+          <label class="checkbox-option" onclick="togglePrior(this)">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">有看過身心科</span>
+          </label>
+          <label class="checkbox-option" onclick="togglePrior(this)">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">有接受過精神藥物治療（例如安眠藥、抗憂鬱藥）</span>
+          </label>
+          <label class="checkbox-option" onclick="togglePrior(this)">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">有接受過心理諮商或心理治療</span>
+          </label>
+          <label class="checkbox-option" id="priorNoneOption" onclick="selectPriorNone()">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">都沒有</span>
+          </label>
+        </div>
       </div>
     </div>
 
+    <!-- Q3 目前是否持續接受治療（第2題非「都沒有」才顯示）-->
+    <div class="card hidden" id="cardOngoing">
+      <div class="card-title">目前是否持續接受以上任一相關治療？</div>
+      <div class="form-group">
+        <div class="radio-group" id="ongoingGroup">
+          <label class="radio-option" onclick="selectRadio('ongoing','是')">
+            <input type="radio" name="ongoing" value="是">
+            <div class="radio-dot"></div>
+            <span class="radio-label">是</span>
+          </label>
+          <label class="radio-option" onclick="selectRadio('ongoing','否')">
+            <input type="radio" name="ongoing" value="否">
+            <div class="radio-dot"></div>
+            <span class="radio-label">否</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q4 轉換就醫原因（第2題非「都沒有」才顯示）-->
+    <div class="card hidden" id="cardTransfer">
+      <div class="card-title">轉換到本院就醫的原因？</div>
+      <div class="form-group">
+        <div class="sub-hint">若之前沒有看過其他身心科，此題不需填寫。</div>
+        <div class="radio-group" id="transferGroup">
+          <label class="radio-option" onclick="selectRadio('transfer','生活環境轉換')">
+            <input type="radio" name="transfer" value="生活環境轉換">
+            <div class="radio-dot"></div>
+            <span class="radio-label">生活環境轉換（例如搬家、換工作、升學等）</span>
+          </label>
+          <label class="radio-option" onclick="selectRadio('transfer','對之前就醫不滿意')">
+            <input type="radio" name="transfer" value="對之前就醫不滿意">
+            <div class="radio-dot"></div>
+            <span class="radio-label">對之前的就醫不滿意（例如距離太遠、療效不佳、溝通不良）</span>
+          </label>
+          <label class="radio-option" onclick="selectRadio('transfer','臨時需求')">
+            <input type="radio" name="transfer" value="臨時需求">
+            <div class="radio-dot"></div>
+            <span class="radio-label">臨時需求（例如出差、出遊、返鄉）</span>
+          </label>
+          <label class="radio-option" onclick="selectRadio('transfer','想聽聽不同意見')">
+            <input type="radio" name="transfer" value="想聽聽不同意見">
+            <div class="radio-dot"></div>
+            <span class="radio-label">想聽聽不同意見</span>
+          </label>
+          <label class="radio-option" onclick="selectRadio('transfer','其他')">
+            <input type="radio" name="transfer" value="其他">
+            <div class="radio-dot"></div>
+            <span class="radio-label">其他</span>
+          </label>
+        </div>
+        <input type="text" id="transferOther" class="other-input" placeholder="請說明">
+      </div>
+    </div>
+
+    <!-- Q5 主訴 -->
+    <div class="card">
+      <div class="card-title">您今天主要想談什麼？</div>
+      <div class="form-group">
+        <div class="form-label">或您最困擾的狀況是什麼？<span class="required">*</span></div>
+        <textarea id="inputChiefComplaint" placeholder="例如：睡眠困難、情緒低落、焦慮、人際困擾等，請簡單描述您的主要困擾"></textarea>
+      </div>
+    </div>
+
+    <!-- Q6 懷孕哺乳 -->
     <div class="card">
       <div class="card-title">其他資訊</div>
       <div class="form-group">
-        <label>是否懷孕／備孕／哺乳中？<span class="required">*</span></label>
+        <div class="form-label">是否懷孕、哺乳、或備孕中？<span class="required">*</span></div>
         <div class="radio-group" id="pregnancyGroup">
-          <label class="radio-option" onclick="selectPregnancy('否')">
+          <label class="radio-option" onclick="selectRadio('pregnancy','是')">
+            <input type="radio" name="pregnancy" value="是">
+            <div class="radio-dot"></div>
+            <span class="radio-label">是</span>
+          </label>
+          <label class="radio-option" onclick="selectRadio('pregnancy','否')">
             <input type="radio" name="pregnancy" value="否">
             <div class="radio-dot"></div>
             <span class="radio-label">否</span>
           </label>
-          <label class="radio-option" onclick="selectPregnancy('懷孕中')">
-            <input type="radio" name="pregnancy" value="懷孕中">
+          <label class="radio-option" onclick="selectRadio('pregnancy','不適用（生理男性）')">
+            <input type="radio" name="pregnancy" value="不適用（生理男性）">
             <div class="radio-dot"></div>
-            <span class="radio-label">懷孕中</span>
-          </label>
-          <label class="radio-option" onclick="selectPregnancy('備孕中')">
-            <input type="radio" name="pregnancy" value="備孕中">
-            <div class="radio-dot"></div>
-            <span class="radio-label">備孕中</span>
-          </label>
-          <label class="radio-option" onclick="selectPregnancy('哺乳中')">
-            <input type="radio" name="pregnancy" value="哺乳中">
-            <div class="radio-dot"></div>
-            <span class="radio-label">哺乳中</span>
-          </label>
-          <label class="radio-option" onclick="selectPregnancy('不適用（男性）')">
-            <input type="radio" name="pregnancy" value="不適用（男性）">
-            <div class="radio-dot"></div>
-            <span class="radio-label">不適用（男性）</span>
+            <span class="radio-label">不適用（生理男性）</span>
           </label>
         </div>
       </div>
@@ -251,29 +340,84 @@
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbzFTU_FbVLHuZpWVR1GwrlwAMUIHJ-r_X_-mXGp-rHHbDSG4xfWAombrxmnVwNRQ0BWYA/exec";
 
-// 從 URL 取得參數
 const urlParams = new URLSearchParams(window.location.search);
 const bookingId = urlParams.get("bookingId") || "";
 const name = urlParams.get("name") || "";
 const lineId = urlParams.get("lineId") || "";
 
-let pregnancyValue = "";
+const radioState = { referral: "", ongoing: "", transfer: "", pregnancy: "" };
+let priorNone = false;
 
-function selectPregnancy(val) {
-  pregnancyValue = val;
-  document.querySelectorAll(".radio-option").forEach(function(el) {
+// ===================================
+// Radio 選擇
+// ===================================
+function selectRadio(group, val) {
+  radioState[group] = val;
+  const groupEl = document.getElementById(group + "Group");
+  if (!groupEl) return;
+  groupEl.querySelectorAll(".radio-option").forEach(function(el) {
     el.classList.toggle("selected", el.querySelector("input").value === val);
   });
+  const otherInput = document.getElementById(group + "Other");
+  if (otherInput) otherInput.classList.toggle("show", val === "其他");
 }
 
+// ===================================
+// Checkbox（Q2）
+// ===================================
+function togglePrior(el) {
+  if (el.id === "priorNoneOption") return;
+  el.classList.toggle("selected");
+  document.getElementById("priorNoneOption").classList.remove("selected");
+  priorNone = false;
+  updateConditionalCards();
+}
+
+function selectPriorNone() {
+  document.querySelectorAll("#priorTreatmentGroup .checkbox-option").forEach(function(el) {
+    el.classList.remove("selected");
+  });
+  document.getElementById("priorNoneOption").classList.add("selected");
+  priorNone = true;
+  updateConditionalCards();
+}
+
+function updateConditionalCards() {
+  const anySelected = document.querySelectorAll("#priorTreatmentGroup .checkbox-option.selected:not(#priorNoneOption)").length > 0;
+  const showConditional = anySelected && !priorNone;
+  document.getElementById("cardOngoing").classList.toggle("hidden", !showConditional);
+  document.getElementById("cardTransfer").classList.toggle("hidden", !showConditional);
+}
+
+function getPriorTreatmentValue() {
+  if (priorNone) return "都沒有";
+  const selected = [];
+  document.querySelectorAll("#priorTreatmentGroup .checkbox-option:not(#priorNoneOption).selected").forEach(function(el) {
+    selected.push(el.querySelector(".checkbox-label").textContent.trim());
+  });
+  return selected.join("；");
+}
+
+// ===================================
+// 送出
+// ===================================
 async function submitNewPatient() {
   const chiefComplaint = document.getElementById("inputChiefComplaint").value.trim();
-  if (!chiefComplaint) return showError("請填寫主訴（來診原因）");
-  if (!pregnancyValue) return showError("請選擇懷孕/備孕/哺乳狀況");
+  const priorVal = getPriorTreatmentValue();
+
+  if (!priorVal) return showError("請選擇之前是否有看過身心科或相關治療");
+  if (!chiefComplaint) return showError("請填寫您今天主要想談的狀況");
+  if (!radioState.pregnancy) return showError("請選擇懷孕／哺乳／備孕狀況");
+
+  const referralVal = radioState.referral === "其他"
+    ? "其他：" + (document.getElementById("referralOther").value.trim() || "")
+    : radioState.referral;
+  const transferVal = radioState.transfer === "其他"
+    ? "其他：" + (document.getElementById("transferOther").value.trim() || "")
+    : radioState.transfer;
 
   const btn = document.getElementById("btnSubmitNew");
-  btn.disabled = true;
-  btn.textContent = "送出中...";
+  btn.disabled = true; btn.textContent = "送出中...";
 
   try {
     const params = new URLSearchParams({
@@ -281,24 +425,23 @@ async function submitNewPatient() {
       bookingId: bookingId,
       name: encodeURIComponent(name),
       lineId: lineId,
+      referral: encodeURIComponent(referralVal),
+      priorTreatment: encodeURIComponent(priorVal),
+      ongoingTreatment: encodeURIComponent(radioState.ongoing),
+      transferReason: encodeURIComponent(transferVal),
       chiefComplaint: encodeURIComponent(chiefComplaint),
-      medicalHistory: encodeURIComponent(document.getElementById("inputMedHistory").value.trim() || "無"),
-      currentMeds: encodeURIComponent(document.getElementById("inputCurrentMeds").value.trim() || "無"),
-      pregnancyStatus: encodeURIComponent(pregnancyValue)
+      pregnancyStatus: encodeURIComponent(radioState.pregnancy)
     });
     const data = await xhrGet(API_URL + "?" + params.toString());
     if (!data.success) throw new Error(data.error);
     showSuccess();
   } catch(e) {
     showError("送出失敗，請重試");
-    btn.disabled = false;
-    btn.textContent = "送出初診資料";
+    btn.disabled = false; btn.textContent = "送出初診資料";
   }
 }
 
-function skipNewPatient() {
-  showSuccess();
-}
+function skipNewPatient() { showSuccess(); }
 
 function showSuccess() {
   document.getElementById("pageForm").classList.remove("active");
@@ -308,8 +451,8 @@ function showSuccess() {
 
 function showError(msg) {
   const el = document.getElementById("errorForm");
-  el.textContent = msg;
-  el.style.display = "block";
+  el.textContent = msg; el.style.display = "block";
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function xhrGet(url) {
