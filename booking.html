@@ -785,21 +785,19 @@ async function submitBooking() {
   btn.textContent = "送出中...";
 
   try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "submitBooking",
-        lineId: state.lineId,
-        name: state.name,
-        phone: state.phone,
-        birth: state.birth,
-        date: state.date.replace(/\//g,''),
-        session: state.session,
-        timeSlot: state.timeSlot,
-        type: state.type
-      })
-    });
+    const bookingData = {
+      action: "submitBooking",
+      lineId: state.lineId,
+      name: encodeURIComponent(state.name),
+      phone: state.phone,
+      birth: state.birth,
+      date: state.date.replace(/\//g,''),
+      session: encodeURIComponent(state.session),
+      timeSlot: state.timeSlot,
+      type: encodeURIComponent(state.type)
+    };
+    const queryString = Object.entries(bookingData).map(([k,v]) => k+"="+v).join("&");
+    const res = await fetch(API_URL + "?" + queryString);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
 
