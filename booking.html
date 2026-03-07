@@ -672,8 +672,7 @@ async function loadSlots(dateStr) {
     '<div class="loading"><div class="spinner"></div>載入中...</div>';
 
   try {
-    const res = await fetch(`${API_URL}?action=getAvailableSlots&date=${dateStr.replace(/\//g,'')}`);
-    const data = await res.json();
+    const data = await xhrGet(`${API_URL}?action=getAvailableSlots&date=${dateStr.replace(/\//g,'')}`);
 
     if (!data.success) throw new Error(data.error);
     state.slotsData = data.sessions;
@@ -744,8 +743,7 @@ async function goToPage3() {
   // 檢查預約限制
   try {
     const dateCode = state.date.replace(/\//g,'');
-    const res = await fetch(`${API_URL}?action=checkLimit&lineId=${state.lineId}&date=${dateCode}`);
-    const data = await res.json();
+    const data = await xhrGet(`${API_URL}?action=checkLimit&lineId=${state.lineId}&date=${dateCode}`);
 
     if (data.sameDayExceeded) {
       return showError("errorPage2", "您當天已有預約，如需更改請取消原預約後再重新預約。若需加掛門診，請於門診時間聯繫診所，由工作人員協助。");
@@ -797,8 +795,7 @@ async function submitBooking() {
       type: encodeURIComponent(state.type)
     };
     const queryString = Object.entries(bookingData).map(([k,v]) => k+"="+v).join("&");
-    const res = await fetch(API_URL + "?" + queryString);
-    const data = await res.json();
+    const data = await xhrGet(API_URL + "?" + queryString);
     if (!data.success) throw new Error(data.error);
 
     state.bookingId = data.bookingId;
@@ -862,6 +859,23 @@ function showError(id, msg) {
 }
 function hideError(id) {
   document.getElementById(id).style.display = "none";
+}
+
+// XHR helper（LINE瀏覽器相容）
+function xhrGet(url) {
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", url, true);
+    xhr.onload = function() {
+      try {
+        resolve(JSON.parse(xhr.responseText));
+      } catch(e) {
+        reject(e);
+      }
+    };
+    xhr.onerror = function() { reject(new Error("Network error")); };
+    xhr.send();
+  });
 }
 
 // 啟動
