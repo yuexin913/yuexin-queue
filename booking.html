@@ -329,7 +329,7 @@
       </div>
     </div>
     <div class="alert alert-info" style="font-size:12px">
-      📞 如需協助請來電：<strong>07-363-1313</strong>
+      若需協助，請傳訊息至官方LINE，或於門診時間電洽診所：<strong>07-363-1313</strong>
     </div>
   </div>
 
@@ -518,6 +518,17 @@ async function goToPageTime() {
   if (!birth) return showError("errorPage1", "請選擇生日");
   hideError("errorPage1");
   state.name = name; state.phone = phone; state.birth = birth;
+
+  // 黑名單檢查
+  if (state.lineId) {
+    try {
+      const bl = await xhrGet(`${API_URL}?action=checkBlacklist&lineId=${state.lineId}`);
+      if (bl.blocked) {
+        return showError("errorPage1", "很抱歉，線上預約暫時無法使用。若需協助，請傳訊息至官方LINE，或於門診時間電洽診所：07-363-1313");
+      }
+    } catch(e) { /* 黑名單檢查失敗不擋 */ }
+  }
+
   showPage("pageTime");
   renderCalendar();
 }
