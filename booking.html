@@ -162,6 +162,7 @@
   .slot-btn:hover:not(.unavailable) { border-color: var(--green); background: var(--green-light); }
   .slot-btn.selected { background: var(--green); border-color: var(--green); color: white; font-weight: 500; }
   .slot-btn.unavailable { background: #f5f5f5; color: #ccc; cursor: not-allowed; text-decoration: line-through; }
+  .slot-btn.unspecified { border-style: dashed; color: var(--text-light); font-size: 13px; }
   .fully-booked {
     text-align: center; padding: 16px; color: var(--text-light); font-size: 13px;
     border: 1.5px solid var(--border); border-radius: 0 0 10px 10px; background: #fafafa;
@@ -417,10 +418,7 @@
       </div>
       <div id="newPatientNotice"></div>
     </div>
-    <div class="alert alert-warn" style="text-align:left;line-height:1.7">
-      請準時或提前報到。逾時視同現場掛號，由工作人員安排看診順序。<br><br>
-      <strong>注意：</strong>預約時間為報到時間，並非實際看診時間。看診時間可能依當診次狀況稍有延誤，敬請理解。
-    </div>
+    <div class="alert alert-warn" style="text-align:left;line-height:1.7" id="successReminder"></div>
     <button class="btn btn-outline" onclick="goToEntry()">返回首頁</button>
   </div>
 
@@ -595,19 +593,25 @@ function renderSlots() {
     if (s.fullyBooked) {
       html += `<div class="fully-booked">此時段已額滿</div>`;
     } else {
-      // 初診用 newPatientSlots（每30分鐘），複診用 slots（每10分鐘）
+      // 初診用 newPatientSlots（每30分鐘），複診用 slots（每10分鐘）+ 不指定
       const displaySlots = isNewPatient ? (s.newPatientSlots || []) : s.slots;
       const hasAvailable = displaySlots.some(function(slot) { return slot.available; });
-      if (!hasAvailable) {
+      if (!hasAvailable && isNewPatient) {
         html += `<div class="fully-booked">此時段初診已額滿</div>`;
       } else {
         html += '<div class="slots-grid">';
         displaySlots.forEach(function(slot) {
           const isSelected = state.session === session && state.timeSlot === slot.time;
           const cls = "slot-btn" + (!slot.available ? " unavailable" : "") + (isSelected ? " selected" : "");
-          const onclick = slot.available ? `onclick="selectSlot('${session}','${slot.time}','${s.doctor}')"` : "";
+          const onclick = slot.available ? `onclick="selectSlot('${session}','${slot.time}','${s.doctor}',false)"` : "";
           html += `<div class="${cls}" ${onclick}>${slot.time}</div>`;
         });
+        // 複診才加「不指定」格
+        if (!isNewPatient) {
+          const isUnspecifiedSelected = state.session === session && state.timeSlot === "不指定";
+          const unspecifiedCls = "slot-btn unspecified" + (isUnspecifiedSelected ? " selected" : "");
+          html += `<div class="${unspecifiedCls}" onclick="selectSlot('${session}','不指定','${s.doctor}',true)">不指定</div>`;
+        }
         html += '</div>';
       }
     }
@@ -616,8 +620,9 @@ function renderSlots() {
   document.getElementById("slotsContainer").innerHTML = html;
 }
 
-function selectSlot(session, time, doctor) {
+function selectSlot(session, time, doctor, isUnspecified) {
   state.session = session; state.timeSlot = time; state.doctor = doctor;
+  state.isUnspecified = isUnspecified || false;
   renderSlots();
 }
 
@@ -662,6 +667,17 @@ async function submitBooking() {
       document.getElementById("newPatientNotice").innerHTML =
         `<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 第一次看診的朋友，可以先填寫初診資料，讓醫師更了解您的狀況。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px;width:100%">填寫初診資料 →</button><br><button class="btn btn-outline" onclick="showPage('pageSuccess')" style="margin-top:8px;width:100%;font-size:13px;color:#aaa;border-color:#ddd">略過</button></div>`;
     }
+    // 設定提醒文字
+    const sessionTimeMap = { "早上": "09:00-11:30", "下午": "14:00-16:30", "晚上": "17:30-20:00" };
+    const timeRange = sessionTimeMap[state.session] || "";
+    let reminderHtml = "";
+    if (state.isUnspecified) {
+      reminderHtml = `您已完成預約登記。看診當日請於 ${timeRange} 間至櫃台報到，由工作人員安排看診順序。`;
+    } else {
+      reminderHtml = `請準時或提前報到。逾時報到視同未指定時間，由工作人員安排看診順序。<br><br>`
+        + `<strong>注意：</strong>預約時間為報到時間，並非實際看診時間。實際看診時間可能依當診次狀況稍有延誤，敬請理解。`;
+    }
+    document.getElementById("successReminder").innerHTML = reminderHtml;
     showPage("pageSuccess");
   } catch(e) {
     showError("errorPage3", "送出失敗，請重試或電話預約：07-363-1313");
