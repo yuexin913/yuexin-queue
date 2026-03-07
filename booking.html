@@ -254,9 +254,40 @@
 
   .page { display: none; }
   .page.active { display: block; }
+
+  /* 自訂確認視窗 */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 1000;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-box {
+    background: white; border-radius: 16px;
+    padding: 28px 24px; width: 280px; text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+  .modal-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+  .modal-msg { font-size: 14px; color: var(--text-light); margin-bottom: 24px; line-height: 1.5; }
+  .modal-btns { display: flex; gap: 10px; }
+  .modal-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 14px; cursor: pointer; font-weight: 500; }
+  .modal-btn-cancel { background: #f0f0f0; color: var(--text); }
+  .modal-btn-confirm { background: var(--error); color: white; }
 </style>
 </head>
 <body>
+
+<!-- 自訂確認視窗 -->
+<div class="modal-overlay" id="cancelModal">
+  <div class="modal-box">
+    <div class="modal-title">取消預約</div>
+    <div class="modal-msg">確定要取消此預約嗎？</div>
+    <div class="modal-btns">
+      <button class="modal-btn modal-btn-cancel" onclick="closeCancelModal()">返回</button>
+      <button class="modal-btn modal-btn-confirm" id="modalConfirmBtn">確定取消</button>
+    </div>
+  </div>
+</div>
 
 <div class="header">
   <h1>悅心診所</h1>
@@ -382,12 +413,14 @@
       <div class="success-icon">✅</div>
       <div class="success-title">預約申請完成！</div>
       <div class="success-sub">
-        您的預約已確認！<br>請查看 LINE 確認通知<br><br>
-        <strong id="bookingIdDisplay"></strong>
+        您的預約已確認！<br>請查看 LINE 確認通知
       </div>
       <div id="newPatientNotice"></div>
     </div>
-    <div class="alert alert-info">📞 如需取消或更改，請於門診時間來電：<strong>07-363-1313</strong></div>
+    <div class="alert alert-warn" style="text-align:left;line-height:1.7">
+      請準時或提前報到。逾時視同現場掛號，由工作人員安排看診順序。<br><br>
+      <strong>注意：</strong>預約時間為報到時間，並非實際看診時間。看診時間可能依當診次狀況稍有延誤，敬請理解。
+    </div>
     <button class="btn btn-outline" onclick="goToEntry()">返回首頁</button>
   </div>
 
@@ -689,8 +722,7 @@ function renderBookingList(bookings) {
         <div class="booking-status ${statusCls}">${b.status}</div>
       </div>
       <div class="booking-detail">
-        時間：${b.timeSlot}　醫師：${b.doctor || "-"}　類型：${b.type}<br>
-        預約編號：${b.bookingId}
+        時間：${b.timeSlot}　醫師：${b.doctor || "-"}　類型：${b.type}
       </div>
       ${canCancel ? `<button class="booking-cancel" onclick="cancelBooking('${b.bookingId}', this)">取消此預約</button>` : ""}
     </div>`;
@@ -699,18 +731,26 @@ function renderBookingList(bookings) {
 }
 
 async function cancelBooking(bookingId, btn) {
-  if (!confirm("確定要取消此預約嗎？")) return;
-  btn.disabled = true; btn.textContent = "取消中...";
-  try {
-    const data = await xhrGet(`${API_URL}?action=cancelBooking&bookingId=${bookingId}&lineId=${state.lineId}`);
-    if (!data.success) throw new Error(data.error);
-    btn.closest(".booking-item").querySelector(".booking-status").textContent = "已取消";
-    btn.closest(".booking-item").querySelector(".booking-status").className = "booking-status status-cancelled";
-    btn.remove();
-  } catch(e) {
-    btn.disabled = false; btn.textContent = "取消此預約";
-    alert("取消失敗，請重試或來電：07-363-1313");
-  }
+  // 顯示自訂確認視窗
+  document.getElementById("cancelModal").classList.add("active");
+  document.getElementById("modalConfirmBtn").onclick = async function() {
+    closeCancelModal();
+    btn.disabled = true; btn.textContent = "取消中...";
+    try {
+      const data = await xhrGet(`${API_URL}?action=cancelBooking&bookingId=${bookingId}&lineId=${state.lineId}`);
+      if (!data.success) throw new Error(data.error);
+      btn.closest(".booking-item").querySelector(".booking-status").textContent = "已取消";
+      btn.closest(".booking-item").querySelector(".booking-status").className = "booking-status status-cancelled";
+      btn.remove();
+    } catch(e) {
+      btn.disabled = false; btn.textContent = "取消此預約";
+      alert("取消失敗，請重試或來電：07-363-1313");
+    }
+  };
+}
+
+function closeCancelModal() {
+  document.getElementById("cancelModal").classList.remove("active");
 }
 
 // ===================================
