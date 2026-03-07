@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>悅心診所 初診資料</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500&display=swap');
+
+  :root {
+    --green: #7AAB5A;
+    --green-light: #EEF4E8;
+    --green-dark: #5a8a3a;
+    --text: #2d3a2e;
+    --text-light: #6b7c6d;
+    --border: #d4e4c8;
+    --bg: #f8faf6;
+    --white: #ffffff;
+    --error: #c0392b;
+    --shadow: 0 2px 16px rgba(122,171,90,0.10);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+  .header {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    text-align: center;
+    position: sticky; top: 0; z-index: 10;
+    box-shadow: var(--shadow);
+  }
+  .header h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 18px; font-weight: 500;
+    color: var(--green-dark); letter-spacing: 2px;
+  }
+  .header p { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+  .container { max-width: 480px; margin: 0 auto; padding: 20px 16px; }
+  .card {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 24px 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 16px; font-weight: 500;
+    color: var(--green-dark);
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title::before {
+    content: ''; width: 3px; height: 16px;
+    background: var(--green); border-radius: 2px;
+  }
+  .form-group { margin-bottom: 20px; }
+  label {
+    display: block; font-size: 13px;
+    color: var(--text-light); margin-bottom: 6px; font-weight: 500;
+  }
+  label .required { color: var(--error); margin-left: 2px; }
+  label .hint { font-weight: 400; color: #aaa; margin-left: 4px; }
+  textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: 'Noto Sans TC', sans-serif;
+    color: var(--text);
+    background: var(--white);
+    transition: border-color 0.2s;
+    outline: none;
+    min-height: 90px;
+    resize: vertical;
+    line-height: 1.6;
+  }
+  textarea:focus { border-color: var(--green); }
+  textarea::placeholder { color: #bbb; }
+
+  .radio-group { display: flex; flex-direction: column; gap: 10px; }
+  .radio-option {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .radio-option:hover { border-color: var(--green); background: var(--green-light); }
+  .radio-option input[type="radio"] { display: none; }
+  .radio-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .radio-option.selected { border-color: var(--green); background: var(--green-light); }
+  .radio-option.selected .radio-dot {
+    border-color: var(--green);
+    background: var(--green);
+  }
+  .radio-option.selected .radio-dot::after {
+    content: ''; width: 6px; height: 6px;
+    border-radius: 50%; background: white;
+  }
+  .radio-label { font-size: 14px; color: var(--text); }
+
+  .alert {
+    padding: 12px 14px; border-radius: 10px;
+    font-size: 13px; margin-bottom: 16px; line-height: 1.5;
+  }
+  .alert-info { background: var(--green-light); color: var(--green-dark); border: 1px solid var(--border); }
+  .alert-error { background: #fdf0ef; color: var(--error); border: 1px solid #f5c6c2; }
+
+  .btn {
+    width: 100%; padding: 16px;
+    border: none; border-radius: 12px;
+    font-size: 16px; font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 500; cursor: pointer;
+    transition: all 0.2s; letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .btn-primary { background: var(--green); color: white; }
+  .btn-primary:hover { background: var(--green-dark); }
+  .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+  .btn-skip {
+    background: transparent; color: var(--text-light);
+    font-size: 14px; border: none; padding: 8px;
+    text-decoration: underline; cursor: pointer;
+    width: 100%; text-align: center;
+  }
+
+  .success-icon {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: var(--green-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; margin: 0 auto 16px;
+  }
+  .success-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 20px; font-weight: 500;
+    color: var(--green-dark); text-align: center; margin-bottom: 8px;
+  }
+  .success-sub {
+    text-align: center; font-size: 13px;
+    color: var(--text-light); line-height: 1.6;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>悅心診所</h1>
+  <p>初診資料填寫</p>
+</div>
+
+<div class="container">
+
+  <!-- Form Page -->
+  <div class="page active" id="pageForm">
+    <div class="alert alert-info">
+      🌱 以下資料將協助醫師在初診前了解您的狀況，讓看診更有效率。所有資料均受到保護。
+    </div>
+
+    <div class="card">
+      <div class="card-title">就診原因</div>
+      <div class="form-group">
+        <label>主訴（來診原因）<span class="required">*</span></label>
+        <textarea id="inputChiefComplaint" placeholder="例如：睡眠困難、情緒低落、焦慮等，請簡單描述您的主要困擾"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">健康狀況</div>
+      <div class="form-group">
+        <label>過去病史 <span class="hint">（可略）</span></label>
+        <textarea id="inputMedHistory" placeholder="例如：曾診斷過憂鬱症、高血壓、糖尿病等，或填「無」"></textarea>
+      </div>
+      <div class="form-group">
+        <label>目前用藥 <span class="hint">（可略）</span></label>
+        <textarea id="inputCurrentMeds" placeholder="例如：目前服用的藥物名稱，或填「無」" style="min-height:70px"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">其他資訊</div>
+      <div class="form-group">
+        <label>是否懷孕／備孕／哺乳中？<span class="required">*</span></label>
+        <div class="radio-group" id="pregnancyGroup">
+          <label class="radio-option" onclick="selectPregnancy('否')">
+            <input type="radio" name="pregnancy" value="否">
+            <div class="radio-dot"></div>
+            <span class="radio-label">否</span>
+          </label>
+          <label class="radio-option" onclick="selectPregnancy('懷孕中')">
+            <input type="radio" name="pregnancy" value="懷孕中">
+            <div class="radio-dot"></div>
+            <span class="radio-label">懷孕中</span>
+          </label>
+          <label class="radio-option" onclick="selectPregnancy('備孕中')">
+            <input type="radio" name="pregnancy" value="備孕中">
+            <div class="radio-dot"></div>
+            <span class="radio-label">備孕中</span>
+          </label>
+          <label class="radio-option" onclick="selectPregnancy('哺乳中')">
+            <input type="radio" name="pregnancy" value="哺乳中">
+            <div class="radio-dot"></div>
+            <span class="radio-label">哺乳中</span>
+          </label>
+          <label class="radio-option" onclick="selectPregnancy('不適用（男性）')">
+            <input type="radio" name="pregnancy" value="不適用（男性）">
+            <div class="radio-dot"></div>
+            <span class="radio-label">不適用（男性）</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div id="errorForm" class="alert alert-error" style="display:none"></div>
+    <button class="btn btn-primary" id="btnSubmitNew" onclick="submitNewPatient()">送出初診資料</button>
+    <button class="btn-skip" onclick="skipNewPatient()">略過，稍後再填</button>
+  </div>
+
+  <!-- Success Page -->
+  <div class="page" id="pageSuccess">
+    <div class="card" style="text-align:center;padding:32px 20px">
+      <div class="success-icon">🌱</div>
+      <div class="success-title">初診資料已送出</div>
+      <div class="success-sub">
+        感謝您填寫初診資料<br>
+        醫師將在看診前閱覽您的資料<br>
+        期待在悅心診所與您見面 ✨
+      </div>
+    </div>
+    <div class="alert alert-info">
+      📞 如需取消或更改預約，請來電：<strong>07-363-1313</strong>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbw5trYjmKfrsUG0ZpMW7d8HA-yyH5tXQwAEzfBCrIz4kUQB9ize9ncDTsBd-xqI2sz2Bw/exec";
+
+// 從 URL 取得參數
+const urlParams = new URLSearchParams(window.location.search);
+const bookingId = urlParams.get("bookingId") || "";
+const name = urlParams.get("name") || "";
+const lineId = urlParams.get("lineId") || "";
+
+let pregnancyValue = "";
+
+function selectPregnancy(val) {
+  pregnancyValue = val;
+  document.querySelectorAll(".radio-option").forEach(function(el) {
+    el.classList.toggle("selected", el.querySelector("input").value === val);
+  });
+}
+
+async function submitNewPatient() {
+  const chiefComplaint = document.getElementById("inputChiefComplaint").value.trim();
+  if (!chiefComplaint) return showError("請填寫主訴（來診原因）");
+  if (!pregnancyValue) return showError("請選擇懷孕/備孕/哺乳狀況");
+
+  const btn = document.getElementById("btnSubmitNew");
+  btn.disabled = true;
+  btn.textContent = "送出中...";
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "submitNewPatient",
+        bookingId: bookingId,
+        name: name,
+        lineId: lineId,
+        chiefComplaint: chiefComplaint,
+        medicalHistory: document.getElementById("inputMedHistory").value.trim() || "無",
+        currentMeds: document.getElementById("inputCurrentMeds").value.trim() || "無",
+        pregnancyStatus: pregnancyValue
+      })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    showSuccess();
+  } catch(e) {
+    showError("送出失敗，請重試");
+    btn.disabled = false;
+    btn.textContent = "送出初診資料";
+  }
+}
+
+function skipNewPatient() {
+  showSuccess();
+}
+
+function showSuccess() {
+  document.getElementById("pageForm").classList.remove("active");
+  document.getElementById("pageSuccess").classList.add("active");
+  window.scrollTo(0, 0);
+}
+
+function showError(msg) {
+  const el = document.getElementById("errorForm");
+  el.textContent = msg;
+  el.style.display = "block";
+}
+</script>
+</body>
+</html>
