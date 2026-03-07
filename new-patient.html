@@ -252,7 +252,7 @@
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbxcpFB3kishaWu0pakOsHJSsStFmpc7-lTfh-3Gn8nwUCSEHdoYym4WcKlDGnAh8sgJ-g/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxupOLrrp2Ufi_XP-fPQ8jCPNpGh9xbE5bai9vzXj9BowHfi5sosl3g1veSx38-ccKUHQ/exec";
 
 // 從 URL 取得參數
 const urlParams = new URLSearchParams(window.location.search);
@@ -279,21 +279,17 @@ async function submitNewPatient() {
   btn.textContent = "送出中...";
 
   try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "submitNewPatient",
-        bookingId: bookingId,
-        name: name,
-        lineId: lineId,
-        chiefComplaint: chiefComplaint,
-        medicalHistory: document.getElementById("inputMedHistory").value.trim() || "無",
-        currentMeds: document.getElementById("inputCurrentMeds").value.trim() || "無",
-        pregnancyStatus: pregnancyValue
-      })
+    const params = new URLSearchParams({
+      action: "submitNewPatient",
+      bookingId: bookingId,
+      name: encodeURIComponent(name),
+      lineId: lineId,
+      chiefComplaint: encodeURIComponent(chiefComplaint),
+      medicalHistory: encodeURIComponent(document.getElementById("inputMedHistory").value.trim() || "無"),
+      currentMeds: encodeURIComponent(document.getElementById("inputCurrentMeds").value.trim() || "無"),
+      pregnancyStatus: encodeURIComponent(pregnancyValue)
     });
-    const data = await res.json();
+    const data = await xhrGet(API_URL + "?" + params.toString());
     if (!data.success) throw new Error(data.error);
     showSuccess();
   } catch(e) {
@@ -317,6 +313,19 @@ function showError(msg) {
   const el = document.getElementById("errorForm");
   el.textContent = msg;
   el.style.display = "block";
+}
+
+function xhrGet(url) {
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", url, true);
+    xhr.onload = function() {
+      try { resolve(JSON.parse(xhr.responseText)); }
+      catch(e) { reject(e); }
+    };
+    xhr.onerror = function() { reject(new Error("Network error")); };
+    xhr.send();
+  });
 }
 </script>
 </body>
