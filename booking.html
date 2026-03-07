@@ -658,7 +658,6 @@ async function submitBooking() {
     const data = await xhrGet(`${API_URL}?action=submitBooking&lineId=${state.lineId}&name=${encodeURIComponent(state.name)}&phone=${state.phone}&birth=${state.birth}&date=${state.date.replace(/\//g,'')}&session=${encodeURIComponent(state.session)}&timeSlot=${state.timeSlot}&type=${encodeURIComponent(state.type)}`);
     if (!data.success) throw new Error(data.error);
     state.bookingId = data.bookingId;
-    document.getElementById("bookingIdDisplay").textContent = "預約編號：" + data.bookingId;
     if (state.type === "初診") {
       document.getElementById("newPatientNotice").innerHTML =
         `<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 初診患者請繼續填寫初診資料，以便醫師準備。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px">填寫初診資料 →</button></div>`;
