@@ -660,7 +660,7 @@ async function submitBooking() {
     state.bookingId = data.bookingId;
     if (state.type === "初診") {
       document.getElementById("newPatientNotice").innerHTML =
-        `<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 初診患者請繼續填寫初診資料，以便醫師準備。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px">填寫初診資料 →</button></div>`;
+        `<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 第一次看診的朋友，可以先填寫初診資料，讓醫師更了解您的狀況。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px;width:100%">填寫初診資料 →</button><br><button class="btn btn-outline" onclick="showPage('pageSuccess')" style="margin-top:8px;width:100%;font-size:13px;color:#aaa;border-color:#ddd">略過</button></div>`;
     }
     showPage("pageSuccess");
   } catch(e) {
