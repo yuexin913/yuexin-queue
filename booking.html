@@ -370,7 +370,7 @@
       <div class="card-title">確認預約資料</div>
       <div id="summaryContent"></div>
     </div>
-    <div class="alert alert-warn">⚠️ 送出後請等待工作人員確認，確認後您將收到 LINE 通知。</div>
+    <div class="alert alert-warn">✅ 送出後將立即收到 LINE 確認通知。</div>
     <div id="errorPage3" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-outline" onclick="showPage('pageTime')">← 返回修改</button>
     <button class="btn btn-primary" id="btnSubmit" onclick="submitBooking()">確認送出預約</button>
@@ -382,7 +382,7 @@
       <div class="success-icon">✅</div>
       <div class="success-title">預約申請完成！</div>
       <div class="success-sub">
-        您的預約申請已送出<br>待工作人員確認後將以 LINE 通知您<br><br>
+        您的預約已確認！<br>請查看 LINE 確認通知<br><br>
         <strong id="bookingIdDisplay"></strong>
       </div>
       <div id="newPatientNotice"></div>
@@ -427,7 +427,7 @@
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzKRF1kLp6t8bG44FrOmZR-AfmOxVt0kt-Bg-D1k7WXGuArk-uVNFfnoimf37PoAMY1ug/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwwoMA_RpUlKF1Hqar24r4-CG7bj1E4iPW-NfaPzmBsSGwgI3AGIt5UFVGFWu9PZcbZrw/exec";
 const LIFF_ID = "2009340533-JKP6Q8Qg";
 
 let state = {
