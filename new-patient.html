@@ -345,6 +345,15 @@ const bookingId = decodeURIComponent(urlParams.get("bookingId") || "");
 const name = decodeURIComponent(urlParams.get("name") || "");
 const lineId = decodeURIComponent(urlParams.get("lineId") || "");
 
+// DEBUG：顯示收到的參數
+console.log("bookingId:", bookingId, "name:", name, "lineId:", lineId);
+document.addEventListener("DOMContentLoaded", function() {
+  var dbg = document.createElement("div");
+  dbg.style = "background:#ffe;padding:8px;font-size:11px;word-break:break-all;margin-bottom:8px";
+  dbg.textContent = "DEBUG - bookingId: " + bookingId + " | name: " + name + " | lineId: " + lineId;
+  document.body.insertBefore(dbg, document.body.firstChild);
+});
+
 const radioState = { referral: "", ongoing: "", transfer: "", pregnancy: "" };
 let priorNone = false;
 
