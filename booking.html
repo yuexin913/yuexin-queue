@@ -713,7 +713,7 @@ async function submitBooking() {
     state.bookingId = data.bookingId;
     if (state.type === "初診") {
       document.getElementById("newPatientNotice").innerHTML =
-        `<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 第一次看診的朋友，可以先填寫初診資料，讓醫師更了解您的狀況。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px;width:100%">填寫初診資料 →</button><br><button class="btn btn-outline" onclick="document.getElementById('newPatientNotice').style.display='none'" style="margin-top:8px;width:100%;font-size:13px;color:#aaa;border-color:#ddd">略過</button></div>`;
+        `<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 第一次看診的朋友，可以先填寫初診資料，讓醫師更了解您的狀況。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px;width:100%">填寫初診資料 →</button><br><div style="font-size:12px;color:#aaa;margin-top:10px;text-align:center">暫不填寫請點選下方「返回首頁」或直接退出預約系統。</div></div>`;
     }
     // 設定提醒文字
     const sessionTimeMap = { "早上": "09:00-11:30", "下午": "14:00-16:30", "晚上": "17:30-20:00" };
