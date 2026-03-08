@@ -697,8 +697,11 @@ async function submitBooking() {
 }
 
 function goToNewPatientForm() {
-  const params = new URLSearchParams({ bookingId: state.bookingId, name: state.name, lineId: state.lineId });
-  window.location.href = "new-patient.html?" + params.toString();
+  const url = "new-patient.html"
+    + "?bookingId=" + encodeURIComponent(state.bookingId)
+    + "&name=" + encodeURIComponent(state.name)
+    + "&lineId=" + encodeURIComponent(state.lineId);
+  window.location.href = url;
 }
 
 // ===================================
