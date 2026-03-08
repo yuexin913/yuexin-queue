@@ -420,19 +420,18 @@ async function submitNewPatient() {
   btn.disabled = true; btn.textContent = "送出中...";
 
   try {
-    const params = new URLSearchParams({
-      action: "submitNewPatient",
-      bookingId: bookingId,
-      name: name,
-      lineId: lineId,
-      referral: referralVal,
-      priorTreatment: priorVal,
-      ongoingTreatment: radioState.ongoing || "",
-      transferReason: transferVal || "",
-      chiefComplaint: chiefComplaint,
-      pregnancyStatus: radioState.pregnancy
-    });
-    const data = await xhrGet(API_URL + "?" + params.toString());
+    var url = API_URL
+      + "?action=submitNewPatient"
+      + "&bookingId=" + encodeURIComponent(bookingId)
+      + "&name=" + encodeURIComponent(name)
+      + "&lineId=" + encodeURIComponent(lineId)
+      + "&referral=" + encodeURIComponent(referralVal)
+      + "&priorTreatment=" + encodeURIComponent(priorVal)
+      + "&ongoingTreatment=" + encodeURIComponent(radioState.ongoing || "")
+      + "&transferReason=" + encodeURIComponent(transferVal || "")
+      + "&chiefComplaint=" + encodeURIComponent(chiefComplaint)
+      + "&pregnancyStatus=" + encodeURIComponent(radioState.pregnancy);
+    const data = await xhrGet(url);
     if (!data.success) throw new Error(data.error);
     showSuccess();
   } catch(e) {
