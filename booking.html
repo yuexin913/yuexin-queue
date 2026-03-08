@@ -354,7 +354,15 @@
       </div>
       <div class="form-group">
         <label>生日 <span class="required">*</span></label>
-        <input type="date" id="inputBirth">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="tel" id="inputBirthY" placeholder="民國年" style="width:90px" maxlength="3">
+          <span>年</span>
+          <input type="tel" id="inputBirthM" placeholder="月" style="width:60px" maxlength="2">
+          <span>月</span>
+          <input type="tel" id="inputBirthD" placeholder="日" style="width:60px" maxlength="2">
+          <span>日</span>
+        </div>
+        <div style="font-size:12px;color:#999;margin-top:4px">請輸入民國年，例如：54年3月15日</div>
       </div>
     </div>
     <div id="errorPage1" class="alert alert-error" style="display:none"></div>
@@ -437,7 +445,15 @@
       </div>
       <div class="form-group">
         <label>生日 <span class="required">*</span></label>
-        <input type="date" id="queryBirth">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="tel" id="queryBirthY" placeholder="民國年" style="width:90px" maxlength="3">
+          <span>年</span>
+          <input type="tel" id="queryBirthM" placeholder="月" style="width:60px" maxlength="2">
+          <span>月</span>
+          <input type="tel" id="queryBirthD" placeholder="日" style="width:60px" maxlength="2">
+          <span>日</span>
+        </div>
+        <div style="font-size:12px;color:#999;margin-top:4px">請輸入民國年，例如：54年3月15日</div>
       </div>
     </div>
     <div id="errorQuery" class="alert alert-error" style="display:none"></div>
@@ -487,6 +503,24 @@ async function initLiff() {
 }
 
 // ===================================
+// 民國年轉西元年
+// ===================================
+function parseBirthROC(y, m, d) {
+  const year = parseInt(y);
+  const month = parseInt(m);
+  const day = parseInt(d);
+  if (!year || !month || !day) return null;
+  if (month < 1 || month > 12) return null;
+  if (day < 1 || day > 31) return null;
+  const adYear = year + 1911;
+  const currentYear = new Date().getFullYear();
+  if (adYear > currentYear - 1 || adYear < 1912) return null;
+  const mm = String(month).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+  return adYear + "-" + mm + "-" + dd;
+}
+
+// ===================================
 // 入口
 // ===================================
 function goToEntry() {
@@ -512,10 +546,13 @@ function startQuery() {
 async function goToPageTime() {
   const name = document.getElementById("inputName").value.trim();
   const phone = document.getElementById("inputPhone").value.trim();
-  const birth = document.getElementById("inputBirth").value;
+  const birthY = document.getElementById("inputBirthY").value.trim();
+  const birthM = document.getElementById("inputBirthM").value.trim();
+  const birthD = document.getElementById("inputBirthD").value.trim();
   if (!name) return showError("errorPage1", "請輸入姓名");
   if (!phone || !/^09\d{8}$/.test(phone)) return showError("errorPage1", "請輸入正確的手機號碼");
-  if (!birth) return showError("errorPage1", "請選擇生日");
+  const birth = parseBirthROC(birthY, birthM, birthD);
+  if (!birth) return showError("errorPage1", "請輸入正確的生日（民國年）");
   hideError("errorPage1");
   state.name = name; state.phone = phone; state.birth = birth;
 
@@ -710,10 +747,13 @@ function goToNewPatientForm() {
 async function queryBookings() {
   const name = document.getElementById("queryName").value.trim();
   const phone = document.getElementById("queryPhone").value.trim();
-  const birth = document.getElementById("queryBirth").value;
+  const birthY = document.getElementById("queryBirthY").value.trim();
+  const birthM = document.getElementById("queryBirthM").value.trim();
+  const birthD = document.getElementById("queryBirthD").value.trim();
   if (!name) return showError("errorQuery", "請輸入姓名");
   if (!phone) return showError("errorQuery", "請輸入電話");
-  if (!birth) return showError("errorQuery", "請選擇生日");
+  const birth = parseBirthROC(birthY, birthM, birthD);
+  if (!birth) return showError("errorQuery", "請輸入正確的生日（民國年）");
   hideError("errorQuery");
 
   const btn = document.getElementById("btnQuery");
