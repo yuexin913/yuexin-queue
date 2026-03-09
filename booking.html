@@ -765,15 +765,16 @@ async function goToConfirm() {
     }
   }
 
+  const esc = escapeHtml;
   document.getElementById("summaryContent").innerHTML = `
-    <div class="summary-row"><span class="summary-label">就診類型</span><span class="summary-value">${state.type}</span></div>
-    <div class="summary-row"><span class="summary-label">姓名</span><span class="summary-value">${state.name}</span></div>
-    <div class="summary-row"><span class="summary-label">電話</span><span class="summary-value">${state.phone}</span></div>
-    <div class="summary-row"><span class="summary-label">生日</span><span class="summary-value">${state.birth}</span></div>
-    <div class="summary-row"><span class="summary-label">預約日期</span><span class="summary-value">${state.date}（週${weekday}）</span></div>
-    <div class="summary-row"><span class="summary-label">時段</span><span class="summary-value">${displayName} ${slotDisplay}</span></div>
-    <div class="summary-row"><span class="summary-label">報到時間</span><span class="summary-value">${arrivalDisplay}</span></div>
-    <div class="summary-row"><span class="summary-label">醫師</span><span class="summary-value">${state.doctor || "-"}</span></div>`;
+    <div class="summary-row"><span class="summary-label">就診類型</span><span class="summary-value">${esc(state.type)}</span></div>
+    <div class="summary-row"><span class="summary-label">姓名</span><span class="summary-value">${esc(state.name)}</span></div>
+    <div class="summary-row"><span class="summary-label">電話</span><span class="summary-value">${esc(state.phone)}</span></div>
+    <div class="summary-row"><span class="summary-label">生日</span><span class="summary-value">${esc(state.birth)}</span></div>
+    <div class="summary-row"><span class="summary-label">預約日期</span><span class="summary-value">${esc(state.date)}（週${weekday}）</span></div>
+    <div class="summary-row"><span class="summary-label">時段</span><span class="summary-value">${esc(displayName)} ${esc(slotDisplay)}</span></div>
+    <div class="summary-row"><span class="summary-label">報到時間</span><span class="summary-value">${esc(arrivalDisplay)}</span></div>
+    <div class="summary-row"><span class="summary-label">醫師</span><span class="summary-value">${esc(state.doctor || "-")}</span></div>`;
   showPage("pageConfirm");
 }
 
@@ -849,7 +850,7 @@ async function queryBookings() {
   btn.disabled = true; btn.textContent = "查詢中...";
 
   try {
-    const data = await xhrGet(`${API_URL}?action=queryBookings&name=${encodeURIComponent(name)}&phone=${phone}&birth=${birth}`);
+    const data = await xhrPost(API_URL, { action: "queryBookings", name: name, phone: phone, birth: birth });
     if (!data.success) throw new Error(data.error);
     if (!data.found) {
       showError("errorQuery", "查無符合的預約資料，請確認姓名、電話、生日是否正確。");
@@ -875,17 +876,17 @@ function renderBookingList(bookings) {
     const statusCls = statusMap[b.status] || "status-pending";
     const canCancel = b.status !== "已取消";
     const slotDisplay = b.slot === "不指定" ? "不指定號碼" : (b.slot + " 號");
-    const displayName = b.displayName || b.session + "診";
-    const checkInLine = (b.slot !== "不指定") ? `　報到：${b.checkInTime}` : "";
+    const displayName = escapeHtml(b.displayName || b.session + "診");
+    const checkInLine = (b.slot !== "不指定") ? `　報到：${escapeHtml(b.checkInTime)}` : "";
     html += `<div class="booking-item">
       <div class="booking-item-header">
-        <div class="booking-date">${b.date} ${displayName}</div>
-        <div class="booking-status ${statusCls}">${b.status}</div>
+        <div class="booking-date">${escapeHtml(b.date)} ${displayName}</div>
+        <div class="booking-status ${statusCls}">${escapeHtml(b.status)}</div>
       </div>
       <div class="booking-detail">
-        號碼：${slotDisplay}　醫師：${b.doctor || "-"}　類型：${b.type}${checkInLine}
+        號碼：${escapeHtml(slotDisplay)}　醫師：${escapeHtml(b.doctor || "-")}　類型：${escapeHtml(b.type)}${checkInLine}
       </div>
-      ${canCancel ? `<button class="booking-cancel" onclick="cancelBooking('${b.bookingId}', this)">取消此預約</button>` : ""}
+      ${canCancel ? `<button class="booking-cancel" onclick="cancelBooking('${escapeHtml(b.bookingId)}', this)">取消此預約</button>` : ""}
     </div>`;
   });
   document.getElementById("bookingList").innerHTML = html;
@@ -931,6 +932,15 @@ function showError(id, msg) {
   el.textContent = msg; el.style.display = "block";
 }
 function hideError(id) { document.getElementById(id).style.display = "none"; }
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 function xhrGet(url) {
   return new Promise(function(resolve, reject) {
