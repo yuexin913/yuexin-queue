@@ -873,15 +873,16 @@ function renderBookingList(bookings) {
   bookings.forEach(function(b) {
     const statusCls = statusMap[b.status] || "status-pending";
     const canCancel = b.status !== "已取消";
-    const slotDisplay = b.slot === "不指定" ? "不指定" : (b.slot + " 號");
+    const slotDisplay = b.slot === "不指定" ? "不指定號碼" : (b.slot + " 號");
     const displayName = b.displayName || b.session + "診";
+    const checkInLine = (b.slot !== "不指定") ? `　報到：${b.checkInTime}` : "";
     html += `<div class="booking-item">
       <div class="booking-item-header">
         <div class="booking-date">${b.date} ${displayName}</div>
         <div class="booking-status ${statusCls}">${b.status}</div>
       </div>
       <div class="booking-detail">
-        號碼：${slotDisplay}　醫師：${b.doctor || "-"}　類型：${b.type}
+        號碼：${slotDisplay}　醫師：${b.doctor || "-"}　類型：${b.type}${checkInLine}
       </div>
       ${canCancel ? `<button class="booking-cancel" onclick="cancelBooking('${b.bookingId}', this)">取消此預約</button>` : ""}
     </div>`;
