@@ -148,21 +148,35 @@
   .session-name { font-size: 14px; font-weight: 500; color: var(--green-dark); }
   .session-info { font-size: 11px; color: var(--text-light); }
   .session-doctor { font-size: 12px; color: var(--green-dark); font-weight: 500; }
+
+  /* 號碼格（5欄排列） */
   .slots-grid {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
     padding: 12px; border: 1.5px solid var(--border);
     border-radius: 0 0 10px 10px; background: var(--white);
   }
   .slot-btn {
-    padding: 8px 4px; border: 1.5px solid var(--border);
+    padding: 10px 4px; border: 1.5px solid var(--border);
     border-radius: 8px; background: var(--white);
-    font-size: 12px; font-family: 'Noto Sans TC', sans-serif;
+    font-size: 14px; font-family: 'Noto Sans TC', sans-serif;
     color: var(--text); cursor: pointer; text-align: center; transition: all 0.2s;
+    font-weight: 500;
   }
   .slot-btn:hover:not(.unavailable) { border-color: var(--green); background: var(--green-light); }
-  .slot-btn.selected { background: var(--green); border-color: var(--green); color: white; font-weight: 500; }
-  .slot-btn.unavailable { background: #f5f5f5; color: #ccc; cursor: not-allowed; text-decoration: line-through; }
-  .slot-btn.unspecified { border-style: dashed; color: var(--text-light); font-size: 13px; }
+  .slot-btn.selected { background: var(--green); border-color: var(--green); color: white; font-weight: 600; }
+  .slot-btn.unavailable { background: #f5f5f5; color: #ccc; cursor: not-allowed; }
+  /* 不指定格：橫跨全寬 */
+  .slot-unspecified {
+    grid-column: 1 / -1;
+    padding: 10px; border: 1.5px dashed var(--border);
+    border-radius: 8px; background: var(--white);
+    font-size: 13px; font-family: 'Noto Sans TC', sans-serif;
+    color: var(--text-light); cursor: pointer; text-align: center; transition: all 0.2s;
+    margin-top: 4px;
+  }
+  .slot-unspecified:hover { border-color: var(--green); background: var(--green-light); color: var(--green-dark); }
+  .slot-unspecified.selected { background: var(--green-light); border-color: var(--green); color: var(--green-dark); font-weight: 500; }
+
   .fully-booked {
     text-align: center; padding: 16px; color: var(--text-light); font-size: 13px;
     border: 1.5px solid var(--border); border-radius: 0 0 10px 10px; background: #fafafa;
@@ -338,7 +352,7 @@
     <div class="steps" id="stepsBar">
       <div class="step active" id="step1"><div class="step-num">1</div><span>基本資料</span></div>
       <div class="step-line"></div>
-      <div class="step" id="step2"><div class="step-num">2</div><span>選擇時間</span></div>
+      <div class="step" id="step2"><div class="step-num">2</div><span>選擇號碼</span></div>
       <div class="step-line"></div>
       <div class="step" id="step3"><div class="step-num">3</div><span>確認送出</span></div>
     </div>
@@ -367,17 +381,17 @@
     </div>
     <div id="errorPage1" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-outline" onclick="goToEntry()">← 返回</button>
-    <button class="btn btn-primary" onclick="goToPageTime()">下一步：選擇時間 →</button>
+    <button class="btn btn-primary" onclick="goToPageTime()">下一步：選擇號碼 →</button>
   </div>
 
-  <!-- 預約：選擇時間 -->
+  <!-- 預約：選擇號碼 -->
   <div class="page" id="pageTime">
     <div class="steps">
-      <div class="step done" id="step1b"><div class="step-num">1</div><span>基本資料</span></div>
+      <div class="step done"><div class="step-num">1</div><span>基本資料</span></div>
       <div class="step-line"></div>
-      <div class="step active" id="step2b"><div class="step-num">2</div><span>選擇時間</span></div>
+      <div class="step active"><div class="step-num">2</div><span>選擇號碼</span></div>
       <div class="step-line"></div>
-      <div class="step" id="step3b"><div class="step-num">3</div><span>確認送出</span></div>
+      <div class="step"><div class="step-num">3</div><span>確認送出</span></div>
     </div>
     <div class="card">
       <div class="card-title">選擇日期</div>
@@ -402,7 +416,7 @@
     <div class="steps">
       <div class="step done"><div class="step-num">1</div><span>基本資料</span></div>
       <div class="step-line"></div>
-      <div class="step done"><div class="step-num">2</div><span>選擇時間</span></div>
+      <div class="step done"><div class="step-num">2</div><span>選擇號碼</span></div>
       <div class="step-line"></div>
       <div class="step active"><div class="step-num">3</div><span>確認送出</span></div>
     </div>
@@ -477,11 +491,15 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbzfxQ5JS7Gm97L5LZOkDkyZxgwwNZWGkkIoMSc-C6Pe_cYt86-6jVGcQy_HIjEkuLQogw/exec";
 const LIFF_ID = "2009340533-JKP6Q8Qg";
 
+// 初診錨點號碼
+const NEW_PATIENT_NUMBERS = [5, 10, 15, 20, 25];
+
 let state = {
   lineId: null,
   type: "",
   name: "", phone: "", birth: "",
   date: null, session: null, timeSlot: null, doctor: null,
+  isUnspecified: false,
   bookingId: null,
   calYear: new Date().getFullYear(),
   calMonth: new Date().getMonth(),
@@ -531,6 +549,7 @@ function goToEntry() {
 function startBooking(type) {
   state.type = type;
   state.date = null; state.session = null; state.timeSlot = null;
+  state.isUnspecified = false;
   document.getElementById("headerSub").textContent = type + "預約";
   showPage("pageInfo");
 }
@@ -556,7 +575,6 @@ async function goToPageTime() {
   hideError("errorPage1");
   state.name = name; state.phone = phone; state.birth = birth;
 
-  // 黑名單檢查
   if (state.lineId) {
     try {
       const bl = await xhrGet(`${API_URL}?action=checkBlacklist&lineId=${state.lineId}`);
@@ -605,13 +623,14 @@ function changeMonth(delta) {
 }
 
 async function selectDate(dateStr) {
-  state.date = dateStr; state.session = null; state.timeSlot = null; state.doctor = null;
+  state.date = dateStr; state.session = null; state.timeSlot = null;
+  state.doctor = null; state.isUnspecified = false;
   renderCalendar();
   await loadSlots(dateStr);
 }
 
 // ===================================
-// 時間格
+// 號碼格
 // ===================================
 async function loadSlots(dateStr) {
   document.getElementById("slotsContainer").innerHTML = '<div class="loading"><div class="spinner"></div>載入中...</div>';
@@ -634,42 +653,68 @@ function renderSlots() {
   const isNewPatient = state.type === "初診";
   const order = ["早上","下午","晚上"];
   let html = "";
-  order.forEach(function(session) {
-    if (!sessions[session]) return;
-    const s = sessions[session];
-    html += `<div class="session-block"><div class="session-header"><div><div class="session-name">${session}</div><div class="session-info">${s.time}</div></div><div class="session-doctor">${s.doctor}</div></div>`;
-    if (s.fullyBooked) {
-      html += `<div class="fully-booked">此時段已額滿</div>`;
-    } else {
-      // 初診用 newPatientSlots（每30分鐘），複診用 slots（每10分鐘）+ 不指定
-      const displaySlots = isNewPatient ? (s.newPatientSlots || []) : s.slots;
-      const hasAvailable = displaySlots.some(function(slot) { return slot.available; });
-      if (!hasAvailable && isNewPatient) {
+
+  order.forEach(function(sessionKey) {
+    if (!sessions[sessionKey]) return;
+    const s = sessions[sessionKey];
+    const displayName = s.displayName || sessionKey + "診";
+
+    html += `<div class="session-block">
+      <div class="session-header">
+        <div>
+          <div class="session-name">${displayName}</div>
+        </div>
+        <div class="session-doctor">${s.doctor || ""}</div>
+      </div>`;
+
+    if (isNewPatient) {
+      // 初診：顯示5個錨點號碼
+      const slots = s.newPatientSlots || [];
+      const hasAvailable = slots.some(function(slot) { return slot.available; });
+      if (!hasAvailable) {
         html += `<div class="fully-booked">此時段初診已額滿</div>`;
       } else {
         html += '<div class="slots-grid">';
-        displaySlots.forEach(function(slot) {
-          const isSelected = state.session === session && state.timeSlot === slot.time;
+        slots.forEach(function(slot) {
+          const isSelected = state.session === sessionKey && state.timeSlot == slot.number;
           const cls = "slot-btn" + (!slot.available ? " unavailable" : "") + (isSelected ? " selected" : "");
-          const onclick = slot.available ? `onclick="selectSlot('${session}','${slot.time}','${s.doctor}',false)"` : "";
-          html += `<div class="${cls}" ${onclick}>${slot.time}</div>`;
+          const onclick = slot.available ? `onclick="selectSlot('${sessionKey}',${slot.number},'${s.doctor}',false)"` : "";
+          html += `<div class="${cls}" ${onclick}>${slot.number}</div>`;
         });
-        // 複診才加「不指定」格
-        if (!isNewPatient) {
-          const isUnspecifiedSelected = state.session === session && state.timeSlot === "不指定";
-          const unspecifiedCls = "slot-btn unspecified" + (isUnspecifiedSelected ? " selected" : "");
-          html += `<div class="${unspecifiedCls}" onclick="selectSlot('${session}','不指定','${s.doctor}',true)">不指定</div>`;
-        }
+        html += '</div>';
+      }
+    } else {
+      // 複診：顯示1-30（排除錨點）+ 不指定
+      const slots = s.returnSlots || [];
+      const hasAvailable = slots.some(function(slot) { return slot.available; });
+      if (!hasAvailable) {
+        html += `<div class="fully-booked">此時段複診已額滿</div>`;
+      } else {
+        html += '<div class="slots-grid">';
+        slots.forEach(function(slot) {
+          const isSelected = state.session === sessionKey && state.timeSlot == slot.number;
+          const cls = "slot-btn" + (!slot.available ? " unavailable" : "") + (isSelected ? " selected" : "");
+          const onclick = slot.available ? `onclick="selectSlot('${sessionKey}',${slot.number},'${s.doctor}',false)"` : "";
+          html += `<div class="${cls}" ${onclick}>${slot.number}</div>`;
+        });
+        // 不指定按鈕
+        const isUnspecifiedSelected = state.session === sessionKey && state.isUnspecified;
+        const unspecifiedCls = "slot-unspecified" + (isUnspecifiedSelected ? " selected" : "");
+        html += `<div class="${unspecifiedCls}" onclick="selectSlot('${sessionKey}','不指定','${s.doctor}',true)">不指定時間</div>`;
         html += '</div>';
       }
     }
+
     html += '</div>';
   });
+
   document.getElementById("slotsContainer").innerHTML = html;
 }
 
-function selectSlot(session, time, doctor, isUnspecified) {
-  state.session = session; state.timeSlot = time; state.doctor = doctor;
+function selectSlot(session, slot, doctor, isUnspecified) {
+  state.session = session;
+  state.timeSlot = slot;
+  state.doctor = doctor;
   state.isUnspecified = isUnspecified || false;
   renderSlots();
 }
@@ -679,8 +724,9 @@ function selectSlot(session, time, doctor, isUnspecified) {
 // ===================================
 async function goToConfirm() {
   if (!state.date) return showError("errorPage2", "請選擇日期");
-  if (!state.session || !state.timeSlot) return showError("errorPage2", "請選擇時間格");
+  if (!state.session || state.timeSlot === null) return showError("errorPage2", "請選擇號碼");
   hideError("errorPage2");
+
   try {
     const dateCode = state.date.replace(/\//g,'');
     const data = await xhrGet(`${API_URL}?action=checkLimit&lineId=${state.lineId}&date=${dateCode}`);
@@ -690,14 +736,18 @@ async function goToConfirm() {
 
   const weekdays = ["日","一","二","三","四","五","六"];
   const weekday = weekdays[new Date(state.date).getDay()];
+  const s = state.slotsData && state.slotsData[state.session];
+  const displayName = s ? (s.displayName || state.session + "診") : state.session + "診";
+  const slotDisplay = state.isUnspecified ? "不指定" : (state.timeSlot + " 號");
+
   document.getElementById("summaryContent").innerHTML = `
     <div class="summary-row"><span class="summary-label">就診類型</span><span class="summary-value">${state.type}</span></div>
     <div class="summary-row"><span class="summary-label">姓名</span><span class="summary-value">${state.name}</span></div>
     <div class="summary-row"><span class="summary-label">電話</span><span class="summary-value">${state.phone}</span></div>
     <div class="summary-row"><span class="summary-label">生日</span><span class="summary-value">${state.birth}</span></div>
     <div class="summary-row"><span class="summary-label">預約日期</span><span class="summary-value">${state.date}（週${weekday}）</span></div>
-    <div class="summary-row"><span class="summary-label">時段</span><span class="summary-value">${state.session} ${state.timeSlot}</span></div>
-    <div class="summary-row"><span class="summary-label">醫師</span><span class="summary-value">${state.doctor}</span></div>`;
+    <div class="summary-row"><span class="summary-label">時段</span><span class="summary-value">${displayName} ${slotDisplay}</span></div>
+    <div class="summary-row"><span class="summary-label">醫師</span><span class="summary-value">${state.doctor || "-"}</span></div>`;
   showPage("pageConfirm");
 }
 
@@ -708,22 +758,34 @@ async function submitBooking() {
   const btn = document.getElementById("btnSubmit");
   btn.disabled = true; btn.textContent = "送出中...";
   try {
-    const data = await xhrGet(`${API_URL}?action=submitBooking&lineId=${state.lineId}&name=${encodeURIComponent(state.name)}&phone=${state.phone}&birth=${state.birth}&date=${state.date.replace(/\//g,'')}&session=${encodeURIComponent(state.session)}&timeSlot=${state.timeSlot}&type=${encodeURIComponent(state.type)}`);
+    const slotParam = state.isUnspecified ? "不指定" : state.timeSlot;
+    const data = await xhrGet(
+      `${API_URL}?action=submitBooking`
+      + `&lineId=${state.lineId}`
+      + `&name=${encodeURIComponent(state.name)}`
+      + `&phone=${state.phone}`
+      + `&birth=${state.birth}`
+      + `&date=${state.date.replace(/\//g,'')}`
+      + `&session=${encodeURIComponent(state.session)}`
+      + `&timeSlot=${encodeURIComponent(slotParam)}`
+      + `&type=${encodeURIComponent(state.type)}`
+    );
     if (!data.success) throw new Error(data.error);
     state.bookingId = data.bookingId;
+
     if (state.type === "初診") {
       document.getElementById("newPatientNotice").innerHTML =
         `<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 第一次看診的朋友，可以先填寫初診資料，讓醫師更了解您的狀況。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px;width:100%">填寫初診資料 →</button><br><div style="font-size:12px;color:#aaa;margin-top:10px;text-align:center">暫不填寫請點選下方「返回首頁」或直接退出預約系統。</div></div>`;
     }
-    // 設定提醒文字
-    const sessionTimeMap = { "早上": "09:00-11:30", "下午": "14:00-16:30", "晚上": "17:30-20:00" };
-    const timeRange = sessionTimeMap[state.session] || "";
+
+    // 成功提醒文字
     let reminderHtml = "";
     if (state.isUnspecified) {
+      const sessionTimeMap = { "早上": "09:00 - 11:30", "下午": "14:00 - 16:30", "晚上": "17:30 - 20:00" };
+      const timeRange = sessionTimeMap[state.session] || "";
       reminderHtml = `您已完成預約登記。看診當日請於 ${timeRange} 間至櫃台報到，由工作人員安排看診順序。`;
     } else {
-      reminderHtml = `請準時或提前報到。逾時報到視同未指定時間，由工作人員安排看診順序。<br><br>`
-        + `<strong>注意：</strong>預約時間為報到時間，並非實際看診時間。實際看診時間可能依當診次狀況稍有延誤，敬請理解。`;
+      reminderHtml = `請準時或提前報到。<br><br><strong>注意：</strong>報到時間為預估時間，並非實際看診時間。實際看診時間可能依當診次狀況稍有延誤，敬請理解。`;
     }
     document.getElementById("successReminder").innerHTML = reminderHtml;
     showPage("pageSuccess");
@@ -785,13 +847,15 @@ function renderBookingList(bookings) {
   bookings.forEach(function(b) {
     const statusCls = statusMap[b.status] || "status-pending";
     const canCancel = b.status !== "已取消";
+    const slotDisplay = b.slot === "不指定" ? "不指定" : (b.slot + " 號");
+    const displayName = b.displayName || b.session + "診";
     html += `<div class="booking-item">
       <div class="booking-item-header">
-        <div class="booking-date">${b.date} ${b.session}</div>
+        <div class="booking-date">${b.date} ${displayName}</div>
         <div class="booking-status ${statusCls}">${b.status}</div>
       </div>
       <div class="booking-detail">
-        時間：${b.timeSlot}　醫師：${b.doctor || "-"}　類型：${b.type}
+        號碼：${slotDisplay}　醫師：${b.doctor || "-"}　類型：${b.type}
       </div>
       ${canCancel ? `<button class="booking-cancel" onclick="cancelBooking('${b.bookingId}', this)">取消此預約</button>` : ""}
     </div>`;
@@ -800,7 +864,6 @@ function renderBookingList(bookings) {
 }
 
 async function cancelBooking(bookingId, btn) {
-  // 顯示自訂確認視窗
   document.getElementById("cancelModal").classList.add("active");
   document.getElementById("modalConfirmBtn").onclick = async function() {
     closeCancelModal();
