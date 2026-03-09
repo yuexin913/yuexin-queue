@@ -333,6 +333,7 @@
         期待在悅心診所與您見面 ✨
       </div>
     </div>
+    <button class="btn btn-secondary" onclick="closeLiff()" style="margin-top:16px">關閉</button>
   </div>
 
 </div>
@@ -480,6 +481,14 @@ function xhrPost(url, payload) {
     xhr.onerror = function() { reject(new Error("Network error")); };
     xhr.send(JSON.stringify(payload));
   });
+}
+
+function closeLiff() {
+  if (typeof liff !== "undefined" && liff.isInClient()) {
+    liff.closeWindow();
+  } else {
+    window.close();
+  }
 }
 </script>
 </body>
