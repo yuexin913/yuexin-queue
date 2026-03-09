@@ -407,7 +407,7 @@
     </div>
     <div id="slotsContainer"><div class="no-clinic">請先選擇日期</div></div>
     <div id="errorPage2" class="alert alert-error" style="display:none"></div>
-    <button class="btn btn-outline" onclick="showPage('pageInfo')">← 返回</button>
+    <button class="btn btn-outline" onclick="hideError('errorPage2');showPage('pageInfo')">← 返回</button>
     <button class="btn btn-primary" onclick="goToConfirm()">下一步：確認預約 →</button>
   </div>
 
@@ -625,6 +625,7 @@ function changeMonth(delta) {
 async function selectDate(dateStr) {
   state.date = dateStr; state.session = null; state.timeSlot = null;
   state.doctor = null; state.isUnspecified = false;
+  hideError("errorPage2");
   renderCalendar();
   await loadSlots(dateStr);
 }
@@ -740,6 +741,30 @@ async function goToConfirm() {
   const displayName = s ? (s.displayName || state.session + "診") : state.session + "診";
   const slotDisplay = state.isUnspecified ? "不指定" : (state.timeSlot + " 號");
 
+  // 計算報到時間
+  const SESSION_START = { "早上": [9,0], "下午": [14,0], "晚上": [17,30] };
+  function toTimeStr(h, m) {
+    return String(h).padStart(2,'0') + ":" + String(m).padStart(2,'0');
+  }
+  const SESSION_RANGE = { "早上": "09:00 - 11:30", "下午": "14:00 - 16:30", "晚上": "17:30 - 20:00" };
+  let arrivalDisplay = "-";
+  if (state.isUnspecified) {
+    arrivalDisplay = SESSION_RANGE[state.session] || "-";
+  } else if (state.type === "初診") {
+    const start = SESSION_START[state.session];
+    if (start) {
+      const anchorIndex = [5,10,15,20,25].indexOf(Number(state.timeSlot));
+      const totalMins = start[0]*60 + start[1] + 15 + anchorIndex*30;
+      arrivalDisplay = toTimeStr(Math.floor(totalMins/60), totalMins%60) + " 前";
+    }
+  } else {
+    const start = SESSION_START[state.session];
+    if (start) {
+      const totalMins = start[0]*60 + start[1] + Number(state.timeSlot)*5;
+      arrivalDisplay = toTimeStr(Math.floor(totalMins/60), totalMins%60);
+    }
+  }
+
   document.getElementById("summaryContent").innerHTML = `
     <div class="summary-row"><span class="summary-label">就診類型</span><span class="summary-value">${state.type}</span></div>
     <div class="summary-row"><span class="summary-label">姓名</span><span class="summary-value">${state.name}</span></div>
@@ -747,6 +772,7 @@ async function goToConfirm() {
     <div class="summary-row"><span class="summary-label">生日</span><span class="summary-value">${state.birth}</span></div>
     <div class="summary-row"><span class="summary-label">預約日期</span><span class="summary-value">${state.date}（週${weekday}）</span></div>
     <div class="summary-row"><span class="summary-label">時段</span><span class="summary-value">${displayName} ${slotDisplay}</span></div>
+    <div class="summary-row"><span class="summary-label">報到時間</span><span class="summary-value">${arrivalDisplay}</span></div>
     <div class="summary-row"><span class="summary-label">醫師</span><span class="summary-value">${state.doctor || "-"}</span></div>`;
   showPage("pageConfirm");
 }
@@ -775,7 +801,7 @@ async function submitBooking() {
 
     if (state.type === "初診") {
       document.getElementById("newPatientNotice").innerHTML =
-        `<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 第一次看診的朋友，可以先填寫初診資料，讓醫師更了解您的狀況。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px;width:100%">填寫初診資料 →</button><br><div style="font-size:12px;color:#aaa;margin-top:10px;text-align:center">暫不填寫請點選下方「返回首頁」或直接退出預約系統。</div></div>`;
+        `<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 第一次看診的朋友，可以先填寫初診資料，讓醫師更了解您的狀況。若暫不填寫，可點選下方「返回首頁」或直接退出預約系統。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px;width:100%">填寫初診資料 →</button></div>`;
     }
 
     // 成功提醒文字
