@@ -785,17 +785,18 @@ async function submitBooking() {
   btn.disabled = true; btn.textContent = "送出中...";
   try {
     const slotParam = state.isUnspecified ? "不指定" : state.timeSlot;
-    const data = await xhrGet(
-      `${API_URL}?action=submitBooking`
-      + `&lineId=${state.lineId}`
-      + `&name=${encodeURIComponent(state.name)}`
-      + `&phone=${state.phone}`
-      + `&birth=${state.birth}`
-      + `&date=${state.date.replace(/\//g,'')}`
-      + `&session=${encodeURIComponent(state.session)}`
-      + `&timeSlot=${encodeURIComponent(slotParam)}`
-      + `&type=${encodeURIComponent(state.type)}`
-    );
+    const payload = {
+      action: "submitBooking",
+      lineId: state.lineId,
+      name: state.name,
+      phone: state.phone,
+      birth: state.birth,
+      date: state.date.replace(/\//g, ''),
+      session: state.session,
+      timeSlot: slotParam,
+      type: state.type
+    };
+    const data = await xhrPost(API_URL, payload);
     if (!data.success) throw new Error(data.error);
     state.bookingId = data.bookingId;
 
@@ -941,6 +942,20 @@ function xhrGet(url) {
     };
     xhr.onerror = function() { reject(new Error("Network error")); };
     xhr.send();
+  });
+}
+
+function xhrPost(url, payload) {
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Content-Type", "text/plain");
+    xhr.onload = function() {
+      try { resolve(JSON.parse(xhr.responseText)); }
+      catch(e) { reject(e); }
+    };
+    xhr.onerror = function() { reject(new Error("Network error")); };
+    xhr.send(JSON.stringify(payload));
   });
 }
 

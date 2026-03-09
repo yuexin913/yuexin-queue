@@ -338,7 +338,7 @@
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzfxQ5JS7Gm97L5LZOkDkyZxgwwNZWGkkIoMSc-C6Pe_cYt86-6jVGcQy_HIjEkuLQogw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbz1IB0HCFWaFlC7odExNsOWaZwTjz7osAjstXhx_5V0ZD4Ya58GGRRPfFAun2Itywbh6A/exec";
 
 const urlParams = new URLSearchParams(window.location.search);
 const bookingId = decodeURIComponent(urlParams.get("bookingId") || "");
@@ -420,18 +420,19 @@ async function submitNewPatient() {
   btn.disabled = true; btn.textContent = "送出中...";
 
   try {
-    var url = API_URL
-      + "?action=submitNewPatient"
-      + "&bookingId=" + encodeURIComponent(bookingId)
-      + "&name=" + encodeURIComponent(name)
-      + "&lineId=" + encodeURIComponent(lineId)
-      + "&referral=" + encodeURIComponent(referralVal)
-      + "&priorTreatment=" + encodeURIComponent(priorVal)
-      + "&ongoingTreatment=" + encodeURIComponent(radioState.ongoing || "")
-      + "&transferReason=" + encodeURIComponent(transferVal || "")
-      + "&chiefComplaint=" + encodeURIComponent(chiefComplaint)
-      + "&pregnancyStatus=" + encodeURIComponent(radioState.pregnancy);
-    const data = await xhrGet(url);
+    const payload = {
+      action: "submitNewPatient",
+      bookingId: bookingId,
+      name: name,
+      lineId: lineId,
+      referral: referralVal,
+      priorTreatment: priorVal,
+      ongoingTreatment: radioState.ongoing || "",
+      transferReason: transferVal || "",
+      chiefComplaint: chiefComplaint,
+      pregnancyStatus: radioState.pregnancy
+    };
+    const data = await xhrPost(API_URL, payload);
     if (!data.success) throw new Error(data.error);
     showSuccess();
   } catch(e) {
@@ -464,6 +465,20 @@ function xhrGet(url) {
     };
     xhr.onerror = function() { reject(new Error("Network error")); };
     xhr.send();
+  });
+}
+
+function xhrPost(url, payload) {
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Content-Type", "text/plain");
+    xhr.onload = function() {
+      try { resolve(JSON.parse(xhr.responseText)); }
+      catch(e) { reject(e); }
+    };
+    xhr.onerror = function() { reject(new Error("Network error")); };
+    xhr.send(JSON.stringify(payload));
   });
 }
 </script>
