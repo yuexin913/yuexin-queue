@@ -850,10 +850,10 @@ async function queryBookings() {
   btn.disabled = true; btn.textContent = "查詢中...";
 
   try {
-    const data = await xhrPost(API_URL, { action: "queryBookings", name: name, phone: phone, birth: birth });
+    const data = await xhrPost(API_URL, { action: "queryBookings", name: name, phone: phone, birth: birth, lineId: state.lineId });
     if (!data.success) throw new Error(data.error);
     if (!data.found) {
-      showError("errorQuery", "查無符合的預約資料，請確認姓名、電話、生日是否正確。");
+      showError("errorQuery", "查無您的線上預約紀錄。若您是透過電話或現場掛號，為保護醫療隱私，請直接來電診所 07-363-1313 查詢。");
       btn.disabled = false; btn.textContent = "查詢我的預約";
       return;
     }
