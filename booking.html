@@ -731,8 +731,8 @@ async function goToConfirm() {
   try {
     const dateCode = state.date.replace(/\//g,'');
     const data = await xhrGet(`${API_URL}?action=checkLimit&lineId=${state.lineId}&date=${dateCode}`);
-    if (data.sameDayExceeded) return showError("errorPage2", "您當天已有預約，如需更改請取消原預約後再重新預約。若需加掛門診，請於門診時間聯繫診所，由工作人員協助。");
-    if (data.sameWeekExceeded) return showError("errorPage2", "您本週預約已達上限。若需加掛門診，請於門診時間聯繫診所，由工作人員協助。");
+    if (data.sameDayExceeded) return showError("errorPage2", "您當天已有預約，如需更改請取消原預約後再重新預約。若需加掛門診，請於門診時間來電：07-363-1313。");
+    if (data.sameWeekExceeded) return showError("errorPage2", "您本週預約已達上限，如需更改請取消原預約後再重新預約。若需加掛門診，請於門診時間來電：07-363-1313。");
   } catch(e) { return showError("errorPage2", "驗證失敗，請重試"); }
 
   const weekdays = ["日","一","二","三","四","五","六"];
@@ -803,7 +803,7 @@ async function submitBooking() {
 
     if (state.type === "初診") {
       document.getElementById("newPatientNotice").innerHTML =
-        `<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 第一次看診的朋友，可以先填寫初診資料，讓醫師更了解您的狀況。若暫不填寫，可點選下方「返回首頁」或直接退出預約系統。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px;width:100%">填寫初診資料 →</button></div>`;
+        `<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 第一次看診的朋友，可以先填寫初診資料，讓醫師更了解您的狀況。暫不填寫請點選下方「返回首頁」或直接退出預約系統。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px;width:100%">填寫初診資料 →</button></div>`;
     }
 
     // 成功提醒文字
@@ -812,8 +812,10 @@ async function submitBooking() {
       const sessionTimeMap = { "早上": "09:00 - 11:30", "下午": "14:00 - 16:30", "晚上": "17:30 - 20:00" };
       const timeRange = sessionTimeMap[state.session] || "";
       reminderHtml = `您已完成預約登記。看診當日請於 ${timeRange} 間至櫃台報到，由工作人員安排看診順序。`;
+    } else if (state.type === "初診") {
+      reminderHtml = `請按時報到，若逾時報到，由工作人員重新安排看診順序。<br><br><strong>注意：</strong>報到時間僅為預估，實際看診時間可能依現場狀況稍有延遲，敬請理解。`;
     } else {
-      reminderHtml = `請準時或提前報到。<br><br><strong>注意：</strong>報到時間為預估時間，並非實際看診時間。實際看診時間可能依當診次狀況稍有延誤，敬請理解。`;
+      reminderHtml = `<strong>注意：</strong>報到時間僅為預估，實際看診時間可能依現場狀況稍有延遲，敬請理解。`;
     }
     document.getElementById("successReminder").innerHTML = reminderHtml;
     showPage("pageSuccess");
@@ -853,14 +855,14 @@ async function queryBookings() {
     const data = await xhrPost(API_URL, { action: "queryBookings", name: name, phone: phone, birth: birth, lineId: state.lineId });
     if (!data.success) throw new Error(data.error);
     if (!data.found) {
-      showError("errorQuery", "查無您的線上預約紀錄。若您是透過電話或現場掛號，為保護醫療隱私，請直接來電診所 07-363-1313 查詢。");
+      showError("errorQuery", "查無線上預約紀錄。若您是透過電話或現場掛號，請於門診時間來電：07-363-1313查詢。");
       btn.disabled = false; btn.textContent = "查詢我的預約";
       return;
     }
     renderBookingList(data.bookings);
     showPage("pageQueryResult");
   } catch(e) {
-    showError("errorQuery", "查詢失敗，請重試");
+    showError("errorQuery", "查詢失敗，請重試或於門診時間來電：07-363-1313。");
   }
   btn.disabled = false; btn.textContent = "查詢我的預約";
 }
@@ -905,7 +907,7 @@ async function cancelBooking(bookingId, btn) {
       btn.remove();
     } catch(e) {
       btn.disabled = false; btn.textContent = "取消此預約";
-      alert("取消失敗，請重試或來電：07-363-1313");
+      alert("取消失敗，請重試或於門診時間來電：07-363-1313。");
     }
   };
 }
