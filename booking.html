@@ -352,7 +352,7 @@
     <div class="steps" id="stepsBar">
       <div class="step active" id="step1"><div class="step-num">1</div><span>基本資料</span></div>
       <div class="step-line"></div>
-      <div class="step" id="step2"><div class="step-num">2</div><span>選擇號碼</span></div>
+      <div class="step" id="step2"><div class="step-num">2</div><span>選擇看診日期</span></div>
       <div class="step-line"></div>
       <div class="step" id="step3"><div class="step-num">3</div><span>確認送出</span></div>
     </div>
@@ -381,7 +381,7 @@
     </div>
     <div id="errorPage1" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-outline" onclick="goToEntry()">← 返回</button>
-    <button class="btn btn-primary" onclick="goToPageTime()">下一步：選擇號碼 →</button>
+    <button class="btn btn-primary" onclick="goToPageTime()">下一步：選擇看診日期 →</button>
   </div>
 
   <!-- 預約：選擇號碼 -->
@@ -389,7 +389,7 @@
     <div class="steps">
       <div class="step done"><div class="step-num">1</div><span>基本資料</span></div>
       <div class="step-line"></div>
-      <div class="step active"><div class="step-num">2</div><span>選擇號碼</span></div>
+      <div class="step active"><div class="step-num">2</div><span>選擇看診日期</span></div>
       <div class="step-line"></div>
       <div class="step"><div class="step-num">3</div><span>確認送出</span></div>
     </div>
@@ -417,7 +417,7 @@
     <div class="steps">
       <div class="step done"><div class="step-num">1</div><span>基本資料</span></div>
       <div class="step-line"></div>
-      <div class="step done"><div class="step-num">2</div><span>選擇號碼</span></div>
+      <div class="step done"><div class="step-num">2</div><span>選擇看診日期</span></div>
       <div class="step-line"></div>
       <div class="step active"><div class="step-num">3</div><span>確認送出</span></div>
     </div>
@@ -683,12 +683,7 @@ function renderSlots() {
           const isSelected = state.session === sessionKey && state.timeSlot == slot.number;
           const cls = "slot-btn" + (!slot.available ? " unavailable" : "") + (isSelected ? " selected" : "");
           const onclick = slot.available ? `onclick="selectSlot('${sessionKey}',${slot.number},'${s.doctor}',false)"` : "";
-          html += `<div class="${cls}" ${onclick}>${slot.number}</div>`;
-        });
-        html += '</div>';
-      }
-    } else {
-      // 複診：顯示1-30（排除錨點）+ 不指定
+          html += `<div class="${cls}" ${onclick}>${slot.number}號</div>`;
       const slots = s.returnSlots || [];
       const hasAvailable = slots.some(function(slot) { return slot.available; });
       if (!hasAvailable) {
@@ -699,12 +694,12 @@ function renderSlots() {
           const isSelected = state.session === sessionKey && state.timeSlot == slot.number;
           const cls = "slot-btn" + (!slot.available ? " unavailable" : "") + (isSelected ? " selected" : "");
           const onclick = slot.available ? `onclick="selectSlot('${sessionKey}',${slot.number},'${s.doctor}',false)"` : "";
-          html += `<div class="${cls}" ${onclick}>${slot.number}</div>`;
+          html += `<div class="${cls}" ${onclick}>${slot.number}號</div>`;
         });
         // 不指定按鈕
         const isUnspecifiedSelected = state.session === sessionKey && state.isUnspecified;
         const unspecifiedCls = "slot-unspecified" + (isUnspecifiedSelected ? " selected" : "");
-        html += `<div class="${unspecifiedCls}" onclick="selectSlot('${sessionKey}','不指定','${s.doctor}',true)">不指定時間</div>`;
+        html += `<div class="${unspecifiedCls}" onclick="selectSlot('${sessionKey}','不指定','${s.doctor}',true)">不指定號碼</div>`;
         html += '</div>';
       }
     }
@@ -858,7 +853,7 @@ async function queryBookings() {
     const data = await xhrPost(API_URL, { action: "queryBookings", name: name, phone: phone, birth: birth, lineId: state.lineId });
     if (!data.success) throw new Error(data.error);
     if (!data.found) {
-      showError("errorQuery", "查無線上預約紀錄。若您是透過電話或現場掛號，請於門診時間來電：07-363-1313查詢。");
+      showError("errorQuery", "查無線上預約紀錄。請確認輸入資料是否與預約資料一致。若您是透過電話或現場掛號，請於門診時間來電：07-363-1313查詢。");
       btn.disabled = false; btn.textContent = "查詢我的預約";
       return;
     }
