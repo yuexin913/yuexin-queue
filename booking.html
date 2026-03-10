@@ -684,6 +684,11 @@ function renderSlots() {
           const cls = "slot-btn" + (!slot.available ? " unavailable" : "") + (isSelected ? " selected" : "");
           const onclick = slot.available ? `onclick="selectSlot('${sessionKey}',${slot.number},'${s.doctor}',false)"` : "";
           html += `<div class="${cls}" ${onclick}>${slot.number}號</div>`;
+        });
+        html += '</div>';
+      }
+    } else {
+      // 複診：顯示1-30（排除錨點）+ 不指定
       const slots = s.returnSlots || [];
       const hasAvailable = slots.some(function(slot) { return slot.available; });
       if (!hasAvailable) {
