@@ -406,6 +406,7 @@
       <div class="cal-days" id="calDays"></div>
     </div>
     <div id="slotsContainer"><div class="no-clinic">請先選擇日期</div></div>
+    <div id="nhiReminder" class="alert alert-warn" style="display:none;margin-top:12px">💡 <strong>複診預約重要提醒：</strong>為確保用藥安全及避免浪費健保資源，健保回診開藥（領藥）最多提前 1 天。若不確定您的健保回診日期，請先於門診時間致電診所 07-363-1313 確認。</div>
     <div id="errorPage2" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-outline" onclick="hideError('errorPage2');showPage('pageInfo')">← 返回</button>
     <button class="btn btn-primary" onclick="goToConfirm()">下一步：確認預約 →</button>
@@ -586,6 +587,8 @@ async function goToPageTime() {
 
   showPage("pageTime");
   renderCalendar();
+  // 複診才顯示健保提醒
+  document.getElementById("nhiReminder").style.display = (state.type === "複診") ? "block" : "none";
 }
 
 // ===================================
