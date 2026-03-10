@@ -327,7 +327,8 @@
         期待在悅心診所與您見面 ✨
       </div>
     </div>
-    <button class="btn btn-secondary" onclick="closeLiff()" style="margin-top:16px">關閉</button>
+    <button class="btn btn-secondary" onclick="closeLiff()" style="display:none;margin-top:16px">關閉</button>
+    <button class="btn btn-outline" onclick="goToEntry()" style="margin-top:16px">返回首頁</button>
   </div>
 
 </div>
@@ -438,6 +439,10 @@ function xhrPost(url, payload) {
     xhr.onerror = function() { reject(new Error("Network error")); };
     xhr.send(JSON.stringify(payload));
   });
+}
+
+function goToEntry() {
+  window.location.href = "booking.html";
 }
 
 function closeLiff() {
