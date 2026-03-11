@@ -807,7 +807,7 @@ async function submitBooking() {
     document.getElementById("successReminder").innerHTML = reminderHtml;
     showPage("pageSuccess");
   } catch(e) {
-    showError("errorPage3", "送出失敗，請重試或電話預約：07-363-1313");
+    showError("errorPage3", "預約未完成。請重試或電話預約：07-363-1313。");
     btn.disabled = false; btn.textContent = "確認送出預約";
   }
 }
