@@ -449,26 +449,10 @@
   <div class="page" id="pageQuery">
     <div class="card">
       <div class="card-title">查詢預約</div>
-      <div class="alert alert-info" style="margin-bottom:16px">請輸入預約時填寫的資料進行驗證</div>
+      <div class="alert alert-info" style="margin-bottom:16px">請輸入預約時填寫的姓名</div>
       <div class="form-group">
         <label>姓名 <span class="required">*</span></label>
         <input type="text" id="queryName" placeholder="請輸入姓名">
-      </div>
-      <div class="form-group">
-        <label>電話 <span class="required">*</span></label>
-        <input type="tel" id="queryPhone" placeholder="09xxxxxxxx">
-      </div>
-      <div class="form-group">
-        <label>生日 <span class="required">*</span></label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="tel" id="queryBirthY" placeholder="民國年" style="width:90px" maxlength="3">
-          <span>年</span>
-          <input type="tel" id="queryBirthM" placeholder="月" style="width:60px" maxlength="2">
-          <span>月</span>
-          <input type="tel" id="queryBirthD" placeholder="日" style="width:60px" maxlength="2">
-          <span>日</span>
-        </div>
-        <div style="font-size:12px;color:#999;margin-top:4px">請輸入民國年，例如：113年5月1日</div>
       </div>
     </div>
     <div id="errorQuery" class="alert alert-error" style="display:none"></div>
@@ -841,21 +825,14 @@ function goToNewPatientForm() {
 // ===================================
 async function queryBookings() {
   const name = document.getElementById("queryName").value.trim();
-  const phone = document.getElementById("queryPhone").value.trim();
-  const birthY = document.getElementById("queryBirthY").value.trim();
-  const birthM = document.getElementById("queryBirthM").value.trim();
-  const birthD = document.getElementById("queryBirthD").value.trim();
   if (!name) return showError("errorQuery", "請輸入姓名");
-  if (!phone) return showError("errorQuery", "請輸入電話");
-  const birth = parseBirthROC(birthY, birthM, birthD);
-  if (!birth) return showError("errorQuery", "請輸入正確的生日（民國年）");
   hideError("errorQuery");
 
   const btn = document.getElementById("btnQuery");
   btn.disabled = true; btn.textContent = "查詢中...";
 
   try {
-    const data = await xhrPost(API_URL, { action: "queryBookings", name: name, phone: phone, birth: birth, lineId: state.lineId });
+    const data = await xhrPost(API_URL, { action: "queryBookings", name: name, lineId: state.lineId });
     if (!data.success) throw new Error(data.error);
     if (!data.found) {
       showError("errorQuery", "查無線上預約紀錄。請確認輸入資料是否與預約資料一致。若您是透過電話或現場掛號，請於門診時間來電：07-363-1313查詢。");
@@ -976,5 +953,7 @@ function xhrPost(url, payload) {
 
 initLiff();
 </script>
+<!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
+<div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#bbb;letter-spacing:0.08em;">EST. 2024 YUEXIN PSYCHIATRIC CLINIC</div>
 </body>
 </html>
