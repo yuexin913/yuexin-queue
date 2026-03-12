@@ -656,7 +656,7 @@ function renderSlots() {
       </div>`;
 
     if (isNewPatient) {
-      // 初診：顯示5個錨點號碼
+      // 初診：顯示時間格（09點15分）
       const slots = s.newPatientSlots || [];
       const hasAvailable = slots.some(function(slot) { return slot.available; });
       if (!hasAvailable) {
@@ -664,15 +664,15 @@ function renderSlots() {
       } else {
         html += '<div class="slots-grid">';
         slots.forEach(function(slot) {
-          const isSelected = state.session === sessionKey && state.timeSlot == slot.number;
+          const isSelected = state.session === sessionKey && state.timeSlot === slot.code;
           const cls = "slot-btn" + (!slot.available ? " unavailable" : "") + (isSelected ? " selected" : "");
-          const onclick = slot.available ? `onclick="selectSlot('${sessionKey}',${slot.number},'${s.doctor}',false)"` : "";
-          html += `<div class="${cls}" ${onclick}>${slot.number}號</div>`;
+          const onclick = slot.available ? `onclick="selectSlot('${sessionKey}','${slot.code}','${s.doctor}',false)"` : "";
+          html += `<div class="${cls}" ${onclick}>${slot.display}</div>`;
         });
         html += '</div>';
       }
     } else {
-      // 複診：顯示1-30（排除錨點）+ 不指定
+      // 複診：顯示1-30全部 + 不指定
       const slots = s.returnSlots || [];
       const hasAvailable = slots.some(function(slot) { return slot.available; });
       if (!hasAvailable) {
@@ -726,29 +726,32 @@ async function goToConfirm() {
   const weekday = weekdays[new Date(state.date).getDay()];
   const s = state.slotsData && state.slotsData[state.session];
   const displayName = s ? (s.displayName || state.session + "診") : state.session + "診";
-  const slotDisplay = state.isUnspecified ? "不指定" : (state.timeSlot + " 號");
 
   // 計算報到時間
-  const SESSION_START = { "早上": [9,0], "下午": [14,0], "晚上": [17,30] };
-  function toTimeStr(h, m) {
-    return String(h).padStart(2,'0') + ":" + String(m).padStart(2,'0');
-  }
   const SESSION_RANGE = { "早上": "09:00 - 11:30", "下午": "14:00 - 16:30", "晚上": "17:30 - 20:00" };
+  const SESSION_START = { "早上": [9,0], "下午": [14,0], "晚上": [17,30] };
+
+  // 時段顯示：初診不顯示號碼，複診顯示號碼
+  let slotDisplay = "";
   let arrivalDisplay = "-";
+
   if (state.isUnspecified) {
+    slotDisplay = "不指定";
     arrivalDisplay = SESSION_RANGE[state.session] || "-";
   } else if (state.type === "初診") {
-    const start = SESSION_START[state.session];
-    if (start) {
-      const anchorIndex = [5,10,15,20,25].indexOf(Number(state.timeSlot));
-      const totalMins = start[0]*60 + start[1] + 15 + anchorIndex*30;
-      arrivalDisplay = toTimeStr(Math.floor(totalMins/60), totalMins%60) + " 前";
-    }
+    // state.timeSlot是"0915"等時間code
+    const npH = parseInt(state.timeSlot.substring(0, 2));
+    const npM = state.timeSlot.substring(2, 4);
+    slotDisplay = "";  // 初診不顯示格子代碼
+    arrivalDisplay = npH + "點" + npM + "分 前";
   } else {
+    slotDisplay = state.timeSlot + " 號";
     const start = SESSION_START[state.session];
     if (start) {
       const totalMins = start[0]*60 + start[1] + Number(state.timeSlot)*5;
-      arrivalDisplay = toTimeStr(Math.floor(totalMins/60), totalMins%60);
+      const rH = Math.floor(totalMins/60);
+      const rM = String(totalMins%60).padStart(2,'0');
+      arrivalDisplay = rH + "點" + rM + "分";
     }
   }
 
@@ -759,7 +762,7 @@ async function goToConfirm() {
     <div class="summary-row"><span class="summary-label">電話</span><span class="summary-value">${esc(state.phone)}</span></div>
     <div class="summary-row"><span class="summary-label">生日</span><span class="summary-value">${esc(state.birth)}</span></div>
     <div class="summary-row"><span class="summary-label">預約日期</span><span class="summary-value">${esc(state.date)}（週${weekday}）</span></div>
-    <div class="summary-row"><span class="summary-label">時段</span><span class="summary-value">${esc(displayName)} ${esc(slotDisplay)}</span></div>
+    <div class="summary-row"><span class="summary-label">時段</span><span class="summary-value">${esc(displayName)}${slotDisplay ? ' ' + esc(slotDisplay) : ''}</span></div>
     <div class="summary-row"><span class="summary-label">報到時間</span><span class="summary-value">${esc(arrivalDisplay)}</span></div>
     <div class="summary-row"><span class="summary-label">醫師</span><span class="summary-value">${esc(state.doctor || "-")}</span></div>`;
   showPage("pageConfirm");
