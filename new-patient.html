@@ -340,6 +340,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const bookingId = decodeURIComponent(urlParams.get("bookingId") || "");
 const name = decodeURIComponent(urlParams.get("name") || "");
 const lineId = decodeURIComponent(urlParams.get("lineId") || "");
+const apptDate = urlParams.get("apptDate") || "";
 
 const radioState = { referral: "", firstVisit: "", preference: "", cert: "" };
 let selectedTopics = [];
@@ -385,6 +386,7 @@ async function submitNewPatient() {
       bookingId: bookingId,
       name: name,
       lineId: lineId,
+      apptDate: apptDate,
       referral: radioState.referral || "",
       firstVisit: radioState.firstVisit,
       topics: selectedTopics.join("；"),

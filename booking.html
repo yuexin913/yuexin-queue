@@ -819,7 +819,8 @@ function goToNewPatientForm() {
   const url = "new-patient.html"
     + "?bookingId=" + encodeURIComponent(state.bookingId)
     + "&name=" + encodeURIComponent(state.name)
-    + "&lineId=" + encodeURIComponent(state.lineId);
+    + "&lineId=" + encodeURIComponent(state.lineId)
+    + "&apptDate=" + encodeURIComponent(state.date.replace(/\//g, ''));
   window.location.href = url;
 }
 
