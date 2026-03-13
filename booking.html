@@ -797,7 +797,6 @@ async function submitBooking() {
     }
 
     // 成功提醒文字（已移除）
-    document.getElementById("successReminder").innerHTML = "";
     showPage("pageSuccess");
   } catch(e) {
     showError("errorPage3", "預約未完成。請重試或電話預約：07-363-1313。");
