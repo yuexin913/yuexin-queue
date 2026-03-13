@@ -441,7 +441,6 @@
       </div>
       <div id="newPatientNotice"></div>
     </div>
-    <div class="alert alert-warn" style="text-align:left;line-height:1.7" id="successReminder"></div>
     <button class="btn btn-outline" onclick="goToEntry()">返回首頁</button>
   </div>
 
@@ -667,7 +666,8 @@ function renderSlots() {
           const isSelected = state.session === sessionKey && state.timeSlot === slot.code;
           const cls = "slot-btn" + (!slot.available ? " unavailable" : "") + (isSelected ? " selected" : "");
           const onclick = slot.available ? `onclick="selectSlot('${sessionKey}','${slot.code}','${s.doctor}',false)"` : "";
-          html += `<div class="${cls}" ${onclick}>${slot.display}</div>`;
+          const npDisplay = slot.display.replace(/(.*點)(\d+分)/, '$1<br>$2');
+          html += `<div class="${cls}" ${onclick}>${npDisplay}</div>`;
         });
         html += '</div>';
       }
@@ -861,7 +861,7 @@ function renderBookingList(bookings) {
         <div class="booking-status ${statusCls}">${escapeHtml(b.status)}</div>
       </div>
       <div class="booking-detail">
-        ${slotLine}醫師：${escapeHtml(b.doctor || "-")}　類型：${escapeHtml(b.type)}${checkInLine}
+        ${slotLine}醫師：${escapeHtml(b.doctor || "-")}${checkInLine}
       </div>
       ${canCancel ? `<button class="booking-cancel" onclick="cancelBooking('${escapeHtml(b.bookingId)}', this)">取消此預約</button>` : ""}
     </div>`;
