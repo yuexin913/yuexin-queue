@@ -437,7 +437,7 @@
       <div class="success-icon">✅</div>
       <div class="success-title">預約申請完成！</div>
       <div class="success-sub">
-        您的預約已確認！<br>請查看 LINE 確認通知
+        請查看 LINE 通知確認。
       </div>
       <div id="newPatientNotice"></div>
     </div>
@@ -793,21 +793,11 @@ async function submitBooking() {
 
     if (state.type === "初診") {
       document.getElementById("newPatientNotice").innerHTML =
-        `<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 第一次看診的朋友，可以先填寫初診資料，讓醫師更了解您的狀況。暫不填寫請點選下方「返回首頁」或直接退出預約系統。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px;width:100%">填寫初診資料 →</button></div>`;
+        `<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 第一次看診的朋友，可以先填寫初診資料，讓醫師更了解您的狀況。暫不填寫請「返回首頁」或直接退出預約系統。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px;width:100%">填寫初診資料 →</button></div>`;
     }
 
-    // 成功提醒文字
-    let reminderHtml = "";
-    if (state.isUnspecified) {
-      const sessionTimeMap = { "早上": "09:00 - 11:30", "下午": "14:00 - 16:30", "晚上": "17:30 - 20:00" };
-      const timeRange = sessionTimeMap[state.session] || "";
-      reminderHtml = `您已完成預約登記。看診當日請於 ${timeRange} 間至櫃台報到，由工作人員安排看診順序。`;
-    } else if (state.type === "初診") {
-      reminderHtml = `請按時報到，若逾時報到，由工作人員重新安排看診順序。<br><br><strong>注意：</strong>報到時間僅為預估，實際看診時間可能依現場狀況稍有延遲，敬請理解。`;
-    } else {
-      reminderHtml = `<strong>注意：</strong>報到時間僅為預估，實際看診時間可能依現場狀況稍有延遲，敬請理解。`;
-    }
-    document.getElementById("successReminder").innerHTML = reminderHtml;
+    // 成功提醒文字（已移除）
+    document.getElementById("successReminder").innerHTML = "";
     showPage("pageSuccess");
   } catch(e) {
     showError("errorPage3", "預約未完成。請重試或電話預約：07-363-1313。");
@@ -863,14 +853,15 @@ function renderBookingList(bookings) {
     const canCancel = b.status !== "已取消";
     const slotDisplay = b.slot === "不指定" ? "不指定號碼" : (b.slot + " 號");
     const displayName = escapeHtml(b.displayName || b.session + "診");
-    const checkInLine = (b.slot !== "不指定") ? `　報到：${escapeHtml(b.checkInTime)}` : "";
+    const checkInLine = `　報到：${escapeHtml(b.checkInTime)}`;
+    const slotLine = b.type === "初診" ? "" : `號碼：${escapeHtml(slotDisplay)}　`;
     html += `<div class="booking-item">
       <div class="booking-item-header">
         <div class="booking-date">${escapeHtml(b.date)} ${displayName}</div>
         <div class="booking-status ${statusCls}">${escapeHtml(b.status)}</div>
       </div>
       <div class="booking-detail">
-        號碼：${escapeHtml(slotDisplay)}　醫師：${escapeHtml(b.doctor || "-")}　類型：${escapeHtml(b.type)}${checkInLine}
+        ${slotLine}醫師：${escapeHtml(b.doctor || "-")}　類型：${escapeHtml(b.type)}${checkInLine}
       </div>
       ${canCancel ? `<button class="booking-cancel" onclick="cancelBooking('${escapeHtml(b.bookingId)}', this)">取消此預約</button>` : ""}
     </div>`;
