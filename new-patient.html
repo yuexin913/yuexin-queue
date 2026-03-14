@@ -202,26 +202,50 @@
       </div>
     </div>
 
-    <!-- Q2 第一次看身心科 -->
+    <!-- Q2 目前居住地 -->
     <div class="card">
-      <div class="card-title">這是您第一次看身心科嗎？</div>
+      <div class="card-title">目前居住地？</div>
       <div class="form-group">
-        <div class="radio-group" id="firstVisitGroup">
-          <label class="radio-option" onclick="selectRadio('firstVisit','是的，這是我第一次看身心科')">
-            <input type="radio" name="firstVisit" value="是的，這是我第一次看身心科">
+        <div class="radio-group" id="residenceGroup">
+          <label class="radio-option" onclick="selectRadio('residence','高雄市楠梓區')">
+            <input type="radio" name="residence" value="高雄市楠梓區">
             <div class="radio-dot"></div>
-            <span class="radio-label">是的，這是我第一次看身心科</span>
+            <span class="radio-label">高雄市楠梓區</span>
           </label>
-          <label class="radio-option" onclick="selectRadio('firstVisit','我之前有看過身心科/心理治療/諮商')">
-            <input type="radio" name="firstVisit" value="我之前有看過身心科/心理治療/諮商">
+          <label class="radio-option" onclick="selectRadio('residence','高雄市其他行政區')">
+            <input type="radio" name="residence" value="高雄市其他行政區">
             <div class="radio-dot"></div>
-            <span class="radio-label">我之前有看過身心科/心理治療/諮商</span>
+            <span class="radio-label">高雄市其他行政區</span>
+          </label>
+          <label class="radio-option" onclick="selectRadio('residence','外縣市')">
+            <input type="radio" name="residence" value="外縣市">
+            <div class="radio-dot"></div>
+            <span class="radio-label">外縣市</span>
           </label>
         </div>
       </div>
     </div>
 
-    <!-- Q3 今天想談的大方向 -->
+    <!-- Q3 是否已成年 -->
+    <div class="card">
+      <div class="card-title">是否已成年？</div>
+      <div class="form-group">
+        <div class="radio-group" id="firstVisitGroup">
+          <label class="radio-option" onclick="selectRadio('firstVisit','是，我已年滿18歲。')">
+            <input type="radio" name="firstVisit" value="是，我已年滿18歲。">
+            <div class="radio-dot"></div>
+            <span class="radio-label">是，我已年滿18歲。</span>
+          </label>
+          <label class="radio-option" onclick="selectRadio('firstVisit','否，我尚未年滿18歲。')">
+            <input type="radio" name="firstVisit" value="否，我尚未年滿18歲。">
+            <div class="radio-dot"></div>
+            <span class="radio-label">否，我尚未年滿18歲。</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q4 今天想談的大方向 -->
     <div class="card">
       <div class="card-title">今天想來討論的大方向是？（可複選）</div>
       <div class="form-group">
@@ -258,7 +282,7 @@
       </div>
     </div>
 
-    <!-- Q4 希望的協助方式 -->
+    <!-- Q5 希望的協助方式 -->
     <div class="card">
       <div class="card-title">您比較希望的協助方式是？</div>
       <div class="form-group">
@@ -287,7 +311,7 @@
       </div>
     </div>
 
-    <!-- Q5 診斷證明書 -->
+    <!-- Q6 診斷證明書 -->
     <div class="card">
       <div class="card-title">本次看診是否需要開立診斷證明書？</div>
       <div class="form-group">
@@ -342,7 +366,7 @@ const name = decodeURIComponent(urlParams.get("name") || "");
 const lineId = decodeURIComponent(urlParams.get("lineId") || "");
 const apptDate = urlParams.get("apptDate") || "";
 
-const radioState = { referral: "", firstVisit: "", preference: "", cert: "" };
+const radioState = { referral: "", residence: "", firstVisit: "", preference: "", cert: "" };
 let selectedTopics = [];
 
 // ===================================
@@ -358,7 +382,7 @@ function selectRadio(group, val) {
 }
 
 // ===================================
-// Checkbox（Q3 大方向）
+// Checkbox（Q4 大方向）
 // ===================================
 function toggleTopic(el) {
   el.classList.toggle("selected");
@@ -372,7 +396,9 @@ function toggleTopic(el) {
 // 送出
 // ===================================
 async function submitNewPatient() {
-  if (!radioState.firstVisit) return showError("請選擇這是否是您第一次看身心科");
+  if (!radioState.referral) return showError("請選擇如何得知悅心診所");
+  if (!radioState.residence) return showError("請選擇目前居住地");
+  if (!radioState.firstVisit) return showError("請選擇是否已成年");
   if (selectedTopics.length === 0) return showError("請至少選擇一個今天想討論的大方向");
   if (!radioState.preference) return showError("請選擇您希望的協助方式");
   if (!radioState.cert) return showError("請選擇是否需要診斷證明書");
@@ -388,6 +414,7 @@ async function submitNewPatient() {
       lineId: lineId,
       apptDate: apptDate,
       referral: radioState.referral || "",
+      residence: radioState.residence,
       firstVisit: radioState.firstVisit,
       topics: selectedTopics.join("；"),
       preference: radioState.preference,
