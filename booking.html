@@ -712,7 +712,10 @@ function selectSlot(session, slot, doctor, isUnspecified) {
 // ===================================
 async function goToConfirm() {
   if (!state.date) return showError("errorPage2", "請選擇日期");
-  if (!state.session || state.timeSlot === null) return showError("errorPage2", "請選擇號碼");
+  if (!state.session || state.timeSlot === null) {
+    const msg = state.type === "初診" ? "請選擇時段" : "請選擇號碼";
+    return showError("errorPage2", msg);
+  }
   hideError("errorPage2");
 
   try {
