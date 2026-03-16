@@ -555,13 +555,18 @@ async function xhrGet(url) {
   const res = await fetch(url);
   return res.json();
 }
-async function xhrPost(url, payload) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
+function xhrPost(url, payload) {
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Content-Type", "text/plain");
+    xhr.onload = function() {
+      try { resolve(JSON.parse(xhr.responseText)); }
+      catch(e) { reject(e); }
+    };
+    xhr.onerror = function() { reject(new Error("Network error")); };
+    xhr.send(JSON.stringify(payload));
   });
-  return res.json();
 }
 
 function getTodayStr() {
