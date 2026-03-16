@@ -757,7 +757,7 @@ async function doQuery() {
     });
     renderQueryResults(data.bookings || []);
   } catch(e) {
-    errEl.textContent = "查詢失敗，請重試"; errEl.style.display = "block";
+    errEl.textContent = "查詢失敗：" + e.message; errEl.style.display = "block";
   }
   btn.disabled = false; btn.textContent = "查詢";
 }
