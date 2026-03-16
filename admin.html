@@ -428,6 +428,14 @@
       👨‍⚕️ 代診排班
       <button class="modal-close" onclick="closeModal('modalSubstitute')">✕</button>
     </div>
+
+    <!-- 上方：目前代診清單 -->
+    <div style="background:var(--orange-light);border-radius:10px;padding:12px;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:500;color:var(--orange-dark);margin-bottom:8px;">📋 目前排班代診</div>
+      <div id="subList"><div style="font-size:12px;color:var(--text-light);">載入中...</div></div>
+    </div>
+
+    <!-- 下方：輸入區 -->
     <div class="form-group">
       <label class="form-label">日期</label>
       <input type="date" id="subDate">
@@ -737,12 +745,57 @@ async function toggleCheckin(bookingId, btn) {
 function openModal(id) {
   document.getElementById(id).classList.add("active");
   if (id === "modalSecurity") loadSecurity();
+  if (id === "modalSubstitute") loadSubstituteList();
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove("active");
 }
 
-// ── Query ──
+async function loadSubstituteList() {
+  const el = document.getElementById("subList");
+  try {
+    const data = await xhrGet(`${API_URL}?action=getSubstituteList&lineId=${state.lineId}`);
+    const list = data.list || [];
+    const sessionNames = { "早上": "早上診", "下午": "下午診", "晚上": "晚上診" };
+    if (list.length === 0) {
+      el.innerHTML = `<div style="font-size:12px;color:var(--text-light)">目前無代診安排</div>`;
+      return;
+    }
+    el.innerHTML = list.map(function(item) {
+      const dateParts = item.date.split("/");
+      const dateDisplay = dateParts[1] + "月" + dateParts[2] + "日";
+      const sessionNames = { "早上": "早上診", "下午": "下午診", "晚上": "晚上診" };
+      return `<div style="font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center">
+        <span style="color:var(--orange-dark);font-weight:500">${dateDisplay}</span>
+        <span style="color:var(--text-light)">${sessionNames[item.session] || item.session}</span>
+        <span style="font-weight:500;flex:1">${esc(item.doctor)}</span>
+        <button onclick="cancelSubstitute('${esc(item.date)}','${esc(item.session)}',this)"
+          style="font-size:11px;padding:3px 8px;border-radius:8px;border:1px solid var(--error);background:white;color:var(--error);cursor:pointer">取消</button>
+      </div>`;
+    }).join("") + `<div style="font-size:11px;color:var(--text-light);margin-top:6px">同一時段多次設定時，以最新一筆為準。</div>`;
+  } catch(e) {
+    el.innerHTML = `<div style="font-size:12px;color:var(--error)">載入失敗</div>`;
+  }
+}
+
+async function cancelSubstitute(date, session, btn) {
+  btn.disabled = true; btn.textContent = "取消中...";
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "cancelSubstituteDoctor",
+      date: date,
+      session: session,
+      lineId: state.lineId
+    });
+    if (data.success) {
+      loadSubstituteList(); // 即時更新清單
+    } else {
+      btn.disabled = false; btn.textContent = "取消";
+    }
+  } catch(e) {
+    btn.disabled = false; btn.textContent = "取消";
+  }
+}
 async function doQuery() {
   const name = document.getElementById("qName").value.trim();
   const phone = document.getElementById("qPhone").value.trim();
@@ -829,6 +882,24 @@ async function doCancel() {
 }
 
 // ── Substitute ──
+async function cancelSubstitute(date, session, btn) {
+  btn.disabled = true; btn.textContent = "取消中...";
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "cancelSubstituteDoctor",
+      date: date, session: session,
+      lineId: state.lineId
+    });
+    if (data.success) {
+      loadSubstituteList(); // 即時更新清單
+    } else {
+      btn.disabled = false; btn.textContent = "取消";
+    }
+  } catch(e) {
+    btn.disabled = false; btn.textContent = "取消";
+  }
+}
+
 async function doSubstitute() {
   const date = document.getElementById("subDate").value;
   const session = document.getElementById("subSession").value;
@@ -857,6 +928,7 @@ async function doSubstitute() {
       document.getElementById("subDate").value = "";
       document.getElementById("subSession").value = "";
       document.getElementById("subDoctor").value = "";
+      loadSubstituteList(); // 即時更新上方清單
     } else {
       errEl.textContent = data.error || "更新失敗"; errEl.style.display = "block";
     }
