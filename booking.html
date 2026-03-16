@@ -500,7 +500,13 @@ async function initLiff() {
     const profile = await liff.getProfile();
     state.lineId = profile.userId;
   } catch(e) {
-    state.lineId = "test_user";
+    // LIFF載入失敗：顯示提示，不允許繼續操作
+    document.querySelector(".container").innerHTML = `
+      <div class="card" style="text-align:center;padding:40px 20px">
+        <div style="font-size:40px;margin-bottom:16px">📱</div>
+        <div style="font-family:'Noto Serif TC',serif;font-size:17px;color:var(--green-dark);margin-bottom:12px">請使用 LINE 開啟</div>
+        <div style="font-size:13px;color:var(--text-light);line-height:1.8">本預約系統需透過 LINE 開啟使用。<br>請在 LINE 中點選連結進入。</div>
+      </div>`;
   }
 }
 
