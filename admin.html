@@ -323,7 +323,8 @@
   }
   .checkin-mini.pending { background: var(--orange-light); color: var(--orange-dark); }
   .checkin-mini.pending:hover { background: var(--orange); color: white; }
-  .checkin-mini.done { background: var(--green-light); color: var(--success); cursor: default; }
+  .checkin-mini.done { background: var(--green-light); color: var(--success); }
+  .checkin-mini.done:hover { background: #fdf0ef; color: var(--error); }
 
   .preview-count {
     background: var(--orange-light); color: var(--orange-dark);
@@ -664,7 +665,7 @@ function renderSessionContent(session) {
         <div class="patient-time">${esc(b.checkInTime)}前</div>
         <div class="patient-name">${esc(b.name)}</div>
         <button class="checkin-mini ${isDone ? 'done' : 'pending'}" id="btn-${esc(b.bookingId)}"
-          onclick="toggleCheckin('${esc(b.bookingId)}', this)">${isDone ? '✓ 已看診' : '報到'}</button>
+          onclick="toggleCheckin('${esc(b.bookingId)}', this)">${isDone ? '✓ 已看診' : '未看診'}</button>
       </div>`;
     });
   }
@@ -705,24 +706,31 @@ function renderSessionContent(session) {
 }
 
 async function toggleCheckin(bookingId, btn) {
-  if (btn.classList.contains("done")) return;
+  const isDone = btn.classList.contains("done");
+  const newStatus = isDone ? "已確認" : "已看診";
   btn.disabled = true; btn.textContent = "更新中...";
   try {
     const data = await xhrPost(API_URL, {
       action: "adminUpdateStatus",
       bookingId: bookingId,
-      status: "已看診",
+      status: newStatus,
       lineId: state.lineId
     });
     if (data.success) {
-      btn.classList.remove("pending"); btn.classList.add("done");
-      btn.textContent = "✓ 已看診"; btn.disabled = false;
+      if (newStatus === "已看診") {
+        btn.classList.remove("pending"); btn.classList.add("done");
+        btn.textContent = "✓ 已看診";
+      } else {
+        btn.classList.remove("done"); btn.classList.add("pending");
+        btn.textContent = "未看診";
+      }
     } else {
-      btn.textContent = "待確認"; btn.disabled = false;
+      btn.textContent = isDone ? "✓ 已看診" : "未看診";
     }
   } catch(e) {
-    btn.textContent = "待確認"; btn.disabled = false;
+    btn.textContent = isDone ? "✓ 已看診" : "未看診";
   }
+  btn.disabled = false;
 }
 
 // ── Modal ──
