@@ -518,7 +518,7 @@ let state = {
 // ── LIFF Init ──
 async function initLiff() {
   try {
-    await liff.init({ liffId: "2006966251-zP9Kwlmb" });
+    await liff.init({ liffId: "2009340533-qmLOBHw1" });
     if (!liff.isLoggedIn()) { liff.login(); return; }
     const profile = await liff.getProfile();
     state.lineId = profile.userId;
