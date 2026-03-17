@@ -360,7 +360,7 @@
       <div class="card-title">基本資料</div>
       <div class="form-group">
         <label>姓名 <span class="required">*</span></label>
-        <input type="text" id="inputName" placeholder="請輸入全名">
+        <input type="text" id="inputName" placeholder="請輸入全名" maxlength="20">
       </div>
       <div class="form-group">
         <label>電話 <span class="required">*</span></label>
@@ -480,6 +480,7 @@ const NEW_PATIENT_NUMBERS = [5, 10, 15, 20, 25];
 
 let state = {
   lineId: null,
+  isVip: false,
   type: "",
   name: "", phone: "", birth: "",
   date: null, session: null, timeSlot: null, doctor: null,
@@ -571,6 +572,7 @@ async function goToPageTime() {
       if (bl.blocked) {
         return showError("errorPage1", "很抱歉，線上預約暫時無法使用。若需協助，請傳訊息至官方LINE，或於門診時間電洽診所：07-363-1313");
       }
+      state.isVip = bl.isVip === true;
     } catch(e) { /* 黑名單檢查失敗不擋 */ }
   }
 
@@ -678,8 +680,8 @@ function renderSlots() {
         html += '</div>';
       }
     } else {
-      // 複診：顯示6-30（1-5保留給現場/代掛）+ 不指定
-      const slots = (s.returnSlots || []).filter(function(slot) { return slot.number >= 6; });
+      // 複診：白名單顯示1-30，一般病患顯示6-30（1-5保留給現場/代掛）
+      const slots = (s.returnSlots || []).filter(function(slot) { return state.isVip ? true : slot.number >= 6; });
       const hasAvailable = slots.some(function(slot) { return slot.available; });
       if (!hasAvailable) {
         html += `<div class="fully-booked">此時段複診已額滿</div>`;
