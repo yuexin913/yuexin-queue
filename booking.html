@@ -659,7 +659,7 @@ function renderSlots() {
         <div>
           <div class="session-name">${displayName}</div>
         </div>
-        <div class="session-doctor">${s.doctor || ""}</div>
+        <div class="session-doctor">${s.isSubstitute ? "<span style=\"font-size:11px;color:#c0392b;font-weight:500;margin-right:4px\">*代診</span>" : ""}${s.doctor || ""}</div>
       </div>`;
 
     if (isNewPatient) {
