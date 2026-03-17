@@ -465,6 +465,7 @@
       <div class="card-title">我的預約</div>
       <div id="bookingList"></div>
     </div>
+    <div id="cancelError" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-outline" onclick="showPage('pageQuery')">← 重新查詢</button>
     <button class="btn btn-outline" onclick="goToEntry()">返回首頁</button>
   </div>
@@ -559,10 +560,10 @@ async function goToPageTime() {
   const birthY = document.getElementById("inputBirthY").value.trim();
   const birthM = document.getElementById("inputBirthM").value.trim();
   const birthD = document.getElementById("inputBirthD").value.trim();
-  if (!name) return showError("errorPage1", "請輸入姓名");
-  if (!phone || !/^09\d{8}$/.test(phone)) return showError("errorPage1", "請輸入正確的手機號碼");
+  if (!name) return showError("errorPage1", "請輸入您的姓名。");
+  if (!phone || !/^09\d{8}$/.test(phone)) return showError("errorPage1", "手機號碼格式不正確，請重新確認（須為 09 開頭的 10 碼）。");
   const birth = parseBirthROC(birthY, birthM, birthD);
-  if (!birth) return showError("errorPage1", "請輸入正確的生日（民國年）");
+  if (!birth) return showError("errorPage1", "生日格式不正確，請重新確認（民國年，如 80/05/20）。");
   hideError("errorPage1");
   state.name = name; state.phone = phone; state.birth = birth;
 
@@ -570,7 +571,7 @@ async function goToPageTime() {
     try {
       const bl = await xhrGet(`${API_URL}?action=checkBlacklist&lineId=${state.lineId}`);
       if (bl.blocked) {
-        return showError("errorPage1", "很抱歉，線上預約暫時無法使用。若需協助，請傳訊息至官方LINE，或於門診時間電洽診所：07-363-1313");
+        return showError("errorPage1", "很抱歉，線上預約暫時無法使用。若需協助請傳訊息給我們，或於門診時間來電。(07-363-1313)");
       }
       state.isVip = bl.isVip === true;
     } catch(e) { /* 黑名單檢查失敗不擋 */ }
@@ -635,7 +636,7 @@ async function loadSlots(dateStr) {
     state.slotsData = data.sessions;
     renderSlots();
   } catch(e) {
-    document.getElementById("slotsContainer").innerHTML = '<div class="alert alert-error">載入失敗，請重試</div>';
+    document.getElementById("slotsContainer").innerHTML = '<div class="alert alert-error">系統連線異常，請確認網路後重試。</div>';
   }
 }
 
@@ -659,7 +660,7 @@ function renderSlots() {
         <div>
           <div class="session-name">${displayName}</div>
         </div>
-        <div class="session-doctor">${s.isSubstitute ? "<span style=\"font-size:11px;color:#c0392b;font-weight:500;margin-right:4px\">*代診</span>" : ""}${s.doctor || ""}</div>
+        <div class="session-doctor">${s.doctor || ""}</div>
       </div>`;
 
     if (isNewPatient) {
@@ -719,7 +720,7 @@ function selectSlot(session, slot, doctor, isUnspecified) {
 // 確認頁
 // ===================================
 async function goToConfirm() {
-  if (!state.date) return showError("errorPage2", "請選擇日期");
+  if (!state.date) return showError("errorPage2", "請選擇看診日期。");
   if (!state.session || state.timeSlot === null) {
     const msg = state.type === "初診" ? "請選擇時段" : "請選擇號碼";
     return showError("errorPage2", msg);
@@ -731,7 +732,7 @@ async function goToConfirm() {
     const data = await xhrGet(`${API_URL}?action=checkLimit&lineId=${state.lineId}&date=${dateCode}`);
     if (data.sameDayExceeded) return showError("errorPage2", "您當天已有預約，如需更改請取消原預約後再重新預約。若需加掛門診，請於門診時間來電：07-363-1313。");
     if (data.sameWeekExceeded) return showError("errorPage2", "您本週預約已達上限，如需更改請取消原預約後再重新預約。若需加掛門診，請於門診時間來電：07-363-1313。");
-  } catch(e) { return showError("errorPage2", "驗證失敗，請重試"); }
+  } catch(e) { return showError("errorPage2", "連線中斷，請確認網路後重試。"); }
 
   const weekdays = ["日","一","二","三","四","五","六"];
   const weekday = weekdays[new Date(state.date).getDay()];
@@ -810,7 +811,7 @@ async function submitBooking() {
     // 成功提醒文字（已移除）
     showPage("pageSuccess");
   } catch(e) {
-    showError("errorPage3", "預約未完成。請重試或電話預約：07-363-1313。");
+    showError("errorPage3", "預約未完成，請再試一次。");
     btn.disabled = false; btn.textContent = "確認送出預約";
   }
 }
@@ -829,7 +830,7 @@ function goToNewPatientForm() {
 // ===================================
 async function queryBookings() {
   const name = document.getElementById("queryName").value.trim();
-  if (!name) return showError("errorQuery", "請輸入姓名");
+  if (!name) return showError("errorQuery", "請輸入您的姓名。");
   hideError("errorQuery");
 
   const btn = document.getElementById("btnQuery");
@@ -846,7 +847,7 @@ async function queryBookings() {
     renderBookingList(data.bookings);
     showPage("pageQueryResult");
   } catch(e) {
-    showError("errorQuery", "查詢失敗，請重試或於門診時間來電：07-363-1313。");
+    showError("errorQuery", "系統連線異常，請再試一次。");
   }
   btn.disabled = false; btn.textContent = "查詢我的預約";
 }
@@ -892,7 +893,9 @@ async function cancelBooking(bookingId, btn) {
       btn.remove();
     } catch(e) {
       btn.disabled = false; btn.textContent = "取消此預約";
-      alert("取消失敗，請重試或於門診時間來電：07-363-1313。");
+      const errEl = document.getElementById("cancelError");
+      errEl.textContent = "系統連線異常，請再試一次。";
+      errEl.style.display = "block";
     }
   };
 }
@@ -929,15 +932,26 @@ function escapeHtml(str) {
     .replace(/'/g, "&#39;");
 }
 
+var XHR_TIMEOUT = 15000; // 15秒
+
+function xhrParseResponse(text) {
+  if (typeof text === "string" && text.trimStart().charAt(0) === "<") {
+    throw new Error("SERVER_HTML"); // GAS 回傳 HTML 錯誤頁
+  }
+  return JSON.parse(text);
+}
+
 function xhrGet(url) {
   return new Promise(function(resolve, reject) {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
+    xhr.timeout = XHR_TIMEOUT;
     xhr.onload = function() {
-      try { resolve(JSON.parse(xhr.responseText)); }
+      try { resolve(xhrParseResponse(xhr.responseText)); }
       catch(e) { reject(e); }
     };
     xhr.onerror = function() { reject(new Error("Network error")); };
+    xhr.ontimeout = function() { reject(new Error("Timeout")); };
     xhr.send();
   });
 }
@@ -947,11 +961,13 @@ function xhrPost(url, payload) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-Type", "text/plain");
+    xhr.timeout = XHR_TIMEOUT;
     xhr.onload = function() {
-      try { resolve(JSON.parse(xhr.responseText)); }
+      try { resolve(xhrParseResponse(xhr.responseText)); }
       catch(e) { reject(e); }
     };
     xhr.onerror = function() { reject(new Error("Network error")); };
+    xhr.ontimeout = function() { reject(new Error("Timeout")); };
     xhr.send(JSON.stringify(payload));
   });
 }

@@ -276,6 +276,37 @@
   .loading { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; }
   .empty-state { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; }
 
+  /* ── 異常排班區塊 ── */
+  .conflict-zone {
+    margin-top: 6px;
+    border: 1.5px solid #E07050;
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: #FFF5F0;
+    flex-shrink: 0;
+  }
+  .conflict-title {
+    font-size: 11px;
+    font-weight: 500;
+    color: #C0392B;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .conflict-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid #F5C0B0;
+    font-size: 12px;
+  }
+  .conflict-row:last-child { border-bottom: none; }
+  .conflict-slot { font-weight: 600; color: #C0392B; min-width: 32px; }
+  .conflict-name { font-weight: 500; flex: 1; }
+  .conflict-note { font-size: 10px; color: #A85E35; }
+
   /* 不指定 Modal 列表 */
   .unspec-modal-row {
     display: flex;
@@ -460,7 +491,7 @@ async function initLiff() {
     state.lineId = profile.userId;
     const verify = await xhrGet(`${API_URL}?action=verifyAdmin&lineId=${state.lineId}`);
     if (!verify.success) {
-      document.getElementById("pageAuth").innerHTML = `<div class="auth-card"><div class="auth-icon">🔒</div><div class="auth-title">存取受限</div><div class="auth-sub">您沒有管理員權限。</div></div>`;
+      document.getElementById("pageAuth").innerHTML = `<div class="auth-card"><div class="auth-icon">🔒</div><div class="auth-title">頁面錯誤</div></div>`;
       return;
     }
     state.adminName = verify.name;
@@ -469,18 +500,46 @@ async function initLiff() {
     document.getElementById("pageMain").style.display = "flex";
     loadTodaySchedule();
   } catch(e) {
-    document.getElementById("pageAuth").innerHTML = `<div class="auth-card"><div class="auth-icon">⚠️</div><div class="auth-title">載入失敗</div><div class="auth-sub">請重新整理頁面。</div></div>`;
+    document.getElementById("pageAuth").innerHTML = `<div class="auth-card"><div class="auth-icon">⚠️</div><div class="auth-title">暫時無法連線</div><div class="auth-sub">請重新整理頁面。</div></div>`;
   }
 }
 
-async function xhrGet(url) { const res = await fetch(url); return res.json(); }
+var XHR_TIMEOUT = 15000; // 15秒
+
+function xhrParseResponse(text) {
+  if (typeof text === "string" && text.trimStart().charAt(0) === "<") {
+    throw new Error("SERVER_HTML"); // GAS 回傳 HTML 錯誤頁
+  }
+  return JSON.parse(text);
+}
+
+function xhrGet(url) {
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", url, true);
+    xhr.timeout = XHR_TIMEOUT;
+    xhr.onload = function() {
+      try { resolve(xhrParseResponse(xhr.responseText)); }
+      catch(e) { reject(e); }
+    };
+    xhr.onerror = function() { reject(new Error("Network error")); };
+    xhr.ontimeout = function() { reject(new Error("Timeout")); };
+    xhr.send();
+  });
+}
+
 function xhrPost(url, payload) {
   return new Promise(function(resolve, reject) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-Type", "text/plain");
-    xhr.onload = function() { try { resolve(JSON.parse(xhr.responseText)); } catch(e) { reject(e); } };
+    xhr.timeout = XHR_TIMEOUT;
+    xhr.onload = function() {
+      try { resolve(xhrParseResponse(xhr.responseText)); }
+      catch(e) { reject(e); }
+    };
     xhr.onerror = function() { reject(new Error("Network error")); };
+    xhr.ontimeout = function() { reject(new Error("Timeout")); };
     xhr.send(JSON.stringify(payload));
   });
 }
@@ -492,7 +551,7 @@ async function loadTodaySchedule() {
     const data = await xhrGet(`${API_URL}?action=adminGetTodaySchedule&date=${getTodayStr().replace(/\//g,"")}&lineId=${state.lineId}`);
     renderSchedule(data.bookings || []);
   } catch(e) {
-    document.getElementById("scheduleContent").innerHTML = `<div class="alert alert-error">載入失敗，請重新整理。</div>`;
+    document.getElementById("scheduleContent").innerHTML = `<div class="alert alert-error">診表暫時無法載入，請重新整理頁面。</div>`;
   }
 }
 
@@ -577,14 +636,16 @@ function renderSessionContent(session) {
   });
 
   // 塞入複診（slot 決定位置）
+  // 若與初診格位衝突，收入 conflictList 而非直接隱藏
+  const conflictList = [];
   rtList.forEach(function(b) {
     const slot = parseInt(b.slot, 10);
     if (slot >= 1 && slot <= 30) {
       const idx = slot - 1;
-      // 若此格所在列被初診佔用（且 slot > 5），跳過（格子已讓給初診）
       const rowStart = idx < 5 ? null : Math.floor((idx - 5) / 5) * 5 + 5;
       if (rowStart !== null && npRowStarts.has(rowStart)) {
-        // 此格已被初診橫幅覆蓋，不顯示
+        // 格位與初診橫幅衝突 → 收入異常清單，不隱藏
+        conflictList.push(b);
         return;
       }
       cells[idx] = { type: "rt", num: slot, name: b.name, bookingId: b.bookingId, status: b.status };
@@ -645,6 +706,20 @@ function renderSessionContent(session) {
     html += `<button class="unspec-btn" onclick="openUnspecModal()">📋 查看不指定名單（${unList.length} 人）</button>`;
   }
 
+  // 異常排班區（格位衝突，絕對不能隱藏）
+  if (conflictList.length > 0) {
+    html += `<div class="conflict-zone">
+      <div class="conflict-title">⚠️ 異常排班（${conflictList.length} 人）—— 號碼與初診格位衝突，請人工確認</div>`;
+    conflictList.forEach(function(b) {
+      html += `<div class="conflict-row">
+        <span class="conflict-slot">${esc(b.slot)}號</span>
+        <span class="conflict-name">${esc(b.name)}</span>
+        <span class="conflict-note">格位重疊</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
   el.innerHTML = html;
 }
 
@@ -676,12 +751,29 @@ async function toggleCheckin(bookingId, btn) {
       if (newStatus === "已看診") { btn.classList.remove("pending"); btn.classList.add("done"); btn.textContent = "✓ 已看診"; }
       else { btn.classList.remove("done"); btn.classList.add("pending"); btn.textContent = "未看診"; }
     } else { btn.textContent = isDone ? "✓ 已看診" : "未看診"; }
-  } catch(e) { btn.textContent = isDone ? "✓ 已看診" : "未看診"; }
+  } catch(e) {
+    btn.textContent = isDone ? "✓ 已看診" : "未看診";
+    const errTip = document.createElement("span");
+    errTip.textContent = " ⚠️ 更新失敗";
+    errTip.style.cssText = "font-size:11px;color:var(--error);margin-left:4px;";
+    btn.parentNode.appendChild(errTip);
+    setTimeout(function() { if (errTip.parentNode) errTip.parentNode.removeChild(errTip); }, 4000);
+  }
   btn.disabled = false;
 }
 
 /* ── Modal 開關 ── */
 function openModal(id) {
+  // 開啟前清空所有錯誤提示與輸入殘留
+  document.querySelectorAll("#" + id + " .alert-error, #" + id + " .alert-success").forEach(function(el) {
+    el.style.display = "none"; el.textContent = "";
+  });
+  document.querySelectorAll("#" + id + " input[type='text'], #" + id + " input[type='date'], #" + id + " textarea").forEach(function(el) {
+    el.value = "";
+  });
+  document.querySelectorAll("#" + id + " select").forEach(function(el) {
+    el.selectedIndex = 0;
+  });
   document.getElementById(id).classList.add("active");
   if (id === "modalSecurity") loadSecurity();
   if (id === "modalSubstitute") loadSubstituteList();
@@ -706,7 +798,7 @@ async function loadSubstituteList() {
           style="font-size:11px;padding:2px 7px;border-radius:6px;border:1px solid var(--error);background:white;color:var(--error);cursor:pointer">取消</button>
       </div>`;
     }).join("") + `<div style="font-size:10px;color:var(--text-light);margin-top:5px">同一時段多次設定以最新一筆為準。</div>`;
-  } catch(e) { el.innerHTML = `<div style="font-size:12px;color:var(--error)">載入失敗</div>`; }
+  } catch(e) { el.innerHTML = `<div style="font-size:12px;color:var(--error)">代診資料暫時無法讀取，請稍後再試。</div>`; }
 }
 
 async function cancelSubstitute(date, session, btn) {
@@ -725,7 +817,7 @@ async function doSubstitute() {
   const errEl = document.getElementById("subError");
   const sucEl = document.getElementById("subSuccess");
   errEl.style.display = "none"; sucEl.style.display = "none";
-  if (!date || !session || !doctor) { errEl.textContent = "請填寫所有欄位"; errEl.style.display = "block"; return; }
+  if (!date || !session || !doctor) { errEl.textContent = "請確認日期、時段與醫師姓名均已填寫。"; errEl.style.display = "block"; return; }
   const btn = document.getElementById("btnSub");
   btn.disabled = true; btn.textContent = "更新中...";
   try {
@@ -736,8 +828,8 @@ async function doSubstitute() {
       document.getElementById("subSession").value = "";
       document.getElementById("subDoctor").value = "";
       loadSubstituteList();
-    } else { errEl.textContent = data.error || "更新失敗"; errEl.style.display = "block"; }
-  } catch(e) { errEl.textContent = "更新失敗，請重試"; errEl.style.display = "block"; }
+    } else { errEl.textContent = data.error || "更新未完成，請稍後再試。"; errEl.style.display = "block"; }
+  } catch(e) { errEl.textContent = "更新未完成，請稍後再試。"; errEl.style.display = "block"; }
   btn.disabled = false; btn.textContent = "確認更新";
 }
 
@@ -748,13 +840,13 @@ async function doQuery() {
   const birth = document.getElementById("qBirth").value.trim();
   const errEl = document.getElementById("qError");
   errEl.style.display = "none";
-  if (!name && !phone && !birth) { errEl.textContent = "請輸入至少一項查詢條件"; errEl.style.display = "block"; return; }
+  if (!name && !phone && !birth) { errEl.textContent = "請至少輸入姓名、電話或生日其中一項。"; errEl.style.display = "block"; return; }
   const btn = document.getElementById("btnQuery");
   btn.disabled = true; btn.textContent = "查詢中...";
   try {
     const data = await xhrPost(API_URL, { action: "adminQueryBookings", name, phone, birth, lineId: state.lineId });
     renderQueryResults(data.bookings || []);
-  } catch(e) { errEl.textContent = "查詢失敗，請重試"; errEl.style.display = "block"; }
+  } catch(e) { errEl.textContent = "查詢未完成，請稍後再試。"; errEl.style.display = "block"; }
   btn.disabled = false; btn.textContent = "查詢";
 }
 
@@ -789,8 +881,8 @@ async function doCancel() {
     if (data.success) {
       closeModal("modalCancelConfirm"); openModal("modalQuery");
       document.getElementById("queryResults").innerHTML = `<div class="alert alert-success">預約已取消，LINE通知已發送。</div>`;
-    } else { document.getElementById("cancelError").textContent = data.error || "取消失敗"; document.getElementById("cancelError").style.display = "block"; }
-  } catch(e) { document.getElementById("cancelError").textContent = "取消失敗，請重試"; document.getElementById("cancelError").style.display = "block"; }
+    } else { document.getElementById("cancelError").textContent = data.error || "取消未完成，請稍後再試。"; document.getElementById("cancelError").style.display = "block"; }
+  } catch(e) { document.getElementById("cancelError").textContent = "取消未完成，請稍後再試。"; document.getElementById("cancelError").style.display = "block"; }
   btn.disabled = false; btn.textContent = "確認取消並發送通知";
 }
 
@@ -801,8 +893,8 @@ async function doBroadcastPreview() {
   const message = document.getElementById("bcMessage").value.trim();
   const errEl = document.getElementById("bcError");
   errEl.style.display = "none";
-  if (!start || !end || !message) { errEl.textContent = "請填寫所有欄位"; errEl.style.display = "block"; return; }
-  if (start > end) { errEl.textContent = "開始日期不能晚於結束日期"; errEl.style.display = "block"; return; }
+  if (!start || !end || !message) { errEl.textContent = "請確認日期範圍與訊息內容均已填寫。"; errEl.style.display = "block"; return; }
+  if (start > end) { errEl.textContent = "結束日期需在開始日期之後，請重新選擇。"; errEl.style.display = "block"; return; }
   const btn = document.getElementById("btnBcPreview");
   btn.disabled = true; btn.textContent = "計算中...";
   try {
@@ -812,8 +904,8 @@ async function doBroadcastPreview() {
       const preview = document.getElementById("bcPreview");
       preview.textContent = `預計發送給 ${data.count} 位病患`; preview.style.display = "block";
       if (data.count > 0) document.getElementById("btnBcSend").style.display = "block";
-    } else { errEl.textContent = data.error || "預覽失敗"; errEl.style.display = "block"; }
-  } catch(e) { errEl.textContent = "預覽失敗，請重試"; errEl.style.display = "block"; }
+    } else { errEl.textContent = data.error || "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
+  } catch(e) { errEl.textContent = "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
   btn.disabled = false; btn.textContent = "預覽發送人數";
 }
 
@@ -830,8 +922,8 @@ async function doBroadcastSend() {
   try {
     const data = await xhrPost(API_URL, { action: "sendAnnouncement", startDate: start.replace(/-/g,"/"), endDate: end.replace(/-/g,"/"), message, lineId: state.lineId });
     if (data.success) { sucEl.textContent = `✓ 已成功發送給 ${data.sentCount} 位病患`; sucEl.style.display = "block"; btn.style.display = "none"; document.getElementById("bcPreview").style.display = "none"; }
-    else { errEl.textContent = data.error || "發送失敗"; errEl.style.display = "block"; }
-  } catch(e) { errEl.textContent = "發送失敗，請重試"; errEl.style.display = "block"; }
+    else { errEl.textContent = data.error || "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
+  } catch(e) { errEl.textContent = "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
   btn.disabled = false; btn.textContent = "確認發送";
 }
 
@@ -846,7 +938,7 @@ async function loadSecurity() {
     el.innerHTML = logs.slice(0,50).map(function(log) {
       return `<div class="log-item"><div class="log-time">${esc(log.time)}</div><div style="margin:2px 0;font-size:11px">${esc(log.lineId)}</div><div style="margin:2px 0;font-size:11px">姓名：${esc(log.name)}</div><div class="log-event">${esc(log.event)}</div></div>`;
     }).join("");
-  } catch(e) { el.innerHTML = `<div class="alert alert-error">載入失敗，請重試。</div>`; }
+  } catch(e) { el.innerHTML = `<div class="alert alert-error">記錄暫時無法載入，請稍後再試。</div>`; }
 }
 
 initLiff();
