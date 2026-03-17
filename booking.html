@@ -678,8 +678,8 @@ function renderSlots() {
         html += '</div>';
       }
     } else {
-      // 複診：顯示1-30全部 + 不指定
-      const slots = s.returnSlots || [];
+      // 複診：顯示6-30（1-5保留給現場/代掛）+ 不指定
+      const slots = (s.returnSlots || []).filter(function(slot) { return slot.number >= 6; });
       const hasAvailable = slots.some(function(slot) { return slot.available; });
       if (!hasAvailable) {
         html += `<div class="fully-booked">此時段複診已額滿</div>`;
