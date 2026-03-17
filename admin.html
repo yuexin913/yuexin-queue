@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 Admin Portal</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
@@ -12,331 +12,151 @@
     --orange: #D4845A;
     --orange-light: #FDF0E8;
     --orange-dark: #A85E35;
-    --orange-mid: #E8A07A;
     --text: #3a2a1e;
     --text-light: #7c6050;
     --border: #E8D0C0;
     --bg: #faf7f4;
     --white: #ffffff;
-    --green: #7AAB5A;
     --green-light: #EEF4E8;
     --error: #c0392b;
     --success: #27ae60;
-    --shadow: 0 2px 16px rgba(212,132,90,0.10);
+    --shadow: 0 2px 12px rgba(212,132,90,0.10);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Noto Sans TC', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-  }
+  html, body { height: 100%; overflow: hidden; }
+  body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); }
 
-  /* ── Header ── */
-  .header {
-    background: var(--white);
-    border-bottom: 2px solid var(--orange);
-    padding: 12px 20px;
-    display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0; z-index: 100;
-    box-shadow: var(--shadow);
-  }
-  .header-left h1 {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 16px; font-weight: 500;
-    color: var(--orange-dark); letter-spacing: 2px;
-  }
-  .header-left p { font-size: 11px; color: var(--text-light); margin-top: 1px; }
-  .header-badge {
-    background: var(--orange-light); color: var(--orange-dark);
-    border: 1px solid var(--border);
-    padding: 4px 12px; border-radius: 20px;
-    font-size: 12px; font-weight: 500;
-  }
-
-  /* ── Auth Screen ── */
-  #pageAuth {
-    display: flex; align-items: center; justify-content: center;
-    min-height: 100vh; padding: 20px;
-  }
-  .auth-card {
-    background: var(--white); border-radius: 20px;
-    padding: 40px 32px; box-shadow: var(--shadow);
-    text-align: center; max-width: 320px; width: 100%;
-    border: 1px solid var(--border);
-  }
+  /* ── Auth ── */
+  #pageAuth { display: flex; align-items: center; justify-content: center; height: 100vh; padding: 20px; }
+  .auth-card { background: var(--white); border-radius: 20px; padding: 40px 32px; box-shadow: var(--shadow); text-align: center; max-width: 320px; width: 100%; border: 1px solid var(--border); }
   .auth-icon { font-size: 48px; margin-bottom: 16px; }
-  .auth-title {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 20px; color: var(--orange-dark);
-    margin-bottom: 8px;
-  }
+  .auth-title { font-family: 'Noto Serif TC', serif; font-size: 20px; color: var(--orange-dark); margin-bottom: 8px; }
   .auth-sub { font-size: 13px; color: var(--text-light); line-height: 1.6; }
 
-  /* ── Main Layout ── */
-  #pageMain { display: none; }
-  .main-container { padding: 16px; max-width: 800px; margin: 0 auto; }
+  /* ── Main: flex column full height ── */
+  #pageMain { display: none; height: 100vh; flex-direction: column; }
+
+  /* ── Header ── */
+  .header { background: var(--white); border-bottom: 2px solid var(--orange); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; box-shadow: var(--shadow); }
+  .header-left h1 { font-family: 'Noto Serif TC', serif; font-size: 15px; font-weight: 500; color: var(--orange-dark); letter-spacing: 2px; }
+  .header-left p { font-size: 10px; color: var(--text-light); margin-top: 1px; }
+  .header-badge { background: var(--orange-light); color: var(--orange-dark); border: 1px solid var(--border); padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+
+  /* ── Top Panel 2/3 ── */
+  .panel-top { flex: 2; min-height: 0; display: flex; flex-direction: column; padding: 10px 10px 5px; overflow: hidden; }
+  .schedule-header { flex-shrink: 0; }
+  .schedule-scroll { flex: 1; overflow-y: auto; min-height: 0; padding-bottom: 4px; }
+
+  /* ── Bottom Panel 1/3 ── */
+  .panel-bottom { flex: 1; min-height: 0; padding: 6px 10px 10px; border-top: 1px solid var(--border); display: flex; flex-direction: column; }
 
   /* ── Section Title ── */
-  .section-title {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 15px; font-weight: 500; color: var(--orange-dark);
-    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
-  }
-  .section-title::before {
-    content: ''; width: 3px; height: 16px;
-    background: var(--orange); border-radius: 2px;
-  }
+  .section-title { font-size: 12px; font-weight: 500; color: var(--orange-dark); margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+  .section-title::before { content: ''; width: 3px; height: 12px; background: var(--orange); border-radius: 2px; }
 
-  /* ── Card ── */
-  .card {
-    background: var(--white); border-radius: 16px;
-    padding: 20px; box-shadow: var(--shadow);
-    margin-bottom: 16px; border: 1px solid var(--border);
-  }
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 5px; margin-bottom: 6px; }
+  .tab-btn { flex: 1; padding: 5px 4px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 11px; font-family: 'Noto Sans TC', sans-serif; background: var(--white); color: var(--text-light); cursor: pointer; transition: all 0.2s; font-weight: 500; }
+  .tab-btn.active { background: var(--orange); color: white; border-color: var(--orange); }
 
-  /* ── Today Schedule ── */
-  .checkin-table { width: 100%; border-collapse: collapse; }
-  .checkin-table th {
-    font-size: 11px; color: var(--text-light); font-weight: 500;
-    padding: 8px 6px; border-bottom: 1px solid var(--border);
-    text-align: left;
-  }
-  .checkin-table td {
-    padding: 10px 6px; border-bottom: 1px solid var(--border);
-    font-size: 13px; vertical-align: middle;
-  }
-  .checkin-table tr:last-child td { border-bottom: none; }
-  .checkin-table tr:hover td { background: var(--orange-light); }
+  /* ── Session Info Row ── */
+  .session-info-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; background: var(--orange-light); border-radius: 8px; margin-bottom: 6px; }
+  .session-doctor { font-size: 12px; font-weight: 500; color: var(--orange-dark); }
+  .session-counts { display: flex; gap: 4px; }
+  .count-badge { padding: 2px 5px; border-radius: 5px; font-size: 10px; font-weight: 500; }
+  .count-new { background: #FEF3E2; color: #D4820A; }
+  .count-rt { background: var(--green-light); color: #3a6b2a; }
+  .count-un { background: #F0F0F0; color: #666; }
 
-  .type-badge {
-    display: inline-block; padding: 2px 8px; border-radius: 10px;
-    font-size: 11px; font-weight: 500;
-  }
-  .type-new { background: #FEF3E2; color: #D4820A; }
-  .type-return { background: var(--green-light); color: #3a6b2a; }
-  .type-unspec { background: #F0F0F0; color: #666; }
+  /* ── Dual Column ── */
+  .dual-col { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .col-wrap { min-width: 0; }
+  .col-label { font-size: 10px; font-weight: 500; padding: 3px 5px; border-radius: 5px; margin-bottom: 3px; text-align: center; }
+  .col-label-rt { background: var(--green-light); color: #3a6b2a; }
+  .col-label-np { background: #FEF3E2; color: #D4820A; }
 
-  .checkin-btn {
-    padding: 6px 14px; border-radius: 20px; font-size: 12px;
-    font-family: 'Noto Sans TC', sans-serif; font-weight: 500;
-    cursor: pointer; transition: all 0.2s; border: none; white-space: nowrap;
-  }
-  .checkin-btn.pending {
-    background: var(--orange-light); color: var(--orange-dark);
-    border: 1px solid var(--border);
-  }
-  .checkin-btn.pending:hover { background: var(--orange); color: white; }
-  .checkin-btn.done {
-    background: var(--green-light); color: var(--success);
-    border: 1px solid #b8ddb0; cursor: default;
-  }
+  /* ── 複診行 ── */
+  .rt-row { display: flex; align-items: center; gap: 5px; padding: 5px 3px; border-bottom: 1px solid var(--border); }
+  .rt-row:last-child { border-bottom: none; }
+  .rt-num { font-size: 12px; font-weight: 600; color: var(--orange-dark); min-width: 20px; text-align: right; flex-shrink: 0; }
+  .rt-name { flex: 1; font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  .session-divider {
-    background: var(--orange-light); padding: 6px 12px;
-    font-size: 12px; font-weight: 500; color: var(--orange-dark);
-    border-radius: 8px; margin: 8px 0 4px;
-  }
+  /* ── 初診行 ── */
+  .np-row { padding: 4px 3px; border-bottom: 1px solid var(--border); }
+  .np-row:last-child { border-bottom: none; }
+  .np-time { font-size: 10px; color: var(--text-light); }
+  .np-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 1px 0; }
+  .checkin-mini { width: 100%; padding: 3px 0; margin-top: 2px; border-radius: 5px; font-size: 10px; font-family: 'Noto Sans TC', sans-serif; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; }
+  .checkin-mini.pending { background: var(--orange-light); color: var(--orange-dark); }
+  .checkin-mini.pending:hover { background: var(--orange); color: white; }
+  .checkin-mini.done { background: var(--green-light); color: var(--success); }
+  .checkin-mini.done:hover { background: #fdf0ef; color: var(--error); }
+
+  /* ── 不指定抽屜 ── */
+  .unspec-toggle { width: 100%; text-align: center; padding: 4px; background: none; border: 1px dashed var(--border); border-radius: 5px; font-size: 10px; color: var(--text-light); cursor: pointer; margin-top: 6px; font-family: 'Noto Sans TC', sans-serif; }
+  .unspec-toggle:hover { border-color: var(--orange); color: var(--orange-dark); }
+  .unspec-list { display: none; margin-top: 3px; }
+  .unspec-list.open { display: block; }
+  .unspec-row { padding: 4px 3px; border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 500; }
+  .unspec-row:last-child { border-bottom: none; }
 
   /* ── Tools Grid ── */
-  .tools-grid {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 12px; margin-bottom: 16px;
-  }
-  .tool-card {
-    background: var(--white); border-radius: 14px;
-    padding: 16px; border: 1px solid var(--border);
-    cursor: pointer; transition: all 0.2s;
-    display: flex; flex-direction: column; gap: 6px;
-  }
-  .tool-card:hover {
-    border-color: var(--orange);
-    background: var(--orange-light);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow);
-  }
-  .tool-icon { font-size: 24px; }
-  .tool-name { font-size: 14px; font-weight: 500; color: var(--text); }
-  .tool-desc { font-size: 11px; color: var(--text-light); line-height: 1.4; }
+  .tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex: 1; }
+  .tool-card { background: var(--white); border-radius: 10px; padding: 8px 10px; border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+  .tool-card:hover { border-color: var(--orange); background: var(--orange-light); }
+  .tool-icon { font-size: 18px; flex-shrink: 0; }
+  .tool-name { font-size: 12px; font-weight: 500; color: var(--text); }
+  .tool-desc { font-size: 10px; color: var(--text-light); line-height: 1.3; margin-top: 1px; }
 
   /* ── Modal ── */
-  .modal-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(58,42,30,0.5); z-index: 200;
-    align-items: center; justify-content: center; padding: 20px;
-  }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(58,42,30,0.5); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
   .modal-overlay.active { display: flex; }
-  .modal {
-    background: var(--white); border-radius: 20px;
-    padding: 24px; width: 100%; max-width: 480px;
-    max-height: 85vh; overflow-y: auto;
-    box-shadow: 0 8px 40px rgba(58,42,30,0.2);
-  }
-  .modal-title {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 17px; color: var(--orange-dark);
-    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
-  }
-  .modal-close {
-    margin-left: auto; background: none; border: none;
-    font-size: 20px; cursor: pointer; color: var(--text-light);
-    padding: 0 4px;
-  }
+  .modal { background: var(--white); border-radius: 16px; padding: 20px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(58,42,30,0.2); }
+  .modal-title { font-family: 'Noto Serif TC', serif; font-size: 16px; color: var(--orange-dark); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .modal-close { margin-left: auto; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-light); padding: 0 4px; }
 
-  /* ── Form Elements ── */
-  .form-group { margin-bottom: 14px; }
-  .form-label {
-    display: block; font-size: 12px; color: var(--text-light);
-    margin-bottom: 6px; font-weight: 500;
-  }
-  input[type="text"], input[type="date"], select, textarea {
-    width: 100%; padding: 10px 12px;
-    border: 1.5px solid var(--border); border-radius: 10px;
-    font-size: 14px; font-family: 'Noto Sans TC', sans-serif;
-    color: var(--text); background: var(--white);
-    transition: border-color 0.2s; outline: none;
-  }
+  /* ── Form ── */
+  .form-group { margin-bottom: 12px; }
+  .form-label { display: block; font-size: 12px; color: var(--text-light); margin-bottom: 5px; font-weight: 500; }
+  input[type="text"], input[type="date"], select, textarea { width: 100%; padding: 9px 11px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 14px; font-family: 'Noto Sans TC', sans-serif; color: var(--text); background: var(--white); transition: border-color 0.2s; outline: none; }
   input:focus, select:focus, textarea:focus { border-color: var(--orange); }
-  textarea { resize: vertical; min-height: 80px; }
+  textarea { resize: vertical; min-height: 70px; }
+  .date-row { display: flex; gap: 8px; }
+  .date-row .form-group { flex: 1; }
 
-  .btn {
-    width: 100%; padding: 13px; border: none; border-radius: 12px;
-    font-size: 15px; font-family: 'Noto Sans TC', sans-serif;
-    font-weight: 500; cursor: pointer; transition: all 0.2s;
-    letter-spacing: 1px; margin-bottom: 8px;
-  }
+  .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-size: 14px; font-family: 'Noto Sans TC', sans-serif; font-weight: 500; cursor: pointer; transition: all 0.2s; letter-spacing: 1px; margin-bottom: 8px; }
   .btn-primary { background: var(--orange); color: white; }
   .btn-primary:hover { background: var(--orange-dark); }
   .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
   .btn-outline { background: white; color: var(--orange-dark); border: 1.5px solid var(--orange); }
   .btn-danger { background: white; color: var(--error); border: 1.5px solid var(--error); }
   .btn-danger:hover { background: #fdf0ef; }
-  .btn-sm {
-    width: auto; padding: 8px 16px; font-size: 13px;
-    border-radius: 8px; margin-bottom: 0;
-  }
+  .btn-sm { width: auto; padding: 7px 14px; font-size: 12px; border-radius: 7px; margin-bottom: 0; }
 
-  .alert {
-    padding: 12px 14px; border-radius: 10px;
-    font-size: 13px; margin-bottom: 12px; line-height: 1.6;
-  }
+  .alert { padding: 10px 12px; border-radius: 9px; font-size: 13px; margin-bottom: 10px; line-height: 1.6; }
   .alert-error { background: #fdf0ef; color: var(--error); border: 1px solid #f5c6c2; }
   .alert-success { background: var(--green-light); color: var(--success); border: 1px solid #b8ddb0; }
   .alert-info { background: var(--orange-light); color: var(--orange-dark); border: 1px solid var(--border); }
 
-  /* ── Query Results ── */
-  .result-item {
-    padding: 14px; border: 1px solid var(--border);
-    border-radius: 12px; margin-bottom: 10px; background: var(--white);
-  }
-  .result-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 8px;
-  }
-  .result-date { font-size: 14px; font-weight: 500; color: var(--text); }
-  .result-status {
-    font-size: 11px; padding: 2px 8px; border-radius: 10px;
-    background: var(--green-light); color: var(--success);
-  }
+  .result-item { padding: 12px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; }
+  .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .result-date { font-size: 13px; font-weight: 500; }
+  .result-status { font-size: 11px; padding: 2px 7px; border-radius: 8px; background: var(--green-light); color: var(--success); }
   .result-detail { font-size: 12px; color: var(--text-light); line-height: 1.8; }
 
-  /* ── Security Log ── */
-  .log-item {
-    padding: 10px 12px; border-left: 3px solid var(--error);
-    background: #fdf0ef; border-radius: 0 8px 8px 0;
-    margin-bottom: 8px; font-size: 12px; line-height: 1.6;
-  }
-  .log-time { color: var(--text-light); font-size: 11px; }
+  .log-item { padding: 9px 11px; border-left: 3px solid var(--error); background: #fdf0ef; border-radius: 0 7px 7px 0; margin-bottom: 7px; font-size: 12px; line-height: 1.6; }
+  .log-time { color: var(--text-light); font-size: 10px; }
   .log-event { color: var(--error); font-weight: 500; }
-
-  /* ── Loading ── */
-  .loading {
-    text-align: center; padding: 24px;
-    color: var(--text-light); font-size: 13px;
-  }
-
-  .empty-state {
-    text-align: center; padding: 32px 20px;
-    color: var(--text-light); font-size: 13px;
-  }
-  .empty-state .empty-icon { font-size: 32px; margin-bottom: 8px; }
-
-  .divider { height: 1px; background: var(--border); margin: 16px 0; }
-
-  /* ── Footer ── */
-  .footer {
-    text-align: center; padding: 24px 20px;
-    font-size: 11px; color: var(--text-light); letter-spacing: 1px;
-  }
-
-  /* ── Tabs ── */
-  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-  .tab-btn {
-    flex: 1; padding: 8px; border: 1.5px solid var(--border);
-    border-radius: 10px; font-size: 13px; font-family: 'Noto Sans TC', sans-serif;
-    background: var(--white); color: var(--text-light); cursor: pointer;
-    transition: all 0.2s; font-weight: 500;
-  }
-  .tab-btn.active {
-    background: var(--orange); color: white; border-color: var(--orange);
-  }
-
-  .date-row { display: flex; gap: 8px; }
-  .date-row .form-group { flex: 1; }
-
-  /* ── 三欄門診名單 ── */
-  .session-summary {
-    display: flex; gap: 8px; margin-bottom: 10px;
-  }
-  .summary-pill {
-    flex: 1; text-align: center; padding: 6px 4px;
-    border-radius: 8px; font-size: 11px; font-weight: 500;
-  }
-  .pill-new { background: #FEF3E2; color: #D4820A; }
-  .pill-rt { background: var(--green-light); color: #3a6b2a; }
-  .pill-un { background: #F0F0F0; color: #666; }
-
-  .three-col {
-    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;
-  }
-  .col-header {
-    font-size: 11px; font-weight: 500; text-align: center;
-    padding: 5px 4px; border-radius: 6px; margin-bottom: 4px;
-  }
-  .col-header-new { background: #FEF3E2; color: #D4820A; }
-  .col-header-rt { background: var(--green-light); color: #3a6b2a; }
-  .col-header-un { background: #F0F0F0; color: #666; }
-
-  .patient-item {
-    padding: 6px 4px; border-bottom: 1px solid var(--border);
-    font-size: 12px;
-  }
-  .patient-item:last-child { border-bottom: none; }
-  .patient-time { font-size: 10px; color: var(--text-light); }
-  .patient-name { font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .patient-slot { font-size: 11px; color: var(--orange-dark); font-weight: 500; }
-  .checkin-mini {
-    margin-top: 4px; width: 100%; padding: 4px;
-    border-radius: 8px; font-size: 11px; font-family: 'Noto Sans TC', sans-serif;
-    font-weight: 500; cursor: pointer; border: none; transition: all 0.2s;
-  }
-  .checkin-mini.pending { background: var(--orange-light); color: var(--orange-dark); }
-  .checkin-mini.pending:hover { background: var(--orange); color: white; }
-  .checkin-mini.done { background: var(--green-light); color: var(--success); }
-  .checkin-mini.done:hover { background: #fdf0ef; color: var(--error); }
-
-  .preview-count {
-    background: var(--orange-light); color: var(--orange-dark);
-    border: 1px solid var(--border); border-radius: 10px;
-    padding: 10px 14px; font-size: 13px; margin-bottom: 12px;
-    text-align: center;
-  }
+  .divider { height: 1px; background: var(--border); margin: 12px 0; }
+  .preview-count { background: var(--orange-light); color: var(--orange-dark); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; font-size: 13px; margin-bottom: 10px; text-align: center; }
+  .loading { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; }
+  .empty-state { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; }
 </style>
 </head>
 <body>
 
-<!-- Auth Screen -->
+<!-- Auth -->
 <div id="pageAuth">
   <div class="auth-card">
     <div class="auth-icon">🏥</div>
@@ -345,101 +165,74 @@
   </div>
 </div>
 
-<!-- Main Portal -->
+<!-- Main -->
 <div id="pageMain">
   <div class="header">
-    <div class="header-left">
-      <h1>悅心診所</h1>
-      <p>Admin Portal</p>
-    </div>
+    <div class="header-left"><h1>悅心診所</h1><p>Admin Portal</p></div>
     <div class="header-badge" id="adminBadge">載入中...</div>
   </div>
 
-  <div class="main-container">
-
-    <!-- 今日門診名單 -->
-    <div class="card">
+  <!-- 上方 2/3 -->
+  <div class="panel-top">
+    <div class="schedule-header">
       <div class="section-title">🏥 今日門診名單</div>
-      <div id="sessionTabs" class="tabs" style="margin-bottom:12px"></div>
-      <div id="scheduleContent">
-        <div class="loading">載入今日診表中...</div>
+      <div id="sessionTabs" class="tabs"></div>
+      <div id="sessionInfoRow" class="session-info-row" style="display:none">
+        <span class="session-doctor" id="sessionDoctorText"></span>
+        <div class="session-counts" id="sessionCountBadges"></div>
       </div>
     </div>
+    <div class="schedule-scroll" id="scheduleContent">
+      <div class="loading">載入今日診表中...</div>
+    </div>
+  </div>
 
-    <!-- 櫃台功能 -->
+  <!-- 下方 1/3 -->
+  <div class="panel-bottom">
     <div class="section-title">🛠️ 櫃台功能</div>
     <div class="tools-grid">
       <div class="tool-card" onclick="openModal('modalQuery')">
         <div class="tool-icon">🔍</div>
-        <div class="tool-name">進階查詢</div>
-        <div class="tool-desc">姓名／電話／生日<br>查詢與取消預約</div>
+        <div><div class="tool-name">進階查詢</div><div class="tool-desc">姓名／電話／生日</div></div>
       </div>
       <div class="tool-card" onclick="openModal('modalSubstitute')">
         <div class="tool-icon">👨‍⚕️</div>
-        <div class="tool-name">代診排班</div>
-        <div class="tool-desc">修改指定日期時段<br>的代診醫師</div>
+        <div><div class="tool-name">代診排班</div><div class="tool-desc">修改代診醫師</div></div>
       </div>
       <div class="tool-card" onclick="openModal('modalBroadcast')">
         <div class="tool-icon">📢</div>
-        <div class="tool-name">群發訊息</div>
-        <div class="tool-desc">對指定日期的<br>預約病患推播通知</div>
+        <div><div class="tool-name">群發訊息</div><div class="tool-desc">推播通知病患</div></div>
       </div>
       <div class="tool-card" onclick="openModal('modalSecurity')">
         <div class="tool-icon">🛡️</div>
-        <div class="tool-name">資安監控</div>
-        <div class="tool-desc">查看系統攔截的<br>異常行為記錄</div>
+        <div><div class="tool-name">資安監控</div><div class="tool-desc">異常行為記錄</div></div>
       </div>
     </div>
-
   </div>
-
-  <div class="footer">EST. 2024 YUEXIN PSYCHIATRIC CLINIC</div>
 </div>
 
-<!-- ══ Modal: 病患查詢 ══ -->
+<!-- Modal: 進階查詢 -->
 <div class="modal-overlay" id="modalQuery">
   <div class="modal">
-    <div class="modal-title">
-      🔍 進階查詢
-      <button class="modal-close" onclick="closeModal('modalQuery')">✕</button>
-    </div>
-    <div class="form-group">
-      <label class="form-label">姓名</label>
-      <input type="text" id="qName" placeholder="輸入姓名">
-    </div>
-    <div class="form-group">
-      <label class="form-label">電話</label>
-      <input type="text" id="qPhone" placeholder="輸入手機號碼">
-    </div>
-    <div class="form-group">
-      <label class="form-label">生日（西元年，如 1990-05-20）</label>
-      <input type="text" id="qBirth" placeholder="輸入生日">
-    </div>
+    <div class="modal-title">🔍 進階查詢<button class="modal-close" onclick="closeModal('modalQuery')">✕</button></div>
+    <div class="form-group"><label class="form-label">姓名</label><input type="text" id="qName" placeholder="輸入姓名"></div>
+    <div class="form-group"><label class="form-label">電話</label><input type="text" id="qPhone" placeholder="輸入手機號碼"></div>
+    <div class="form-group"><label class="form-label">生日（西元年，如 1990-05-20）</label><input type="text" id="qBirth" placeholder="輸入生日"></div>
     <div id="qError" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-primary" id="btnQuery" onclick="doQuery()">查詢</button>
     <div id="queryResults"></div>
   </div>
 </div>
 
-<!-- ══ Modal: 代診排班 ══ -->
+<!-- Modal: 代診排班 -->
 <div class="modal-overlay" id="modalSubstitute">
   <div class="modal">
-    <div class="modal-title">
-      👨‍⚕️ 代診排班
-      <button class="modal-close" onclick="closeModal('modalSubstitute')">✕</button>
-    </div>
-
-    <!-- 上方：目前代診清單 -->
-    <div style="background:var(--orange-light);border-radius:10px;padding:12px;margin-bottom:16px;">
-      <div style="font-size:12px;font-weight:500;color:var(--orange-dark);margin-bottom:8px;">📋 目前排班代診</div>
+    <div class="modal-title">👨‍⚕️ 代診排班<button class="modal-close" onclick="closeModal('modalSubstitute')">✕</button></div>
+    <div style="background:var(--orange-light);border-radius:10px;padding:10px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:500;color:var(--orange-dark);margin-bottom:6px;">📋 目前排班代診</div>
       <div id="subList"><div style="font-size:12px;color:var(--text-light);">載入中...</div></div>
     </div>
-
-    <!-- 下方：輸入區 -->
-    <div class="form-group">
-      <label class="form-label">日期</label>
-      <input type="date" id="subDate">
-    </div>
+    <div class="form-group"><label class="form-label">日期</label><input type="date" id="subDate"></div>
     <div class="form-group">
       <label class="form-label">時段</label>
       <select id="subSession">
@@ -449,38 +242,23 @@
         <option value="晚上">晚上診</option>
       </select>
     </div>
-    <div class="form-group">
-      <label class="form-label">代診醫師姓名</label>
-      <input type="text" id="subDoctor" placeholder="輸入代診醫師姓名">
-    </div>
+    <div class="form-group"><label class="form-label">代診醫師姓名</label><input type="text" id="subDoctor" placeholder="輸入代診醫師姓名"></div>
     <div id="subError" class="alert alert-error" style="display:none"></div>
     <div id="subSuccess" class="alert alert-success" style="display:none"></div>
     <button class="btn btn-primary" id="btnSub" onclick="doSubstitute()">確認更新</button>
   </div>
 </div>
 
-<!-- ══ Modal: 緊急廣播 ══ -->
+<!-- Modal: 群發訊息 -->
 <div class="modal-overlay" id="modalBroadcast">
   <div class="modal">
-    <div class="modal-title">
-      📢 群發訊息
-      <button class="modal-close" onclick="closeModal('modalBroadcast')">✕</button>
-    </div>
+    <div class="modal-title">📢 群發訊息<button class="modal-close" onclick="closeModal('modalBroadcast')">✕</button></div>
     <div class="alert alert-info">發送前請確認訊息內容，送出後無法收回。</div>
     <div class="date-row">
-      <div class="form-group">
-        <label class="form-label">開始日期</label>
-        <input type="date" id="bcStart">
-      </div>
-      <div class="form-group">
-        <label class="form-label">結束日期</label>
-        <input type="date" id="bcEnd">
-      </div>
+      <div class="form-group"><label class="form-label">開始日期</label><input type="date" id="bcStart"></div>
+      <div class="form-group"><label class="form-label">結束日期</label><input type="date" id="bcEnd"></div>
     </div>
-    <div class="form-group">
-      <label class="form-label">訊息內容</label>
-      <textarea id="bcMessage" placeholder="輸入要發送給病患的訊息..."></textarea>
-    </div>
+    <div class="form-group"><label class="form-label">訊息內容</label><textarea id="bcMessage" placeholder="輸入要發送給病患的訊息..."></textarea></div>
     <div id="bcPreview" class="preview-count" style="display:none"></div>
     <div id="bcError" class="alert alert-error" style="display:none"></div>
     <div id="bcSuccess" class="alert alert-success" style="display:none"></div>
@@ -489,24 +267,19 @@
   </div>
 </div>
 
-<!-- ══ Modal: 資安監控 ══ -->
+<!-- Modal: 資安監控 -->
 <div class="modal-overlay" id="modalSecurity">
   <div class="modal">
-    <div class="modal-title">
-      🛡️ 資安監控日誌
-      <button class="modal-close" onclick="closeModal('modalSecurity')">✕</button>
-    </div>
-    <div id="securityContent">
-      <div class="loading">載入中...</div>
-    </div>
+    <div class="modal-title">🛡️ 資安監控日誌<button class="modal-close" onclick="closeModal('modalSecurity')">✕</button></div>
+    <div id="securityContent"><div class="loading">載入中...</div></div>
   </div>
 </div>
 
-<!-- ══ Modal: 取消確認 ══ -->
+<!-- Modal: 取消確認 -->
 <div class="modal-overlay" id="modalCancelConfirm">
   <div class="modal">
     <div class="modal-title">⚠️ 確認取消預約</div>
-    <p style="font-size:14px;color:var(--text);margin-bottom:16px;line-height:1.7" id="cancelConfirmText"></p>
+    <p style="font-size:14px;color:var(--text);margin-bottom:14px;line-height:1.7" id="cancelConfirmText"></p>
     <div id="cancelError" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-danger" id="btnConfirmCancel" onclick="doCancel()">確認取消並發送通知</button>
     <button class="btn btn-outline" onclick="closeModal('modalCancelConfirm')">返回</button>
@@ -515,117 +288,68 @@
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbz1IB0HCFWaFlC7odExNsOWaZwTjz7osAjstXhx_5V0ZD4Ya58GGRRPfFAun2Itywbh6A/exec";
+let state = { lineId: "", adminName: "", pendingCancelId: "", bcPreviewCount: 0 };
+let allBookings = [], activeSession = "";
 
-let state = {
-  lineId: "",
-  adminName: "",
-  pendingCancelId: "",
-  pendingCancelText: "",
-  bcPreviewCount: 0
-};
-
-// ── LIFF Init ──
 async function initLiff() {
   try {
     await liff.init({ liffId: "2009340533-qmLOBHw1" });
     if (!liff.isLoggedIn()) { liff.login(); return; }
     const profile = await liff.getProfile();
     state.lineId = profile.userId;
-
-    // 後端驗證，LINE ID不存在前端原始碼
     const verify = await xhrGet(`${API_URL}?action=verifyAdmin&lineId=${state.lineId}`);
     if (!verify.success) {
-      document.getElementById("pageAuth").innerHTML = `
-        <div class="auth-card">
-          <div class="auth-icon">🔒</div>
-          <div class="auth-title">存取受限</div>
-          <div class="auth-sub">您沒有管理員權限。<br>如有疑問請聯繫診所。</div>
-        </div>`;
+      document.getElementById("pageAuth").innerHTML = `<div class="auth-card"><div class="auth-icon">🔒</div><div class="auth-title">存取受限</div><div class="auth-sub">您沒有管理員權限。</div></div>`;
       return;
     }
-
     state.adminName = verify.name;
     document.getElementById("adminBadge").textContent = "👤 " + state.adminName;
     document.getElementById("pageAuth").style.display = "none";
-    document.getElementById("pageMain").style.display = "block";
+    document.getElementById("pageMain").style.display = "flex";
     loadTodaySchedule();
   } catch(e) {
-    document.getElementById("pageAuth").innerHTML = `
-      <div class="auth-card">
-        <div class="auth-icon">⚠️</div>
-        <div class="auth-title">載入失敗</div>
-        <div class="auth-sub">請重新整理頁面。</div>
-      </div>`;
+    document.getElementById("pageAuth").innerHTML = `<div class="auth-card"><div class="auth-icon">⚠️</div><div class="auth-title">載入失敗</div><div class="auth-sub">請重新整理頁面。</div></div>`;
   }
 }
 
-// ── API Helpers ──
-async function xhrGet(url) {
-  const res = await fetch(url);
-  return res.json();
-}
+async function xhrGet(url) { const res = await fetch(url); return res.json(); }
 function xhrPost(url, payload) {
   return new Promise(function(resolve, reject) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-Type", "text/plain");
-    xhr.onload = function() {
-      try { resolve(JSON.parse(xhr.responseText)); }
-      catch(e) { reject(e); }
-    };
+    xhr.onload = function() { try { resolve(JSON.parse(xhr.responseText)); } catch(e) { reject(e); } };
     xhr.onerror = function() { reject(new Error("Network error")); };
     xhr.send(JSON.stringify(payload));
   });
 }
+function getTodayStr() { const n = new Date(); return n.getFullYear() + "/" + String(n.getMonth()+1).padStart(2,"0") + "/" + String(n.getDate()).padStart(2,"0"); }
+function esc(str) { return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
-function getTodayStr() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth()+1).padStart(2,"0");
-  const d = String(now.getDate()).padStart(2,"0");
-  return y + "/" + m + "/" + d;
-}
-
-function esc(str) {
-  return String(str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-}
-
-// ── Today Schedule ──
 async function loadTodaySchedule() {
   try {
-    const todayStr = getTodayStr().replace(/\//g, "");
-    const data = await xhrGet(`${API_URL}?action=adminGetTodaySchedule&date=${todayStr}&lineId=${state.lineId}`);
+    const data = await xhrGet(`${API_URL}?action=adminGetTodaySchedule&date=${getTodayStr().replace(/\//g,"")}&lineId=${state.lineId}`);
     renderSchedule(data.bookings || []);
   } catch(e) {
     document.getElementById("scheduleContent").innerHTML = `<div class="alert alert-error">載入失敗，請重新整理。</div>`;
   }
 }
 
-let allBookings = [];
-let activeSession = "";
-
 function renderSchedule(bookings) {
   allBookings = bookings;
-  const el = document.getElementById("scheduleContent");
   const tabEl = document.getElementById("sessionTabs");
-
+  const el = document.getElementById("scheduleContent");
   if (bookings.length === 0) {
     tabEl.innerHTML = "";
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div>今日無預約</div>`;
+    document.getElementById("sessionInfoRow").style.display = "none";
+    el.innerHTML = `<div class="empty-state">📋 今日無預約</div>`;
     return;
   }
-
-  const sessions = ["早上", "下午", "晚上"];
-  const sessionNames = { "早上": "早上診", "下午": "下午診", "晚上": "晚上診" };
-  const available = sessions.filter(s => bookings.some(b => b.session === s));
-
-  // 建立 Tab
+  const sn = {"早上":"早上診","下午":"下午診","晚上":"晚上診"};
+  const available = ["早上","下午","晚上"].filter(s => bookings.some(b => b.session === s));
   tabEl.innerHTML = available.map(function(s) {
-    const cnt = bookings.filter(b => b.session === s).length;
-    return `<button class="tab-btn" id="tab-${s}" onclick="switchTab('${s}')">${sessionNames[s]} ${cnt}人</button>`;
+    return `<button class="tab-btn" id="tab-${s}" onclick="switchTab('${s}')">${sn[s]} ${bookings.filter(b=>b.session===s).length}</button>`;
   }).join("");
-
-  // 預設顯示第一個有資料的時段
   activeSession = available[0];
   renderSessionContent(activeSession);
   document.getElementById("tab-" + activeSession).classList.add("active");
@@ -633,84 +357,72 @@ function renderSchedule(bookings) {
 
 function switchTab(session) {
   activeSession = session;
-  document.querySelectorAll(".tab-btn").forEach(function(b) { b.classList.remove("active"); });
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
   document.getElementById("tab-" + session).classList.add("active");
   renderSessionContent(session);
 }
 
 function renderSessionContent(session) {
   const el = document.getElementById("scheduleContent");
-  const list = allBookings.filter(function(b) { return b.session === session; });
-
-  const npList = list.filter(function(b) { return b.type === "初診"; });
-  const rtList = list.filter(function(b) { return b.type !== "初診" && b.slot !== "不指定"; });
-  const unList = list.filter(function(b) { return b.type !== "初診" && b.slot === "不指定"; });
-
+  const list = allBookings.filter(b => b.session === session);
+  const npList = list.filter(b => b.type === "初診");
+  const rtList = list.filter(b => b.type !== "初診" && b.slot !== "不指定");
+  const unList = list.filter(b => b.type !== "初診" && b.slot === "不指定");
   const doctor = list.length > 0 ? list[0].doctor : "";
 
-  // 摘要
-  let html = `<div style="font-size:12px;color:var(--text-light);margin-bottom:8px">`;
-  if (doctor) html += `醫師：${esc(doctor)}　`;
-  html += `</div>`;
-  html += `<div class="session-summary">
-    <div class="summary-pill pill-new">初診 ${npList.length} 人</div>
-    <div class="summary-pill pill-rt">複診 ${rtList.length} 人</div>
-    <div class="summary-pill pill-un">不指定 ${unList.length} 人</div>
-  </div>`;
+  // 資訊列
+  const infoRow = document.getElementById("sessionInfoRow");
+  infoRow.style.display = "flex";
+  document.getElementById("sessionDoctorText").textContent = doctor ? "👨‍⚕️ " + doctor + " 醫師" : "";
+  document.getElementById("sessionCountBadges").innerHTML =
+    `<span class="count-badge count-new">初診 ${npList.length}</span>` +
+    `<span class="count-badge count-rt">複診 ${rtList.length}</span>` +
+    (unList.length > 0 ? `<span class="count-badge count-un">不指定 ${unList.length}</span>` : "");
 
-  // 三欄
-  html += `<div class="three-col">`;
+  let html = `<div class="dual-col">`;
 
-  // 初診欄
-  html += `<div>
-    <div class="col-header col-header-new">初診</div>`;
-  if (npList.length === 0) {
-    html += `<div style="font-size:11px;color:var(--text-light);text-align:center;padding:8px">—</div>`;
-  } else {
-    npList.forEach(function(b) {
-      const isDone = b.status === "已看診";
-      html += `<div class="patient-item">
-        <div class="patient-time">${esc(b.checkInTime)}前</div>
-        <div class="patient-name">${esc(b.name)}</div>
-        <button class="checkin-mini ${isDone ? 'done' : 'pending'}" id="btn-${esc(b.bookingId)}"
-          onclick="toggleCheckin('${esc(b.bookingId)}', this)">${isDone ? '✓ 已看診' : '未看診'}</button>
-      </div>`;
-    });
-  }
-  html += `</div>`;
-
-  // 複診欄
-  html += `<div>
-    <div class="col-header col-header-rt">複診</div>`;
+  // 左欄：複診
+  html += `<div class="col-wrap"><div class="col-label col-label-rt">複診</div>`;
   if (rtList.length === 0) {
-    html += `<div style="font-size:11px;color:var(--text-light);text-align:center;padding:8px">—</div>`;
+    html += `<div style="font-size:11px;color:var(--text-light);padding:6px;text-align:center">—</div>`;
   } else {
-    rtList.forEach(function(b) {
-      html += `<div class="patient-item">
-        <div class="patient-slot">${esc(b.slot)}號</div>
-        <div class="patient-name">${esc(b.name)}</div>
-      </div>`;
+    rtList.forEach(b => {
+      html += `<div class="rt-row"><span class="rt-num">${String(b.slot).padStart(2,"0")}</span><span class="rt-name">${esc(b.name)}</span></div>`;
     });
   }
   html += `</div>`;
 
-  // 不指定欄
-  html += `<div>
-    <div class="col-header col-header-un">不指定</div>`;
-  if (unList.length === 0) {
-    html += `<div style="font-size:11px;color:var(--text-light);text-align:center;padding:8px">—</div>`;
+  // 右欄：初診 + 不指定抽屜
+  html += `<div class="col-wrap"><div class="col-label col-label-np">初診</div>`;
+  if (npList.length === 0) {
+    html += `<div style="font-size:11px;color:var(--text-light);padding:6px;text-align:center">—</div>`;
   } else {
-    unList.forEach(function(b) {
-      html += `<div class="patient-item">
-        <div class="patient-time">不指定</div>
-        <div class="patient-name">${esc(b.name)}</div>
+    npList.forEach(b => {
+      const isDone = b.status === "已看診";
+      html += `<div class="np-row">
+        <div class="np-time">${esc(b.checkInTime)}前</div>
+        <div class="np-name">${esc(b.name)}</div>
+        <button class="checkin-mini ${isDone?'done':'pending'}" id="btn-${esc(b.bookingId)}"
+          onclick="toggleCheckin('${esc(b.bookingId)}',this)">${isDone?'✓ 已看診':'未看診'}</button>
       </div>`;
     });
   }
-  html += `</div>`;
-
-  html += `</div>`; // end three-col
+  if (unList.length > 0) {
+    html += `<button class="unspec-toggle" onclick="toggleUnspec(this)">🔽 不指定 ${unList.length} 人</button>
+    <div class="unspec-list">`;
+    unList.forEach(b => { html += `<div class="unspec-row">${esc(b.name)}</div>`; });
+    html += `</div>`;
+  }
+  html += `</div></div>`; // end col-wrap, dual-col
   el.innerHTML = html;
+}
+
+function toggleUnspec(btn) {
+  const list = btn.nextElementSibling;
+  const isOpen = list.classList.contains("open");
+  list.classList.toggle("open");
+  const cnt = list.children.length;
+  btn.textContent = isOpen ? `🔽 不指定 ${cnt} 人` : `🔼 收合不指定`;
 }
 
 async function toggleCheckin(bookingId, btn) {
@@ -718,186 +430,49 @@ async function toggleCheckin(bookingId, btn) {
   const newStatus = isDone ? "已確認" : "已看診";
   btn.disabled = true; btn.textContent = "更新中...";
   try {
-    const data = await xhrPost(API_URL, {
-      action: "adminUpdateStatus",
-      bookingId: bookingId,
-      status: newStatus,
-      lineId: state.lineId
-    });
+    const data = await xhrPost(API_URL, { action: "adminUpdateStatus", bookingId, status: newStatus, lineId: state.lineId });
     if (data.success) {
-      if (newStatus === "已看診") {
-        btn.classList.remove("pending"); btn.classList.add("done");
-        btn.textContent = "✓ 已看診";
-      } else {
-        btn.classList.remove("done"); btn.classList.add("pending");
-        btn.textContent = "未看診";
-      }
-    } else {
-      btn.textContent = isDone ? "✓ 已看診" : "未看診";
-    }
-  } catch(e) {
-    btn.textContent = isDone ? "✓ 已看診" : "未看診";
-  }
+      if (newStatus === "已看診") { btn.classList.remove("pending"); btn.classList.add("done"); btn.textContent = "✓ 已看診"; }
+      else { btn.classList.remove("done"); btn.classList.add("pending"); btn.textContent = "未看診"; }
+    } else { btn.textContent = isDone ? "✓ 已看診" : "未看診"; }
+  } catch(e) { btn.textContent = isDone ? "✓ 已看診" : "未看診"; }
   btn.disabled = false;
 }
 
-// ── Modal ──
 function openModal(id) {
   document.getElementById(id).classList.add("active");
   if (id === "modalSecurity") loadSecurity();
   if (id === "modalSubstitute") loadSubstituteList();
 }
-function closeModal(id) {
-  document.getElementById(id).classList.remove("active");
-}
+function closeModal(id) { document.getElementById(id).classList.remove("active"); }
 
 async function loadSubstituteList() {
   const el = document.getElementById("subList");
   try {
     const data = await xhrGet(`${API_URL}?action=getSubstituteList&lineId=${state.lineId}`);
     const list = data.list || [];
-    const sessionNames = { "早上": "早上診", "下午": "下午診", "晚上": "晚上診" };
-    if (list.length === 0) {
-      el.innerHTML = `<div style="font-size:12px;color:var(--text-light)">目前無代診安排</div>`;
-      return;
-    }
+    const sn = {"早上":"早上診","下午":"下午診","晚上":"晚上診"};
+    if (list.length === 0) { el.innerHTML = `<div style="font-size:12px;color:var(--text-light)">目前無代診安排</div>`; return; }
     el.innerHTML = list.map(function(item) {
-      const dateParts = item.date.split("/");
-      const dateDisplay = dateParts[1] + "月" + dateParts[2] + "日";
-      const sessionNames = { "早上": "早上診", "下午": "下午診", "晚上": "晚上診" };
-      return `<div style="font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center">
-        <span style="color:var(--orange-dark);font-weight:500">${dateDisplay}</span>
-        <span style="color:var(--text-light)">${sessionNames[item.session] || item.session}</span>
+      const dp = item.date.split("/");
+      return `<div style="font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center">
+        <span style="color:var(--orange-dark);font-weight:500">${dp[1]}月${dp[2]}日</span>
+        <span style="color:var(--text-light)">${sn[item.session]||item.session}</span>
         <span style="font-weight:500;flex:1">${esc(item.doctor)}</span>
         <button onclick="cancelSubstitute('${esc(item.date)}','${esc(item.session)}',this)"
-          style="font-size:11px;padding:3px 8px;border-radius:8px;border:1px solid var(--error);background:white;color:var(--error);cursor:pointer">取消</button>
+          style="font-size:11px;padding:2px 7px;border-radius:6px;border:1px solid var(--error);background:white;color:var(--error);cursor:pointer">取消</button>
       </div>`;
-    }).join("") + `<div style="font-size:11px;color:var(--text-light);margin-top:6px">同一時段多次設定時，以最新一筆為準。</div>`;
-  } catch(e) {
-    el.innerHTML = `<div style="font-size:12px;color:var(--error)">載入失敗</div>`;
-  }
+    }).join("") + `<div style="font-size:10px;color:var(--text-light);margin-top:5px">同一時段多次設定以最新一筆為準。</div>`;
+  } catch(e) { el.innerHTML = `<div style="font-size:12px;color:var(--error)">載入失敗</div>`; }
 }
 
 async function cancelSubstitute(date, session, btn) {
   btn.disabled = true; btn.textContent = "取消中...";
   try {
-    const data = await xhrPost(API_URL, {
-      action: "cancelSubstituteDoctor",
-      date: date,
-      session: session,
-      lineId: state.lineId
-    });
-    if (data.success) {
-      loadSubstituteList(); // 即時更新清單
-    } else {
-      btn.disabled = false; btn.textContent = "取消";
-    }
-  } catch(e) {
-    btn.disabled = false; btn.textContent = "取消";
-  }
-}
-async function doQuery() {
-  const name = document.getElementById("qName").value.trim();
-  const phone = document.getElementById("qPhone").value.trim();
-  const birth = document.getElementById("qBirth").value.trim();
-  const errEl = document.getElementById("qError");
-  errEl.style.display = "none";
-
-  if (!name && !phone && !birth) {
-    errEl.textContent = "請輸入至少一項查詢條件"; errEl.style.display = "block"; return;
-  }
-
-  const btn = document.getElementById("btnQuery");
-  btn.disabled = true; btn.textContent = "查詢中...";
-
-  try {
-    const data = await xhrPost(API_URL, {
-      action: "adminQueryBookings",
-      name: name, phone: phone, birth: birth,
-      lineId: state.lineId
-    });
-    renderQueryResults(data.bookings || []);
-  } catch(e) {
-    errEl.textContent = "查詢失敗，請重試"; errEl.style.display = "block";
-  }
-  btn.disabled = false; btn.textContent = "查詢";
-}
-
-function renderQueryResults(bookings) {
-  const el = document.getElementById("queryResults");
-  if (bookings.length === 0) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div>查無預約紀錄</div>`;
-    return;
-  }
-  let html = `<div class="divider"></div>`;
-  bookings.forEach(function(b) {
-    const slotDisplay = b.type === "初診" ? b.checkInTime + "前" : b.slot === "不指定" ? "不指定" : b.slot + "號";
-    html += `<div class="result-item">
-      <div class="result-header">
-        <div class="result-date">${esc(b.date)} ${esc(b.displayName)}</div>
-        <div class="result-status">${esc(b.status)}</div>
-      </div>
-      <div class="result-detail">
-        ${esc(b.name)}　${slotDisplay}　${esc(b.type)}　報到：${esc(b.checkInTime)}
-        ${b.doctor ? "　醫師：" + esc(b.doctor) : ""}
-      </div>
-      ${b.status !== "已取消" ? `<button class="btn btn-danger btn-sm" style="margin-top:10px" onclick="confirmCancel('${esc(b.bookingId)}', '${esc(b.name)}', '${esc(b.date)}')">取消此預約</button>` : ""}
-    </div>`;
-  });
-  el.innerHTML = html;
-}
-
-function confirmCancel(bookingId, name, date) {
-  state.pendingCancelId = bookingId;
-  document.getElementById("cancelConfirmText").textContent =
-    `確定要取消 ${name} 的 ${date} 預約嗎？取消後將自動發送LINE通知給病患。`;
-  document.getElementById("cancelError").style.display = "none";
-  closeModal("modalQuery");
-  openModal("modalCancelConfirm");
-}
-
-async function doCancel() {
-  const btn = document.getElementById("btnConfirmCancel");
-  btn.disabled = true; btn.textContent = "取消中...";
-  try {
-    const data = await xhrPost(API_URL, {
-      action: "cancelBooking",
-      bookingId: state.pendingCancelId,
-      lineId: state.lineId
-    });
-    if (data.success) {
-      closeModal("modalCancelConfirm");
-      openModal("modalQuery");
-      document.getElementById("queryResults").innerHTML =
-        `<div class="alert alert-success">預約已取消，LINE通知已發送。</div>`;
-    } else {
-      document.getElementById("cancelError").textContent = data.error || "取消失敗";
-      document.getElementById("cancelError").style.display = "block";
-    }
-  } catch(e) {
-    document.getElementById("cancelError").textContent = "取消失敗，請重試";
-    document.getElementById("cancelError").style.display = "block";
-  }
-  btn.disabled = false; btn.textContent = "確認取消並發送通知";
-}
-
-// ── Substitute ──
-async function cancelSubstitute(date, session, btn) {
-  btn.disabled = true; btn.textContent = "取消中...";
-  try {
-    const data = await xhrPost(API_URL, {
-      action: "cancelSubstituteDoctor",
-      date: date, session: session,
-      lineId: state.lineId
-    });
-    if (data.success) {
-      loadSubstituteList(); // 即時更新清單
-    } else {
-      btn.disabled = false; btn.textContent = "取消";
-    }
-  } catch(e) {
-    btn.disabled = false; btn.textContent = "取消";
-  }
+    const data = await xhrPost(API_URL, { action: "cancelSubstituteDoctor", date, session, lineId: state.lineId });
+    if (data.success) loadSubstituteList();
+    else { btn.disabled = false; btn.textContent = "取消"; }
+  } catch(e) { btn.disabled = false; btn.textContent = "取消"; }
 }
 
 async function doSubstitute() {
@@ -907,75 +482,93 @@ async function doSubstitute() {
   const errEl = document.getElementById("subError");
   const sucEl = document.getElementById("subSuccess");
   errEl.style.display = "none"; sucEl.style.display = "none";
-
-  if (!date || !session || !doctor) {
-    errEl.textContent = "請填寫所有欄位"; errEl.style.display = "block"; return;
-  }
-
+  if (!date || !session || !doctor) { errEl.textContent = "請填寫所有欄位"; errEl.style.display = "block"; return; }
   const btn = document.getElementById("btnSub");
   btn.disabled = true; btn.textContent = "更新中...";
   try {
-    const data = await xhrPost(API_URL, {
-      action: "updateSubstituteDoctor",
-      date: date.replace(/-/g, "/"),
-      session: session,
-      doctor: doctor,
-      lineId: state.lineId
-    });
+    const data = await xhrPost(API_URL, { action: "updateSubstituteDoctor", date: date.replace(/-/g,"/"), session, doctor, lineId: state.lineId });
     if (data.success) {
-      sucEl.textContent = `✓ 已更新：${date} ${session}診 → ${doctor}`;
-      sucEl.style.display = "block";
+      sucEl.textContent = `✓ 已更新：${date} ${session}診 → ${doctor}`; sucEl.style.display = "block";
       document.getElementById("subDate").value = "";
       document.getElementById("subSession").value = "";
       document.getElementById("subDoctor").value = "";
-      loadSubstituteList(); // 即時更新上方清單
-    } else {
-      errEl.textContent = data.error || "更新失敗"; errEl.style.display = "block";
-    }
-  } catch(e) {
-    errEl.textContent = "更新失敗，請重試"; errEl.style.display = "block";
-  }
+      loadSubstituteList();
+    } else { errEl.textContent = data.error || "更新失敗"; errEl.style.display = "block"; }
+  } catch(e) { errEl.textContent = "更新失敗，請重試"; errEl.style.display = "block"; }
   btn.disabled = false; btn.textContent = "確認更新";
 }
 
-// ── Broadcast ──
+async function doQuery() {
+  const name = document.getElementById("qName").value.trim();
+  const phone = document.getElementById("qPhone").value.trim();
+  const birth = document.getElementById("qBirth").value.trim();
+  const errEl = document.getElementById("qError");
+  errEl.style.display = "none";
+  if (!name && !phone && !birth) { errEl.textContent = "請輸入至少一項查詢條件"; errEl.style.display = "block"; return; }
+  const btn = document.getElementById("btnQuery");
+  btn.disabled = true; btn.textContent = "查詢中...";
+  try {
+    const data = await xhrPost(API_URL, { action: "adminQueryBookings", name, phone, birth, lineId: state.lineId });
+    renderQueryResults(data.bookings || []);
+  } catch(e) { errEl.textContent = "查詢失敗，請重試"; errEl.style.display = "block"; }
+  btn.disabled = false; btn.textContent = "查詢";
+}
+
+function renderQueryResults(bookings) {
+  const el = document.getElementById("queryResults");
+  if (bookings.length === 0) { el.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-light);font-size:13px">🔍 查無預約紀錄</div>`; return; }
+  let html = `<div class="divider"></div>`;
+  bookings.forEach(function(b) {
+    const slotDisplay = b.type === "初診" ? b.checkInTime + "前" : b.slot === "不指定" ? "不指定" : b.slot + "號";
+    html += `<div class="result-item">
+      <div class="result-header"><div class="result-date">${esc(b.date)} ${esc(b.displayName)}</div><div class="result-status">${esc(b.status)}</div></div>
+      <div class="result-detail">${esc(b.name)}　${slotDisplay}　${esc(b.type)}${b.doctor?"　醫師："+esc(b.doctor):""}</div>
+      ${b.status!=="已取消"?`<button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="confirmCancel('${esc(b.bookingId)}','${esc(b.name)}','${esc(b.date)}')">取消此預約</button>`:""}
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+function confirmCancel(bookingId, name, date) {
+  state.pendingCancelId = bookingId;
+  document.getElementById("cancelConfirmText").textContent = `確定要取消 ${name} 的 ${date} 預約嗎？取消後將自動發送LINE通知給病患。`;
+  document.getElementById("cancelError").style.display = "none";
+  closeModal("modalQuery");
+  openModal("modalCancelConfirm");
+}
+
+async function doCancel() {
+  const btn = document.getElementById("btnConfirmCancel");
+  btn.disabled = true; btn.textContent = "取消中...";
+  try {
+    const data = await xhrPost(API_URL, { action: "cancelBooking", bookingId: state.pendingCancelId, lineId: state.lineId });
+    if (data.success) {
+      closeModal("modalCancelConfirm"); openModal("modalQuery");
+      document.getElementById("queryResults").innerHTML = `<div class="alert alert-success">預約已取消，LINE通知已發送。</div>`;
+    } else { document.getElementById("cancelError").textContent = data.error || "取消失敗"; document.getElementById("cancelError").style.display = "block"; }
+  } catch(e) { document.getElementById("cancelError").textContent = "取消失敗，請重試"; document.getElementById("cancelError").style.display = "block"; }
+  btn.disabled = false; btn.textContent = "確認取消並發送通知";
+}
+
 async function doBroadcastPreview() {
   const start = document.getElementById("bcStart").value;
   const end = document.getElementById("bcEnd").value;
   const message = document.getElementById("bcMessage").value.trim();
   const errEl = document.getElementById("bcError");
   errEl.style.display = "none";
-
-  if (!start || !end || !message) {
-    errEl.textContent = "請填寫所有欄位"; errEl.style.display = "block"; return;
-  }
-  if (start > end) {
-    errEl.textContent = "開始日期不能晚於結束日期"; errEl.style.display = "block"; return;
-  }
-
+  if (!start || !end || !message) { errEl.textContent = "請填寫所有欄位"; errEl.style.display = "block"; return; }
+  if (start > end) { errEl.textContent = "開始日期不能晚於結束日期"; errEl.style.display = "block"; return; }
   const btn = document.getElementById("btnBcPreview");
   btn.disabled = true; btn.textContent = "計算中...";
   try {
-    const data = await xhrPost(API_URL, {
-      action: "broadcastPreview",
-      startDate: start.replace(/-/g, "/"),
-      endDate: end.replace(/-/g, "/"),
-      lineId: state.lineId
-    });
+    const data = await xhrPost(API_URL, { action: "broadcastPreview", startDate: start.replace(/-/g,"/"), endDate: end.replace(/-/g,"/"), lineId: state.lineId });
     if (data.success) {
       state.bcPreviewCount = data.count;
       const preview = document.getElementById("bcPreview");
-      preview.textContent = `預計發送給 ${data.count} 位病患`;
-      preview.style.display = "block";
-      if (data.count > 0) {
-        document.getElementById("btnBcSend").style.display = "block";
-      }
-    } else {
-      errEl.textContent = data.error || "預覽失敗"; errEl.style.display = "block";
-    }
-  } catch(e) {
-    errEl.textContent = "預覽失敗，請重試"; errEl.style.display = "block";
-  }
+      preview.textContent = `預計發送給 ${data.count} 位病患`; preview.style.display = "block";
+      if (data.count > 0) document.getElementById("btnBcSend").style.display = "block";
+    } else { errEl.textContent = data.error || "預覽失敗"; errEl.style.display = "block"; }
+  } catch(e) { errEl.textContent = "預覽失敗，請重試"; errEl.style.display = "block"; }
   btn.disabled = false; btn.textContent = "預覽發送人數";
 }
 
@@ -986,61 +579,32 @@ async function doBroadcastSend() {
   const errEl = document.getElementById("bcError");
   const sucEl = document.getElementById("bcSuccess");
   errEl.style.display = "none"; sucEl.style.display = "none";
-
   if (!confirm(`確定要發送訊息給 ${state.bcPreviewCount} 位病患嗎？`)) return;
-
   const btn = document.getElementById("btnBcSend");
   btn.disabled = true; btn.textContent = "發送中...";
   try {
-    const data = await xhrPost(API_URL, {
-      action: "sendAnnouncement",
-      startDate: start.replace(/-/g, "/"),
-      endDate: end.replace(/-/g, "/"),
-      message: message,
-      lineId: state.lineId
-    });
-    if (data.success) {
-      sucEl.textContent = `✓ 已成功發送給 ${data.sentCount} 位病患`;
-      sucEl.style.display = "block";
-      btn.style.display = "none";
-      document.getElementById("bcPreview").style.display = "none";
-    } else {
-      errEl.textContent = data.error || "發送失敗"; errEl.style.display = "block";
-    }
-  } catch(e) {
-    errEl.textContent = "發送失敗，請重試"; errEl.style.display = "block";
-  }
+    const data = await xhrPost(API_URL, { action: "sendAnnouncement", startDate: start.replace(/-/g,"/"), endDate: end.replace(/-/g,"/"), message, lineId: state.lineId });
+    if (data.success) { sucEl.textContent = `✓ 已成功發送給 ${data.sentCount} 位病患`; sucEl.style.display = "block"; btn.style.display = "none"; document.getElementById("bcPreview").style.display = "none"; }
+    else { errEl.textContent = data.error || "發送失敗"; errEl.style.display = "block"; }
+  } catch(e) { errEl.textContent = "發送失敗，請重試"; errEl.style.display = "block"; }
   btn.disabled = false; btn.textContent = "確認發送";
 }
 
-// ── Security Log ──
 async function loadSecurity() {
   const el = document.getElementById("securityContent");
   el.innerHTML = `<div class="loading">載入中...</div>`;
   try {
     const data = await xhrGet(`${API_URL}?action=getSecurityLog&lineId=${state.lineId}`);
     const logs = data.logs || [];
-    if (logs.length === 0) {
-      el.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div>目前無異常記錄</div>`;
-      return;
-    }
-    let html = "";
-    logs.slice(0, 50).forEach(function(log) {
-      html += `<div class="log-item">
-        <div class="log-time">${esc(log.time)}</div>
-        <div style="margin:2px 0;font-size:12px">${esc(log.lineId)}</div>
-        <div style="margin:2px 0;font-size:12px">姓名（自填）：${esc(log.name)}</div>
-        <div class="log-event">${esc(log.event)}</div>
-      </div>`;
-    });
-    el.innerHTML = html;
-  } catch(e) {
-    el.innerHTML = `<div class="alert alert-error">載入失敗，請重試。</div>`;
-  }
+    if (logs.length === 0) { el.innerHTML = `<div class="empty-state">✅ 目前無異常記錄</div>`; return; }
+    el.innerHTML = logs.slice(0,50).map(function(log) {
+      return `<div class="log-item"><div class="log-time">${esc(log.time)}</div><div style="margin:2px 0;font-size:11px">${esc(log.lineId)}</div><div style="margin:2px 0;font-size:11px">姓名：${esc(log.name)}</div><div class="log-event">${esc(log.event)}</div></div>`;
+    }).join("");
+  } catch(e) { el.innerHTML = `<div class="alert alert-error">載入失敗，請重試。</div>`; }
 }
 
-// ── Init ──
 initLiff();
 </script>
+<!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
 </body>
 </html>
