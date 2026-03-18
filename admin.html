@@ -149,11 +149,12 @@
   .grid-np-banner {
     grid-column: 1 / -1;
     border: none;
-    padding: 8px 12px;
+    padding: 6px 12px 4px;
     display: flex;
     align-items: center;
     gap: 10px;
     min-height: 56px;
+    height: calc((100vw - 20px - 4px * 4) / 5);
   }
   .grid-np-banner:active { transform: scale(0.99); opacity: 0.9; transition: all 0.1s ease-out; }
   .grid-np-banner.has-patient { background: var(--marigold); }
@@ -364,7 +365,7 @@
     .col-right .tool-desc { font-size: 12px; }
 
     .grid-cell { min-height: 80px; aspect-ratio: unset; }
-    .grid-np-banner { min-height: 80px; padding: 10px 16px; }
+    .grid-np-banner { min-height: 80px; height: 80px; padding: 6px 16px 4px; }
     .cell-num { font-size: 28px; }
     .cell-name { font-size: 12px; bottom: 7px; left: 8px; }
     .np-banner-time { font-size: 14px; }
@@ -414,7 +415,6 @@
     <div class="col-left">
       <!-- ③ 心理治療區 -->
       <div class="panel-therapy">
-        <div class="section-title">心理治療</div>
         <div class="therapy-card">
           <div>
             <div class="therapy-title">心理治療</div>
@@ -458,7 +458,6 @@
     <div class="col-right">
       <!-- ④ 櫃台功能區 -->
       <div class="panel-tools">
-        <div class="section-title">櫃台功能</div>
         <div class="tools-grid">
           <div class="tool-card" onclick="openModal('modalQuery')">
             <div><div class="tool-name">進階查詢</div><div class="tool-desc">姓名／電話／生日</div></div>
