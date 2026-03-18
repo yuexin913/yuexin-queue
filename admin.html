@@ -281,6 +281,12 @@
   .divider { height: 1px; background: var(--border); margin: 12px 0; }
   .preview-count { background: var(--orange-light); color: var(--orange-dark); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; font-size: 13px; margin-bottom: 10px; text-align: center; }
   .loading { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; }
+  .loading-bar-wrap { width: 100%; height: 3px; background: var(--border); border-radius: 2px; margin: 10px 0 4px; overflow: hidden; }
+  .loading-bar { height: 100%; width: 40%; background: var(--orange); border-radius: 2px; animation: loadingSlide 1.2s ease-in-out infinite; }
+  @keyframes loadingSlide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(300%); }
+  }
   .empty-state { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; }
 
   /* ── 異常排班區塊 ── */
@@ -430,9 +436,9 @@
 <!-- Auth -->
 <div id="pageAuth">
   <div class="auth-card">
-    <div class="auth-icon">🏥</div>
-    <div class="auth-title">悅心診所</div>
-    <div class="auth-sub">Admin Portal<br><br>驗證身份中，請稍候...</div>
+    <div class="auth-icon">🚪</div>
+    <div class="auth-title">悅心診所線上服務</div>
+    <div class="auth-sub">請稍候...</div>
   </div>
 </div>
 
@@ -443,15 +449,6 @@
   <div class="header">
     <div class="header-left"><h1>悅心診所</h1><p>Admin Portal</p></div>
     <div class="header-badge" id="adminBadge">載入中...</div>
-  </div>
-
-  <!-- ① 頂部頁籤與資訊 -->
-  <div class="panel-header">
-    <div id="sessionTabs" class="tabs"></div>
-    <div id="sessionInfoRow" class="session-info-row" style="display:none; margin-bottom:0;">
-      <span class="session-doctor" id="sessionDoctorText"></span>
-      <div class="session-counts" id="sessionCountBadges"></div>
-    </div>
   </div>
 
   <!-- ② 門診名單區 -->
@@ -465,6 +462,15 @@
       <button class="date-nav-btn" onclick="changeDate(1)">›</button>
       <button class="date-nav-btn today" onclick="goToToday()">回到今日</button>
     </div>
+
+  <!-- ① 頂部頁籤與資訊 -->
+  <div class="panel-header" style="padding: 0 0 4px;">
+    <div id="sessionTabs" class="tabs"></div>
+    <div id="sessionInfoRow" class="session-info-row" style="display:none; margin-bottom:0;">
+      <span class="session-doctor" id="sessionDoctorText"></span>
+      <div class="session-counts" id="sessionCountBadges"></div>
+    </div>
+  </div>
     <div class="schedule-scroll">
       <div id="scheduleContent"><div class="loading">載入今日診表中...</div></div>
     </div>
@@ -703,7 +709,7 @@ function getTodayStr() { const n = new Date(); return n.getFullYear() + "/" + St
 function esc(str) { return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
 async function loadSchedule() {
-  document.getElementById("scheduleContent").innerHTML = `<div class="loading">載入診表中...</div>`;
+  document.getElementById("scheduleContent").innerHTML = `<div class="loading"><div class="loading-bar-wrap"><div class="loading-bar"></div></div>載入診表中...</div>`;
   document.getElementById("sessionTabs").innerHTML = "";
   document.getElementById("sessionInfoRow").style.display = "none";
   try {
