@@ -726,7 +726,7 @@ function renderSessionContent(session) {
   const list = allBookings.filter(b => b.session === session);
   const npList = list.filter(b => b.type === "初診")
     .slice().sort(function(a, b) {
-      return String(a.slot || "").localeCompare(String(b.slot || ""));
+      return parseInt(a.slot || "0") - parseInt(b.slot || "0");
     });
   const rtList = list.filter(b => b.type !== "初診" && b.slot !== "不指定");
   const unList = list.filter(b => b.type !== "初診" && b.slot === "不指定");
