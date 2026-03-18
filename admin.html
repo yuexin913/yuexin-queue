@@ -843,7 +843,7 @@ function renderSessionContent(session) {
       const isDone = c.status === "已看診";
       const isNotified = c.isAdminBooking && c.note.indexOf("[已通知]") !== -1;
       const bannerClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
-      const clickAttr = c.isAdminBooking ? `onclick="openContactModal('${esc(c.bookingId)}','${esc(c.name)}','${esc(c.phone)}',${isNotified})"` : "";
+      const clickAttr = c.isAdminBooking ? `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" onclick="openContactModalFromEl(this)"` : "";
       const checkMark = c.isAdminBooking && isNotified ? "✓ " : "";
       html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr}>
         <span class="np-banner-time">${checkMark}${esc(c.checkInTime)}前</span>
@@ -855,7 +855,7 @@ function renderSessionContent(session) {
       const isNotified = c.isAdminBooking && c.note.indexOf("[已通知]") !== -1;
       const cellClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const numDisplay = c.isAdminBooking && isNotified ? `${c.num} ✓` : `${c.num}`;
-      const clickAttr = c.isAdminBooking ? `onclick="openContactModal('${esc(c.bookingId)}','${esc(c.name)}','${esc(c.phone)}',${isNotified})"` : "";
+      const clickAttr = c.isAdminBooking ? `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" onclick="openContactModalFromEl(this)"` : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num">${numDisplay}</span>
         <span class="cell-name" title="${esc(c.name)}">${esc(c.name)}</span>
@@ -911,7 +911,16 @@ function openUnspecModal() {
 }
 
 /* ── 聯絡小卡 Modal ── */
+function openContactModalFromEl(el) {
+  const bookingId = el.dataset.bid;
+  const name = el.dataset.name;
+  const phone = el.dataset.phone;
+  const isNotified = el.dataset.notified === "true";
+  openContactModal(bookingId, name, phone, isNotified);
+}
+
 function openContactModal(bookingId, name, phone, isNotified) {
+  alert("收到bookingId=" + bookingId);
   state.contactBookingId = bookingId;
   state.contactIsNotified = (isNotified === true || isNotified === "true");
   const notified = state.contactIsNotified;
@@ -934,7 +943,6 @@ function openContactModal(bookingId, name, phone, isNotified) {
 async function doToggleNotified() {
   const btn = document.getElementById("btnToggleNotified");
   const newIsNotified = !state.contactIsNotified;
-  alert("bookingId=" + state.contactBookingId + "\nnewIsNotified=" + newIsNotified);
   btn.disabled = true; btn.textContent = "更新中...";
   try {
     const data = await xhrPost(API_URL, { action: "toggleNotified", bookingId: state.contactBookingId, isNotified: newIsNotified, lineId: state.lineId });
