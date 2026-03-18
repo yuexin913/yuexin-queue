@@ -6,7 +6,7 @@
 <title>悅心診所 Admin Portal</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@100;300;400;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@200;400;700&display=swap');
 
   /* ════════════════════════════════
      PANTONE 2026 Tropic Tonalities
@@ -67,7 +67,7 @@
   .header { background: var(--bg); border-bottom: 3px solid var(--marigold); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
   .header-left h1 { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: 3px; }
   .header-left p { font-size: 11px; color: var(--text-light); margin-top: 1px; }
-  .header-badge { background: var(--marigold); color: var(--white); padding: 4px 12px; font-size: 12px; font-weight: 300; }
+  .header-badge { background: var(--marigold); color: var(--white); padding: 4px 12px; font-size: 12px; font-weight: 400; }
 
   /* ── 手機版欄位順序 ── */
   .col-left { order: 2; }
@@ -76,20 +76,20 @@
   .desktop-body { display: flex; flex-direction: column; }
 
   /* ── Section Title ── */
-  .section-title { font-size: 11px; font-weight: 100; color: var(--text-light); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; flex-shrink: 0; letter-spacing: 1px; text-transform: uppercase; }
+  .section-title { font-size: 11px; font-weight: 200; color: var(--text-light); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; flex-shrink: 0; letter-spacing: 1px; text-transform: uppercase; }
   .section-title::before { content: ''; width: 4px; height: 14px; background: var(--marigold); }
 
   /* ── Tabs ── */
   .tabs { display: flex; gap: 3px; margin-bottom: 6px; }
-  .tab-btn { flex: 1; padding: 8px 4px; border: none; font-size: 12px; font-family: inherit; background: var(--bg-3); color: var(--text-light); cursor: pointer; transition: all 0.15s; font-weight: 300; }
+  .tab-btn { flex: 1; padding: 8px 4px; border: none; font-size: 12px; font-family: inherit; background: var(--bg-3); color: var(--text-light); cursor: pointer; transition: all 0.15s; font-weight: 400; }
   .tab-btn:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
   .tab-btn.active { background: var(--marigold); color: var(--white); font-weight: 700; }
 
   /* ── Session Info Row ── */
   .session-info-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: var(--bg-3); margin-bottom: 6px; border-left: 4px solid var(--marigold); }
-  .session-doctor { font-size: 15px; font-weight: 300; color: var(--text); }
+  .session-doctor { font-size: 15px; font-weight: 400; color: var(--text); }
   .session-counts { display: flex; gap: 4px; }
-  .count-badge { padding: 2px 7px; font-size: 12px; font-weight: 300; }
+  .count-badge { padding: 2px 7px; font-size: 12px; font-weight: 400; }
   .count-new { background: var(--marigold); color: var(--white); }
   .count-rt { background: var(--kiwi); color: var(--white); }
   .count-un { background: #888; color: var(--white); }
@@ -126,11 +126,11 @@
   .grid-cell.empty { background: transparent; }
 
   /* 號碼：左上角，細體 */
-  .cell-num { font-size: 22px; font-weight: 300; line-height: 1; align-self: flex-start; }
+  .cell-num { font-size: 22px; font-weight: 400; line-height: 1; align-self: flex-start; }
   .grid-cell.has-patient .cell-num { color: var(--white); }
   .grid-cell.admin-pending .cell-num { color: var(--white); }
   .grid-cell.admin-notified .cell-num { color: var(--text); }
-  .grid-cell.empty .cell-num { color: var(--empty-text); font-weight: 100; }
+  .grid-cell.empty .cell-num { color: var(--empty-text); font-weight: 200; }
 
   /* 姓名：左下角，粗體 */
   .cell-name {
@@ -170,7 +170,7 @@
   .grid-np-banner.admin-notified { background: var(--yellow); cursor: pointer; }
   .grid-np-banner.admin-notified .np-banner-time { color: rgba(0,0,0,0.6); }
   .grid-np-banner.admin-notified .np-banner-name { color: var(--text); }
-  .np-banner-time { font-size: 12px; flex-shrink: 0; font-weight: 100; }
+  .np-banner-time { font-size: 12px; flex-shrink: 0; font-weight: 200; }
   .np-banner-name { flex: 1; font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* ── 報到按鈕 ── */
@@ -199,7 +199,7 @@
     border: 2px dashed var(--border);
     font-size: 15px;
     font-family: inherit;
-    font-weight: 500;
+    font-weight: 400;
     color: var(--text-light);
     cursor: pointer;
     transition: all 0.15s;
@@ -213,8 +213,8 @@
   .panel-therapy { flex-shrink: 0; min-height: 72px; padding: 6px 10px; border-top: 2px solid var(--border); }
   .therapy-card { background: var(--bg-3); padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-left: 4px solid var(--capri); }
   .therapy-title { font-size: 15px; font-weight: 700; color: var(--capri); }
-  .therapy-sub { font-size: 12px; font-weight: 100; color: var(--text-light); margin-top: 2px; }
-  .therapy-badge { background: var(--capri); color: var(--white); padding: 4px 12px; font-size: 10px; font-weight: 300; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
+  .therapy-sub { font-size: 12px; font-weight: 200; color: var(--text-light); margin-top: 2px; }
+  .therapy-badge { background: var(--capri); color: var(--white); padding: 4px 12px; font-size: 10px; font-weight: 400; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
 
   /* ── 櫃台功能區 ── */
   .panel-tools { flex-shrink: 0; padding: 6px 10px 10px; border-top: 2px solid var(--border); }
@@ -234,7 +234,7 @@
   .tool-card:nth-child(3) { background: var(--pink); }
   .tool-card:nth-child(4) { background: var(--orchid); }
   .tool-name { font-size: 15px; font-weight: 700; color: var(--white); }
-  .tool-desc { font-size: 11px; font-weight: 100; color: rgba(255,255,255,0.8); line-height: 1.3; margin-top: 1px; }
+  .tool-desc { font-size: 11px; font-weight: 200; color: rgba(255,255,255,0.8); line-height: 1.3; margin-top: 1px; }
 
   /* ── 日期導覽列 ── */
   .date-nav { display: flex; align-items: center; gap: 3px; margin-bottom: 6px; }
@@ -257,31 +257,31 @@
   .date-nav-btn.today { font-size: 13px; padding: 8px 10px; color: var(--text-light); background: var(--bg-3); }
   .date-nav-btn.today:hover { background: var(--marigold); color: var(--white); }
   .date-nav-center { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: var(--bg-2); padding: 8px 4px; }
-  .date-nav-label { font-size: 15px; font-weight: 300; color: var(--text); pointer-events: none; white-space: nowrap; }
+  .date-nav-label { font-size: 15px; font-weight: 400; color: var(--text); pointer-events: none; white-space: nowrap; }
   .date-nav-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; border: none; background: transparent; }
 
   /* ── Modal ── */
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
   .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 999; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
   .loading-overlay.active { display: flex; }
-  .loading-overlay-text { color: var(--cloud); font-size: 15px; font-weight: 300; letter-spacing: 1px; text-align: center; line-height: 1.8; }
+  .loading-overlay-text { color: var(--cloud); font-size: 15px; font-weight: 400; letter-spacing: 1px; text-align: center; line-height: 1.8; }
   .loading-overlay-bar { width: 200px; height: 3px; background: var(--bg-3); overflow: hidden; }
   .loading-overlay-bar-inner { height: 100%; width: 40%; background: var(--marigold); animation: loadingSlide 1.2s ease-in-out infinite; }
   .modal-overlay.active { display: flex; }
   .modal { background: var(--white); padding: 24px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; border-top: 4px solid var(--marigold); }
   .modal-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; border-left: 4px solid var(--marigold); padding-left: 10px; }
-  .modal-close { margin-left: auto; background: none; border: none; font-size: 16px; font-weight: 300; cursor: pointer; color: var(--text-light); padding: 2px 8px; letter-spacing: 1px; }
+  .modal-close { margin-left: auto; background: none; border: none; font-size: 16px; font-weight: 400; cursor: pointer; color: var(--text-light); padding: 2px 8px; letter-spacing: 1px; }
 
   /* ── Form ── */
   .form-group { margin-bottom: 14px; }
-  .form-label { display: block; font-size: 10px; color: var(--text-light); margin-bottom: 4px; font-weight: 100; letter-spacing: 2px; text-transform: uppercase; }
-  input[type="text"], input[type="date"], select, textarea { width: 100%; padding: 10px 12px; border: none; border-bottom: 2px solid var(--border); border-left: 4px solid var(--border); font-size: 14px; font-family: inherit; color: var(--text); background: #FAFAFA; transition: all 0.15s; outline: none; font-weight: 300; }
+  .form-label { display: block; font-size: 10px; color: var(--text-light); margin-bottom: 4px; font-weight: 200; letter-spacing: 2px; text-transform: uppercase; }
+  input[type="text"], input[type="date"], select, textarea { width: 100%; padding: 10px 12px; border: none; border-bottom: 2px solid var(--border); border-left: 4px solid var(--border); font-size: 14px; font-family: inherit; color: var(--text); background: #FAFAFA; transition: all 0.15s; outline: none; font-weight: 400; }
   input:focus, select:focus, textarea:focus { border-bottom-color: var(--marigold); border-left-color: var(--marigold); background: var(--white); }
   textarea { resize: vertical; min-height: 70px; }
   .date-row { display: flex; gap: 8px; }
   .date-row .form-group { flex: 1; }
 
-  .btn { width: 100%; padding: 13px; border: none; font-size: 14px; font-family: inherit; font-weight: 300; cursor: pointer; letter-spacing: 1px; margin-bottom: 8px; }
+  .btn { width: 100%; padding: 13px; border: none; font-size: 14px; font-family: inherit; font-weight: 400; cursor: pointer; letter-spacing: 1px; margin-bottom: 8px; }
   .btn:active { transform: scale(0.98); opacity: 0.9; transition: all 0.1s ease-out; }
   .btn-primary { background: var(--marigold); color: var(--white); }
   .btn-primary:hover { background: var(--marigold-dk); }
@@ -298,9 +298,9 @@
 
   .result-item { padding: 12px; border-left: 4px solid var(--border); margin-bottom: 8px; background: var(--bg-3); }
   .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-  .result-date { font-size: 13px; font-weight: 300; }
+  .result-date { font-size: 13px; font-weight: 400; }
   .result-status { font-size: 11px; padding: 2px 7px; background: var(--kiwi); color: var(--white); font-weight: 700; }
-  .result-detail { font-size: 12px; font-weight: 100; color: var(--text-light); line-height: 1.8; }
+  .result-detail { font-size: 12px; font-weight: 200; color: var(--text-light); line-height: 1.8; }
 
   .log-item { padding: 9px 11px; border-left: 4px solid var(--error); background: #2A1010; margin-bottom: 7px; font-size: 12px; line-height: 1.6; }
   .log-time { color: var(--text-light); font-size: 10px; }
@@ -320,12 +320,12 @@
   .conflict-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #FFCCCC; font-size: 12px; }
   .conflict-row:last-child { border-bottom: none; }
   .conflict-slot { font-weight: 700; color: var(--error); min-width: 32px; }
-  .conflict-name { font-weight: 100; flex: 1; }
+  .conflict-name { font-weight: 200; flex: 1; }
   .conflict-note { font-size: 10px; color: var(--text-light); }
 
   /* ── 聯絡小卡 Modal ── */
   .contact-name { font-size: 24px; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 4px; }
-  .contact-birth { font-size: 13px; font-weight: 300; color: var(--text-light); text-align: center; margin-bottom: 8px; letter-spacing: 1px; }
+  .contact-birth { font-size: 13px; font-weight: 400; color: var(--text-light); text-align: center; margin-bottom: 8px; letter-spacing: 1px; }
   .contact-phone { display: block; font-size: 32px; font-weight: 700; color: var(--marigold); text-align: center; text-decoration: none; letter-spacing: 3px; margin-bottom: 20px; }
   .btn-notified-pending { background: var(--kiwi); color: var(--white); }
   .btn-notified-pending:hover { background: #6AA020; }
@@ -336,7 +336,7 @@
   .unspec-modal-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .unspec-modal-row:last-child { border-bottom: none; }
   .unspec-modal-num { font-size: 11px; color: var(--text-light); width: 18px; text-align: center; flex-shrink: 0; }
-  .unspec-modal-name { font-weight: 300; flex: 1; }
+  .unspec-modal-name { font-weight: 400; flex: 1; }
 
   /* ════════════════════════════════════════════════
      響應式佈局 — 平板／電腦（768px 以上）
@@ -603,7 +603,7 @@
 <div class="modal-overlay" id="modalCancelConfirm">
   <div class="modal">
     <div class="modal-title">確認取消預約</div>
-    <p style="font-size:14px;color:var(--text);margin-bottom:14px;line-height:1.7;font-weight:300;" id="cancelConfirmText"></p>
+    <p style="font-size:14px;color:var(--text);margin-bottom:14px;line-height:1.7;font-weight:400;" id="cancelConfirmText"></p>
     <div id="cancelError" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-danger" id="btnConfirmCancel" onclick="doCancel()">確認取消並發送通知</button>
     <button class="btn btn-outline" onclick="closeModal('modalCancelConfirm')">返回</button>
@@ -1083,9 +1083,9 @@ async function loadSubstituteList() {
     el.innerHTML = list.map(function(item) {
       const dp = item.date.split("/");
       return `<div style="font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center">
-        <span style="color:var(--orange-dark);font-weight:500">${dp[1]}月${dp[2]}日</span>
+        <span style="color:var(--orange-dark);font-weight:400">${dp[1]}月${dp[2]}日</span>
         <span style="color:var(--text-light)">${sn[item.session]||item.session}</span>
-        <span style="font-weight:500;flex:1">${esc(item.doctor)}</span>
+        <span style="font-weight:400;flex:1">${esc(item.doctor)}</span>
         <button onclick="cancelSubstitute('${esc(item.date)}','${esc(item.session)}',this)"
           style="font-size:11px;padding:2px 7px;border-radius:6px;border:1px solid var(--error);background:white;color:var(--error);cursor:pointer">取消</button>
       </div>`;
