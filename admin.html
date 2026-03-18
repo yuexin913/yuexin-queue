@@ -262,6 +262,11 @@
 
   /* ── Modal ── */
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+  .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 999; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+  .loading-overlay.active { display: flex; }
+  .loading-overlay-text { color: var(--cloud); font-size: 15px; font-weight: 300; letter-spacing: 1px; text-align: center; line-height: 1.8; }
+  .loading-overlay-bar { width: 200px; height: 3px; background: var(--bg-3); overflow: hidden; }
+  .loading-overlay-bar-inner { height: 100%; width: 40%; background: var(--marigold); animation: loadingSlide 1.2s ease-in-out infinite; }
   .modal-overlay.active { display: flex; }
   .modal { background: var(--white); padding: 24px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; border-top: 4px solid var(--marigold); }
   .modal-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; border-left: 4px solid var(--marigold); padding-left: 10px; }
@@ -606,6 +611,15 @@
 </div>
 
 <script>
+// 前端副本：和 GAS DEFAULT_DOCTOR_SCHEDULE 保持同步
+const DEFAULT_DOCTOR_SCHEDULE = {
+  1: { "早上": "粟寧",   "下午": "粟寧",   "晚上": "王伯元" },
+  2: { "早上": "王麟祥", "下午": "粟寧",   "晚上": "郭玉柱" },
+  3: { "早上": "粟寧",   "下午": "郭玉柱", "晚上": "粟寧"   },
+  4: { "早上": "粟寧",   "下午": "粟寧",   "晚上": "王麟祥" },
+  5: { "早上": "郭玉柱", "下午": "王伯元", "晚上": "粟寧"   },
+  6: { "早上": "粟寧",   "下午": "",       "晚上": ""        }
+};
 const API_URL = "https://script.google.com/macros/s/AKfycbz1IB0HCFWaFlC7odExNsOWaZwTjz7osAjstXhx_5V0ZD4Ya58GGRRPfFAun2Itywbh6A/exec";
 let state = { lineId: "", adminName: "", pendingCancelId: "", bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false };
 let allBookings = [], activeSession = "";
@@ -676,7 +690,7 @@ async function initLiff() {
   }
 }
 
-var XHR_TIMEOUT = 15000; // 15秒
+var XHR_TIMEOUT = 30000; // 30秒
 
 function xhrParseResponse(text) {
   if (typeof text === "string" && text.trimStart().charAt(0) === "<") {
@@ -734,18 +748,22 @@ function renderSchedule(bookings) {
   allBookings = bookings;
   const tabEl = document.getElementById("sessionTabs");
   const el = document.getElementById("scheduleContent");
-  if (bookings.length === 0) {
+  const sn = {"早上":"早上診","下午":"下午診","晚上":"晚上診"};
+  // 根據當天星期幾決定開診時段（不依賴是否有預約）
+  const dow = state.viewDate.getDay(); // 0=日,1=一...6=六
+  const daySchedule = DEFAULT_DOCTOR_SCHEDULE[dow] || {};
+  const openSessions = ["早上","下午","晚上"].filter(s => daySchedule[s] && daySchedule[s] !== "");
+  if (openSessions.length === 0) {
     tabEl.innerHTML = "";
     document.getElementById("sessionInfoRow").style.display = "none";
-    el.innerHTML = `<div class="empty-state">📋 今日無預約</div>`;
+    el.innerHTML = `<div class="empty-state">今日無開診</div>`;
     return;
   }
-  const sn = {"早上":"早上診","下午":"下午診","晚上":"晚上診"};
-  const available = ["早上","下午","晚上"].filter(s => bookings.some(b => b.session === s));
-  tabEl.innerHTML = available.map(function(s) {
-    return `<button class="tab-btn" id="tab-${s}" onclick="switchTab('${s}')">${sn[s]} ${bookings.filter(b=>b.session===s).length}</button>`;
+  tabEl.innerHTML = openSessions.map(function(s) {
+    const count = bookings.filter(b => b.session === s).length;
+    return `<button class="tab-btn" id="tab-${s}" onclick="switchTab('${s}')">${sn[s]} ${count}</button>`;
   }).join("");
-  activeSession = available[0];
+  activeSession = openSessions[0];
   renderSessionContent(activeSession);
   document.getElementById("tab-" + activeSession).classList.add("active");
 }
@@ -1241,12 +1259,15 @@ async function doBroadcastSend() {
   if (!confirm(`確定要發送訊息給 ${state.bcPreviewCount} 位病患嗎？`)) return;
   const btn = document.getElementById("btnBcSend");
   btn.disabled = true; btn.textContent = "發送中...";
+  // 顯示全螢幕 Loading Overlay，防止誤觸
+  document.getElementById("broadcastOverlay").classList.add("active");
   try {
     const params = Object.assign({ action: "sendAnnouncement", message, lineId: state.lineId }, getBcParams());
     const data = await xhrPost(API_URL, params);
     if (data.success) { sucEl.textContent = `✓ 已成功發送給 ${data.sentCount} 位病患`; sucEl.style.display = "block"; btn.style.display = "none"; document.getElementById("bcPreview").style.display = "none"; }
     else { errEl.textContent = data.error || "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
   } catch(e) { errEl.textContent = "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
+  document.getElementById("broadcastOverlay").classList.remove("active");
   btn.disabled = false; btn.textContent = "確認發送";
 }
 
@@ -1266,6 +1287,11 @@ async function loadSecurity() {
 
 initLiff();
 </script>
+<!-- Loading Overlay：群發發送中 -->
+<div class="loading-overlay" id="broadcastOverlay">
+  <div class="loading-overlay-bar"><div class="loading-overlay-bar-inner"></div></div>
+  <div class="loading-overlay-text">訊息發送中<br>請勿關閉頁面...</div>
+</div>
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
 </body>
 </html>
