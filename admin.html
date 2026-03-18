@@ -6,7 +6,7 @@
 <title>悅心診所 Admin Portal</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap');
 
   /* ════════════════════════
      CSS 變數 — Metro 色系
@@ -34,7 +34,7 @@
   /* ── 全域重置 ── */
   * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
   html, body { height: 100%; overflow: hidden; }
-  body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); }
+  body { font-family: 'Segoe UI', 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); }
 
   /* ── Auth ── */
   #pageAuth { display: flex; align-items: center; justify-content: center; height: 100vh; padding: 20px; background: var(--orange); }
@@ -64,7 +64,7 @@
 
   /* ── Tabs ── */
   .tabs { display: flex; gap: 3px; margin-bottom: 6px; }
-  .tab-btn { flex: 1; padding: 8px 4px; border: none; font-size: 12px; font-family: 'Noto Sans TC', sans-serif; background: var(--empty-bg); color: var(--text-light); cursor: pointer; transition: all 0.15s; font-weight: 500; }
+  .tab-btn { flex: 1; padding: 8px 4px; border: none; font-size: 12px; font-family: 'Segoe UI', 'Noto Sans TC', sans-serif; background: var(--empty-bg); color: var(--text-light); cursor: pointer; transition: all 0.15s; font-weight: 500; }
   .tab-btn:active { transform: scale(0.96); }
   .tab-btn.active { background: var(--orange); color: var(--white); font-weight: 700; }
 
@@ -72,7 +72,7 @@
   .session-info-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: var(--empty-bg); margin-bottom: 6px; border-left: 4px solid var(--orange); }
   .session-doctor { font-size: 15px; font-weight: 700; color: var(--text); }
   .session-counts { display: flex; gap: 4px; }
-  .count-badge { padding: 2px 7px; font-size: 12px; font-weight: 700; }
+  .count-badge { padding: 2px 7px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
   .count-new { background: var(--orange); color: var(--white); }
   .count-rt { background: var(--green-metro); color: var(--white); }
   .count-un { background: #888; color: var(--white); }
@@ -164,7 +164,7 @@
   .grid-np-banner.admin-notified { background: var(--green-metro); cursor: pointer; }
   .grid-np-banner.admin-notified .np-banner-time { color: rgba(255,255,255,0.8); }
   .grid-np-banner.admin-notified .np-banner-name { color: var(--white); }
-  .np-banner-time { font-size: 12px; flex-shrink: 0; font-weight: 500; }
+  .np-banner-time { font-size: 12px; flex-shrink: 0; font-weight: 300; }
   .np-banner-name { flex: 1; font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* ── 報到按鈕 ── */
@@ -172,7 +172,7 @@
     flex-shrink: 0;
     padding: 6px 12px;
     font-size: 12px;
-    font-family: 'Noto Sans TC', sans-serif;
+    font-family: 'Segoe UI', 'Noto Sans TC', sans-serif;
     font-weight: 700;
     cursor: pointer;
     border: none;
@@ -193,7 +193,7 @@
     background: var(--empty-bg);
     border: 2px dashed var(--border);
     font-size: 15px;
-    font-family: 'Noto Sans TC', sans-serif;
+    font-family: 'Segoe UI', 'Noto Sans TC', sans-serif;
     font-weight: 500;
     color: var(--text-light);
     cursor: pointer;
@@ -208,7 +208,7 @@
   .panel-therapy { flex-shrink: 0; min-height: 72px; padding: 6px 10px; border-top: 3px solid var(--empty-bg); }
   .therapy-card { background: var(--empty-bg); padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-left: 4px solid var(--purple); }
   .therapy-title { font-size: 15px; font-weight: 700; color: var(--purple); }
-  .therapy-sub { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+  .therapy-sub { font-size: 12px; font-weight: 300; color: var(--text-light); margin-top: 2px; }
   .therapy-badge { background: var(--purple); color: var(--white); padding: 4px 12px; font-size: 10px; font-weight: 700; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
 
   /* ── 櫃台功能區 ── */
@@ -231,9 +231,8 @@
   .tool-card:nth-child(2) { background: var(--teal); }
   .tool-card:nth-child(3) { background: #E3008C; }
   .tool-card:nth-child(4) { background: #1D1D1D; }
-  .tool-icon { font-size: 24px; flex-shrink: 0; }
   .tool-name { font-size: 15px; font-weight: 700; color: var(--white); }
-  .tool-desc { font-size: 11px; color: rgba(255,255,255,0.75); line-height: 1.3; margin-top: 1px; }
+  .tool-desc { font-size: 11px; font-weight: 300; color: rgba(255,255,255,0.75); line-height: 1.3; margin-top: 1px; }
 
   /* ── 日期導覽列 ── */
   .date-nav { display: flex; align-items: center; gap: 3px; margin-bottom: 6px; }
@@ -244,7 +243,7 @@
     background: var(--empty-bg);
     color: var(--text);
     font-size: 15px;
-    font-family: 'Noto Sans TC', sans-serif;
+    font-family: 'Segoe UI', 'Noto Sans TC', sans-serif;
     font-weight: 700;
     cursor: pointer;
     transition: transform 0.1s;
@@ -267,14 +266,14 @@
 
   /* ── Form ── */
   .form-group { margin-bottom: 14px; }
-  .form-label { display: block; font-size: 12px; color: var(--text-light); margin-bottom: 5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
-  input[type="text"], input[type="date"], select, textarea { width: 100%; padding: 10px 12px; border: 2px solid var(--border); font-size: 14px; font-family: 'Noto Sans TC', sans-serif; color: var(--text); background: var(--white); transition: border-color 0.15s; outline: none; }
+  .form-label { display: block; font-size: 11px; color: var(--text-light); margin-bottom: 5px; font-weight: 300; letter-spacing: 1px; text-transform: uppercase; }
+  input[type="text"], input[type="date"], select, textarea { width: 100%; padding: 10px 12px; border: 2px solid var(--border); font-size: 14px; font-family: 'Segoe UI', 'Noto Sans TC', sans-serif; color: var(--text); background: var(--white); transition: border-color 0.15s; outline: none; }
   input:focus, select:focus, textarea:focus { border-color: var(--orange); }
   textarea { resize: vertical; min-height: 70px; }
   .date-row { display: flex; gap: 8px; }
   .date-row .form-group { flex: 1; }
 
-  .btn { width: 100%; padding: 13px; border: none; font-size: 14px; font-family: 'Noto Sans TC', sans-serif; font-weight: 700; cursor: pointer; transition: transform 0.1s; letter-spacing: 1px; margin-bottom: 8px; }
+  .btn { width: 100%; padding: 13px; border: none; font-size: 14px; font-family: 'Segoe UI', 'Noto Sans TC', sans-serif; font-weight: 700; cursor: pointer; transition: transform 0.1s; letter-spacing: 1px; margin-bottom: 8px; }
   .btn:active { transform: scale(0.98); }
   .btn-primary { background: var(--orange); color: var(--white); }
   .btn-primary:hover { background: var(--orange-dark); }
@@ -293,7 +292,7 @@
   .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
   .result-date { font-size: 13px; font-weight: 700; }
   .result-status { font-size: 11px; padding: 2px 7px; background: var(--green-metro); color: var(--white); font-weight: 700; }
-  .result-detail { font-size: 12px; color: var(--text-light); line-height: 1.8; }
+  .result-detail { font-size: 12px; font-weight: 300; color: var(--text-light); line-height: 1.8; }
 
   .log-item { padding: 9px 11px; border-left: 4px solid var(--error); background: #FFF0EE; margin-bottom: 7px; font-size: 12px; line-height: 1.6; }
   .log-time { color: var(--text-light); font-size: 10px; }
@@ -398,7 +397,7 @@
 <!-- Auth -->
 <div id="pageAuth">
   <div class="auth-card">
-    <div class="auth-icon">🚪</div>
+    
     <div class="auth-title">悅心診所線上服務</div>
     <div class="auth-sub">請稍候...</div>
   </div>
@@ -420,10 +419,10 @@
     <div class="col-left">
       <!-- ③ 心理治療區 -->
       <div class="panel-therapy">
-        <div class="section-title">🧠 心理治療</div>
+        <div class="section-title">心理治療</div>
         <div class="therapy-card">
           <div>
-            <div class="therapy-title">🧠 心理治療</div>
+            <div class="therapy-title">心理治療</div>
             <div class="therapy-sub">目前尚無排程資料</div>
           </div>
           <div class="therapy-badge">建置中...</div>
@@ -436,12 +435,12 @@
       <!-- ② 門診名單區 -->
       <div class="panel-schedule">
         <div class="date-nav">
-          <button class="date-nav-btn" onclick="changeDate(-1)">‹</button>
+          <button class="date-nav-btn" onclick="changeDate(-1)">＜</button>
           <div class="date-nav-center">
             <span class="date-nav-label" id="dateNavLabel"></span>
             <input type="date" class="date-nav-input" id="dateNavInput" onchange="onDatePick(event)">
           </div>
-          <button class="date-nav-btn" onclick="changeDate(1)">›</button>
+          <button class="date-nav-btn" onclick="changeDate(1)">＞</button>
           <button class="date-nav-btn today" onclick="goToToday()">回到今日</button>
         </div>
 
@@ -463,22 +462,18 @@
     <div class="col-right">
       <!-- ④ 櫃台功能區 -->
       <div class="panel-tools">
-        <div class="section-title">🛠️ 櫃台功能</div>
+        <div class="section-title">櫃台功能</div>
         <div class="tools-grid">
           <div class="tool-card" onclick="openModal('modalQuery')">
-            <div class="tool-icon">🔍</div>
             <div><div class="tool-name">進階查詢</div><div class="tool-desc">姓名／電話／生日</div></div>
           </div>
           <div class="tool-card" onclick="openModal('modalSubstitute')">
-            <div class="tool-icon">👨‍⚕️</div>
             <div><div class="tool-name">代診排班</div><div class="tool-desc">修改代診醫師</div></div>
           </div>
           <div class="tool-card" onclick="openModal('modalBroadcast')">
-            <div class="tool-icon">📢</div>
             <div><div class="tool-name">群發訊息</div><div class="tool-desc">推播通知病患</div></div>
           </div>
           <div class="tool-card" onclick="openModal('modalSecurity')">
-            <div class="tool-icon">🛡️</div>
             <div><div class="tool-name">資安監控</div><div class="tool-desc">異常行為記錄</div></div>
           </div>
         </div>
@@ -492,7 +487,7 @@
 <!-- Modal: 不指定名單 -->
 <div class="modal-overlay" id="modalUnspecified">
   <div class="modal">
-    <div class="modal-title">📋 不指定名單<button class="modal-close" onclick="closeModal('modalUnspecified')">✕</button></div>
+    <div class="modal-title">不指定名單<button class="modal-close" onclick="closeModal('modalUnspecified')">✕</button></div>
     <div id="unspecContent"><div class="loading">載入中...</div></div>
   </div>
 </div>
@@ -500,7 +495,7 @@
 <!-- Modal: 聯絡病患 -->
 <div class="modal-overlay" id="modalContact">
   <div class="modal">
-    <div class="modal-title">📞 聯絡病患<button class="modal-close" onclick="closeModal('modalContact')">✕</button></div>
+    <div class="modal-title">聯絡病患<button class="modal-close" onclick="closeModal('modalContact')">✕</button></div>
     <div class="contact-name" id="contactName"></div>
     <a class="contact-phone" id="contactPhone" href=""></a>
     <div id="contactError" class="alert alert-error" style="display:none"></div>
@@ -511,7 +506,7 @@
 <!-- Modal: 進階查詢 -->
 <div class="modal-overlay" id="modalQuery">
   <div class="modal">
-    <div class="modal-title">🔍 進階查詢<button class="modal-close" onclick="closeModal('modalQuery')">✕</button></div>
+    <div class="modal-title">進階查詢<button class="modal-close" onclick="closeModal('modalQuery')">✕</button></div>
     <div class="form-group"><label class="form-label">姓名</label><input type="text" id="qName" placeholder="輸入姓名"></div>
     <div class="form-group"><label class="form-label">電話</label><input type="text" id="qPhone" placeholder="輸入手機號碼"></div>
     <div class="form-group"><label class="form-label">生日（西元年，如 1990-05-20）</label><input type="text" id="qBirth" placeholder="輸入生日"></div>
@@ -524,9 +519,9 @@
 <!-- Modal: 代診排班 -->
 <div class="modal-overlay" id="modalSubstitute">
   <div class="modal">
-    <div class="modal-title">👨‍⚕️ 代診排班<button class="modal-close" onclick="closeModal('modalSubstitute')">✕</button></div>
+    <div class="modal-title">代診排班<button class="modal-close" onclick="closeModal('modalSubstitute')">✕</button></div>
     <div style="background:var(--orange-light);border-radius:10px;padding:10px;margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:500;color:var(--orange-dark);margin-bottom:6px;">📋 目前排班代診</div>
+      <div style="font-size:11px;font-weight:700;color:var(--orange-dark);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">目前排班代診</div>
       <div id="subList"><div style="font-size:12px;color:var(--text-light);">載入中...</div></div>
     </div>
     <div class="form-group"><label class="form-label">日期</label><input type="date" id="subDate"></div>
@@ -549,7 +544,7 @@
 <!-- Modal: 群發訊息 -->
 <div class="modal-overlay" id="modalBroadcast">
   <div class="modal">
-    <div class="modal-title">📢 群發訊息<button class="modal-close" onclick="closeModal('modalBroadcast')">✕</button></div>
+    <div class="modal-title">群發訊息<button class="modal-close" onclick="closeModal('modalBroadcast')">✕</button></div>
     <div class="alert alert-info">發送前請確認訊息內容，送出後無法收回。</div>
     <div class="date-row">
       <div class="form-group"><label class="form-label">開始日期</label><input type="date" id="bcStart"></div>
@@ -567,7 +562,7 @@
 <!-- Modal: 資安監控 -->
 <div class="modal-overlay" id="modalSecurity">
   <div class="modal">
-    <div class="modal-title">🛡️ 資安監控日誌<button class="modal-close" onclick="closeModal('modalSecurity')">✕</button></div>
+    <div class="modal-title">資安監控<button class="modal-close" onclick="closeModal('modalSecurity')">✕</button></div>
     <div id="securityContent"><div class="loading">載入中...</div></div>
   </div>
 </div>
@@ -575,7 +570,7 @@
 <!-- Modal: 取消確認 -->
 <div class="modal-overlay" id="modalCancelConfirm">
   <div class="modal">
-    <div class="modal-title">⚠️ 確認取消預約</div>
+    <div class="modal-title">確認取消預約</div>
     <p style="font-size:14px;color:var(--text);margin-bottom:14px;line-height:1.7" id="cancelConfirmText"></p>
     <div id="cancelError" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-danger" id="btnConfirmCancel" onclick="doCancel()">確認取消並發送通知</button>
@@ -593,7 +588,7 @@ function dateToYMD(d) {
 }
 function dateToDisplay(d) {
   const weekdays = ["日","一","二","三","四","五","六"];
-  return d.getFullYear() + "/" + String(d.getMonth()+1).padStart(2,"0") + "/" + String(d.getDate()).padStart(2,"0") + " (" + weekdays[d.getDay()] + ") 📅";
+  return d.getFullYear() + "/" + String(d.getMonth()+1).padStart(2,"0") + "/" + String(d.getDate()).padStart(2,"0") + " (" + weekdays[d.getDay()] + ")";
 }
 function updateDateNav() {
   document.getElementById("dateNavLabel").textContent = dateToDisplay(state.viewDate);
@@ -628,17 +623,17 @@ async function initLiff() {
     state.lineId = profile.userId;
     const verify = await xhrGet(`${API_URL}?action=verifyAdmin&lineId=${state.lineId}`);
     if (!verify.success) {
-      document.getElementById("pageAuth").innerHTML = `<div class="auth-card"><div class="auth-icon">🔒</div><div class="auth-title">頁面錯誤</div></div>`;
+      document.getElementById("pageAuth").innerHTML = `<div class="auth-card"><div class="auth-title">頁面錯誤</div></div>`;
       return;
     }
     state.adminName = verify.name;
-    document.getElementById("adminBadge").textContent = "👤 " + state.adminName;
+    document.getElementById("adminBadge").textContent = state.adminName.toUpperCase();
     document.getElementById("pageAuth").style.display = "none";
     document.getElementById("pageMain").style.display = "flex";
     updateDateNav();
     loadSchedule();
   } catch(e) {
-    document.getElementById("pageAuth").innerHTML = `<div class="auth-card"><div class="auth-icon">⚠️</div><div class="auth-title">暫時無法連線</div><div class="auth-sub">請重新整理頁面。</div></div>`;
+    document.getElementById("pageAuth").innerHTML = `<div class="auth-card"><div class="auth-title">暫時無法連線</div><div class="auth-sub">請重新整理頁面。</div></div>`;
   }
 }
 
@@ -731,7 +726,7 @@ function renderSessionContent(session) {
   const list = allBookings.filter(b => b.session === session);
   const npList = list.filter(b => b.type === "初診")
     .slice().sort(function(a, b) {
-      return String(a.checkInTime || "").localeCompare(String(b.checkInTime || ""));
+      return String(a.slot || "").localeCompare(String(b.slot || ""));
     });
   const rtList = list.filter(b => b.type !== "初診" && b.slot !== "不指定");
   const unList = list.filter(b => b.type !== "初診" && b.slot === "不指定");
@@ -741,7 +736,7 @@ function renderSessionContent(session) {
   const infoRow = document.getElementById("sessionInfoRow");
   infoRow.style.display = list.length > 0 ? "flex" : "none";
   const isSubstitute = list.length > 0 && list[0].isSubstitute;
-  const doctorLabel = doctor ? (isSubstitute ? "👨‍⚕️ *代診 " + doctor + " 醫師" : "👨‍⚕️ " + doctor + " 醫師") : "";
+  const doctorLabel = doctor ? (isSubstitute ? "*代診 " + doctor + " 醫師" : doctor + " 醫師") : "";
   document.getElementById("sessionDoctorText").textContent = doctorLabel;
   document.getElementById("sessionCountBadges").innerHTML =
     `<span class="count-badge count-new">初診 ${npList.length}</span>` +
@@ -855,7 +850,7 @@ function renderSessionContent(session) {
 
   // 不指定按鈕（全寬，grid 下方）
   if (unList.length > 0) {
-    html += `<button class="unspec-btn" onclick="openUnspecModal()">📋 查看不指定名單（${unList.length} 人）</button>`;
+    html += `<button class="unspec-btn" onclick="openUnspecModal()">查看不指定名單（${unList.length} 人）</button>`;
   }
 
   // 異常排班區（格位衝突，絕對不能隱藏）
