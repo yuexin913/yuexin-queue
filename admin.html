@@ -429,6 +429,128 @@
   .unspec-modal-row:last-child { border-bottom: none; }
   .unspec-modal-num { font-size: 11px; color: var(--text-light); width: 18px; text-align: center; flex-shrink: 0; }
   .unspec-modal-name { font-weight: 500; flex: 1; }
+
+  /* ════════════════════════════════════════════════
+     響應式佈局 — 平板／電腦（768px 以上）
+     手機版完全不受影響
+  ════════════════════════════════════════════════ */
+  @media (min-width: 768px) {
+
+    /* 整體背景 */
+    body { background: #F0EDE8; }
+
+    /* pageMain 改為垂直 flex，header 固定頂部，body 撐滿剩餘高度 */
+    #pageMain { height: 100vh; overflow: hidden; }
+
+    /* Header 放大 */
+    .header { padding: 14px 24px; }
+    .header-left h1 { font-size: 20px; letter-spacing: 3px; }
+    .header-left p { font-size: 12px; }
+    .header-badge { font-size: 14px; padding: 5px 16px; }
+
+    /* desktop-body：三欄 Grid，佔滿 header 以下的全部高度 */
+    .desktop-body {
+      display: grid;
+      grid-template-columns: 3fr 5fr 2fr;
+      grid-template-rows: 1fr;
+      gap: 0;
+      flex: 1;
+      min-height: 0;
+      height: calc(100vh - 57px);
+      overflow: hidden;
+    }
+
+    /* 左欄：心理治療時間軸 */
+    .col-left {
+      background: #F7F4F0;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 16px 12px;
+    }
+
+    /* 中欄：門診名單（最重要） */
+    .col-center {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    /* 右欄：工具與警示 */
+    .col-right {
+      background: #F7F4F0;
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 16px 12px;
+    }
+
+    /* panel-schedule 在中欄撐滿 */
+    .col-center .panel-schedule {
+      flex: 1;
+      min-height: 0;
+      padding: 12px 16px 8px;
+    }
+
+    /* 心理治療區在左欄移除 border-top */
+    .col-left .panel-therapy {
+      border-top: none;
+      padding: 0;
+    }
+
+    /* 工具區在右欄移除 border-top，工具改為 1×4 直排 */
+    .col-right .panel-tools {
+      border-top: none;
+      padding: 0;
+    }
+    .col-right .tools-grid {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .col-right .tool-card {
+      padding: 14px 16px;
+    }
+    .col-right .tool-name { font-size: 16px; }
+    .col-right .tool-desc { font-size: 12px; }
+    .col-right .tool-icon { font-size: 26px; }
+
+    /* 30格在寬螢幕放大 */
+    .grid-cell { min-height: 64px; }
+    .grid-np-banner { min-height: 64px; padding: 8px 14px; }
+    .cell-num { font-size: 18px; }
+    .cell-name { font-size: 13px; }
+    .np-banner-time { font-size: 14px; }
+    .np-banner-name { font-size: 17px; }
+    .checkin-mini { font-size: 14px; padding: 7px 14px; }
+
+    /* 日期導覽放大 */
+    .date-nav-label { font-size: 18px; }
+    .date-nav-btn { font-size: 18px; padding: 7px 14px; }
+    .date-nav-btn.today { font-size: 14px; }
+
+    /* 頁籤放大 */
+    .tab-btn { font-size: 14px; padding: 8px 6px; }
+    .session-doctor { font-size: 17px; }
+    .count-badge { font-size: 13px; padding: 3px 8px; }
+
+    /* 不指定按鈕放大 */
+    .unspec-btn { font-size: 16px; padding: 14px; }
+
+    /* section title 放大 */
+    .section-title { font-size: 13px; margin-bottom: 10px; }
+
+    /* 心理治療卡片放大 */
+    .therapy-title { font-size: 16px; }
+    .therapy-sub { font-size: 14px; }
+    .therapy-badge { font-size: 12px; padding: 5px 14px; }
+
+    /* Modal 在寬螢幕置中且更寬 */
+    .modal { max-width: 560px; padding: 28px; }
+    .modal-title { font-size: 20px; }
+  }
 </style>
 </head>
 <body>
@@ -451,65 +573,79 @@
     <div class="header-badge" id="adminBadge">載入中...</div>
   </div>
 
-  <!-- ② 門診名單區 -->
-  <div class="panel-schedule">
-    <div class="date-nav">
-      <button class="date-nav-btn" onclick="changeDate(-1)">‹</button>
-      <div class="date-nav-center">
-        <span class="date-nav-label" id="dateNavLabel"></span>
-        <input type="date" class="date-nav-input" id="dateNavInput" onchange="onDatePick(event)">
+  <!-- desktop-body: 三欄容器 -->
+  <div class="desktop-body">
+
+    <!-- 左欄：心理治療時間軸 -->
+    <div class="col-left">
+      <!-- ③ 心理治療區 -->
+      <div class="panel-therapy">
+        <div class="section-title">🧠 心理治療</div>
+        <div class="therapy-card">
+          <div>
+            <div class="therapy-title">🧠 心理治療</div>
+            <div class="therapy-sub">目前尚無排程資料</div>
+          </div>
+          <div class="therapy-badge">建置中...</div>
+        </div>
       </div>
-      <button class="date-nav-btn" onclick="changeDate(1)">›</button>
-      <button class="date-nav-btn today" onclick="goToToday()">回到今日</button>
     </div>
 
-  <!-- ① 頂部頁籤與資訊 -->
-  <div class="panel-header" style="padding: 0 0 4px;">
-    <div id="sessionTabs" class="tabs"></div>
-    <div id="sessionInfoRow" class="session-info-row" style="display:none; margin-bottom:0;">
-      <span class="session-doctor" id="sessionDoctorText"></span>
-      <div class="session-counts" id="sessionCountBadges"></div>
-    </div>
-  </div>
-    <div class="schedule-scroll">
-      <div id="scheduleContent"><div class="loading">載入今日診表中...</div></div>
-    </div>
-  </div>
+    <!-- 中欄：門診名單 -->
+    <div class="col-center">
+      <!-- ② 門診名單區 -->
+      <div class="panel-schedule">
+        <div class="date-nav">
+          <button class="date-nav-btn" onclick="changeDate(-1)">‹</button>
+          <div class="date-nav-center">
+            <span class="date-nav-label" id="dateNavLabel"></span>
+            <input type="date" class="date-nav-input" id="dateNavInput" onchange="onDatePick(event)">
+          </div>
+          <button class="date-nav-btn" onclick="changeDate(1)">›</button>
+          <button class="date-nav-btn today" onclick="goToToday()">回到今日</button>
+        </div>
 
-  <!-- ③ 心理治療區 -->
-  <div class="panel-therapy">
-    <div class="section-title">🧠 心理治療</div>
-    <div class="therapy-card">
-      <div>
-        <div class="therapy-title">🧠 心理治療</div>
-        <div class="therapy-sub">目前尚無排程資料</div>
+        <!-- ① 頂部頁籤與資訊 -->
+        <div class="panel-header" style="padding: 0 0 4px;">
+          <div id="sessionTabs" class="tabs"></div>
+          <div id="sessionInfoRow" class="session-info-row" style="display:none; margin-bottom:0;">
+            <span class="session-doctor" id="sessionDoctorText"></span>
+            <div class="session-counts" id="sessionCountBadges"></div>
+          </div>
+        </div>
+        <div class="schedule-scroll">
+          <div id="scheduleContent"><div class="loading">載入今日診表中...</div></div>
+        </div>
       </div>
-      <div class="therapy-badge">建置中...</div>
     </div>
-  </div>
 
-  <!-- ④ 櫃台功能區 -->
-  <div class="panel-tools">
-    <div class="section-title">🛠️ 櫃台功能</div>
-    <div class="tools-grid">
-      <div class="tool-card" onclick="openModal('modalQuery')">
-        <div class="tool-icon">🔍</div>
-        <div><div class="tool-name">進階查詢</div><div class="tool-desc">姓名／電話／生日</div></div>
-      </div>
-      <div class="tool-card" onclick="openModal('modalSubstitute')">
-        <div class="tool-icon">👨‍⚕️</div>
-        <div><div class="tool-name">代診排班</div><div class="tool-desc">修改代診醫師</div></div>
-      </div>
-      <div class="tool-card" onclick="openModal('modalBroadcast')">
-        <div class="tool-icon">📢</div>
-        <div><div class="tool-name">群發訊息</div><div class="tool-desc">推播通知病患</div></div>
-      </div>
-      <div class="tool-card" onclick="openModal('modalSecurity')">
-        <div class="tool-icon">🛡️</div>
-        <div><div class="tool-name">資安監控</div><div class="tool-desc">異常行為記錄</div></div>
+    <!-- 右欄：工具與警示 -->
+    <div class="col-right">
+      <!-- ④ 櫃台功能區 -->
+      <div class="panel-tools">
+        <div class="section-title">🛠️ 櫃台功能</div>
+        <div class="tools-grid">
+          <div class="tool-card" onclick="openModal('modalQuery')">
+            <div class="tool-icon">🔍</div>
+            <div><div class="tool-name">進階查詢</div><div class="tool-desc">姓名／電話／生日</div></div>
+          </div>
+          <div class="tool-card" onclick="openModal('modalSubstitute')">
+            <div class="tool-icon">👨‍⚕️</div>
+            <div><div class="tool-name">代診排班</div><div class="tool-desc">修改代診醫師</div></div>
+          </div>
+          <div class="tool-card" onclick="openModal('modalBroadcast')">
+            <div class="tool-icon">📢</div>
+            <div><div class="tool-name">群發訊息</div><div class="tool-desc">推播通知病患</div></div>
+          </div>
+          <div class="tool-card" onclick="openModal('modalSecurity')">
+            <div class="tool-icon">🛡️</div>
+            <div><div class="tool-name">資安監控</div><div class="tool-desc">異常行為記錄</div></div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
+
+  </div><!-- /desktop-body -->
 
 </div><!-- /pageMain -->
 
