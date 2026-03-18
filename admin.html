@@ -913,18 +913,20 @@ function openUnspecModal() {
 /* ── 聯絡小卡 Modal ── */
 function openContactModal(bookingId, name, phone, isNotified) {
   state.contactBookingId = bookingId;
-  state.contactIsNotified = isNotified;
+  state.contactIsNotified = (isNotified === true || isNotified === "true");
+  const notified = state.contactIsNotified;
   document.getElementById("contactName").textContent = name;
   document.getElementById("contactPhone").textContent = phone;
   document.getElementById("contactPhone").href = "tel:" + phone;
   const btn = document.getElementById("btnToggleNotified");
-  if (isNotified) {
+  if (notified) {
     btn.textContent = "✓ 已通知";
     btn.className = "btn btn-notified-done";
   } else {
     btn.textContent = "未通知";
     btn.className = "btn btn-notified-pending";
   }
+  btn.disabled = false;
   document.getElementById("contactError").style.display = "none";
   document.getElementById("modalContact").classList.add("active");
 }
