@@ -728,6 +728,7 @@ function renderSessionContent(session) {
     .slice().sort(function(a, b) {
       return parseInt(a.slot || "0") - parseInt(b.slot || "0");
     });
+  alert("初診排序結果:\n" + npList.map(function(b,i){ return (i+1)+"位: slot="+b.slot+" checkInTime="+b.checkInTime; }).join("\n"));
   const rtList = list.filter(b => b.type !== "初診" && b.slot !== "不指定");
   const unList = list.filter(b => b.type !== "初診" && b.slot === "不指定");
   const doctor = list.length > 0 ? list[0].doctor : "";
