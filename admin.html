@@ -6,7 +6,7 @@
 <title>悅心診所 Admin Portal</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@100;300;400;700&display=swap');
 
   /* ════════════════════════════════
      PANTONE 2026 Tropic Tonalities
@@ -63,7 +63,7 @@
   .header { background: var(--white); border-bottom: 3px solid var(--marigold); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
   .header-left h1 { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: 3px; }
   .header-left p { font-size: 11px; color: var(--text-light); margin-top: 1px; }
-  .header-badge { background: var(--marigold); color: var(--white); padding: 4px 12px; font-size: 12px; font-weight: 700; }
+  .header-badge { background: var(--marigold); color: var(--white); padding: 4px 12px; font-size: 12px; font-weight: 400; }
 
   /* ── 手機版欄位順序 ── */
   .col-left { order: 2; }
@@ -72,20 +72,20 @@
   .desktop-body { display: flex; flex-direction: column; }
 
   /* ── Section Title ── */
-  .section-title { font-size: 11px; font-weight: 700; color: var(--text-light); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; flex-shrink: 0; letter-spacing: 1px; text-transform: uppercase; }
+  .section-title { font-size: 11px; font-weight: 300; color: var(--text-light); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; flex-shrink: 0; letter-spacing: 1px; text-transform: uppercase; }
   .section-title::before { content: ''; width: 4px; height: 14px; background: var(--marigold); }
 
   /* ── Tabs ── */
   .tabs { display: flex; gap: 3px; margin-bottom: 6px; }
-  .tab-btn { flex: 1; padding: 8px 4px; border: none; font-size: 12px; font-family: inherit; background: #F0F0F0; color: var(--text-light); cursor: pointer; transition: all 0.15s; font-weight: 500; }
+  .tab-btn { flex: 1; padding: 8px 4px; border: none; font-size: 12px; font-family: inherit; background: #F0F0F0; color: var(--text-light); cursor: pointer; transition: all 0.15s; font-weight: 300; }
   .tab-btn:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
   .tab-btn.active { background: var(--marigold); color: var(--white); font-weight: 700; }
 
   /* ── Session Info Row ── */
   .session-info-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: #F8F8F8; margin-bottom: 6px; border-left: 4px solid var(--marigold); }
-  .session-doctor { font-size: 15px; font-weight: 700; color: var(--text); }
+  .session-doctor { font-size: 15px; font-weight: 400; color: var(--text); }
   .session-counts { display: flex; gap: 4px; }
-  .count-badge { padding: 2px 7px; font-size: 12px; font-weight: 700; }
+  .count-badge { padding: 2px 7px; font-size: 12px; font-weight: 400; }
   .count-new { background: var(--marigold); color: var(--white); }
   .count-rt { background: var(--kiwi); color: var(--white); }
   .count-un { background: #888; color: var(--white); }
@@ -122,11 +122,11 @@
   .grid-cell.empty { background: transparent; }
 
   /* 號碼：左上角，細體 */
-  .cell-num { font-size: 22px; font-weight: 400; line-height: 1; align-self: flex-start; }
+  .cell-num { font-size: 22px; font-weight: 300; line-height: 1; align-self: flex-start; }
   .grid-cell.has-patient .cell-num { color: var(--white); }
   .grid-cell.admin-pending .cell-num { color: var(--white); }
   .grid-cell.admin-notified .cell-num { color: var(--text); }
-  .grid-cell.empty .cell-num { color: var(--empty-text); }
+  .grid-cell.empty .cell-num { color: var(--empty-text); font-weight: 100; }
 
   /* 姓名：左下角，粗體 */
   .cell-name {
@@ -209,7 +209,7 @@
   .therapy-card { background: var(--white); padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-left: 4px solid var(--capri); }
   .therapy-title { font-size: 15px; font-weight: 700; color: var(--capri); }
   .therapy-sub { font-size: 12px; font-weight: 300; color: var(--text-light); margin-top: 2px; }
-  .therapy-badge { background: var(--capri); color: var(--white); padding: 4px 12px; font-size: 10px; font-weight: 700; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
+  .therapy-badge { background: var(--capri); color: var(--white); padding: 4px 12px; font-size: 10px; font-weight: 400; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
 
   /* ── 櫃台功能區 ── */
   .panel-tools { flex-shrink: 0; padding: 6px 10px 10px; border-top: 2px solid #F0F0F0; }
@@ -229,7 +229,7 @@
   .tool-card:nth-child(3) { background: var(--pink); }
   .tool-card:nth-child(4) { background: var(--orchid); }
   .tool-name { font-size: 15px; font-weight: 700; color: var(--white); }
-  .tool-desc { font-size: 11px; font-weight: 300; color: rgba(255,255,255,0.8); line-height: 1.3; margin-top: 1px; }
+  .tool-desc { font-size: 11px; font-weight: 100; color: rgba(255,255,255,0.8); line-height: 1.3; margin-top: 1px; }
 
   /* ── 日期導覽列 ── */
   .date-nav { display: flex; align-items: center; gap: 3px; margin-bottom: 6px; }
@@ -250,7 +250,7 @@
   .date-nav-btn.today { font-size: 13px; padding: 8px 10px; color: var(--text-light); background: #F0F0F0; }
   .date-nav-btn.today:hover { background: var(--marigold); color: var(--white); }
   .date-nav-center { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #F0F0F0; padding: 8px 4px; }
-  .date-nav-label { font-size: 15px; font-weight: 700; color: var(--text); pointer-events: none; white-space: nowrap; }
+  .date-nav-label { font-size: 15px; font-weight: 400; color: var(--text); pointer-events: none; white-space: nowrap; }
   .date-nav-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; border: none; background: transparent; }
 
   /* ── Modal ── */
@@ -269,7 +269,7 @@
   .date-row { display: flex; gap: 8px; }
   .date-row .form-group { flex: 1; }
 
-  .btn { width: 100%; padding: 13px; border: none; font-size: 14px; font-family: inherit; font-weight: 700; cursor: pointer; letter-spacing: 1px; margin-bottom: 8px; }
+  .btn { width: 100%; padding: 13px; border: none; font-size: 14px; font-family: inherit; font-weight: 400; cursor: pointer; letter-spacing: 1px; margin-bottom: 8px; }
   .btn:active { transform: scale(0.98); opacity: 0.9; transition: all 0.1s ease-out; }
   .btn-primary { background: var(--marigold); color: var(--white); }
   .btn-primary:hover { background: var(--marigold-dk); }
@@ -286,7 +286,7 @@
 
   .result-item { padding: 12px; border-left: 4px solid var(--border); margin-bottom: 8px; background: #F8F8F8; }
   .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-  .result-date { font-size: 13px; font-weight: 700; }
+  .result-date { font-size: 13px; font-weight: 400; }
   .result-status { font-size: 11px; padding: 2px 7px; background: var(--kiwi); color: var(--white); font-weight: 700; }
   .result-detail { font-size: 12px; font-weight: 300; color: var(--text-light); line-height: 1.8; }
 
@@ -308,7 +308,7 @@
   .conflict-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #FFCCCC; font-size: 12px; }
   .conflict-row:last-child { border-bottom: none; }
   .conflict-slot { font-weight: 700; color: var(--error); min-width: 32px; }
-  .conflict-name { font-weight: 500; flex: 1; }
+  .conflict-name { font-weight: 300; flex: 1; }
   .conflict-note { font-size: 10px; color: var(--text-light); }
 
   /* ── 聯絡小卡 Modal ── */
@@ -323,7 +323,7 @@
   .unspec-modal-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .unspec-modal-row:last-child { border-bottom: none; }
   .unspec-modal-num { font-size: 11px; color: var(--text-light); width: 18px; text-align: center; flex-shrink: 0; }
-  .unspec-modal-name { font-weight: 700; flex: 1; }
+  .unspec-modal-name { font-weight: 400; flex: 1; }
 
   /* ════════════════════════════════════════════════
      響應式佈局 — 平板／電腦（768px 以上）
