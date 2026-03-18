@@ -941,12 +941,16 @@ async function doToggleNotified() {
     } else {
       btn.disabled = false;
       btn.textContent = state.contactIsNotified ? "✓ 已通知" : "未通知";
-      alert("狀態更新未完成，請確認網路後重試");
+      const errEl = document.getElementById("contactError");
+      errEl.textContent = "失敗：" + (data.error || "未知錯誤") + "　bookingId=" + state.contactBookingId;
+      errEl.style.display = "block";
     }
   } catch(e) {
     btn.disabled = false;
     btn.textContent = state.contactIsNotified ? "✓ 已通知" : "未通知";
-    alert("狀態更新未完成，請確認網路後重試");
+    const errEl = document.getElementById("contactError");
+    errEl.textContent = "例外：" + e.message;
+    errEl.style.display = "block";
   }
 }
 
