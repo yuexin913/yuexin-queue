@@ -834,9 +834,6 @@ function renderSessionContent(session) {
 
   // 渲染 HTML
   let html = `<div class="grid-30">`;
-  // DEBUG：列出所有代掛格的bookingId
-  const debugIds = rtList.filter(b => b.isAdminBooking).map(b => b.slot + "號=" + b.bookingId).join("\n");
-  if (debugIds) alert("代掛複診bookingId:\n" + debugIds);
 
   for (let i = 0; i < 30; i++) {
     const c = cells[i];
@@ -923,7 +920,6 @@ function openContactModalFromEl(el) {
 }
 
 function openContactModal(bookingId, name, phone, isNotified) {
-  alert("收到bookingId=" + bookingId);
   state.contactBookingId = bookingId;
   state.contactIsNotified = (isNotified === true || isNotified === "true");
   const notified = state.contactIsNotified;
