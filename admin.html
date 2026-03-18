@@ -934,6 +934,7 @@ function openContactModal(bookingId, name, phone, isNotified) {
 async function doToggleNotified() {
   const btn = document.getElementById("btnToggleNotified");
   const newIsNotified = !state.contactIsNotified;
+  alert("bookingId=" + state.contactBookingId + "\nnewIsNotified=" + newIsNotified);
   btn.disabled = true; btn.textContent = "更新中...";
   try {
     const data = await xhrPost(API_URL, { action: "toggleNotified", bookingId: state.contactBookingId, isNotified: newIsNotified, lineId: state.lineId });
