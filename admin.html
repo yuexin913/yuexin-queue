@@ -728,7 +728,25 @@ function renderSessionContent(session) {
     .slice().sort(function(a, b) {
       return parseInt(a.slot || "0") - parseInt(b.slot || "0");
     });
-  alert("初診排序結果:\n" + npList.map(function(b,i){ return (i+1)+"位: slot="+b.slot+" checkInTime="+b.checkInTime; }).join("\n"));
+
+  // 初診時間碼 → index 對照（和 GAS getNewPatientSlotTimes 邏輯一致）
+  const NP_SLOT_CONFIG = {
+    "早上": { startHour: 9,  startMin: 0,  offset: 15 },
+    "下午": { startHour: 14, startMin: 0,  offset: 15 },
+    "晚上": { startHour: 17, startMin: 30, offset: 15 }
+  };
+  function getNpRowStart(session, slotCode) {
+    const cfg = NP_SLOT_CONFIG[session];
+    if (!cfg) return null;
+    for (let i = 0; i < 5; i++) {
+      const totalMin = cfg.startHour * 60 + cfg.startMin + cfg.offset + i * 30;
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      const code = String(h).padStart(2,"0") + String(m).padStart(2,"0");
+      if (code === String(slotCode).padStart(4,"0")) return 5 + i * 5; // index: 5,10,15,20,25
+    }
+    return null;
+  }
   const rtList = list.filter(b => b.type !== "初診" && b.slot !== "不指定");
   const unList = list.filter(b => b.type !== "初診" && b.slot === "不指定");
   const doctor = list.length > 0 ? list[0].doctor : "";
@@ -765,11 +783,11 @@ function renderSessionContent(session) {
   const cells = [];
   for (let i = 0; i < 30; i++) cells.push({ type: "empty", num: i + 1 });
 
-  // 初診佔用的列集合（index of row start: 5,10,15,20,25）
+  // 初診佔用的列集合，依時間碼對應固定 rowStart
   const npRowStarts = new Set();
-  npList.forEach(function(np, idx) {
-    const rowStart = 5 + idx * 5; // 5, 10, 15, 20, 25
-    if (rowStart < 30) npRowStarts.add(rowStart);
+  npList.forEach(function(np) {
+    const rowStart = getNpRowStart(session, np.slot);
+    if (rowStart !== null) npRowStarts.add(rowStart);
   });
 
   // 塞入複診（slot 決定位置）
@@ -789,10 +807,10 @@ function renderSessionContent(session) {
     }
   });
 
-  // 將初診填回對應 rowStart 格（標記為 banner，渲染時輸出 grid-column: 1/-1）
-  npList.forEach(function(np, idx) {
-    const rowStart = 5 + idx * 5;
-    if (rowStart < 30) {
+  // 將初診填入對應 rowStart（依時間碼對應固定位置）
+  npList.forEach(function(np) {
+    const rowStart = getNpRowStart(session, np.slot);
+    if (rowStart !== null && rowStart < 30) {
       cells[rowStart] = {
         type: "np_banner",
         checkInTime: np.checkInTime,
