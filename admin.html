@@ -6,7 +6,7 @@
 <title>悅心診所 Admin Portal</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@100;300;400;700&family=Zen+Kaku+Gothic+New:wght@300;400;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@100;300;400;700&display=swap');
 
   /* ════════════════════════════════
      PANTONE 2026 Tropic Tonalities
@@ -47,7 +47,7 @@
   /* ── 全域重置 ── */
   * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; box-shadow: none !important; }
   html, body { height: 100%; overflow: hidden; }
-  body { font-family: "Segoe UI", "Zen Kaku Gothic New", "Noto Sans TC", sans-serif; background: var(--white); color: var(--text); }
+  body { font-family: "Segoe UI", "Noto Sans TC", sans-serif; background: var(--white); color: var(--text); }
 
   /* ── Auth ── */
   #pageAuth { display: flex; align-items: center; justify-content: center; height: 100vh; padding: 20px; background: var(--marigold); }
@@ -63,7 +63,7 @@
   .header { background: var(--white); border-bottom: 3px solid var(--marigold); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
   .header-left h1 { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: 3px; }
   .header-left p { font-size: 11px; color: var(--text-light); margin-top: 1px; }
-  .header-badge { background: var(--marigold); color: var(--white); padding: 4px 12px; font-size: 12px; font-weight: 400; }
+  .header-badge { background: var(--marigold); color: var(--white); padding: 4px 12px; font-size: 12px; font-weight: 300; }
 
   /* ── 手機版欄位順序 ── */
   .col-left { order: 2; }
@@ -72,7 +72,7 @@
   .desktop-body { display: flex; flex-direction: column; }
 
   /* ── Section Title ── */
-  .section-title { font-size: 11px; font-weight: 300; color: var(--text-light); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; flex-shrink: 0; letter-spacing: 1px; text-transform: uppercase; }
+  .section-title { font-size: 11px; font-weight: 100; color: var(--text-light); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; flex-shrink: 0; letter-spacing: 1px; text-transform: uppercase; }
   .section-title::before { content: ''; width: 4px; height: 14px; background: var(--marigold); }
 
   /* ── Tabs ── */
@@ -83,9 +83,9 @@
 
   /* ── Session Info Row ── */
   .session-info-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: #F8F8F8; margin-bottom: 6px; border-left: 4px solid var(--marigold); }
-  .session-doctor { font-size: 15px; font-weight: 400; color: var(--text); }
+  .session-doctor { font-size: 15px; font-weight: 300; color: var(--text); }
   .session-counts { display: flex; gap: 4px; }
-  .count-badge { padding: 2px 7px; font-size: 12px; font-weight: 400; }
+  .count-badge { padding: 2px 7px; font-size: 12px; font-weight: 300; }
   .count-new { background: var(--marigold); color: var(--white); }
   .count-rt { background: var(--kiwi); color: var(--white); }
   .count-un { background: #888; color: var(--white); }
@@ -165,7 +165,7 @@
   .grid-np-banner.admin-notified { background: var(--yellow); cursor: pointer; }
   .grid-np-banner.admin-notified .np-banner-time { color: rgba(0,0,0,0.6); }
   .grid-np-banner.admin-notified .np-banner-name { color: var(--text); }
-  .np-banner-time { font-size: 12px; flex-shrink: 0; font-weight: 300; }
+  .np-banner-time { font-size: 12px; flex-shrink: 0; font-weight: 100; }
   .np-banner-name { flex: 1; font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* ── 報到按鈕 ── */
@@ -208,8 +208,8 @@
   .panel-therapy { flex-shrink: 0; min-height: 72px; padding: 6px 10px; border-top: 2px solid #F0F0F0; }
   .therapy-card { background: var(--white); padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-left: 4px solid var(--capri); }
   .therapy-title { font-size: 15px; font-weight: 700; color: var(--capri); }
-  .therapy-sub { font-size: 12px; font-weight: 300; color: var(--text-light); margin-top: 2px; }
-  .therapy-badge { background: var(--capri); color: var(--white); padding: 4px 12px; font-size: 10px; font-weight: 400; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
+  .therapy-sub { font-size: 12px; font-weight: 100; color: var(--text-light); margin-top: 2px; }
+  .therapy-badge { background: var(--capri); color: var(--white); padding: 4px 12px; font-size: 10px; font-weight: 300; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
 
   /* ── 櫃台功能區 ── */
   .panel-tools { flex-shrink: 0; padding: 6px 10px 10px; border-top: 2px solid #F0F0F0; }
@@ -247,29 +247,31 @@
   }
   .date-nav-btn:hover { background: var(--marigold); color: var(--white); }
   .date-nav-btn:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
+  .date-nav-btn:disabled { background: #F0F0F0; color: #CCCCCC; cursor: not-allowed; }
+  .date-nav-btn:disabled:hover { background: #F0F0F0; color: #CCCCCC; transform: none; }
   .date-nav-btn.today { font-size: 13px; padding: 8px 10px; color: var(--text-light); background: #F0F0F0; }
   .date-nav-btn.today:hover { background: var(--marigold); color: var(--white); }
   .date-nav-center { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #F0F0F0; padding: 8px 4px; }
-  .date-nav-label { font-size: 15px; font-weight: 400; color: var(--text); pointer-events: none; white-space: nowrap; }
+  .date-nav-label { font-size: 15px; font-weight: 300; color: var(--text); pointer-events: none; white-space: nowrap; }
   .date-nav-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; border: none; background: transparent; }
 
   /* ── Modal ── */
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
   .modal-overlay.active { display: flex; }
-  .modal { background: var(--white); padding: 24px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; }
+  .modal { background: var(--white); padding: 24px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; border-top: 4px solid var(--marigold); }
   .modal-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; border-left: 4px solid var(--marigold); padding-left: 10px; }
-  .modal-close { margin-left: auto; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-light); padding: 0 4px; }
+  .modal-close { margin-left: auto; background: none; border: none; font-size: 16px; font-weight: 300; cursor: pointer; color: var(--text-light); padding: 2px 8px; letter-spacing: 1px; }
 
   /* ── Form ── */
   .form-group { margin-bottom: 14px; }
-  .form-label { display: block; font-size: 11px; color: var(--text-light); margin-bottom: 5px; font-weight: 300; letter-spacing: 1px; text-transform: uppercase; }
-  input[type="text"], input[type="date"], select, textarea { width: 100%; padding: 10px 12px; border: 2px solid var(--border); font-size: 14px; font-family: inherit; color: var(--text); background: var(--white); transition: border-color 0.15s; outline: none; }
-  input:focus, select:focus, textarea:focus { border-color: var(--marigold); }
+  .form-label { display: block; font-size: 10px; color: var(--text-light); margin-bottom: 4px; font-weight: 100; letter-spacing: 2px; text-transform: uppercase; }
+  input[type="text"], input[type="date"], select, textarea { width: 100%; padding: 10px 12px; border: none; border-bottom: 2px solid var(--border); border-left: 4px solid var(--border); font-size: 14px; font-family: inherit; color: var(--text); background: #FAFAFA; transition: all 0.15s; outline: none; font-weight: 300; }
+  input:focus, select:focus, textarea:focus { border-bottom-color: var(--marigold); border-left-color: var(--marigold); background: var(--white); }
   textarea { resize: vertical; min-height: 70px; }
   .date-row { display: flex; gap: 8px; }
   .date-row .form-group { flex: 1; }
 
-  .btn { width: 100%; padding: 13px; border: none; font-size: 14px; font-family: inherit; font-weight: 400; cursor: pointer; letter-spacing: 1px; margin-bottom: 8px; }
+  .btn { width: 100%; padding: 13px; border: none; font-size: 14px; font-family: inherit; font-weight: 300; cursor: pointer; letter-spacing: 1px; margin-bottom: 8px; }
   .btn:active { transform: scale(0.98); opacity: 0.9; transition: all 0.1s ease-out; }
   .btn-primary { background: var(--marigold); color: var(--white); }
   .btn-primary:hover { background: var(--marigold-dk); }
@@ -286,9 +288,9 @@
 
   .result-item { padding: 12px; border-left: 4px solid var(--border); margin-bottom: 8px; background: #F8F8F8; }
   .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-  .result-date { font-size: 13px; font-weight: 400; }
+  .result-date { font-size: 13px; font-weight: 300; }
   .result-status { font-size: 11px; padding: 2px 7px; background: var(--kiwi); color: var(--white); font-weight: 700; }
-  .result-detail { font-size: 12px; font-weight: 300; color: var(--text-light); line-height: 1.8; }
+  .result-detail { font-size: 12px; font-weight: 100; color: var(--text-light); line-height: 1.8; }
 
   .log-item { padding: 9px 11px; border-left: 4px solid var(--error); background: #FFF0EE; margin-bottom: 7px; font-size: 12px; line-height: 1.6; }
   .log-time { color: var(--text-light); font-size: 10px; }
@@ -308,11 +310,12 @@
   .conflict-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #FFCCCC; font-size: 12px; }
   .conflict-row:last-child { border-bottom: none; }
   .conflict-slot { font-weight: 700; color: var(--error); min-width: 32px; }
-  .conflict-name { font-weight: 300; flex: 1; }
+  .conflict-name { font-weight: 100; flex: 1; }
   .conflict-note { font-size: 10px; color: var(--text-light); }
 
   /* ── 聯絡小卡 Modal ── */
-  .contact-name { font-size: 24px; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 8px; }
+  .contact-name { font-size: 24px; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 4px; }
+  .contact-birth { font-size: 13px; font-weight: 300; color: var(--text-light); text-align: center; margin-bottom: 8px; letter-spacing: 1px; }
   .contact-phone { display: block; font-size: 32px; font-weight: 700; color: var(--marigold); text-align: center; text-decoration: none; letter-spacing: 3px; margin-bottom: 20px; }
   .btn-notified-pending { background: var(--kiwi); color: var(--white); }
   .btn-notified-pending:hover { background: #6AA020; }
@@ -323,7 +326,7 @@
   .unspec-modal-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .unspec-modal-row:last-child { border-bottom: none; }
   .unspec-modal-num { font-size: 11px; color: var(--text-light); width: 18px; text-align: center; flex-shrink: 0; }
-  .unspec-modal-name { font-weight: 400; flex: 1; }
+  .unspec-modal-name { font-weight: 300; flex: 1; }
 
   /* ════════════════════════════════════════════════
      響應式佈局 — 平板／電腦（768px 以上）
@@ -427,13 +430,14 @@
       <!-- ② 門診名單區 -->
       <div class="panel-schedule">
         <div class="date-nav">
+          <button class="date-nav-btn today" onclick="goToToday()">今日</button>
+          <button class="date-nav-btn today" onclick="goToNextWorkday()">明日</button>
           <button class="date-nav-btn" onclick="changeDate(-1)">＜</button>
           <div class="date-nav-center">
             <span class="date-nav-label" id="dateNavLabel"></span>
             <input type="date" class="date-nav-input" id="dateNavInput" onchange="onDatePick(event)">
           </div>
           <button class="date-nav-btn" onclick="changeDate(1)">＞</button>
-          <button class="date-nav-btn today" onclick="goToToday()">回到今日</button>
         </div>
 
         <!-- ① 頂部頁籤與資訊 -->
@@ -489,9 +493,12 @@
   <div class="modal">
     <div class="modal-title">聯絡病患<button class="modal-close" onclick="closeModal('modalContact')">✕</button></div>
     <div class="contact-name" id="contactName"></div>
+    <div class="contact-birth" id="contactBirth"></div>
     <a class="contact-phone" id="contactPhone" href=""></a>
     <div id="contactError" class="alert alert-error" style="display:none"></div>
-    <button class="btn" id="btnToggleNotified" onclick="doToggleNotified()"></button>
+    <div id="btnToggleNotifiedWrap">
+      <button class="btn" id="btnToggleNotified" onclick="doToggleNotified()"></button>
+    </div>
   </div>
 </div>
 
@@ -501,7 +508,14 @@
     <div class="modal-title">進階查詢<button class="modal-close" onclick="closeModal('modalQuery')">✕</button></div>
     <div class="form-group"><label class="form-label">姓名</label><input type="text" id="qName" placeholder="輸入姓名"></div>
     <div class="form-group"><label class="form-label">電話</label><input type="text" id="qPhone" placeholder="輸入手機號碼"></div>
-    <div class="form-group"><label class="form-label">生日（西元年，如 1990-05-20）</label><input type="text" id="qBirth" placeholder="輸入生日"></div>
+    <div class="form-group">
+      <label class="form-label">生日（民國年）</label>
+      <div style="display:flex;gap:6px;">
+        <input type="tel" id="qBirthY" placeholder="民國年" style="flex:2;" maxlength="3">
+        <input type="tel" id="qBirthM" placeholder="月" style="flex:1;" maxlength="2">
+        <input type="tel" id="qBirthD" placeholder="日" style="flex:1;" maxlength="2">
+      </div>
+    </div>
     <div id="qError" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-primary" id="btnQuery" onclick="doQuery()">查詢</button>
     <div id="queryResults"></div>
@@ -512,7 +526,7 @@
 <div class="modal-overlay" id="modalSubstitute">
   <div class="modal">
     <div class="modal-title">代診排班<button class="modal-close" onclick="closeModal('modalSubstitute')">✕</button></div>
-    <div style="background:var(--orange-light);border-radius:10px;padding:10px;margin-bottom:14px;">
+    <div style="background:#F8F8F8;border-left:4px solid var(--marigold);padding:10px 12px;margin-bottom:14px;">
       <div style="font-size:11px;font-weight:700;color:var(--orange-dark);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">目前排班代診</div>
       <div id="subList"><div style="font-size:12px;color:var(--text-light);">載入中...</div></div>
     </div>
@@ -538,9 +552,27 @@
   <div class="modal">
     <div class="modal-title">群發訊息<button class="modal-close" onclick="closeModal('modalBroadcast')">✕</button></div>
     <div class="alert alert-info">發送前請確認訊息內容，送出後無法收回。</div>
-    <div class="date-row">
-      <div class="form-group"><label class="form-label">開始日期</label><input type="date" id="bcStart"></div>
-      <div class="form-group"><label class="form-label">結束日期</label><input type="date" id="bcEnd"></div>
+    <div style="display:flex;gap:4px;margin-bottom:14px;">
+      <button class="btn-mode active" id="bcModeRange" onclick="setBcMode('range')" style="flex:1;padding:8px;border:none;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;background:var(--marigold);color:white;">日期區間</button>
+      <button class="btn-mode" id="bcModeSingle" onclick="setBcMode('single')" style="flex:1;padding:8px;border:none;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;background:#F0F0F0;color:var(--text-light);">指定單診</button>
+    </div>
+    <div id="bcRangeFields">
+      <div class="date-row">
+        <div class="form-group"><label class="form-label">開始日期</label><input type="date" id="bcStart"></div>
+        <div class="form-group"><label class="form-label">結束日期</label><input type="date" id="bcEnd"></div>
+      </div>
+    </div>
+    <div id="bcSingleFields" style="display:none;">
+      <div class="form-group"><label class="form-label">日期</label><input type="date" id="bcSingleDate"></div>
+      <div class="form-group">
+        <label class="form-label">時段</label>
+        <select id="bcSingleSession">
+          <option value="">請選擇時段</option>
+          <option value="早上">早上診</option>
+          <option value="下午">下午診</option>
+          <option value="晚上">晚上診</option>
+        </select>
+      </div>
     </div>
     <div class="form-group"><label class="form-label">訊息內容</label><textarea id="bcMessage" placeholder="輸入要發送給病患的訊息..."></textarea></div>
     <div id="bcPreview" class="preview-count" style="display:none"></div>
@@ -563,7 +595,7 @@
 <div class="modal-overlay" id="modalCancelConfirm">
   <div class="modal">
     <div class="modal-title">確認取消預約</div>
-    <p style="font-size:14px;color:var(--text);margin-bottom:14px;line-height:1.7" id="cancelConfirmText"></p>
+    <p style="font-size:14px;color:var(--text);margin-bottom:14px;line-height:1.7;font-weight:300;" id="cancelConfirmText"></p>
     <div id="cancelError" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-danger" id="btnConfirmCancel" onclick="doCancel()">確認取消並發送通知</button>
     <button class="btn btn-outline" onclick="closeModal('modalCancelConfirm')">返回</button>
@@ -586,6 +618,10 @@ function updateDateNav() {
   document.getElementById("dateNavLabel").textContent = dateToDisplay(state.viewDate);
   const ymd = dateToYMD(state.viewDate);
   document.getElementById("dateNavInput").value = ymd.substring(0,4) + "-" + ymd.substring(4,6) + "-" + ymd.substring(6,8);
+  // 今天以前不能往前
+  const today = new Date(); today.setHours(0,0,0,0);
+  const view = new Date(state.viewDate); view.setHours(0,0,0,0);
+  document.querySelector(".date-nav-btn[onclick='changeDate(-1)']").disabled = (view <= today);
 }
 function changeDate(offset) {
   const d = new Date(state.viewDate);
@@ -596,6 +632,14 @@ function changeDate(offset) {
 }
 function goToToday() {
   state.viewDate = new Date();
+  updateDateNav();
+  loadSchedule();
+}
+function goToNextWorkday() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  if (d.getDay() === 0) d.setDate(d.getDate() + 1); // 跳過週日
+  state.viewDate = d;
   updateDateNav();
   loadSchedule();
 }
@@ -795,7 +839,7 @@ function renderSessionContent(session) {
         conflictList.push(b);
         return;
       }
-      cells[idx] = { type: "rt", num: slot, name: b.name, bookingId: b.bookingId, status: b.status, phone: b.phone || "", isAdminBooking: b.isAdminBooking || false, note: b.note || "" };
+      cells[idx] = { type: "rt", num: slot, name: b.name, bookingId: b.bookingId, status: b.status, phone: b.phone || "", isAdminBooking: b.isAdminBooking || false, note: b.note || "", birth: b.birth || "" };
     }
   });
 
@@ -811,7 +855,8 @@ function renderSessionContent(session) {
         status: np.status,
         phone: np.phone || "",
         isAdminBooking: np.isAdminBooking || false,
-        note: np.note || ""
+        note: np.note || "",
+        birth: np.birth || ""
       };
       // 把 rowStart+1 ~ rowStart+4 標記為 np_skip（渲染時略過）
       for (let k = 1; k < 5; k++) {
@@ -831,7 +876,7 @@ function renderSessionContent(session) {
       const isDone = c.status === "已看診";
       const isNotified = c.isAdminBooking && c.note.indexOf("[已通知]") !== -1;
       const bannerClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
-      const clickAttr = c.isAdminBooking ? `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" onclick="openContactModalFromEl(this)"` : "";
+      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const checkMark = c.isAdminBooking && isNotified ? "✓ " : "";
       html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr}>
         <span class="np-banner-time">${checkMark}${esc(c.checkInTime)}前</span>
@@ -843,7 +888,7 @@ function renderSessionContent(session) {
       const isNotified = c.isAdminBooking && c.note.indexOf("[已通知]") !== -1;
       const cellClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const numDisplay = c.isAdminBooking && isNotified ? `${c.num} ✓` : `${c.num}`;
-      const clickAttr = c.isAdminBooking ? `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" onclick="openContactModalFromEl(this)"` : "";
+      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num">${numDisplay}</span>
         <span class="cell-name" title="${esc(c.name)}">${esc(c.name)}</span>
@@ -904,25 +949,43 @@ function openContactModalFromEl(el) {
   const name = el.dataset.name;
   const phone = el.dataset.phone;
   const isNotified = el.dataset.notified === "true";
-  openContactModal(bookingId, name, phone, isNotified);
+  const isAdminBooking = el.dataset.admin === "true";
+  const birth = el.dataset.birth || "";
+  openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth);
 }
 
-function openContactModal(bookingId, name, phone, isNotified) {
+function rocDate(birthStr) {
+  // 西元年轉民國年顯示，如 19900520 → 民國079年05月20日
+  if (!birthStr) return "";
+  const s = birthStr.toString().replace(/[^0-9]/g, "");
+  if (s.length < 6) return birthStr;
+  let y, m, d;
+  if (s.length === 8) { y = parseInt(s.substring(0,4)); m = s.substring(4,6); d = s.substring(6,8); }
+  else if (s.length === 7) { y = parseInt(s.substring(0,4)); m = s.substring(4,6); d = s.substring(6,7).padEnd(2,"0"); }
+  else return birthStr;
+  const roc = y - 1911;
+  return "民國 " + String(roc).padStart(3,"0") + " 年 " + m + " 月 " + d + " 日";
+}
+
+function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth) {
   state.contactBookingId = bookingId;
   state.contactIsNotified = (isNotified === true || isNotified === "true");
   const notified = state.contactIsNotified;
   document.getElementById("contactName").textContent = name;
-  document.getElementById("contactPhone").textContent = phone;
-  document.getElementById("contactPhone").href = "tel:" + phone;
-  const btn = document.getElementById("btnToggleNotified");
-  if (notified) {
-    btn.textContent = "✓ 已通知";
-    btn.className = "btn btn-notified-done";
+  document.getElementById("contactBirth").textContent = birth ? rocDate(birth) : "";
+  document.getElementById("contactPhone").textContent = phone || "（無電話）";
+  document.getElementById("contactPhone").href = phone ? "tel:" + phone : "";
+  // 只有白名單代掛才顯示通知切換按鈕
+  const wrap = document.getElementById("btnToggleNotifiedWrap");
+  if (isAdminBooking) {
+    wrap.style.display = "block";
+    const btn = document.getElementById("btnToggleNotified");
+    if (notified) { btn.textContent = "✓ 已通知"; btn.className = "btn btn-notified-done"; }
+    else { btn.textContent = "未通知"; btn.className = "btn btn-notified-pending"; }
+    btn.disabled = false;
   } else {
-    btn.textContent = "未通知";
-    btn.className = "btn btn-notified-pending";
+    wrap.style.display = "none";
   }
-  btn.disabled = false;
   document.getElementById("contactError").style.display = "none";
   document.getElementById("modalContact").classList.add("active");
 }
@@ -1045,7 +1108,20 @@ async function doSubstitute() {
 async function doQuery() {
   const name = document.getElementById("qName").value.trim();
   const phone = document.getElementById("qPhone").value.trim();
-  const birth = document.getElementById("qBirth").value.trim();
+  const birthY = document.getElementById("qBirthY").value.trim();
+  const birthM = document.getElementById("qBirthM").value.trim();
+  const birthD = document.getElementById("qBirthD").value.trim();
+  // 三格任一有填就組合，民國年+1911轉西元年
+  let birth = "";
+  if (birthY || birthM || birthD) {
+    if (!birthY || !birthM || !birthD) {
+      const errEl = document.getElementById("qError");
+      errEl.textContent = "生日請填寫完整（民國年、月、日）。";
+      errEl.style.display = "block"; return;
+    }
+    const adY = parseInt(birthY) + 1911;
+    birth = String(adY) + String(birthM).padStart(2,"0") + String(birthD).padStart(2,"0");
+  }
   const errEl = document.getElementById("qError");
   errEl.style.display = "none";
   if (!name && !phone && !birth) { errEl.textContent = "請至少輸入姓名、電話或生日其中一項。"; errEl.style.display = "block"; return; }
@@ -1095,18 +1171,55 @@ async function doCancel() {
 }
 
 /* ── 群發訊息 ── */
-async function doBroadcastPreview() {
-  const start = document.getElementById("bcStart").value;
-  const end = document.getElementById("bcEnd").value;
+let bcMode = "range"; // "range" | "single"
+function setBcMode(mode) {
+  bcMode = mode;
+  document.getElementById("bcRangeFields").style.display = mode === "range" ? "block" : "none";
+  document.getElementById("bcSingleFields").style.display = mode === "single" ? "block" : "none";
+  document.getElementById("bcModeRange").style.background = mode === "range" ? "var(--marigold)" : "#F0F0F0";
+  document.getElementById("bcModeRange").style.color = mode === "range" ? "white" : "var(--text-light)";
+  document.getElementById("bcModeSingle").style.background = mode === "single" ? "var(--marigold)" : "#F0F0F0";
+  document.getElementById("bcModeSingle").style.color = mode === "single" ? "white" : "var(--text-light)";
+  document.getElementById("bcPreview").style.display = "none";
+  document.getElementById("btnBcSend").style.display = "none";
+}
+
+function getBcParams() {
+  if (bcMode === "range") {
+    const start = document.getElementById("bcStart").value;
+    const end = document.getElementById("bcEnd").value;
+    return { startDate: start.replace(/-/g,"/"), endDate: end.replace(/-/g,"/") };
+  } else {
+    const date = document.getElementById("bcSingleDate").value;
+    const session = document.getElementById("bcSingleSession").value;
+    return { startDate: date.replace(/-/g,"/"), endDate: date.replace(/-/g,"/"), session: session };
+  }
+}
+
+function validateBcFields(errEl) {
   const message = document.getElementById("bcMessage").value.trim();
+  if (bcMode === "range") {
+    const start = document.getElementById("bcStart").value;
+    const end = document.getElementById("bcEnd").value;
+    if (!start || !end || !message) { errEl.textContent = "請確認日期範圍與訊息內容均已填寫。"; return false; }
+    if (start > end) { errEl.textContent = "結束日期需在開始日期之後，請重新選擇。"; return false; }
+  } else {
+    const date = document.getElementById("bcSingleDate").value;
+    const session = document.getElementById("bcSingleSession").value;
+    if (!date || !session || !message) { errEl.textContent = "請確認日期、時段與訊息內容均已填寫。"; return false; }
+  }
+  return true;
+}
+
+async function doBroadcastPreview() {
   const errEl = document.getElementById("bcError");
   errEl.style.display = "none";
-  if (!start || !end || !message) { errEl.textContent = "請確認日期範圍與訊息內容均已填寫。"; errEl.style.display = "block"; return; }
-  if (start > end) { errEl.textContent = "結束日期需在開始日期之後，請重新選擇。"; errEl.style.display = "block"; return; }
+  if (!validateBcFields(errEl)) { errEl.style.display = "block"; return; }
   const btn = document.getElementById("btnBcPreview");
   btn.disabled = true; btn.textContent = "計算中...";
   try {
-    const data = await xhrPost(API_URL, { action: "broadcastPreview", startDate: start.replace(/-/g,"/"), endDate: end.replace(/-/g,"/"), lineId: state.lineId });
+    const params = Object.assign({ action: "broadcastPreview", lineId: state.lineId }, getBcParams());
+    const data = await xhrPost(API_URL, params);
     if (data.success) {
       state.bcPreviewCount = data.count;
       const preview = document.getElementById("bcPreview");
@@ -1118,8 +1231,6 @@ async function doBroadcastPreview() {
 }
 
 async function doBroadcastSend() {
-  const start = document.getElementById("bcStart").value;
-  const end = document.getElementById("bcEnd").value;
   const message = document.getElementById("bcMessage").value.trim();
   const errEl = document.getElementById("bcError");
   const sucEl = document.getElementById("bcSuccess");
@@ -1128,7 +1239,8 @@ async function doBroadcastSend() {
   const btn = document.getElementById("btnBcSend");
   btn.disabled = true; btn.textContent = "發送中...";
   try {
-    const data = await xhrPost(API_URL, { action: "sendAnnouncement", startDate: start.replace(/-/g,"/"), endDate: end.replace(/-/g,"/"), message, lineId: state.lineId });
+    const params = Object.assign({ action: "sendAnnouncement", message, lineId: state.lineId }, getBcParams());
+    const data = await xhrPost(API_URL, params);
     if (data.success) { sucEl.textContent = `✓ 已成功發送給 ${data.sentCount} 位病患`; sucEl.style.display = "block"; btn.style.display = "none"; document.getElementById("bcPreview").style.display = "none"; }
     else { errEl.textContent = data.error || "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
   } catch(e) { errEl.textContent = "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
