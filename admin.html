@@ -43,7 +43,11 @@
   .header-left p { font-size: 10px; color: var(--text-light); margin-top: 1px; }
   .header-badge { background: var(--orange-light); color: var(--orange-dark); border: 1px solid var(--border); padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
 
-  /* ── Section Title ── */
+  /* 手機版：強制正確順序（中→左→右）*/
+  .col-left { order: 2; }
+  .col-center { order: 1; }
+  .col-right { order: 3; }
+  .desktop-body { display: flex; flex-direction: column; }
   .section-title { font-size: 11px; font-weight: 500; color: var(--orange-dark); margin-bottom: 4px; display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
   .section-title::before { content: ''; width: 3px; height: 12px; background: var(--orange); border-radius: 2px; }
 
