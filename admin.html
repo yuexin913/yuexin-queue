@@ -275,7 +275,7 @@
   /* ── Form ── */
   .form-group { margin-bottom: 14px; }
   .form-label { display: block; font-size: 10px; color: var(--text-light); margin-bottom: 4px; font-weight: 200; letter-spacing: 2px; text-transform: uppercase; }
-  input[type="text"], input[type="date"], select, textarea { width: 100%; padding: 10px 12px; border: none; border-bottom: 2px solid var(--border); border-left: 4px solid var(--border); font-size: 14px; font-family: inherit; color: var(--text); background: #FAFAFA; transition: all 0.15s; outline: none; font-weight: 400; }
+  input[type="text"], input[type="date"], input[type="tel"], select, textarea { width: 100%; min-width: 0; box-sizing: border-box; padding: 10px 12px; border: none; border-bottom: 2px solid var(--border); border-left: 4px solid var(--border); font-size: 14px; font-family: inherit; color: var(--text); background: var(--bg-3); transition: all 0.15s; outline: none; font-weight: 400; }
   input:focus, select:focus, textarea:focus { border-bottom-color: var(--marigold); border-left-color: var(--marigold); background: var(--white); }
   textarea { resize: vertical; min-height: 70px; }
   .date-row { display: flex; gap: 8px; }
@@ -518,10 +518,10 @@
     <div class="form-group"><label class="form-label">電話</label><input type="text" id="qPhone" placeholder="輸入手機號碼"></div>
     <div class="form-group">
       <label class="form-label">生日（民國年）</label>
-      <div style="display:flex;gap:6px;">
-        <input type="tel" id="qBirthY" placeholder="民國年" style="flex:2;" maxlength="3">
-        <input type="tel" id="qBirthM" placeholder="月" style="flex:1;" maxlength="2">
-        <input type="tel" id="qBirthD" placeholder="日" style="flex:1;" maxlength="2">
+      <div style="display:flex;gap:6px;width:100%;">
+        <input type="tel" id="qBirthY" placeholder="民國年" style="flex:2;min-width:0;" maxlength="3">
+        <input type="tel" id="qBirthM" placeholder="月" style="flex:1;min-width:0;" maxlength="2">
+        <input type="tel" id="qBirthD" placeholder="日" style="flex:1;min-width:0;" maxlength="2">
       </div>
     </div>
     <div id="qError" class="alert alert-error" style="display:none"></div>
@@ -976,16 +976,13 @@ function openContactModalFromEl(el) {
 }
 
 function rocDate(birthStr) {
-  // 西元年轉民國年顯示，如 19900520 → 民國079年05月20日
+  // GAS 已回傳民國年格式如 "79/05/20"，直接格式化顯示
   if (!birthStr) return "";
-  const s = birthStr.toString().replace(/[^0-9]/g, "");
-  if (s.length < 6) return birthStr;
-  let y, m, d;
-  if (s.length === 8) { y = parseInt(s.substring(0,4)); m = s.substring(4,6); d = s.substring(6,8); }
-  else if (s.length === 7) { y = parseInt(s.substring(0,4)); m = s.substring(4,6); d = s.substring(6,7).padEnd(2,"0"); }
-  else return birthStr;
-  const roc = y - 1911;
-  return "民國 " + String(roc).padStart(3,"0") + " 年 " + m + " 月 " + d + " 日";
+  const parts = birthStr.toString().split("/");
+  if (parts.length === 3) {
+    return "民國 " + parts[0] + " 年 " + parts[1] + " 月 " + parts[2] + " 日";
+  }
+  return birthStr;
 }
 
 function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth) {
