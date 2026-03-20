@@ -760,30 +760,55 @@ function renderSessions() {
   }
   const order = ["早上","下午","晚上"];
   let html = '<div class="session-select-list">';
-  order.forEach(function(sessionKey) {
-    if (!sessions[sessionKey]) return;
-    const s = sessions[sessionKey];
-    const displayName = s.displayName || sessionKey + "診";
-    const timeRange = SESSION_DISPLAY_TIME[sessionKey] || "";
-    const doctor = s.doctor || "";
-    const isActive = state.session === sessionKey;
-    const cls = "session-select-btn" + (isActive ? " session-select-active" : "");
-    html += `<div class="${cls}" onclick="selectSession('${sessionKey}')">
+
+  if (state.session) {
+    // 已選診次：只顯示選中的那一個 + 重新選擇連結
+    const s = sessions[state.session];
+    const displayName = s ? (s.displayName || state.session + "診") : state.session + "診";
+    const timeRange = SESSION_DISPLAY_TIME[state.session] || "";
+    const doctor = s ? (s.doctor || "") : "";
+    html += `<div class="session-select-btn session-select-active" style="cursor:default">
       <div>
         <div class="session-select-name">${displayName}</div>
         <div class="session-select-time">${timeRange}</div>
       </div>
-      <div class="session-select-doctor">${doctor}</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span class="session-select-doctor">${doctor}</span>
+        <button class="btn-text-link" onclick="reopenSessionSelect()">重新選擇</button>
+      </div>
     </div>`;
-  });
+  } else {
+    // 未選診次：顯示全部
+    order.forEach(function(sessionKey) {
+      if (!sessions[sessionKey]) return;
+      const s = sessions[sessionKey];
+      const displayName = s.displayName || sessionKey + "診";
+      const timeRange = SESSION_DISPLAY_TIME[sessionKey] || "";
+      const doctor = s.doctor || "";
+      html += `<div class="session-select-btn" onclick="selectSession('${sessionKey}')">
+        <div>
+          <div class="session-select-name">${displayName}</div>
+          <div class="session-select-time">${timeRange}</div>
+        </div>
+        <div class="session-select-doctor">${doctor}</div>
+      </div>`;
+    });
+  }
+
   html += '</div>';
   container.innerHTML = html;
-  // 如果已有選擇的診次（從確認頁返回），直接展開時段
   if (state.session && sessions[state.session]) {
     renderSlots();
   } else {
     document.getElementById("slotsContainer").innerHTML = "";
   }
+}
+
+function reopenSessionSelect() {
+  state.session = null;
+  state.timeSlot = null;
+  state.isUnspecified = false;
+  renderSessions();
 }
 
 function selectSession(sessionKey) {
