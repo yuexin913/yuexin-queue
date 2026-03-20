@@ -10,391 +10,367 @@
 
   /* ════════════════════════════════
      PANTONE 2026 Tropic Tonalities
-     + Cloud Dancer
   ════════════════════════════════ */
   :root {
-    /* Tropic Tonalities */
-    --marigold:     #FF7A00;
-    --marigold-dk:  #CC6200;
-    --capri:        #00B5E2;
-    --kiwi:         #8CC63F;
-    --yellow:       #FFD700;
-    --yellow-dk:    #CCB000;
-    --pink:         #E8366A;
-    --orchid:       #9B59B6;
-    --sunny:        #C8D400;
-    /* 石墨暗色系 */
-    --bg:           #1E1E24;
-    --bg-2:         #26262E;
-    --bg-3:         #2E2E38;
-    --white:        #1E1E24;
-    --text:         #F2EFE4;
-    --text-light:   #9090A0;
-    --border:       #3A3A48;
-    --empty-bg:     transparent;
-    --empty-text:   #3A3A48;
-    /* 語意別名 */
-    --orange:       #FF7A00;
-    --orange-dark:  #CC6200;
-    --orange-light: #2A2010;
-    --purple:       #8CC63F;
-    --green-metro:  #FFD700;
-    --teal:         #00B5E2;
-    --error:        #FF4444;
-    --success:      #8CC63F;
-    --green-light:  #1A2410;
-    --cocoa:        #9B59B6;
-    --mango:        #FFD700;
-    --cloud:        #F2EFE4;
+    --marigold:    #FF7A00;
+    --marigold-dk: #CC6200;
+    --capri:       #00B5E2;
+    --kiwi:        #8CC63F;
+    --yellow:      #FFD700;
+    --pink:        #E8366A;
+    --orchid:      #9B59B6;
+    --bg:          #1E1E24;
+    --bg-2:        #26262E;
+    --bg-3:        #2E2E38;
+    --text:        #F2EFE4;
+    --text-light:  #9090A0;
+    --border:      #3A3A48;
+    --empty-text:  #3A3A48;
+    --error:       #FF4444;
+    --success:     #8CC63F;
+    --orange:      #FF7A00;
+    --orange-dark: #CC6200;
+    --orange-light:#2A2010;
+    --green-light: #1A2410;
+    --cloud:       #F2EFE4;
+    --gap:         3px;
+    --cell:        calc((100vw - var(--gap) * 4) / 5);
   }
 
   /* ── 全域重置 ── */
   * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; box-shadow: none !important; }
-  html, body { height: 100%; overflow: hidden; }
-  body { font-family: "Segoe UI", "Noto Sans TC", sans-serif; background: var(--white); color: var(--text); }
+  html, body { height: 100%; background: var(--bg); overflow-x: hidden; }
+  body { font-family: "Segoe UI", "Noto Sans TC", sans-serif; color: var(--text); }
 
-  /* ── Auth ── */
-  #pageAuth { display: flex; align-items: center; justify-content: center; height: 100vh; padding: 20px; background: var(--bg); }
+  /* ════════════════════════════════
+     AUTH 頁
+  ════════════════════════════════ */
+  #pageAuth { display: flex; align-items: center; justify-content: center; height: 100vh; background: var(--bg); }
   .auth-card { background: var(--bg-3); padding: 40px 32px; text-align: center; max-width: 320px; width: 100%; }
-  .auth-icon { font-size: 48px; margin-bottom: 16px; }
   .auth-title { font-size: 20px; font-weight: 700; color: var(--marigold); margin-bottom: 8px; letter-spacing: 2px; }
   .auth-sub { font-size: 13px; color: var(--text-light); line-height: 1.6; }
 
-  /* ── Main ── */
-  #pageMain { display: none; height: 100vh; flex-direction: column; overflow: hidden; }
+  /* ════════════════════════════════
+     METRO GRID 主版面
+  ════════════════════════════════ */
+  #pageMain { display: none; }
 
-  /* ── Header：白底＋橘色底線 ── */
-  .header { background: var(--bg); border-bottom: 3px solid var(--marigold); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-  .header-left h1 { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: 3px; }
-  .header-left p { font-size: 11px; color: var(--text-light); margin-top: 1px; }
-  .header-badge { background: var(--marigold); color: var(--white); padding: 4px 12px; font-size: 12px; font-weight: 400; }
+  .metro-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--gap);
+    background: var(--border);
+    min-height: 100vh;
+  }
 
-  /* ── 手機版欄位順序 ── */
-  .col-left { order: 2; }
-  .col-center { order: 1; }
-  .col-right { order: 3; }
-  .desktop-body { display: flex; flex-direction: column; }
+  /* 基本磚塊 */
+  .tile {
+    background: var(--bg-2);
+    padding: 10px 12px;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    min-height: var(--cell);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+  .tile:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
 
-  /* ── Section Title ── */
-  .section-title { font-size: 11px; font-weight: 200; color: var(--text-light); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; flex-shrink: 0; letter-spacing: 1px; text-transform: uppercase; }
-  .section-title::before { content: ''; width: 4px; height: 14px; background: var(--marigold); }
+  /* 跨欄 */
+  .tile-2 { grid-column: span 2; }
+  .tile-3 { grid-column: span 3; }
+  .tile-4 { grid-column: span 4; }
+  .tile-5 { grid-column: span 5; }
 
-  /* ── Tabs ── */
-  .tabs { display: flex; gap: 3px; margin-bottom: 6px; }
-  .tab-btn { flex: 1; padding: 8px 4px; border: none; font-size: 12px; font-family: inherit; background: var(--bg-3); color: var(--text-light); cursor: pointer; transition: all 0.15s; font-weight: 400; }
-  .tab-btn:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
-  .tab-btn.active { background: var(--marigold); color: var(--white); font-weight: 700; }
-
-  /* ── Session Info Row ── */
-  .session-info-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: var(--bg-3); margin-bottom: 6px; border-left: 4px solid var(--marigold); }
-  .session-doctor { font-size: 15px; font-weight: 400; color: var(--text); }
-  .session-counts { display: flex; gap: 4px; }
-  .count-badge { padding: 2px 7px; font-size: 12px; font-weight: 400; }
-  .count-new { background: var(--marigold); color: var(--white); }
-  .count-rt { background: var(--kiwi); color: var(--white); }
-  .count-un { background: #888; color: var(--white); }
-
-  /* ── Panel Header ── */
-  .panel-header { flex-shrink: 0; padding: 8px 10px 4px; background: var(--bg); }
-
-  /* ── Panel Schedule ── */
-  .panel-schedule { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 10px 4px; overflow: hidden; background: var(--bg); }
-  .schedule-scroll { flex: 1; overflow-y: auto; min-height: 0; }
+  /* 磚塊顏色 */
+  .tile-marigold  { background: var(--marigold); }
+  .tile-capri     { background: var(--capri); }
+  .tile-kiwi      { background: var(--kiwi); }
+  .tile-yellow    { background: var(--yellow); }
+  .tile-pink      { background: var(--pink); }
+  .tile-orchid    { background: var(--orchid); }
+  .tile-dark      { background: var(--bg-3); }
+  .tile-empty     { background: var(--bg); cursor: default; pointer-events: none; }
 
   /* ════════════════════════════════
-     30格 Metro 動態磚
+     統一磚塊資訊格式
+     左上：title（大字粗體）
+     左下：subtitle（小字細體）
+     右上：note（黑底色標籤）
+     右下：caution（黑色小方塊，有待處理）
   ════════════════════════════════ */
-  .grid-30 { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding: 2px 0 6px; }
+  .tile-title {
+    font-size: 20px; font-weight: 700;
+    color: var(--text); line-height: 1.1;
+    position: absolute; top: 10px; left: 12px; right: 12px;
+  }
+  .tile-subtitle {
+    font-size: 11px; font-weight: 200;
+    color: var(--text-light);
+    position: absolute; bottom: 8px; left: 12px; right: 32px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .tile-note {
+    font-size: 10px; font-weight: 700;
+    background: #000; color: inherit;
+    padding: 2px 6px; letter-spacing: 0.5px;
+    position: absolute; top: 8px; right: 8px;
+    white-space: nowrap;
+  }
+  .tile-caution {
+    width: 12px; height: 12px;
+    background: #000;
+    position: absolute; bottom: 8px; right: 8px;
+    flex-shrink: 0;
+  }
 
+  /* 彩色磚塊上的文字顏色 */
+  .tile-marigold .tile-title,
+  .tile-capri .tile-title,
+  .tile-kiwi .tile-title,
+  .tile-pink .tile-title,
+  .tile-orchid .tile-title { color: #fff; }
+  .tile-yellow .tile-title { color: #1A1A1A; }
+
+  .tile-marigold .tile-subtitle,
+  .tile-capri .tile-subtitle,
+  .tile-kiwi .tile-subtitle,
+  .tile-pink .tile-subtitle,
+  .tile-orchid .tile-subtitle { color: rgba(255,255,255,0.7); }
+  .tile-yellow .tile-subtitle { color: rgba(0,0,0,0.5); }
+
+  .tile-marigold .tile-note,
+  .tile-capri .tile-note,
+  .tile-kiwi .tile-note,
+  .tile-yellow .tile-note,
+  .tile-pink .tile-note,
+  .tile-orchid .tile-note { color: #fff; }
+
+  /* 舊 tile-label/tile-sub 別名（向後相容） */
+  .tile-label { font-size: 20px; font-weight: 700; color: var(--text); line-height: 1.1; }
+  .tile-sub   { font-size: 11px; font-weight: 200; color: var(--text-light); margin-top: 4px; }
+  .tile-marigold .tile-label, .tile-capri .tile-label, .tile-kiwi .tile-label,
+  .tile-yellow .tile-label, .tile-pink .tile-label, .tile-orchid .tile-label { color: #fff; }
+  .tile-yellow .tile-label { color: #1A1A1A; }
+  .tile-marigold .tile-sub, .tile-capri .tile-sub, .tile-kiwi .tile-sub,
+  .tile-yellow .tile-sub, .tile-pink .tile-sub, .tile-orchid .tile-sub { color: rgba(255,255,255,0.7); }
+  .tile-yellow .tile-sub { color: rgba(0,0,0,0.5); }
+
+  /* ── Row 1：Header ── */
+  .tile-header-main { background: var(--marigold); cursor: pointer; }
+  .tile-header-main .tile-label { font-size: 22px; letter-spacing: 2px; }
+  .tile-header-admin { background: var(--marigold-dk); }
+  .tile-header-admin .tile-label { font-size: 15px; font-weight: 700; }
+
+  /* ── Row 2：日期導覽 ── */
+  .tile-nav { background: var(--capri); cursor: pointer; justify-content: center; align-items: center; }
+  .tile-nav .tile-label { font-size: 16px; text-align: center; color: #fff; }
+  .tile-nav.today-btn .tile-label { font-size: 15px; }
+  .tile-nav-date { background: var(--bg-3); cursor: pointer; justify-content: center; align-items: center; }
+  .tile-nav-date .tile-label { font-size: 15px; font-weight: 700; text-align: center; }
+  .tile-nav-date .tile-sub { font-size: 11px; text-align: center; margin-top: 2px; }
+  .tile-nav-date input[type="date"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; border: none; background: transparent; }
+  .tile-nav.disabled { background: var(--bg-2); cursor: not-allowed; opacity: 0.4; }
+  .tile-nav.disabled:active { transform: none; }
+
+  /* ── Row 3：醫師＋時段 ── */
+  .tile-doctor { background: var(--bg-3); }
+  .tile-doctor .tile-label { font-size: 18px; }
+  .tile-doctor .tile-sub { font-size: 11px; }
+  .tile-doctor .substitute-badge {
+    position: absolute; top: 8px; right: 8px;
+    background: var(--error); color: #fff;
+    font-size: 10px; font-weight: 700;
+    padding: 2px 6px; letter-spacing: 0.5px;
+  }
+  .tile-session { cursor: pointer; justify-content: flex-end; }
+  .tile-session .tile-label { font-size: 13px; font-weight: 700; }
+  .tile-session .tile-count {
+    font-size: 28px; font-weight: 700;
+    position: absolute; bottom: 8px; left: 10px;
+    line-height: 1;
+  }
+  .tile-session.active { outline: 3px solid #fff; outline-offset: -3px; }
+  .tile-session:not(.active) { opacity: 0.5; }
+
+  /* ── 30格診單 ── */
+  /* grid-cell 現在直接放在 .metro-grid 裡，不需要額外容器 */
   .grid-cell {
-    position: relative;
-    background: transparent;
+    background: var(--bg-2);
     border: none;
     padding: 6px 6px 4px;
     display: flex;
     flex-direction: column;
-    min-height: 56px;
+    min-height: var(--cell);
     aspect-ratio: 1 / 1;
     cursor: default;
     overflow: hidden;
+    position: relative;
   }
   .grid-cell:not(.empty):active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
-
-  .grid-cell.has-patient { background: var(--marigold); }
-  .grid-cell.admin-pending { background: var(--kiwi); cursor: pointer; }
+  .grid-cell.has-patient  { background: var(--marigold); cursor: pointer; }
+  .grid-cell.admin-pending  { background: var(--kiwi); cursor: pointer; }
   .grid-cell.admin-notified { background: var(--yellow); cursor: pointer; }
-  .grid-cell.empty { background: transparent; }
+  .grid-cell.empty { background: var(--bg); }
 
-  /* 號碼：左上角，細體 */
   .cell-num { font-size: 22px; font-weight: 400; line-height: 1; align-self: flex-start; }
-  .grid-cell.has-patient .cell-num { color: var(--white); }
-  .grid-cell.admin-pending .cell-num { color: var(--white); }
-  .grid-cell.admin-notified .cell-num { color: var(--text); }
+  .grid-cell.has-patient .cell-num    { color: #fff; font-weight: 200; }
+  .grid-cell.admin-pending .cell-num  { color: #fff; font-weight: 200; }
+  .grid-cell.admin-notified .cell-num { color: #1A1A1A; font-weight: 200; }
   .grid-cell.empty .cell-num { color: var(--empty-text); font-weight: 200; }
 
-  /* 姓名：左下角，粗體 */
   .cell-name {
-    font-size: 11px;
-    font-weight: 700;
-    position: absolute;
-    bottom: 5px;
-    left: 6px;
-    right: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 11px; font-weight: 700;
+    position: absolute; bottom: 5px; left: 6px; right: 20px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .grid-cell.has-patient .cell-name { color: rgba(255,255,255,0.92); }
-  .grid-cell.admin-pending .cell-name { color: rgba(255,255,255,0.92); }
+  .cell-caution {
+    width: 10px; height: 10px;
+    background: #000;
+    position: absolute; bottom: 7px; right: 6px;
+  }
+  .grid-cell.has-patient .cell-name    { color: rgba(255,255,255,0.9); }
+  .grid-cell.admin-pending .cell-name  { color: rgba(255,255,255,0.9); }
   .grid-cell.admin-notified .cell-name { color: rgba(0,0,0,0.7); }
   .grid-cell.empty .cell-name { color: transparent; }
 
-  /* ── 初診橫幅 ── */
+  /* 初診橫幅 */
   .grid-np-banner {
     grid-column: 1 / -1;
-    border: none;
-    padding: 6px 12px 4px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 56px;
-    height: calc((100vw - 20px - 4px * 4) / 5);
+    border: none; padding: 8px 12px;
+    display: flex; align-items: center; gap: 10px;
+    min-height: var(--cell);
+    height: var(--cell);
   }
   .grid-np-banner:active { transform: scale(0.99); opacity: 0.9; transition: all 0.1s ease-out; }
-  .grid-np-banner.has-patient { background: var(--marigold); }
-  .grid-np-banner.has-patient .np-banner-time { color: rgba(255,255,255,0.8); }
-  .grid-np-banner.has-patient .np-banner-name { color: var(--white); }
+  .grid-np-banner.has-patient   { background: var(--marigold); }
   .grid-np-banner.admin-pending { background: var(--kiwi); cursor: pointer; }
-  .grid-np-banner.admin-pending .np-banner-time { color: rgba(255,255,255,0.8); }
-  .grid-np-banner.admin-pending .np-banner-name { color: var(--white); }
-  .grid-np-banner.admin-notified { background: var(--yellow); cursor: pointer; }
-  .grid-np-banner.admin-notified .np-banner-time { color: rgba(0,0,0,0.6); }
-  .grid-np-banner.admin-notified .np-banner-name { color: var(--text); }
-  .np-banner-time { font-size: 12px; flex-shrink: 0; font-weight: 200; }
-  .np-banner-name { flex: 1; font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-  /* ── 報到按鈕 ── */
-  .checkin-mini {
-    flex-shrink: 0;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-family: inherit;
-    font-weight: 700;
-    cursor: pointer;
-    border: none;
-    white-space: nowrap;
-  }
+  .grid-np-banner.admin-notified{ background: var(--yellow); cursor: pointer; }
+  .np-banner-time { font-size: 12px; flex-shrink: 0; font-weight: 200; color: rgba(255,255,255,0.8); }
+  .np-banner-name { flex: 1; font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; }
+  .grid-np-banner.admin-notified .np-banner-time { color: rgba(0,0,0,0.5); }
+  .grid-np-banner.admin-notified .np-banner-name { color: #1A1A1A; }
+  .checkin-mini { flex-shrink: 0; padding: 6px 12px; font-size: 12px; font-family: inherit; font-weight: 700; cursor: pointer; border: none; white-space: nowrap; }
   .checkin-mini:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
-  .checkin-mini.pending { background: rgba(255,255,255,0.25); color: var(--white); }
-  .checkin-mini.pending:hover { background: rgba(255,255,255,0.4); }
-  .checkin-mini.done { background: rgba(0,0,0,0.15); color: var(--white); }
-  .checkin-mini.done:hover { background: rgba(200,0,0,0.5); }
+  .checkin-mini.pending { background: rgba(255,255,255,0.25); color: #fff; }
+  .checkin-mini.done    { background: rgba(0,0,0,0.2); color: #fff; }
 
-  /* ── 不指定按鈕 ── */
-  .unspec-btn {
-    width: 100%;
-    margin-top: 4px;
-    padding: 12px;
-    background: var(--bg-3);
-    border: 2px dashed var(--border);
-    font-size: 15px;
-    font-family: inherit;
-    font-weight: 400;
-    color: var(--text-light);
-    cursor: pointer;
-    transition: all 0.15s;
+  /* scheduleContent 容器（30格和初診橫幅直接輸出到這裡）*/
+  #scheduleContent { display: contents; }
+
+  /* Loading 狀態（span 5格）*/
+  .loading-tile {
+    grid-column: 1 / -1;
+    background: var(--bg-2);
+    padding: 20px;
     text-align: center;
-    flex-shrink: 0;
+    color: var(--text-light);
+    font-size: 13px;
+    font-weight: 200;
   }
-  .unspec-btn:hover { background: var(--marigold); color: var(--white); border-color: var(--marigold); }
-  .unspec-btn:active { transform: scale(0.98); opacity: 0.9; transition: all 0.1s ease-out; }
+  .loading-bar-wrap { width: 100%; height: 3px; background: var(--bg-3); margin: 10px 0 4px; overflow: hidden; }
+  .loading-bar { height: 100%; width: 40%; background: var(--marigold); animation: loadingSlide 1.2s ease-in-out infinite; }
+  @keyframes loadingSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
 
-  /* ── 心理治療區 ── */
-  .panel-therapy { flex-shrink: 0; min-height: 72px; padding: 6px 10px; border-top: 2px solid var(--border); }
-  .therapy-card { background: var(--bg-3); padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-left: 4px solid var(--capri); }
-  .therapy-title { font-size: 15px; font-weight: 700; color: var(--capri); }
-  .therapy-sub { font-size: 12px; font-weight: 200; color: var(--text-light); margin-top: 2px; }
-  .therapy-badge { background: var(--capri); color: var(--white); padding: 4px 12px; font-size: 10px; font-weight: 400; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
+  /* ── Row 10：不指定＋心理治療 ── */
+  .tile-unspec { background: var(--bg-3); cursor: pointer; justify-content: center; align-items: center; }
+  .tile-unspec .tile-label { font-size: 13px; font-weight: 700; text-align: center; color: var(--text-light); }
+  .tile-unspec:hover { background: var(--marigold); }
+  .tile-unspec:hover .tile-label { color: #fff; }
+  .tile-unspec:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
 
-  /* ── 櫃台功能區 ── */
-  .panel-tools { flex-shrink: 0; padding: 6px 10px 10px; border-top: 2px solid var(--border); }
-  .tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-  .tool-card {
-    padding: 14px 12px;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 64px;
+  .tile-therapy { background: var(--capri); cursor: default; }
+  .tile-therapy .tile-label { font-size: 16px; }
+  .tile-therapy-badge {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(0,0,0,0.2); color: #fff;
+    font-size: 10px; font-weight: 700; padding: 2px 8px; letter-spacing: 1px;
   }
-  .tool-card:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
-  .tool-card:nth-child(1) { background: var(--marigold); }
-  .tool-card:nth-child(2) { background: var(--capri); }
-  .tool-card:nth-child(3) { background: var(--pink); }
-  .tool-card:nth-child(4) { background: var(--orchid); }
-  .tool-name { font-size: 15px; font-weight: 700; color: var(--white); }
-  .tool-desc { font-size: 11px; font-weight: 200; color: rgba(255,255,255,0.8); line-height: 1.3; margin-top: 1px; }
 
-  /* ── 日期導覽列 ── */
-  .date-nav { display: flex; align-items: center; gap: 3px; margin-bottom: 6px; }
-  .date-nav-btn {
-    flex-shrink: 0;
-    padding: 8px 12px;
-    border: none;
-    background: var(--bg-3);
-    color: var(--text);
-    font-size: 15px;
-    font-family: inherit;
-    font-weight: 700;
-    cursor: pointer;
-    line-height: 1;
+  /* ── 異常排班 ── */
+  .conflict-tile {
+    grid-column: 1 / -1;
+    background: #2A1010;
+    border-left: 4px solid var(--error);
+    padding: 10px 12px;
   }
-  .date-nav-btn:hover { background: var(--marigold); color: var(--white); }
-  .date-nav-btn:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
-  .date-nav-btn:disabled { background: var(--bg-2); color: var(--border); cursor: not-allowed; }
-  .date-nav-btn:disabled:hover { background: var(--bg-2); color: var(--border); transform: none; }
-  .date-nav-btn.today { font-size: 13px; padding: 8px 10px; color: var(--text-light); background: var(--bg-3); }
-  .date-nav-btn.today:hover { background: var(--marigold); color: var(--white); }
-  .date-nav-center { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: var(--bg-2); padding: 8px 4px; }
-  .date-nav-label { font-size: 15px; font-weight: 400; color: var(--text); pointer-events: none; white-space: nowrap; }
-  .date-nav-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; border: none; background: transparent; }
+  .conflict-title { font-size: 12px; font-weight: 700; color: var(--error); margin-bottom: 6px; }
+  .conflict-row { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px solid #3A1818; font-size: 12px; font-weight: 200; }
+  .conflict-row:last-child { border-bottom: none; }
+  .conflict-slot { font-weight: 700; color: var(--error); min-width: 32px; }
+  .conflict-name { font-weight: 400; flex: 1; }
 
   /* ── Modal ── */
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
-  .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 999; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
-  .loading-overlay.active { display: flex; }
-  .loading-overlay-text { color: var(--cloud); font-size: 15px; font-weight: 400; letter-spacing: 1px; text-align: center; line-height: 1.8; }
-  .loading-overlay-bar { width: 200px; height: 3px; background: var(--bg-3); overflow: hidden; }
-  .loading-overlay-bar-inner { height: 100%; width: 40%; background: var(--marigold); animation: loadingSlide 1.2s ease-in-out infinite; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
   .modal-overlay.active { display: flex; }
-  .modal { background: var(--white); padding: 24px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; border-top: 4px solid var(--marigold); }
+  .modal { background: var(--bg-2); padding: 24px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; }
   .modal-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; border-left: 4px solid var(--marigold); padding-left: 10px; }
-  .modal-close { margin-left: auto; background: none; border: none; font-size: 16px; font-weight: 400; cursor: pointer; color: var(--text-light); padding: 2px 8px; letter-spacing: 1px; }
+  .modal-close { margin-left: auto; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-light); padding: 0 4px; }
 
   /* ── Form ── */
   .form-group { margin-bottom: 14px; }
-  .form-label { display: block; font-size: 10px; color: var(--text-light); margin-bottom: 4px; font-weight: 200; letter-spacing: 2px; text-transform: uppercase; }
+  .form-label { display: block; font-size: 11px; color: var(--text-light); margin-bottom: 5px; font-weight: 200; letter-spacing: 1px; text-transform: uppercase; }
   input[type="text"], input[type="date"], input[type="tel"], select, textarea { width: 100%; min-width: 0; box-sizing: border-box; padding: 10px 12px; border: none; border-bottom: 2px solid var(--border); border-left: 4px solid var(--border); font-size: 14px; font-family: inherit; color: var(--text); background: var(--bg-3); transition: all 0.15s; outline: none; font-weight: 400; }
-  input:focus, select:focus, textarea:focus { border-bottom-color: var(--marigold); border-left-color: var(--marigold); background: var(--white); }
+  input:focus, select:focus, textarea:focus { border-color: var(--marigold); }
   textarea { resize: vertical; min-height: 70px; }
   .date-row { display: flex; gap: 8px; }
   .date-row .form-group { flex: 1; }
 
   .btn { width: 100%; padding: 13px; border: none; font-size: 14px; font-family: inherit; font-weight: 400; cursor: pointer; letter-spacing: 1px; margin-bottom: 8px; }
   .btn:active { transform: scale(0.98); opacity: 0.9; transition: all 0.1s ease-out; }
-  .btn-primary { background: var(--marigold); color: var(--white); }
+  .btn-primary { background: var(--marigold); color: #fff; }
   .btn-primary:hover { background: var(--marigold-dk); }
-  .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
-  .btn-outline { background: var(--white); color: var(--marigold); border: 2px solid var(--marigold); }
-  .btn-danger { background: var(--white); color: var(--error); border: 2px solid var(--error); }
-  .btn-danger:hover { background: var(--error); color: var(--white); }
+  .btn-primary:disabled { background: #555; cursor: not-allowed; }
+  .btn-outline { background: transparent; color: var(--marigold); border: 2px solid var(--marigold); }
+  .btn-danger  { background: transparent; color: var(--error); border: 2px solid var(--error); }
+  .btn-danger:hover { background: var(--error); color: #fff; }
   .btn-sm { width: auto; padding: 7px 14px; font-size: 12px; margin-bottom: 0; }
+  .btn-notified-pending { background: var(--kiwi); color: #fff; }
+  .btn-notified-done    { background: var(--yellow); color: #1A1A1A; }
 
-  .alert { padding: 10px 12px; font-size: 13px; margin-bottom: 10px; line-height: 1.6; border-left: 4px solid; }
-  .alert-error { background: #2A1010; color: var(--error); border-color: var(--error); }
-  .alert-success { background: var(--green-light); color: var(--kiwi); border-color: var(--kiwi); }
-  .alert-info { background: var(--orange-light); color: var(--marigold); border-color: var(--marigold); }
+  .alert { padding: 10px 12px; font-size: 13px; margin-bottom: 10px; line-height: 1.6; border-left: 4px solid; font-weight: 200; }
+  .alert-error   { background: #2A1010; color: var(--error); border-color: var(--error); }
+  .alert-success { background: var(--green-light); color: var(--success); border-color: var(--success); }
+  .alert-info    { background: var(--orange-light); color: var(--marigold); border-color: var(--marigold); }
 
   .result-item { padding: 12px; border-left: 4px solid var(--border); margin-bottom: 8px; background: var(--bg-3); }
   .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
   .result-date { font-size: 13px; font-weight: 400; }
-  .result-status { font-size: 11px; padding: 2px 7px; background: var(--kiwi); color: var(--white); font-weight: 700; }
+  .result-status { font-size: 11px; padding: 2px 7px; background: var(--kiwi); color: #fff; font-weight: 700; }
   .result-detail { font-size: 12px; font-weight: 200; color: var(--text-light); line-height: 1.8; }
 
-  .log-item { padding: 9px 11px; border-left: 4px solid var(--error); background: #2A1010; margin-bottom: 7px; font-size: 12px; line-height: 1.6; }
+  .log-item { padding: 9px 11px; border-left: 4px solid var(--error); background: #2A1010; margin-bottom: 7px; font-size: 12px; line-height: 1.6; font-weight: 200; }
   .log-time { color: var(--text-light); font-size: 10px; }
   .log-event { color: var(--error); font-weight: 700; }
   .divider { height: 2px; background: var(--border); margin: 12px 0; }
   .preview-count { background: var(--orange-light); color: var(--marigold); padding: 9px 12px; font-size: 13px; font-weight: 700; margin-bottom: 10px; text-align: center; border-left: 4px solid var(--marigold); }
+  .loading { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; font-weight: 200; }
+  .empty-state { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; font-weight: 200; }
 
-  .loading { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; }
-  .loading-bar-wrap { width: 100%; height: 4px; background: var(--bg-3); margin: 10px 0 4px; overflow: hidden; }
-  .loading-bar { height: 100%; width: 40%; background: var(--marigold); animation: loadingSlide 1.2s ease-in-out infinite; }
-  @keyframes loadingSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
-  .empty-state { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; }
-
-  /* ── 異常排班區塊 ── */
-  .conflict-zone { margin-top: 6px; border-left: 4px solid var(--error); padding: 8px 10px; background: #2A1010; flex-shrink: 0; }
-  .conflict-title { font-size: 12px; font-weight: 700; color: var(--error); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
-  .conflict-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #FFCCCC; font-size: 12px; }
-  .conflict-row:last-child { border-bottom: none; }
-  .conflict-slot { font-weight: 700; color: var(--error); min-width: 32px; }
-  .conflict-name { font-weight: 200; flex: 1; }
-  .conflict-note { font-size: 10px; color: var(--text-light); }
-
-  /* ── 聯絡小卡 Modal ── */
-  .contact-name { font-size: 24px; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 4px; }
-  .contact-birth { font-size: 13px; font-weight: 400; color: var(--text-light); text-align: center; margin-bottom: 8px; letter-spacing: 1px; }
+  .contact-name  { font-size: 24px; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 4px; }
+  .contact-birth { font-size: 13px; font-weight: 200; color: var(--text-light); text-align: center; margin-bottom: 8px; letter-spacing: 1px; }
   .contact-phone { display: block; font-size: 32px; font-weight: 700; color: var(--marigold); text-align: center; text-decoration: none; letter-spacing: 3px; margin-bottom: 20px; }
-  .btn-notified-pending { background: var(--kiwi); color: var(--white); }
-  .btn-notified-pending:hover { background: #6AA020; }
-  .btn-notified-done { background: var(--yellow); color: var(--text); }
-  .btn-notified-done:hover { background: var(--error); color: var(--white); }
 
-  /* ── 不指定 Modal 列表 ── */
   .unspec-modal-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .unspec-modal-row:last-child { border-bottom: none; }
-  .unspec-modal-num { font-size: 11px; color: var(--text-light); width: 18px; text-align: center; flex-shrink: 0; }
+  .unspec-modal-num  { font-size: 11px; color: var(--text-light); width: 18px; text-align: center; flex-shrink: 0; }
   .unspec-modal-name { font-weight: 400; flex: 1; }
 
-  /* ════════════════════════════════════════════════
-     響應式佈局 — 平板／電腦（768px 以上）
-  ════════════════════════════════════════════════ */
-  @media (min-width: 768px) {
-    body { background: var(--bg); }
-    #pageMain { height: 100vh; overflow: hidden; }
+  /* 群發模式切換 */
+  .btn-mode { flex: 1; padding: 8px; border: none; font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .btn-mode:active { transform: scale(0.97); }
 
-    .header { padding: 16px 28px; }
-    .header-left h1 { font-size: 24px; letter-spacing: 4px; }
-    .header-left p { font-size: 12px; }
-    .header-badge { font-size: 14px; padding: 6px 18px; }
+  /* Loading Overlay */
+  .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 999; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+  .loading-overlay.active { display: flex; }
+  .loading-overlay-text { color: var(--cloud); font-size: 15px; font-weight: 200; letter-spacing: 1px; text-align: center; line-height: 1.8; }
+  .loading-overlay-bar { width: 200px; height: 3px; background: var(--bg-3); overflow: hidden; }
+  .loading-overlay-bar-inner { height: 100%; width: 40%; background: var(--marigold); animation: loadingSlide 1.2s ease-in-out infinite; }
 
-    .desktop-body {
-      display: grid;
-      grid-template-columns: 2fr 6fr 2fr;
-      gap: 0;
-      flex: 1;
-      min-height: 0;
-      height: calc(100vh - 61px);
-      overflow: hidden;
-    }
-
-    .col-left { background: var(--bg-2); border-right: 2px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; padding: 16px 12px; order: 1; }
-    .col-center { display: flex; flex-direction: column; overflow: hidden; background: var(--bg); order: 2; }
-    .col-right { background: var(--bg-2); border-left: 2px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; padding: 16px 12px; order: 3; }
-
-    .col-center .panel-schedule { flex: 1; min-height: 0; padding: 12px 16px 8px; }
-    .col-left .panel-therapy { border-top: none; padding: 0; }
-    .col-right .panel-tools { border-top: none; padding: 0; }
-
-    .col-right .tools-grid { grid-template-columns: 1fr; gap: 4px; }
-    .col-right .tool-card { padding: 18px 16px; min-height: 72px; }
-    .col-right .tool-name { font-size: 16px; }
-    .col-right .tool-desc { font-size: 12px; }
-
-    .grid-cell { min-height: 80px; aspect-ratio: unset; }
-    .grid-np-banner { min-height: 80px; height: 80px; padding: 6px 16px 4px; }
-    .cell-num { font-size: 28px; }
-    .cell-name { font-size: 12px; bottom: 7px; left: 8px; }
-    .np-banner-time { font-size: 14px; }
-    .np-banner-name { font-size: 18px; }
-    .checkin-mini { font-size: 14px; padding: 8px 16px; }
-
-    .date-nav-label { font-size: 18px; }
-    .date-nav-btn { font-size: 18px; padding: 10px 16px; }
-    .date-nav-btn.today { font-size: 14px; }
-    .tab-btn { font-size: 14px; padding: 10px 6px; }
-    .session-doctor { font-size: 18px; }
-    .count-badge { font-size: 13px; padding: 4px 10px; }
-    .unspec-btn { font-size: 16px; padding: 16px; }
-    .section-title { font-size: 12px; margin-bottom: 12px; }
-    .therapy-title { font-size: 16px; }
-    .therapy-sub { font-size: 13px; }
-
-    .modal { max-width: 560px; padding: 32px; background: var(--bg-2); }
-    .modal-title { font-size: 20px; }
-  }
+  /* 代診排班 inline 按鈕 */
+  .sub-cancel-btn { font-size: 11px; padding: 3px 8px; border: 1px solid var(--error); background: transparent; color: var(--error); cursor: pointer; font-family: inherit; }
+  .sub-cancel-btn:hover { background: var(--error); color: #fff; }
 </style>
 </head>
 <body>
@@ -410,82 +386,94 @@
 
 <!-- Main -->
 <div id="pageMain">
+<div class="metro-grid" id="metroGrid">
 
-  <!-- Header -->
-  <div class="header">
-    <div class="header-left"><h1>悅心診所</h1><p>Admin Portal</p></div>
-    <div class="header-badge" id="adminBadge">載入中...</div>
+  <!-- Row 1: Header -->
+  <div class="tile tile-4 tile-header-main" onclick="toggleHeaderMenu()" style="position:relative;">
+    <div class="tile-title" style="font-size:22px;letter-spacing:2px;">悅心診所</div>
+    <div class="tile-subtitle">Admin Portal</div>
+  </div>
+  <div class="tile tile-1 tile-header-admin" style="position:relative;">
+    <div class="tile-title" style="font-size:14px;" id="adminBadge">...</div>
   </div>
 
-  <!-- desktop-body: 三欄容器 -->
-  <div class="desktop-body">
+  <!-- Row 2: 日期導覽 -->
+  <div class="tile tile-1 tile-nav today-btn" onclick="goToToday()" style="position:relative;">
+    <div class="tile-title" style="font-size:15px;color:#fff;">今日</div>
+  </div>
+  <div class="tile tile-1 tile-nav today-btn" onclick="goToNextWorkday()" style="position:relative;">
+    <div class="tile-title" style="font-size:15px;color:#fff;">明日</div>
+  </div>
+  <div class="tile tile-1 tile-nav" id="btnPrev" onclick="changeDate(-1)" style="position:relative;">
+    <div class="tile-title" style="font-size:18px;color:#fff;">＜</div>
+  </div>
+  <div class="tile tile-1 tile-nav-date" style="position:relative;">
+    <div class="tile-title" style="font-size:16px;" id="dateNavLabel"></div>
+    <div class="tile-subtitle" id="dateNavSub"></div>
+    <input type="date" class="date-nav-input" id="dateNavInput" onchange="onDatePick(event)">
+  </div>
+  <div class="tile tile-1 tile-nav" onclick="changeDate(1)" style="position:relative;">
+    <div class="tile-title" style="font-size:18px;color:#fff;">＞</div>
+  </div>
 
-    <!-- 左欄：心理治療時間軸 -->
-    <div class="col-left">
-      <!-- ③ 心理治療區 -->
-      <div class="panel-therapy">
-        <div class="therapy-card">
-          <div>
-            <div class="therapy-title">心理治療</div>
-            <div class="therapy-sub">目前尚無排程資料</div>
-          </div>
-          <div class="therapy-badge">建置中...</div>
-        </div>
-      </div>
+  <!-- Row 3: 醫師資訊 + 時段磚 -->
+  <div class="tile tile-2 tile-doctor" id="doctorTile" style="position:relative;">
+    <div class="tile-title" style="font-size:20px;" id="sessionDoctorText">—</div>
+    <div class="tile-subtitle" id="sessionDoctorSub"></div>
+  </div>
+  <div class="tile tile-1 tile-session tile-dark" id="session-早上" onclick="switchTab('早上')" style="position:relative;">
+    <div class="tile-title" style="font-size:13px;">早上診</div>
+    <div class="tile-subtitle" style="font-size:24px;font-weight:700;bottom:6px;color:var(--text);" id="count-早上">—</div>
+  </div>
+  <div class="tile tile-1 tile-session tile-dark" id="session-下午" onclick="switchTab('下午')" style="position:relative;">
+    <div class="tile-title" style="font-size:13px;">下午診</div>
+    <div class="tile-subtitle" style="font-size:24px;font-weight:700;bottom:6px;color:var(--text);" id="count-下午">—</div>
+  </div>
+  <div class="tile tile-1 tile-session tile-dark" id="session-晚上" onclick="switchTab('晚上')" style="position:relative;">
+    <div class="tile-title" style="font-size:13px;">晚上診</div>
+    <div class="tile-subtitle" style="font-size:24px;font-weight:700;bottom:6px;color:var(--text);" id="count-晚上">—</div>
+  </div>
+
+  <!-- Row 4-9: 30格診單（JS 動態輸出到這裡）-->
+  <div id="scheduleContent" style="display:contents;">
+    <div class="loading-tile">
+      <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
+      載入診表中...
     </div>
+  </div>
 
-    <!-- 中欄：門診名單 -->
-    <div class="col-center">
-      <!-- ② 門診名單區 -->
-      <div class="panel-schedule">
-        <div class="date-nav">
-          <button class="date-nav-btn today" onclick="goToToday()">今日</button>
-          <button class="date-nav-btn today" onclick="goToNextWorkday()">明日</button>
-          <button class="date-nav-btn" onclick="changeDate(-1)">＜</button>
-          <div class="date-nav-center">
-            <span class="date-nav-label" id="dateNavLabel"></span>
-            <input type="date" class="date-nav-input" id="dateNavInput" onchange="onDatePick(event)">
-          </div>
-          <button class="date-nav-btn" onclick="changeDate(1)">＞</button>
-        </div>
+  <!-- Row 10: 不指定 + 心理治療 -->
+  <div class="tile tile-1 tile-unspec" onclick="openUnspecModal()" style="position:relative;">
+    <div class="tile-title" style="font-size:13px;color:var(--text-light);">不指定</div>
+    <div class="tile-subtitle" id="unspecCount"></div>
+  </div>
+  <div class="tile tile-3 tile-therapy" style="position:relative;">
+    <div class="tile-title" style="font-size:16px;color:#fff;">心理治療</div>
+    <div class="tile-subtitle" style="color:rgba(255,255,255,0.7);">目前尚無排程資料</div>
+    <div class="tile-note">建置中</div>
+  </div>
+  <div class="tile tile-1 tile-empty"></div>
 
-        <!-- ① 頂部頁籤與資訊 -->
-        <div class="panel-header" style="padding: 0 0 4px;">
-          <div id="sessionTabs" class="tabs"></div>
-          <div id="sessionInfoRow" class="session-info-row" style="display:none; margin-bottom:0;">
-            <span class="session-doctor" id="sessionDoctorText"></span>
-            <div class="session-counts" id="sessionCountBadges"></div>
-          </div>
-        </div>
-        <div class="schedule-scroll">
-          <div id="scheduleContent"><div class="loading">載入今日診表中...</div></div>
-        </div>
-      </div>
-    </div>
+  <!-- Row 11: 工具磚 -->
+  <div class="tile tile-1 tile-marigold" onclick="openModal('modalQuery')" style="position:relative;">
+    <div class="tile-title" style="font-size:18px;color:#fff;">查詢</div>
+    <div class="tile-subtitle">姓名／電話／生日</div>
+  </div>
+  <div class="tile tile-1 tile-capri" onclick="openModal('modalSubstitute')" style="position:relative;">
+    <div class="tile-title" style="font-size:18px;color:#fff;">代診</div>
+    <div class="tile-subtitle">修改代診醫師</div>
+  </div>
+  <div class="tile tile-1 tile-yellow" onclick="openModal('modalBroadcast')" style="position:relative;">
+    <div class="tile-title" style="font-size:18px;color:#1A1A1A;">群發</div>
+    <div class="tile-subtitle" style="color:rgba(0,0,0,0.5);">推播通知病患</div>
+  </div>
+  <div class="tile tile-1 tile-pink" onclick="openModal('modalSecurity')" style="position:relative;">
+    <div class="tile-title" style="font-size:18px;color:#fff;">資安</div>
+    <div class="tile-subtitle">異常行為記錄</div>
+  </div>
+  <div class="tile tile-1 tile-empty"></div>
 
-    <!-- 右欄：工具與警示 -->
-    <div class="col-right">
-      <!-- ④ 櫃台功能區 -->
-      <div class="panel-tools">
-        <div class="tools-grid">
-          <div class="tool-card" onclick="openModal('modalQuery')">
-            <div><div class="tool-name">進階查詢</div><div class="tool-desc">姓名／電話／生日</div></div>
-          </div>
-          <div class="tool-card" onclick="openModal('modalSubstitute')">
-            <div><div class="tool-name">代診排班</div><div class="tool-desc">修改代診醫師</div></div>
-          </div>
-          <div class="tool-card" onclick="openModal('modalBroadcast')">
-            <div><div class="tool-name">群發訊息</div><div class="tool-desc">推播通知病患</div></div>
-          </div>
-          <div class="tool-card" onclick="openModal('modalSecurity')">
-            <div><div class="tool-name">資安監控</div><div class="tool-desc">異常行為記錄</div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /desktop-body -->
-
+</div><!-- /metro-grid -->
 </div><!-- /pageMain -->
 
 <!-- Modal: 不指定名單 -->
@@ -632,13 +620,25 @@ function dateToDisplay(d) {
   return d.getFullYear() + "/" + String(d.getMonth()+1).padStart(2,"0") + "/" + String(d.getDate()).padStart(2,"0") + " (" + weekdays[d.getDay()] + ")";
 }
 function updateDateNav() {
-  document.getElementById("dateNavLabel").textContent = dateToDisplay(state.viewDate);
-  const ymd = dateToYMD(state.viewDate);
+  const d = state.viewDate;
+  const weekdays = ["日","一","二","三","四","五","六"];
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  document.getElementById("dateNavLabel").textContent = mm + "/" + dd;
+  document.getElementById("dateNavSub").textContent = "(" + weekdays[d.getDay()] + ")";
+  const ymd = dateToYMD(d);
   document.getElementById("dateNavInput").value = ymd.substring(0,4) + "-" + ymd.substring(4,6) + "-" + ymd.substring(6,8);
   // 今天以前不能往前
   const today = new Date(); today.setHours(0,0,0,0);
-  const view = new Date(state.viewDate); view.setHours(0,0,0,0);
-  document.querySelector(".date-nav-btn[onclick='changeDate(-1)']").disabled = (view <= today);
+  const view = new Date(d); view.setHours(0,0,0,0);
+  const prevBtn = document.getElementById("btnPrev");
+  if (view <= today) {
+    prevBtn.classList.add("disabled");
+    prevBtn.onclick = null;
+  } else {
+    prevBtn.classList.remove("disabled");
+    prevBtn.onclick = function() { changeDate(-1); };
+  }
 }
 function changeDate(offset) {
   const d = new Date(state.viewDate);
@@ -666,6 +666,10 @@ function onDatePick(e) {
   state.viewDate = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
   updateDateNav();
   loadSchedule();
+}
+
+function toggleHeaderMenu() {
+  // 預留：點擊 Header 展開選單（未來實作）
 }
 
 async function initLiff() {
@@ -733,45 +737,87 @@ function getTodayStr() { const n = new Date(); return n.getFullYear() + "/" + St
 function esc(str) { return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
 async function loadSchedule() {
-  document.getElementById("scheduleContent").innerHTML = `<div class="loading"><div class="loading-bar-wrap"><div class="loading-bar"></div></div>載入診表中...</div>`;
-  document.getElementById("sessionTabs").innerHTML = "";
-  document.getElementById("sessionInfoRow").style.display = "none";
+  document.getElementById("scheduleContent").innerHTML =
+    `<div class="loading-tile"><div class="loading-bar-wrap"><div class="loading-bar"></div></div>載入診表中...</div>`;
+  // 重置時段磚
+  ["早上","下午","晚上"].forEach(function(s) {
+    const el = document.getElementById("session-" + s);
+    if (el) { el.classList.remove("active"); el.style.opacity = "1"; }
+    const c = document.getElementById("count-" + s);
+    if (c) c.textContent = "—";
+  });
+  document.getElementById("sessionDoctorText").textContent = "—";
+  document.getElementById("sessionDoctorSub").textContent = "";
   try {
     const data = await xhrGet(`${API_URL}?action=adminGetTodaySchedule&date=${dateToYMD(state.viewDate)}&lineId=${state.lineId}`);
     renderSchedule(data.bookings || []);
   } catch(e) {
-    document.getElementById("scheduleContent").innerHTML = `<div class="alert alert-error">診表暫時無法載入，請重新整理頁面。</div>`;
+    document.getElementById("scheduleContent").innerHTML =
+      `<div class="loading-tile"><div class="alert alert-error" style="margin:0;">診表暫時無法載入，請重新整理頁面。</div></div>`;
   }
 }
 
 function renderSchedule(bookings) {
   allBookings = bookings;
-  const tabEl = document.getElementById("sessionTabs");
   const el = document.getElementById("scheduleContent");
-  const sn = {"早上":"早上診","下午":"下午診","晚上":"晚上診"};
-  // 根據當天星期幾決定開診時段（不依賴是否有預約）
-  const dow = state.viewDate.getDay(); // 0=日,1=一...6=六
+  const dow = state.viewDate.getDay();
   const daySchedule = DEFAULT_DOCTOR_SCHEDULE[dow] || {};
   const openSessions = ["早上","下午","晚上"].filter(s => daySchedule[s] && daySchedule[s] !== "");
+
+  // 更新三個時段磚
+  ["早上","下午","晚上"].forEach(function(s) {
+    const tile = document.getElementById("session-" + s);
+    const countEl = document.getElementById("count-" + s);
+    if (!openSessions.includes(s)) {
+      tile.style.opacity = "0.2";
+      tile.style.pointerEvents = "none";
+      if (countEl) countEl.textContent = "—";
+    } else {
+      const cnt = bookings.filter(b => b.session === s).length;
+      tile.style.opacity = "0.5";
+      tile.style.pointerEvents = "auto";
+      if (countEl) countEl.textContent = cnt;
+    }
+  });
+
   if (openSessions.length === 0) {
-    tabEl.innerHTML = "";
-    document.getElementById("sessionInfoRow").style.display = "none";
-    el.innerHTML = `<div class="empty-state">今日無開診</div>`;
+    el.innerHTML = `<div class="loading-tile"><div class="empty-state">今日無開診</div></div>`;
     return;
   }
-  tabEl.innerHTML = openSessions.map(function(s) {
-    const count = bookings.filter(b => b.session === s).length;
-    return `<button class="tab-btn" id="tab-${s}" onclick="switchTab('${s}')">${sn[s]} ${count}</button>`;
-  }).join("");
+
   activeSession = openSessions[0];
-  renderSessionContent(activeSession);
-  document.getElementById("tab-" + activeSession).classList.add("active");
+  switchTab(activeSession);
 }
 
 function switchTab(session) {
   activeSession = session;
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-  document.getElementById("tab-" + session).classList.add("active");
+  // 時段磚 active 狀態
+  ["早上","下午","晚上"].forEach(function(s) {
+    const tile = document.getElementById("session-" + s);
+    if (!tile) return;
+    if (s === session) {
+      tile.classList.add("active");
+      tile.style.opacity = "1";
+    } else {
+      tile.classList.remove("active");
+      if (tile.style.pointerEvents !== "none") tile.style.opacity = "0.5";
+    }
+  });
+  // 醫師資訊磚
+  const list = allBookings.filter(b => b.session === session);
+  const doctor = list.length > 0 ? list[0].doctor : (DEFAULT_DOCTOR_SCHEDULE[state.viewDate.getDay()]?.[session] || "—");
+  const isSubstitute = list.length > 0 && list[0].isSubstitute;
+  document.getElementById("sessionDoctorText").textContent = doctor;
+  document.getElementById("sessionDoctorSub").textContent = isSubstitute ? "代診" : "主治";
+  const doctorTile = document.getElementById("doctorTile");
+  const badge = doctorTile.querySelector(".substitute-badge");
+  if (badge) badge.remove();
+  if (isSubstitute) {
+    const b = document.createElement("div");
+    b.className = "substitute-badge";
+    b.textContent = "代診";
+    doctorTile.appendChild(b);
+  }
   renderSessionContent(session);
 }
 
@@ -899,20 +945,24 @@ function renderSessionContent(session) {
       const bannerClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const checkMark = c.isAdminBooking && isNotified ? "✓ " : "";
-      html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr}>
+      const npCautionHtml = (c.isAdminBooking && !isNotified) ? `<div class="cell-caution" style="position:absolute;bottom:8px;right:8px;width:10px;height:10px;background:#000;"></div>` : "";
+      html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="position:relative;">
         <span class="np-banner-time">${checkMark}${esc(c.checkInTime)}前</span>
         <span class="np-banner-name">初診・${esc(c.name)}</span>
         <button class="checkin-mini ${isDone?'done':'pending'}" id="btn-${esc(c.bookingId)}"
           onclick="event.stopPropagation(); toggleCheckin('${esc(c.bookingId)}',this)">${isDone?'✓ 已看診':'未看診'}</button>
+        ${npCautionHtml}
       </div>`;
     } else if (c.type === "rt") {
       const isNotified = c.isAdminBooking && c.note.indexOf("[已通知]") !== -1;
       const cellClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
-      const numDisplay = c.isAdminBooking && isNotified ? `${c.num} ✓` : `${c.num}`;
+      const numDisplay = c.isAdminBooking && isNotified ? `${c.num}✓` : `${c.num}`;
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
+      const cautionHtml = (c.isAdminBooking && !isNotified) ? `<div class="cell-caution"></div>` : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num">${numDisplay}</span>
         <span class="cell-name" title="${esc(c.name)}">${esc(c.name)}</span>
+        ${cautionHtml}
       </div>`;
     } else {
       // empty
@@ -925,10 +975,9 @@ function renderSessionContent(session) {
 
   html += `</div>`; // end grid-30
 
-  // 不指定按鈕（全寬，grid 下方）
-  if (unList.length > 0) {
-    html += `<button class="unspec-btn" onclick="openUnspecModal()">查看不指定名單（${unList.length} 人）</button>`;
-  }
+  // 更新不指定磚的人數 subtitle
+  const unspecEl = document.getElementById("unspecCount");
+  if (unspecEl) unspecEl.textContent = unList.length > 0 ? unList.length + " 人" : "";
 
   // 異常排班區（格位衝突，絕對不能隱藏）
   if (conflictList.length > 0) {
