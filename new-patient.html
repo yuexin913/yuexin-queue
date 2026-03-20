@@ -62,7 +62,7 @@
   textarea {
     width: 100%; padding: 12px 14px;
     border: 1.5px solid var(--border); border-radius: 10px;
-    font-size: 14px; font-family: 'Noto Sans TC', sans-serif;
+    font-size: 16px; font-family: 'Noto Sans TC', sans-serif;
     color: var(--text); background: var(--white);
     transition: border-color 0.2s; outline: none;
     min-height: 90px; resize: vertical; line-height: 1.6;
@@ -72,7 +72,7 @@
   .other-input {
     display: none; margin-top: 8px; width: 100%;
     padding: 10px 12px; border: 1.5px solid var(--border);
-    border-radius: 8px; font-size: 14px;
+    border-radius: 8px; font-size: 16px;
     font-family: 'Noto Sans TC', sans-serif; outline: none;
   }
   .other-input:focus { border-color: var(--green); }
@@ -368,6 +368,7 @@ const apptDate = urlParams.get("apptDate") || "";
 
 const radioState = { referral: "", residence: "", firstVisit: "", preference: "", cert: "" };
 let selectedTopics = [];
+let isSubmitting = false; // 防連點全域旗標
 
 // ===================================
 // Radio 選擇
@@ -396,6 +397,7 @@ function toggleTopic(el) {
 // 送出
 // ===================================
 async function submitNewPatient() {
+  if (isSubmitting) return;
   if (!radioState.referral) return showError("請選擇如何得知悅心診所");
   if (!radioState.residence) return showError("請選擇目前居住地");
   if (!radioState.firstVisit) return showError("請選擇是否已成年");
@@ -403,6 +405,7 @@ async function submitNewPatient() {
   if (!radioState.preference) return showError("請選擇您希望的協助方式");
   if (!radioState.cert) return showError("請選擇是否需要診斷證明書");
 
+  isSubmitting = true;
   const btn = document.getElementById("btnSubmitNew");
   btn.disabled = true; btn.textContent = "送出中...";
 
@@ -425,6 +428,8 @@ async function submitNewPatient() {
     showSuccess();
   } catch(e) {
     showError("送出失敗，請重試");
+  } finally {
+    isSubmitting = false;
     btn.disabled = false; btn.textContent = "送出資料";
   }
 }

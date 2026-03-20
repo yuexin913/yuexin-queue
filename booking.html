@@ -561,6 +561,7 @@
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbz1IB0HCFWaFlC7odExNsOWaZwTjz7osAjstXhx_5V0ZD4Ya58GGRRPfFAun2Itywbh6A/exec";
 const LIFF_ID = "2009340533-JKP6Q8Qg";
+let isSubmitting = false; // 防連點全域旗標
 
 let state = {
   lineId: null,
@@ -610,15 +611,15 @@ async function initLiff() {
 // 民國年轉西元年
 // ===================================
 function parseBirthROC(y, m, d) {
-  const year = parseInt(y);
-  const month = parseInt(m);
-  const day = parseInt(d);
+  const year = parseInt(y, 10);
+  const month = parseInt(m, 10);
+  const day = parseInt(d, 10);
   if (!year || !month || !day) return null;
   if (month < 1 || month > 12) return null;
   if (day < 1 || day > 31) return null;
   const adYear = year + 1911;
   const currentYear = new Date().getFullYear();
-  if (adYear > currentYear || adYear < 1912) return null;
+  if (adYear > currentYear + 1 || adYear < 1911) return null;
   const mm = String(month).padStart(2, "0");
   const dd = String(day).padStart(2, "0");
   return adYear + "-" + mm + "-" + dd;
@@ -629,15 +630,22 @@ function parseBirthROC(y, m, d) {
 // ===================================
 function goToEntry() {
   document.getElementById("headerSub").textContent = "線上服務";
-  // 重置送出按鈕狀態，避免第二次預約卡住
+  // 重置送出按鈕狀態
   const btn = document.getElementById("btnSubmit");
   if (btn) { btn.disabled = false; btn.textContent = "確認送出預約"; }
   document.getElementById("newPatientNotice").innerHTML = "";
-  // 重置 pageTime DOM，避免舊預約內容殘留干擾下一次
+  // 重置 pageTime DOM
   document.getElementById("calendarArea").style.display = "block";
   document.getElementById("selectedDateBar").style.display = "none";
   document.getElementById("sessionContainer").innerHTML = "";
   document.getElementById("slotsContainer").innerHTML = "";
+  // 徹底清空 state，防止上次選擇殘留
+  state.type = "";
+  state.name = ""; state.phone = ""; state.birth = "";
+  state.date = null; state.session = null; state.timeSlot = null; state.doctor = null;
+  state.isUnspecified = false; state.slotsData = null; state.sessionSelected = false;
+  state.bookingId = null;
+  isSubmitting = false;
   showPage("pageEntry");
 }
 
@@ -664,7 +672,10 @@ function startQuery() {
 // ===================================
 async function goToPageTime() {
   const name = document.getElementById("inputName").value.trim();
-  const phone = document.getElementById("inputPhone").value.replace(/[-\s]/g, "").trim();
+  // 全形數字轉半形，移除非數字字元
+  const phone = document.getElementById("inputPhone").value
+    .replace(/[０-９]/g, function(c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+    .replace(/[^\d]/g, "").trim();
   const birthY = document.getElementById("inputBirthY").value.trim();
   const birthM = document.getElementById("inputBirthM").value.trim();
   const birthD = document.getElementById("inputBirthD").value.trim();
@@ -919,12 +930,15 @@ function renderSlots() {
       });
     }
     const isUnspecifiedSelected = state.isUnspecified;
+    const unspecifiedAvailable = s.unspecifiedAvailable !== false; // GAS 回傳 false 才 disabled
     let unspecifiedCls = "time-card time-card-unspecified";
     if (isUnspecifiedSelected) unspecifiedCls += " selected";
-    html += `<div class="${unspecifiedCls}" onclick="selectSlot('${sessionKey}','不指定','${s.doctor}',true)">
+    if (!unspecifiedAvailable) unspecifiedCls += " time-card-disabled";
+    const unspecifiedOnclick = unspecifiedAvailable ? `onclick="selectSlot('${sessionKey}','不指定','${s.doctor}',true)"` : "";
+    html += `<div class="${unspecifiedCls}" ${unspecifiedOnclick}>
       <div class="time-card-left">
         <div class="time-card-title">現場排號</div>
-        <div class="time-card-label">我會在 ${SESSION_END_TIME[sessionKey] || "結診"} 前至診所報到，由工作人員安排順序。</div>
+        <div class="time-card-label">${unspecifiedAvailable ? "我會在 " + (SESSION_END_TIME[sessionKey] || "結診") + " 前至診所報到，由工作人員安排順序。" : "已額滿"}</div>
       </div>
     </div>`;
     html += '</div>';
@@ -1002,6 +1016,8 @@ async function goToConfirm() {
 // 送出預約
 // ===================================
 async function submitBooking() {
+  if (isSubmitting) return;
+  isSubmitting = true;
   const btn = document.getElementById("btnSubmit");
   btn.disabled = true; btn.textContent = "送出中...";
   try {
@@ -1042,6 +1058,8 @@ async function submitBooking() {
   } catch(e) {
     showError("errorPage3", "預約未完成，請再試一次。");
     btn.disabled = false; btn.textContent = "確認送出預約";
+  } finally {
+    isSubmitting = false;
   }
 }
 
@@ -1058,8 +1076,10 @@ function goToNewPatientForm() {
 // 查詢預約
 // ===================================
 async function queryBookings() {
+  if (isSubmitting) return;
+  isSubmitting = true;
   const name = document.getElementById("queryName").value.trim();
-  if (!name) return showError("errorQuery", "請輸入您的姓名。");
+  if (!name) { isSubmitting = false; return showError("errorQuery", "請輸入您的姓名。"); }
   hideError("errorQuery");
 
   const btn = document.getElementById("btnQuery");
@@ -1070,15 +1090,16 @@ async function queryBookings() {
     if (!data.success) throw new Error(data.error);
     if (!data.found) {
       showError("errorQuery", "查無線上預約紀錄。請確認輸入資料是否與預約資料一致。若您是透過電話或現場掛號，請於門診時間來電：07-363-1313查詢。");
-      btn.disabled = false; btn.textContent = "查詢我的預約";
       return;
     }
     renderBookingList(data.bookings);
     showPage("pageQueryResult");
   } catch(e) {
     showError("errorQuery", "系統連線異常，請再試一次。");
+  } finally {
+    isSubmitting = false;
+    btn.disabled = false; btn.textContent = "查詢我的預約";
   }
-  btn.disabled = false; btn.textContent = "查詢我的預約";
 }
 
 function renderBookingList(bookings) {

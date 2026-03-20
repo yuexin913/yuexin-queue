@@ -813,6 +813,8 @@ async function initLiff() {
       document.getElementById("authTiles").style.display = "none";
       document.getElementById("authTitle").textContent = "頁面錯誤";
       document.getElementById("authSub").textContent = "";
+      // 清空主畫面 DOM，防止有心人士透過開發者工具窺探管理員介面
+      document.getElementById("pageMain").innerHTML = "";
       return;
     }
     state.adminName = verify.name;
