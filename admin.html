@@ -162,9 +162,7 @@
   .tile-yellow .tile-sub, .tile-pink .tile-sub, .tile-orchid .tile-sub { color: rgba(255,255,255,0.7); }
   .tile-yellow .tile-sub { color: rgba(0,0,0,0.5); }
 
-  /* ── Row 1：Header ── */
-  .tile-header-main { background: var(--marigold); cursor: pointer; }
-  .tile-header-main .tile-label { font-size: 22px; letter-spacing: 2px; }
+  /* ── 管理員名稱磚 ── */
   .tile-header-admin { background: var(--marigold-dk); }
   .tile-header-admin .tile-label { font-size: 15px; font-weight: 700; }
 
@@ -400,14 +398,7 @@
 <div id="pageMain">
 <div class="metro-grid" id="metroGrid">
 
-  <!-- Row 1: Header -->
-  <div class="tile tile-4 tile-header-main" onclick="toggleHeaderMenu()" style="position:relative;">
-    <div class="tile-title" style="font-size:22px;letter-spacing:2px;">悅心診所</div>
-    <div class="tile-subtitle">Admin Portal</div>
-  </div>
-  <div class="tile tile-1 tile-header-admin" style="position:relative;">
-    <div class="tile-title" style="font-size:14px;" id="adminBadge">...</div>
-  </div>
+  <!-- Row 1: 已移除（LIFF 瀏覽器頂部已顯示標題）-->
 
   <!-- Row 2: 日期導覽 -->
   <div class="tile tile-1 tile-nav today-btn" onclick="goToToday()" style="position:relative;">
@@ -480,7 +471,9 @@
     <div class="tile-title" style="font-size:18px;color:#fff;">資安</div>
     <div class="tile-subtitle">異常行為記錄</div>
   </div>
-  <div class="tile tile-1" style="background:#FFFFFF;"></div>
+  <div class="tile tile-1 tile-header-admin" style="position:relative;">
+    <div class="tile-title" style="font-size:13px;" id="adminBadge">...</div>
+  </div>
 
 </div><!-- /metro-grid -->
 </div><!-- /pageMain -->
