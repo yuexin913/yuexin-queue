@@ -746,7 +746,8 @@ async function loadSchedule() {
     if (c) c.textContent = "—";
   });
   document.getElementById("sessionDoctorText").textContent = "—";
-  document.getElementById("sessionDoctorSub").textContent = "";
+  const subEl = document.getElementById("sessionDoctorSub");
+  if (subEl) subEl.textContent = "";
   try {
     const data = await xhrGet(`${API_URL}?action=adminGetTodaySchedule&date=${dateToYMD(state.viewDate)}&lineId=${state.lineId}`);
     if (loadingBar) loadingBar.style.display = "none";
@@ -754,7 +755,7 @@ async function loadSchedule() {
   } catch(e) {
     if (loadingBar) loadingBar.style.display = "none";
     document.getElementById("scheduleContent").innerHTML =
-      `<div style="grid-column:1/-1;padding:12px;background:var(--bg);"><div class="alert alert-error">診表暫時無法載入，請重新整理頁面。<br><small>${e.message}</small></div></div>`;
+      `<div style="grid-column:1/-1;padding:12px;background:var(--bg);"><div class="alert alert-error">診表暫時無法載入。<br><small>${e.message}<br>${e.stack||''}</small></div></div>`;
   }
 }
 
