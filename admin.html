@@ -935,7 +935,15 @@ function renderSchedule(bookings, preferredSession) {
   });
 
   if (openSessions.length === 0) {
-    el.innerHTML = `<div class="loading-tile"><div class="empty-state">今日無開診</div></div>`;
+    // 無開診（週日）：醫師磚顯示「休息」，仍渲染 30 個空格保持版面
+    document.getElementById("sessionDoctorText").textContent = "休息";
+    const subElR = document.getElementById("sessionDoctorSub");
+    if (subElR) subElR.textContent = "";
+    let emptyHtml = "";
+    for (let i = 1; i <= 30; i++) {
+      emptyHtml += `<div class="grid-cell empty"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
+    }
+    el.innerHTML = emptyHtml;
     return;
   }
 
