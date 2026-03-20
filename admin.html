@@ -245,6 +245,7 @@
     font-size: 12px; font-weight: 700;
     position: absolute; bottom: 5px; left: 6px; right: 20px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    text-align: left;
   }
   .cell-caution {
     width: 10px; height: 10px;
@@ -841,7 +842,7 @@ function xhrPost(url, payload) {
 function getTodayStr() { const n = new Date(); return n.getFullYear() + "/" + String(n.getMonth()+1).padStart(2,"0") + "/" + String(n.getDate()).padStart(2,"0"); }
 function esc(str) { return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
-async function loadSchedule() {
+async function loadSchedule(preferredSession) {
   // A2：醫師磚顯示「載入中...」
   document.getElementById("sessionDoctorText").textContent = "載入中...";
   const subEl = document.getElementById("sessionDoctorSub");
@@ -863,7 +864,7 @@ async function loadSchedule() {
   if (loadingBar) loadingBar.style.display = "none";
   try {
     const data = await xhrGet(`${API_URL}?action=adminGetTodaySchedule&date=${dateToYMD(state.viewDate)}&lineId=${state.lineId}`);
-    renderSchedule(data.bookings || []);
+    renderSchedule(data.bookings || [], preferredSession);
   } catch(e) {
     if (loadingBar) loadingBar.style.display = "none";
     document.getElementById("scheduleContent").innerHTML =
@@ -871,7 +872,7 @@ async function loadSchedule() {
   }
 }
 
-function renderSchedule(bookings) {
+function renderSchedule(bookings, preferredSession) {
   allBookings = bookings;
   const el = document.getElementById("scheduleContent");
   const dow = state.viewDate.getDay();
@@ -899,7 +900,16 @@ function renderSchedule(bookings) {
     return;
   }
 
-  activeSession = openSessions[0];
+  // 決定預設時段：優先用傳入的 preferredSession，否則依當前時間
+  let defaultSession = preferredSession;
+  if (!defaultSession || !openSessions.includes(defaultSession)) {
+    const now = new Date();
+    const hhmm = now.getHours() * 100 + now.getMinutes();
+    if (hhmm <= 1259) defaultSession = "早上";
+    else if (hhmm <= 1714) defaultSession = "下午";
+    else defaultSession = "晚上";
+  }
+  activeSession = openSessions.includes(defaultSession) ? defaultSession : openSessions[0];
   switchTab(activeSession);
 }
 
@@ -1061,7 +1071,7 @@ function renderSessionContent(session) {
         ? `<div style="position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>` : "";
       html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="cursor:pointer;position:relative;">
         <div style="position:absolute;top:7px;left:6px;font-size:20px;font-weight:700;color:#111111;">${esc(c.checkInTime)}前</div>
-        <div style="position:absolute;bottom:6px;left:6px;right:90px;font-size:18px;font-weight:400;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.name)}</div>
+        <div style="position:absolute;bottom:6px;left:6px;right:90px;font-size:12px;font-weight:400;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${esc(c.name)}</div>
         <button id="btn-${esc(c.bookingId)}"
           onclick="event.stopPropagation(); toggleCheckin('${esc(c.bookingId)}',this)"
           style="position:absolute;top:7px;right:7px;background:#000;color:${btnTextColor};border:none;font-family:inherit;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;letter-spacing:0.5px;">${btnLabel}</button>
@@ -1070,12 +1080,12 @@ function renderSessionContent(session) {
     } else if (c.type === "rt") {
       const isNotified = c.isAdminBooking && c.note.indexOf("[已通知]") !== -1;
       const cellClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
-      const numDisplay = c.isAdminBooking && isNotified ? `${c.num}✓` : `${c.num}`;
+      const numDisplay = `${c.num}`;
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const cautionHtml = (c.isAdminBooking && !isNotified) ? `<div class="cell-caution"></div>` : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
-        <span class="cell-name" style="font-size:18px;font-weight:400;color:#ffffff;position:absolute;bottom:5px;left:6px;right:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(c.name)}">${esc(c.name)}</span>
+        <span class="cell-name" style="font-size:12px;font-weight:400;color:#ffffff;position:absolute;bottom:5px;left:6px;right:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${esc(c.name)}</span>
         ${cautionHtml}
       </div>`;
     } else {
@@ -1178,7 +1188,7 @@ async function doToggleNotified() {
     const data = await xhrPost(API_URL, { action: "toggleNotified", bookingId: state.contactBookingId, isNotified: newIsNotified, lineId: state.lineId });
     if (data.success) {
       closeModal("modalContact");
-      loadSchedule();
+      loadSchedule(activeSession);
     } else {
       btn.disabled = false;
       btn.textContent = state.contactIsNotified ? "✓ 已通知" : "未通知";
