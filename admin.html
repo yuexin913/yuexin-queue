@@ -691,7 +691,7 @@ async function initLiff() {
     state.adminName = verify.name;
     document.getElementById("adminBadge").textContent = state.adminName.toUpperCase();
     document.getElementById("pageAuth").style.display = "none";
-    document.getElementById("pageMain").style.display = "flex";
+    document.getElementById("pageMain").style.display = "block";
     updateDateNav();
     loadSchedule();
   } catch(e) {
