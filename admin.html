@@ -48,9 +48,34 @@
   /* ════════════════════════════════
      AUTH 頁
   ════════════════════════════════ */
-  #pageAuth { display: flex; align-items: center; justify-content: center; height: 100vh; background: var(--bg); }
-  .auth-card { background: var(--bg-3); padding: 40px 32px; text-align: center; max-width: 320px; width: 100%; }
-  .auth-title { font-size: 20px; font-weight: 700; color: var(--marigold); margin-bottom: 8px; letter-spacing: 2px; }
+  #pageAuth {
+    display: flex; flex-direction: column;
+    min-height: 100vh; background: var(--bg);
+  }
+  /* 磚塊動畫區（全寬置頂）*/
+  .auth-tiles {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    background: #111111;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .auth-tile {
+    aspect-ratio: 1 / 1;
+    background: var(--bg-3);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .auth-tile.visible { opacity: 1; }
+  /* 文字區 */
+  .auth-text {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px 24px; text-align: center;
+  }
+  .auth-title { font-size: 20px; font-weight: 700; color: var(--cloud); margin-bottom: 8px; letter-spacing: 2px; }
   .auth-sub { font-size: 13px; color: var(--text-light); line-height: 1.6; }
 
   /* ════════════════════════════════
@@ -272,7 +297,7 @@
   .loading-bar { height: 100%; width: 40%; background: var(--marigold); animation: loadingSlide 1.2s ease-in-out infinite; }
   @keyframes loadingSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
   /* Skeleton pulse */
-  @keyframes skeletonPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.5; } }
+  @keyframes skeletonPulse { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.6; } }
   .grid-cell.skeleton { background: var(--bg-3); animation: skeletonPulse 1.4s ease-in-out infinite; }
   .grid-cell.skeleton .cell-num { color: transparent; }
 
@@ -380,10 +405,16 @@
 
 <!-- Auth -->
 <div id="pageAuth">
-  <div class="auth-card">
-    
-    <div class="auth-title">悅心診所線上服務</div>
-    <div class="auth-sub">請稍候...</div>
+  <div class="auth-tiles" id="authTiles">
+    <div class="auth-tile" id="at0"></div>
+    <div class="auth-tile" id="at1"></div>
+    <div class="auth-tile" id="at2"></div>
+    <div class="auth-tile" id="at3"></div>
+    <div class="auth-tile" id="at4"></div>
+  </div>
+  <div class="auth-text" id="authText">
+    <div class="auth-title" id="authTitle">悅心診所線上服務</div>
+    <div class="auth-sub" id="authSub">請稍候...</div>
   </div>
 </div>
 
@@ -666,11 +697,71 @@ function onDatePick(e) {
   loadSchedule();
 }
 
+// ── Auth 磚塊動畫 ──
+const AUTH_COLORS = [
+  "#ff8601", // marigold
+  "#0096D6", // lagoon
+  "#00B5E2", // capri
+  "#bacb00", // kiwi
+  "#dbef76", // sunny
+  "#fee800", // yellow
+  "#f93259", // pink
+  "#b362a7"  // orchid
+];
+
+var authAnimTimer = null;
+var authAnimPhase = "fill"; // fill | empty
+var authAnimStep = 0;
+var authTileColors = [null, null, null, null, null];
+
+function authGetRandomColor() {
+  return AUTH_COLORS[Math.floor(Math.random() * AUTH_COLORS.length)];
+}
+
+function authAnimTick() {
+  if (authAnimPhase === "fill") {
+    // 填入一個磚塊
+    var color = authGetRandomColor();
+    authTileColors[authAnimStep] = color;
+    var tile = document.getElementById("at" + authAnimStep);
+    if (tile) { tile.style.background = color; tile.classList.add("visible"); }
+    authAnimStep++;
+    if (authAnimStep >= 5) {
+      authAnimPhase = "empty";
+      authAnimStep = 0;
+    }
+  } else {
+    // 消除一個磚塊
+    var tile = document.getElementById("at" + authAnimStep);
+    if (tile) { tile.classList.remove("visible"); }
+    authAnimStep++;
+    if (authAnimStep >= 5) {
+      authAnimPhase = "fill";
+      authAnimStep = 0;
+    }
+  }
+}
+
+function authAnimStart() {
+  if (authAnimTimer) return;
+  authAnimTimer = setInterval(authAnimTick, 250);
+}
+
+function authAnimStop() {
+  if (authAnimTimer) { clearInterval(authAnimTimer); authAnimTimer = null; }
+  // 所有磚塊淡出
+  for (var i = 0; i < 5; i++) {
+    var tile = document.getElementById("at" + i);
+    if (tile) tile.classList.remove("visible");
+  }
+}
+
 function toggleHeaderMenu() {
   // 預留：點擊 Header 展開選單（未來實作）
 }
 
 async function initLiff() {
+  authAnimStart();
   try {
     await liff.init({ liffId: "2009340533-qmLOBHw1" });
     if (!liff.isLoggedIn()) { liff.login(); return; }
@@ -678,18 +769,33 @@ async function initLiff() {
     state.lineId = profile.userId;
     const verify = await xhrGet(`${API_URL}?action=verifyAdmin&lineId=${state.lineId}`);
     if (!verify.success) {
-      document.getElementById("pageAuth").innerHTML = `<div class="auth-card"><div class="auth-title">頁面錯誤</div></div>`;
+      authAnimStop();
+      document.getElementById("authTitle").textContent = "頁面錯誤";
+      document.getElementById("authSub").textContent = "";
       return;
     }
     state.adminName = verify.name;
     document.getElementById("adminBadge").textContent = state.adminName.toUpperCase();
-    document.getElementById("pageAuth").style.display = "none";
-    document.getElementById("pageMain").style.display = "block";
+    // 動畫停止，淡出 Auth，淡入 Metro Grid
+    authAnimStop();
+    const pageAuth = document.getElementById("pageAuth");
+    const pageMain = document.getElementById("pageMain");
+    pageAuth.style.transition = "opacity 0.3s ease";
+    pageAuth.style.opacity = "0";
+    setTimeout(function() {
+      pageAuth.style.display = "none";
+      pageMain.style.opacity = "0";
+      pageMain.style.display = "block";
+      pageMain.style.transition = "opacity 0.3s ease";
+      setTimeout(function() { pageMain.style.opacity = "1"; }, 20);
+    }, 300);
     updateDateNav();
     loadSchedule();
     checkSecurityCaution();
   } catch(e) {
-    document.getElementById("pageAuth").innerHTML = `<div class="auth-card"><div class="auth-title">暫時無法連線</div><div class="auth-sub">請重新整理頁面。</div></div>`;
+    authAnimStop();
+    document.getElementById("authTitle").textContent = "暫時無法連線";
+    document.getElementById("authSub").textContent = "請重新整理頁面。";
   }
 }
 
