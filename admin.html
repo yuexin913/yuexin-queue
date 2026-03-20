@@ -12,13 +12,16 @@
      PANTONE 2026 Tropic Tonalities
   ════════════════════════════════ */
   :root {
-    --marigold:    #FF7A00;
-    --marigold-dk: #CC6200;
+    --marigold:    #ff8601;
+    --lagoon:      #0096D6;
+    --marigold-dk: #cc6b00;
     --capri:       #00B5E2;
-    --kiwi:        #8CC63F;
-    --yellow:      #FFD700;
-    --pink:        #E8366A;
-    --orchid:      #9B59B6;
+    --kiwi:        #bacb00;
+    --sunny:       #dbef76;
+    --yellow:      #fee800;
+    --pink:        #f93259;
+    --orchid:      #b362a7;
+    --cloud:       #f0efeb;
     --bg:          #1E1E24;
     --bg-2:        #26262E;
     --bg-3:        #2E2E38;
@@ -168,36 +171,22 @@
 
   /* ── Row 2：日期導覽 ── */
   .tile-nav { background: var(--capri); cursor: pointer; justify-content: center; align-items: center; }
-  .tile-nav .tile-label { font-size: 16px; text-align: center; color: #fff; }
-  .tile-nav.today-btn .tile-label { font-size: 15px; }
-  .tile-nav-date { background: var(--bg-3); cursor: pointer; justify-content: center; align-items: center; }
-  .tile-nav-date .tile-label { font-size: 15px; font-weight: 700; text-align: center; }
-  .tile-nav-date .tile-sub { font-size: 11px; text-align: center; margin-top: 2px; }
+  .tile-nav-date { background: var(--capri); cursor: pointer; justify-content: center; align-items: center; }
   .tile-nav-date input[type="date"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; border: none; background: transparent; }
-  .tile-nav.disabled { background: var(--bg-3) !important; cursor: not-allowed; opacity: 0.5; }
-  .tile-nav.disabled .tile-title { color: var(--text-light) !important; }
-  .tile-nav.disabled:active { transform: none; opacity: 0.5; }
+  .tile-nav.disabled { background: #0090B8 !important; cursor: not-allowed; }
+  .tile-nav.disabled .tile-title { color: rgba(0,0,0,0.35) !important; }
+  .tile-nav.disabled:active { transform: none; }
 
-  /* ── Row 3：醫師＋時段 ── */
-  .tile-doctor { background: var(--bg-3); }
-  .tile-doctor .tile-label { font-size: 18px; }
-  .tile-doctor .tile-sub { font-size: 11px; }
-  .tile-doctor .substitute-badge {
+  /* ── Row 2：醫師＋時段 ── */
+  .doctor-substitute-note {
     position: absolute; top: 8px; right: 8px;
-    background: var(--error); color: #fff;
+    background: #000; color: var(--marigold);
     font-size: 10px; font-weight: 700;
     padding: 2px 6px; letter-spacing: 0.5px;
   }
   .tile-session { cursor: pointer; }
-  .tile-session .tile-title { font-size: 12px !important; font-weight: 700; top: 8px; left: 10px; }
-  .tile-session .tile-subtitle {
-    font-size: 26px !important; font-weight: 700 !important;
-    bottom: 6px; left: 10px; right: 10px;
-    color: var(--text) !important;
-    overflow: visible;
-  }
   .tile-session.active { outline: 3px solid #fff; outline-offset: -3px; opacity: 1 !important; }
-  .tile-session:not(.active) { opacity: 0.45; }
+  .tile-session:not(.active) { opacity: 0.55; }
 
   /* ── 30格診單 ── */
   /* grid-cell 現在直接放在 .metro-grid 裡，不需要額外容器 */
@@ -214,19 +203,21 @@
     min-width: 0;
   }
   .grid-cell:not(.empty):active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
-  .grid-cell.has-patient  { background: var(--marigold); cursor: pointer; }
-  .grid-cell.admin-pending  { background: var(--kiwi); cursor: pointer; }
-  .grid-cell.admin-notified { background: var(--yellow); cursor: pointer; }
-  .grid-cell.empty { background: var(--bg); }
+  /* 一般複診 & 代掛已通知：同色（實務意義相同）*/
+  .grid-cell.has-patient    { background: var(--kiwi); cursor: pointer; }
+  .grid-cell.admin-notified { background: var(--kiwi); cursor: pointer; }
+  /* 代掛未通知：Sunny Lime，有 caution */
+  .grid-cell.admin-pending  { background: var(--sunny); cursor: pointer; }
+  .grid-cell.empty { background: transparent; }
 
-  .cell-num { font-size: 22px; font-weight: 400; line-height: 1; align-self: flex-start; }
-  .grid-cell.has-patient .cell-num    { color: #fff; font-weight: 200; }
-  .grid-cell.admin-pending .cell-num  { color: #fff; font-weight: 200; }
-  .grid-cell.admin-notified .cell-num { color: #1A1A1A; font-weight: 200; }
+  .cell-num { font-size: 22px; font-weight: 700; line-height: 1; align-self: flex-start; }
+  .grid-cell.has-patient .cell-num    { color: #111111; }
+  .grid-cell.admin-pending .cell-num  { color: #111111; }
+  .grid-cell.admin-notified .cell-num { color: #111111; }
   .grid-cell.empty .cell-num { color: var(--empty-text); font-weight: 200; }
 
   .cell-name {
-    font-size: 11px; font-weight: 700;
+    font-size: 12px; font-weight: 700;
     position: absolute; bottom: 5px; left: 6px; right: 20px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
@@ -235,9 +226,9 @@
     background: #000;
     position: absolute; bottom: 7px; right: 6px;
   }
-  .grid-cell.has-patient .cell-name    { color: rgba(255,255,255,0.9); }
-  .grid-cell.admin-pending .cell-name  { color: rgba(255,255,255,0.9); }
-  .grid-cell.admin-notified .cell-name { color: rgba(0,0,0,0.7); }
+  .grid-cell.has-patient .cell-name    { color: #ffffff; }
+  .grid-cell.admin-pending .cell-name  { color: #ffffff; }
+  .grid-cell.admin-notified .cell-name { color: #ffffff; }
   .grid-cell.empty .cell-name { color: transparent; }
 
   /* 初診橫幅 */
@@ -250,13 +241,11 @@
     overflow: hidden;
   }
   .grid-np-banner:active { transform: scale(0.99); opacity: 0.9; transition: all 0.1s ease-out; }
-  .grid-np-banner.has-patient   { background: var(--marigold); }
-  .grid-np-banner.admin-pending { background: var(--kiwi); cursor: pointer; }
-  .grid-np-banner.admin-notified{ background: var(--yellow); cursor: pointer; }
-  .np-banner-time { font-size: 12px; flex-shrink: 0; font-weight: 200; color: rgba(255,255,255,0.8); }
-  .np-banner-name { flex: 1; font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; }
-  .grid-np-banner.admin-notified .np-banner-time { color: rgba(0,0,0,0.5); }
-  .grid-np-banner.admin-notified .np-banner-name { color: #1A1A1A; }
+  /* 一般初診 & 代掛已通知：kiwi */
+  .grid-np-banner.has-patient    { background: var(--kiwi); }
+  .grid-np-banner.admin-notified { background: var(--kiwi); cursor: pointer; }
+  /* 代掛未通知：sunny */
+  .grid-np-banner.admin-pending  { background: var(--sunny); cursor: pointer; }
   .checkin-mini { flex-shrink: 0; padding: 6px 12px; font-size: 12px; font-family: inherit; font-weight: 700; cursor: pointer; border: none; white-space: nowrap; }
   .checkin-mini:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
   .checkin-mini.pending { background: rgba(255,255,255,0.25); color: #fff; }
@@ -400,41 +389,40 @@
 
   <!-- Row 1: 已移除（LIFF 瀏覽器頂部已顯示標題）-->
 
-  <!-- Row 2: 日期導覽 -->
+  <!-- Row 1: 日期導覽 -->
   <div class="tile tile-1 tile-nav today-btn" onclick="goToToday()" style="position:relative;">
-    <div class="tile-title" style="font-size:15px;color:#fff;">今日</div>
+    <div class="tile-title" style="font-size:15px;color:#111111;">今日</div>
   </div>
   <div class="tile tile-1 tile-nav today-btn" onclick="goToNextWorkday()" style="position:relative;">
-    <div class="tile-title" style="font-size:15px;color:#fff;">明日</div>
+    <div class="tile-title" style="font-size:15px;color:#111111;">明日</div>
   </div>
   <div class="tile tile-1 tile-nav" id="btnPrev" onclick="changeDate(-1)" style="position:relative;">
-    <div class="tile-title" style="font-size:18px;color:#fff;">＜</div>
+    <div class="tile-title" style="font-size:18px;color:#111111;">＜</div>
   </div>
   <div class="tile tile-1 tile-nav-date" style="position:relative;">
-    <div class="tile-title" style="font-size:16px;" id="dateNavLabel"></div>
-    <div class="tile-subtitle" id="dateNavSub"></div>
+    <div class="tile-title" style="font-size:16px;color:#111111;" id="dateNavLabel"></div>
+    <div class="tile-subtitle" style="color:#ffffff;" id="dateNavSub"></div>
     <input type="date" class="date-nav-input" id="dateNavInput" onchange="onDatePick(event)">
   </div>
-  <div class="tile tile-1 tile-nav" onclick="changeDate(1)" style="position:relative;">
-    <div class="tile-title" style="font-size:18px;color:#fff;">＞</div>
+  <div class="tile tile-1 tile-nav" id="btnNext" onclick="changeDate(1)" style="position:relative;">
+    <div class="tile-title" style="font-size:18px;color:#111111;">＞</div>
   </div>
 
-  <!-- Row 3: 醫師資訊 + 時段磚 -->
-  <div class="tile tile-2 tile-doctor" id="doctorTile" style="position:relative;">
-    <div class="tile-title" style="font-size:20px;" id="sessionDoctorText">—</div>
-    <div class="tile-subtitle" id="sessionDoctorSub"></div>
+  <!-- Row 2: 醫師資訊 + 時段磚 -->
+  <div class="tile tile-2" id="doctorTile" style="position:relative;background:var(--marigold);">
+    <div class="tile-title" style="font-size:20px;color:#111111;" id="sessionDoctorText">—</div>
   </div>
-  <div class="tile tile-1 tile-session tile-dark" id="session-早上" onclick="switchTab('早上')" style="position:relative;">
-    <div class="tile-title" style="font-size:13px;">早上診</div>
-    <div style="font-size:20px;font-weight:700;color:var(--text);margin-top:auto;" id="count-早上">—</div>
+  <div class="tile tile-1 tile-session" id="session-早上" onclick="switchTab('早上')" style="position:relative;background:var(--lagoon);">
+    <div class="tile-title" style="font-size:18px;color:#111111;">早上診</div>
+    <div style="font-size:15px;font-weight:400;color:#ffffff;margin-top:auto;" id="count-早上">—</div>
   </div>
-  <div class="tile tile-1 tile-session tile-dark" id="session-下午" onclick="switchTab('下午')" style="position:relative;">
-    <div class="tile-title" style="font-size:13px;">下午診</div>
-    <div style="font-size:20px;font-weight:700;color:var(--text);margin-top:auto;" id="count-下午">—</div>
+  <div class="tile tile-1 tile-session" id="session-下午" onclick="switchTab('下午')" style="position:relative;background:var(--lagoon);">
+    <div class="tile-title" style="font-size:18px;color:#111111;">下午診</div>
+    <div style="font-size:15px;font-weight:400;color:#ffffff;margin-top:auto;" id="count-下午">—</div>
   </div>
-  <div class="tile tile-1 tile-session tile-dark" id="session-晚上" onclick="switchTab('晚上')" style="position:relative;">
-    <div class="tile-title" style="font-size:13px;">晚上診</div>
-    <div style="font-size:20px;font-weight:700;color:var(--text);margin-top:auto;" id="count-晚上">—</div>
+  <div class="tile tile-1 tile-session" id="session-晚上" onclick="switchTab('晚上')" style="position:relative;background:var(--lagoon);">
+    <div class="tile-title" style="font-size:18px;color:#111111;">晚上診</div>
+    <div style="font-size:15px;font-weight:400;color:#ffffff;margin-top:auto;" id="count-晚上">—</div>
   </div>
 
   <!-- Row 4-9: 30格診單（JS 動態輸出到這裡）-->
@@ -443,36 +431,32 @@
     載入診表中...
   </div>
 
-  <!-- Row 10: 不指定 + 心理治療 + 空格 -->
-  <div class="tile tile-1 tile-unspec" onclick="openUnspecModal()" style="position:relative;">
-    <div class="tile-title" style="font-size:13px;color:var(--text-light);">不指定</div>
-    <div class="tile-subtitle" id="unspecCount"></div>
+  <!-- Row 9: 不指定 + 心理治療 -->
+  <div class="tile tile-1" onclick="openUnspecModal()" style="position:relative;background:var(--kiwi);cursor:pointer;">
+    <div class="tile-title" style="font-size:18px;color:#111111;">不指定</div>
+    <div style="font-size:15px;font-weight:400;color:#ffffff;margin-top:auto;" id="unspecCount"></div>
   </div>
-  <div class="tile tile-4 tile-therapy" style="position:relative;">
-    <div class="tile-title" style="font-size:16px;color:#fff;">心理治療</div>
-    <div class="tile-subtitle" style="color:rgba(255,255,255,0.7);">目前尚無排程資料</div>
-    <div class="tile-note">建置中</div>
+  <div class="tile tile-4" style="position:relative;background:var(--sunny);">
+    <div class="tile-title" style="font-size:15px;color:#111111;">心理治療</div>
+    <div style="font-size:12px;font-weight:200;color:#ffffff;position:absolute;bottom:7px;left:10px;">目前尚無排程資料</div>
+    <div class="tile-note" style="color:var(--sunny);">建置中</div>
   </div>
 
-  <!-- Row 11: 工具磚 -->
-  <div class="tile tile-1 tile-marigold" onclick="openModal('modalQuery')" style="position:relative;">
-    <div class="tile-title" style="font-size:18px;color:#fff;">查詢</div>
-    <div class="tile-subtitle">姓名／電話／生日</div>
+  <!-- Row 10: 工具＋管理員 -->
+  <div class="tile tile-1" onclick="openModal('modalQuery')" style="position:relative;background:var(--yellow);cursor:pointer;">
+    <div class="tile-title" style="font-size:18px;color:#111111;">查詢</div>
   </div>
-  <div class="tile tile-1 tile-capri" onclick="openModal('modalSubstitute')" style="position:relative;">
-    <div class="tile-title" style="font-size:18px;color:#fff;">代診</div>
-    <div class="tile-subtitle">修改代診醫師</div>
+  <div class="tile tile-1" onclick="openModal('modalSubstitute')" style="position:relative;background:var(--marigold);cursor:pointer;">
+    <div class="tile-title" style="font-size:18px;color:#111111;">代診</div>
   </div>
-  <div class="tile tile-1 tile-yellow" onclick="openModal('modalBroadcast')" style="position:relative;">
-    <div class="tile-title" style="font-size:18px;color:#1A1A1A;">群發</div>
-    <div class="tile-subtitle" style="color:rgba(0,0,0,0.5);">推播通知病患</div>
+  <div class="tile tile-1" onclick="openModal('modalBroadcast')" style="position:relative;background:var(--orchid);cursor:pointer;">
+    <div class="tile-title" style="font-size:18px;color:#111111;">群發</div>
   </div>
-  <div class="tile tile-1 tile-pink" onclick="openModal('modalSecurity')" style="position:relative;">
-    <div class="tile-title" style="font-size:18px;color:#fff;">資安</div>
-    <div class="tile-subtitle">異常行為記錄</div>
+  <div class="tile tile-1" id="securityTile" onclick="openModal('modalSecurity')" style="position:relative;background:var(--pink);cursor:pointer;">
+    <div class="tile-title" style="font-size:18px;color:#111111;">資安</div>
   </div>
-  <div class="tile tile-1 tile-header-admin" style="position:relative;">
-    <div class="tile-title" style="font-size:13px;" id="adminBadge">...</div>
+  <div class="tile tile-1" style="position:relative;background:var(--cloud);">
+    <div class="tile-title" style="font-size:15px;color:#111111;" id="adminBadge">...</div>
   </div>
 
 </div><!-- /metro-grid -->
@@ -627,12 +611,12 @@ function updateDateNav() {
   const mm = String(d.getMonth()+1).padStart(2,"0");
   const dd = String(d.getDate()).padStart(2,"0");
   document.getElementById("dateNavLabel").textContent = mm + "/" + dd;
-  document.getElementById("dateNavSub").textContent = "(" + weekdays[d.getDay()] + ")";
+  document.getElementById("dateNavSub").textContent = weekdays[d.getDay()];
   const ymd = dateToYMD(d);
   document.getElementById("dateNavInput").value = ymd.substring(0,4) + "-" + ymd.substring(4,6) + "-" + ymd.substring(6,8);
-  // 今天以前不能往前
   const today = new Date(); today.setHours(0,0,0,0);
   const view = new Date(d); view.setHours(0,0,0,0);
+  // ＜ disabled：今天或今天以前
   const prevBtn = document.getElementById("btnPrev");
   if (view <= today) {
     prevBtn.classList.add("disabled");
@@ -640,6 +624,16 @@ function updateDateNav() {
   } else {
     prevBtn.classList.remove("disabled");
     prevBtn.onclick = function() { changeDate(-1); };
+  }
+  // ＞ disabled：30天後
+  const maxDate = new Date(today); maxDate.setDate(today.getDate() + 30);
+  const nextBtn = document.getElementById("btnNext");
+  if (view >= maxDate) {
+    nextBtn.classList.add("disabled");
+    nextBtn.onclick = null;
+  } else {
+    nextBtn.classList.remove("disabled");
+    nextBtn.onclick = function() { changeDate(1); };
   }
 }
 function changeDate(offset) {
@@ -691,6 +685,7 @@ async function initLiff() {
     document.getElementById("pageMain").style.display = "block";
     updateDateNav();
     loadSchedule();
+    checkSecurityCaution();
   } catch(e) {
     document.getElementById("pageAuth").innerHTML = `<div class="auth-card"><div class="auth-title">暫時無法連線</div><div class="auth-sub">請重新整理頁面。</div></div>`;
   }
@@ -810,15 +805,14 @@ function switchTab(session) {
   const doctor = list.length > 0 ? list[0].doctor : (DEFAULT_DOCTOR_SCHEDULE[state.viewDate.getDay()]?.[session] || "—");
   const isSubstitute = list.length > 0 && list[0].isSubstitute;
   document.getElementById("sessionDoctorText").textContent = doctor;
-  document.getElementById("sessionDoctorSub").textContent = isSubstitute ? "代診" : "主治";
   const doctorTile = document.getElementById("doctorTile");
-  const badge = doctorTile.querySelector(".substitute-badge");
-  if (badge) badge.remove();
+  const oldNote = doctorTile.querySelector(".doctor-substitute-note");
+  if (oldNote) oldNote.remove();
   if (isSubstitute) {
-    const b = document.createElement("div");
-    b.className = "substitute-badge";
-    b.textContent = "代診";
-    doctorTile.appendChild(b);
+    const n = document.createElement("div");
+    n.className = "doctor-substitute-note";
+    n.textContent = "代診";
+    doctorTile.appendChild(n);
   }
   renderSessionContent(session);
 }
@@ -934,15 +928,21 @@ function renderSessionContent(session) {
       const isDone = c.status === "已看診";
       const isNotified = c.isAdminBooking && c.note.indexOf("[已通知]") !== -1;
       const bannerClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
-      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
-      const checkMark = c.isAdminBooking && isNotified ? "✓ " : "";
-      const npCautionHtml = (c.isAdminBooking && !isNotified) ? `<div class="cell-caution" style="position:absolute;bottom:8px;right:8px;width:10px;height:10px;background:#000;"></div>` : "";
-      html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="position:relative;">
-        <span class="np-banner-time">${checkMark}${esc(c.checkInTime)}前</span>
-        <span class="np-banner-name">初診・${esc(c.name)}</span>
-        <button class="checkin-mini ${isDone?'done':'pending'}" id="btn-${esc(c.bookingId)}"
-          onclick="event.stopPropagation(); toggleCheckin('${esc(c.bookingId)}',this)">${isDone?'✓ 已看診':'未看診'}</button>
-        ${npCautionHtml}
+      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" onclick="openContactModalFromEl(this)"`;
+      const isYellow = bannerClass === "admin-notified";
+      const textColor = isYellow ? "rgba(0,0,0,0.85)" : "#fff";
+      const subColor  = isYellow ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.75)";
+      const btnTextColor = isYellow ? "#1A1A1A" : bannerClass === "admin-pending" ? "var(--kiwi)" : "var(--marigold)";
+      const btnLabel = isDone ? "已報到" : "未報到";
+      const cautionHtml = (c.isAdminBooking && !isNotified)
+        ? `<div style="position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>` : "";
+      html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="cursor:pointer;position:relative;">
+        <div class="tile-title" style="font-size:12px;color:${textColor};position:absolute;top:7px;left:10px;">${esc(c.checkInTime)}前</div>
+        <div class="tile-subtitle" style="position:absolute;bottom:7px;left:10px;right:80px;font-size:13px;font-weight:700;color:${textColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.name)}</div>
+        <button id="btn-${esc(c.bookingId)}"
+          onclick="event.stopPropagation(); toggleCheckin('${esc(c.bookingId)}',this)"
+          style="position:absolute;top:7px;right:7px;background:#000;color:${btnTextColor};border:none;font-family:inherit;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;letter-spacing:0.5px;">${btnLabel}</button>
+        ${cautionHtml}
       </div>`;
     } else if (c.type === "rt") {
       const isNotified = c.isAdminBooking && c.note.indexOf("[已通知]") !== -1;
@@ -1306,6 +1306,22 @@ async function doBroadcastSend() {
   } catch(e) { errEl.textContent = "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
   document.getElementById("broadcastOverlay").classList.remove("active");
   btn.disabled = false; btn.textContent = "確認發送";
+}
+
+/* ── 資安 caution 檢查 ── */
+async function checkSecurityCaution() {
+  try {
+    const data = await xhrGet(`${API_URL}?action=getSecurityLog&lineId=${state.lineId}`);
+    const tile = document.getElementById("securityTile");
+    if (!tile) return;
+    const oldCaution = tile.querySelector(".cell-caution");
+    if (oldCaution) oldCaution.remove();
+    if (data.logs && data.logs.length > 0) {
+      const c = document.createElement("div");
+      c.className = "cell-caution";
+      tile.appendChild(c);
+    }
+  } catch(e) { /* 靜默失敗，不影響主流程 */ }
 }
 
 /* ── 資安監控 ── */
