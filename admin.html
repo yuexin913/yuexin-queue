@@ -859,19 +859,8 @@ function renderSessionContent(session) {
   const unList = list.filter(b => b.type !== "初診" && b.slot === "不指定");
   const doctor = list.length > 0 ? list[0].doctor : "";
 
-  // 資訊列
-  const infoRow = document.getElementById("sessionInfoRow");
-  infoRow.style.display = list.length > 0 ? "flex" : "none";
-  const isSubstitute = list.length > 0 && list[0].isSubstitute;
-  const doctorLabel = doctor ? (isSubstitute ? "*代診 " + doctor + " 醫師" : doctor + " 醫師") : "";
-  document.getElementById("sessionDoctorText").textContent = doctorLabel;
-  document.getElementById("sessionCountBadges").innerHTML =
-    `<span class="count-badge count-new">初診 ${npList.length}</span>` +
-    `<span class="count-badge count-rt">複診 ${rtList.length}</span>` +
-    (unList.length > 0 ? `<span class="count-badge count-un">不指定 ${unList.length}</span>` : "");
-
   if (list.length === 0) {
-    el.innerHTML = `<div class="empty-state">📋 此時段無預約</div>`;
+    el.innerHTML = `<div class="empty-state">此時段無預約</div>`;
     return;
   }
 
