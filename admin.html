@@ -39,7 +39,7 @@
 
   /* ── 全域重置 ── */
   * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; box-shadow: none !important; }
-  html, body { height: 100%; background: var(--bg); overflow-x: hidden; }
+  html, body { background: var(--bg); overflow-x: hidden; }
   body { font-family: "Segoe UI", "Noto Sans TC", sans-serif; color: var(--text); }
 
   /* ════════════════════════════════
@@ -71,7 +71,7 @@
     position: relative;
     overflow: hidden;
     cursor: default;
-    aspect-ratio: 1 / 1;
+    height: var(--cell);
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -203,7 +203,7 @@
     padding: 6px 6px 4px;
     display: flex;
     flex-direction: column;
-    aspect-ratio: 1 / 1;
+    height: var(--cell);
     cursor: default;
     overflow: hidden;
     position: relative;
