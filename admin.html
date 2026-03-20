@@ -247,7 +247,9 @@
     grid-column: 1 / -1;
     border: none; padding: 8px 12px;
     display: flex; align-items: center; gap: 10px;
-    aspect-ratio: 5 / 1;
+    height: calc((min(100vw, 480px) - 5px * 4) / 5);
+    max-height: calc((min(100vw, 480px) - 5px * 4) / 5);
+    overflow: hidden;
   }
   .grid-np-banner:active { transform: scale(0.99); opacity: 0.9; transition: all 0.1s ease-out; }
   .grid-np-banner.has-patient   { background: var(--marigold); }
