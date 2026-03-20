@@ -631,7 +631,9 @@
 </div>
 
 <script>
-// 前端副本：和 GAS DEFAULT_DOCTOR_SCHEDULE 保持同步
+// 前端 fallback 副本：僅在 GAS 未回傳 openSessions 時使用（舊版相容）
+// 正常情況下 adminGetTodaySchedule 會回傳 openSessions，此副本不會被用到
+// ⚠️ 班表異動時仍需同步修改此副本，以防 GAS 部署中斷時 fallback 正確
 const DEFAULT_DOCTOR_SCHEDULE = {
   1: { "早上": "粟寧",   "下午": "粟寧",   "晚上": "王伯元" },
   2: { "早上": "王麟祥", "下午": "粟寧",   "晚上": "郭玉柱" },
@@ -903,7 +905,7 @@ async function loadSchedule(preferredSession) {
   if (loadingBar) loadingBar.style.display = "none";
   try {
     const data = await xhrGet(`${API_URL}?action=adminGetTodaySchedule&date=${dateToYMD(state.viewDate)}&lineId=${state.lineId}`);
-    renderSchedule(data.bookings || [], preferredSession);
+    renderSchedule(data.bookings || [], preferredSession, data.openSessions || null);
   } catch(e) {
     if (loadingBar) loadingBar.style.display = "none";
     document.getElementById("scheduleContent").innerHTML =
@@ -911,12 +913,16 @@ async function loadSchedule(preferredSession) {
   }
 }
 
-function renderSchedule(bookings, preferredSession) {
+function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
   allBookings = bookings;
   const el = document.getElementById("scheduleContent");
+  // 優先使用 GAS 回傳的開診時段，fallback 到前端副本（相容舊版 GAS）
   const dow = state.viewDate.getDay();
-  const daySchedule = DEFAULT_DOCTOR_SCHEDULE[dow] || {};
-  const openSessions = ["早上","下午","晚上"].filter(s => daySchedule[s] && daySchedule[s] !== "");
+  const openSessions = openSessionsFromGAS ||
+    ["早上","下午","晚上"].filter(s => {
+      const d = DEFAULT_DOCTOR_SCHEDULE[dow] || {};
+      return d[s] && d[s] !== "";
+    });
 
   // 更新三個時段磚
   ["早上","下午","晚上"].forEach(function(s) {
@@ -976,7 +982,7 @@ function switchTab(session) {
   });
   // 醫師資訊磚
   const list = allBookings.filter(b => b.session === session);
-  const doctor = list.length > 0 ? list[0].doctor : (DEFAULT_DOCTOR_SCHEDULE[state.viewDate.getDay()]?.[session] || "—");
+  const doctor = list.length > 0 ? list[0].doctor : "—";
   const isSubstitute = list.length > 0 && list[0].isSubstitute;
   document.getElementById("sessionDoctorText").textContent = doctor;
   const doctorTile = document.getElementById("doctorTile");
@@ -1002,24 +1008,6 @@ function renderSessionContent(session) {
       return parseInt(a.slot || "0") - parseInt(b.slot || "0");
     });
 
-  // 初診時間碼 → index 對照（和 GAS getNewPatientSlotTimes 邏輯一致）
-  const NP_SLOT_CONFIG = {
-    "早上": { startHour: 9,  startMin: 0,  offset: 15 },
-    "下午": { startHour: 14, startMin: 0,  offset: 15 },
-    "晚上": { startHour: 17, startMin: 30, offset: 15 }
-  };
-  function getNpRowStart(session, slotCode) {
-    const cfg = NP_SLOT_CONFIG[session];
-    if (!cfg) return null;
-    for (let i = 0; i < 5; i++) {
-      const totalMin = cfg.startHour * 60 + cfg.startMin + cfg.offset + i * 30;
-      const h = Math.floor(totalMin / 60);
-      const m = totalMin % 60;
-      const code = String(h).padStart(2,"0") + String(m).padStart(2,"0");
-      if (code === String(slotCode).padStart(4,"0")) return 5 + i * 5; // index: 5,10,15,20,25
-    }
-    return null;
-  }
   const rtList = list.filter(b => b.type !== "初診" && b.slot !== "不指定");
   const unList = list.filter(b => b.type !== "初診" && b.slot === "不指定");
   const doctor = list.length > 0 ? list[0].doctor : "";
@@ -1031,7 +1019,6 @@ function renderSessionContent(session) {
       emptyHtml += `<div class="grid-cell empty"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
     }
     el.innerHTML = emptyHtml;
-    return;
     return;
   }
 
@@ -1047,19 +1034,18 @@ function renderSessionContent(session) {
   */
 
   // 建立 30 格陣列，預設為空
-  // 每格格式：{ type: 'empty' | 'rt' | 'np_banner', ...data }
   const cells = [];
   for (let i = 0; i < 30; i++) cells.push({ type: "empty", num: i + 1 });
 
-  // 初診佔用的列集合，依時間碼對應固定 rowStart
+  // 初診佔用的列集合，直接使用 GAS 回傳的 npRowStart
   const npRowStarts = new Set();
   npList.forEach(function(np) {
-    const rowStart = getNpRowStart(session, np.slot);
-    if (rowStart !== null) npRowStarts.add(rowStart);
+    if (np.npRowStart !== null && np.npRowStart !== undefined) {
+      npRowStarts.add(np.npRowStart);
+    }
   });
 
   // 塞入複診（slot 決定位置）
-  // 若與初診格位衝突，收入 conflictList 而非直接隱藏
   const conflictList = [];
   rtList.forEach(function(b) {
     const slot = parseInt(b.slot, 10);
@@ -1067,18 +1053,17 @@ function renderSessionContent(session) {
       const idx = slot - 1;
       const rowStart = idx < 5 ? null : Math.floor((idx - 5) / 5) * 5 + 5;
       if (rowStart !== null && npRowStarts.has(rowStart)) {
-        // 格位與初診橫幅衝突 → 收入異常清單，不隱藏
         conflictList.push(b);
         return;
       }
-      cells[idx] = { type: "rt", num: slot, name: b.name, bookingId: b.bookingId, status: b.status, phone: b.phone || "", isAdminBooking: b.isAdminBooking || false, note: b.note || "", birth: b.birth || "" };
+      cells[idx] = { type: "rt", num: slot, name: b.name, bookingId: b.bookingId, status: b.status, phone: b.phone || "", isAdminBooking: b.isAdminBooking || false, note: b.note || "", birth: b.birth || "", slot: b.slot || "" };
     }
   });
 
-  // 將初診填入對應 rowStart（依時間碼對應固定位置）
+  // 將初診填入對應 rowStart（使用 GAS 回傳的 npRowStart）
   npList.forEach(function(np) {
-    const rowStart = getNpRowStart(session, np.slot);
-    if (rowStart !== null && rowStart < 30) {
+    const rowStart = np.npRowStart;
+    if (rowStart !== null && rowStart !== undefined && rowStart < 30) {
       cells[rowStart] = {
         type: "np_banner",
         checkInTime: np.checkInTime,
@@ -1088,7 +1073,8 @@ function renderSessionContent(session) {
         phone: np.phone || "",
         isAdminBooking: np.isAdminBooking || false,
         note: np.note || "",
-        birth: np.birth || ""
+        birth: np.birth || "",
+        slot: np.slot || ""
       };
       // 把 rowStart+1 ~ rowStart+4 標記為 np_skip（渲染時略過）
       for (let k = 1; k < 5; k++) {

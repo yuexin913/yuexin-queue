@@ -149,7 +149,7 @@
   .session-info { font-size: 11px; color: var(--text-light); }
   .session-doctor { font-size: 14px; color: var(--green-dark); font-weight: 500; }
 
-  /* 號碼格（5欄排列） */
+  /* 初診時間格（5欄排列） */
   .slots-grid {
     display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
     padding: 12px; border: 1.5px solid var(--border);
@@ -165,17 +165,6 @@
   .slot-btn:hover:not(.unavailable) { border-color: var(--green); background: var(--green-light); }
   .slot-btn.selected { background: var(--green); border-color: var(--green); color: white; font-weight: 600; }
   .slot-btn.unavailable { background: #f5f5f5; color: #ccc; cursor: not-allowed; }
-  /* 不指定格：橫跨全寬 */
-  .slot-unspecified {
-    grid-column: 1 / -1;
-    padding: 10px; border: 1.5px dashed var(--border);
-    border-radius: 8px; background: var(--white);
-    font-size: 13px; font-family: 'Noto Sans TC', sans-serif;
-    color: var(--text-light); cursor: pointer; text-align: center; transition: all 0.2s;
-    margin-top: 4px;
-  }
-  .slot-unspecified:hover { border-color: var(--green); background: var(--green-light); color: var(--green-dark); }
-  .slot-unspecified.selected { background: var(--green-light); border-color: var(--green); color: var(--green-dark); font-weight: 500; }
 
   /* 複診時段卡片 */
   .time-cards {
@@ -375,8 +364,28 @@
 
 <div class="container">
 
+  <!-- 載入頁 -->
+  <div class="page active" id="pageLoading">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:20px;">
+      <div style="font-size:18px;font-weight:600;color:var(--green-dark);letter-spacing:1px;">悅心診所線上預約</div>
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <!-- 載入錯誤頁（黑名單） -->
+  <div class="page" id="pageLoadError">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;padding:0 24px;text-align:center;">
+      <div style="font-size:40px;">🛠️</div>
+      <div style="font-size:15px;color:var(--text);line-height:1.8;">
+        很抱歉，線上預約功能暫時無法使用。<br>
+        若需協助，請傳訊息至官方LINE，<br>
+        或於門診時間來電：<strong>07-363-1313</strong>
+      </div>
+    </div>
+  </div>
+
   <!-- 入口頁 -->
-  <div class="page active" id="pageEntry">
+  <div class="page" id="pageEntry">
     <div class="card" style="margin-top:8px">
       <div class="card-title">請選擇服務</div>
       <div class="entry-options">
@@ -448,7 +457,7 @@
     <button class="btn btn-primary" onclick="goToPageTime()">下一步：選擇看診日期 →</button>
   </div>
 
-  <!-- 預約：選擇號碼 -->
+  <!-- 預約：選擇時段 -->
   <div class="page" id="pageTime">
     <div class="steps">
       <div class="step done"><div class="step-num">1</div><span>基本資料</span></div>
@@ -510,9 +519,9 @@
   <div class="page" id="pageSuccess">
     <div class="card" style="text-align:center;padding:32px 20px">
       <div class="success-icon">✅</div>
-      <div class="success-title">預約申請完成！</div>
+      <div class="success-title">預約完成！</div>
       <div id="successSlotInfo" style="display:none;margin:12px 0 4px">
-        <div style="font-size:13px;color:var(--text-light);margin-bottom:4px">系統為您安排的號碼</div>
+        <div style="font-size:13px;color:var(--text-light);margin-bottom:4px">您的號碼</div>
         <div id="successSlotNumber" style="font-size:36px;font-weight:700;color:var(--green-dark);letter-spacing:2px"></div>
       </div>
       <div class="success-sub">請查看 LINE 通知確認。</div>
@@ -553,9 +562,6 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbz1IB0HCFWaFlC7odExNsOWaZwTjz7osAjstXhx_5V0ZD4Ya58GGRRPfFAun2Itywbh6A/exec";
 const LIFF_ID = "2009340533-JKP6Q8Qg";
 
-// 初診錨點號碼
-const NEW_PATIENT_NUMBERS = [5, 10, 15, 20, 25];
-
 let state = {
   lineId: null,
   isVip: false,
@@ -579,6 +585,16 @@ async function initLiff() {
     if (!liff.isLoggedIn()) { liff.login(); return; }
     const profile = await liff.getProfile();
     state.lineId = profile.userId;
+    // 黑名單驗證（在首頁顯示前完成）
+    try {
+      const bl = await xhrGet(`${API_URL}?action=checkBlacklist&lineId=${state.lineId}`);
+      if (bl.blocked) {
+        showPage("pageLoadError");
+        return;
+      }
+      state.isVip = bl.isVip === true;
+    } catch(e) { /* 黑名單檢查失敗不擋，讓病患繼續 */ }
+    showPage("pageEntry");
   } catch(e) {
     // LIFF載入失敗：顯示提示，不允許繼續操作
     document.querySelector(".container").innerHTML = `
@@ -617,6 +633,11 @@ function goToEntry() {
   const btn = document.getElementById("btnSubmit");
   if (btn) { btn.disabled = false; btn.textContent = "確認送出預約"; }
   document.getElementById("newPatientNotice").innerHTML = "";
+  // 重置 pageTime DOM，避免舊預約內容殘留干擾下一次
+  document.getElementById("calendarArea").style.display = "block";
+  document.getElementById("selectedDateBar").style.display = "none";
+  document.getElementById("sessionContainer").innerHTML = "";
+  document.getElementById("slotsContainer").innerHTML = "";
   showPage("pageEntry");
 }
 
@@ -654,19 +675,9 @@ async function goToPageTime() {
   hideError("errorPage1");
   state.name = name; state.phone = phone; state.birth = birth;
 
-  if (state.lineId) {
-    try {
-      const bl = await xhrGet(`${API_URL}?action=checkBlacklist&lineId=${state.lineId}`);
-      if (bl.blocked) {
-        return showError("errorPage1", "很抱歉，線上預約暫時無法使用。若需協助請傳訊息給我們，或於門診時間來電。(07-363-1313)");
-      }
-      state.isVip = bl.isVip === true;
-    } catch(e) { /* 黑名單檢查失敗不擋 */ }
-  }
-
+  // 先進入月曆頁，黑名單在背景驗證（絕大多數人都不在黑名單）
   showPage("pageTime");
   renderCalendar();
-  // 複診才顯示健保提醒
   document.getElementById("nhiReminder").style.display = (state.type === "複診") ? "block" : "none";
 }
 
@@ -731,7 +742,7 @@ function reopenCalendar() {
 }
 
 // ===================================
-// 號碼格
+// 初診時間格 / 複診時段卡片
 // ===================================
 async function loadSlots(dateStr) {
   try {
@@ -749,6 +760,11 @@ const SESSION_DISPLAY_TIME = {
   "早上": "09:00 – 12:00",
   "下午": "14:00 – 17:00",
   "晚上": "17:30 – 20:30"
+};
+const SESSION_END_TIME = {
+  "早上": "11:30",
+  "下午": "16:30",
+  "晚上": "20:00"
 };
 function renderSessions() {
   const sessions = state.slotsData;
@@ -907,8 +923,8 @@ function renderSlots() {
     if (isUnspecifiedSelected) unspecifiedCls += " selected";
     html += `<div class="${unspecifiedCls}" onclick="selectSlot('${sessionKey}','不指定','${s.doctor}',true)">
       <div class="time-card-left">
-        <div class="time-card-title">依現場安排</div>
-        <div class="time-card-label">無特定報到時間，由櫃檯為您彈性安插</div>
+        <div class="time-card-title">現場排號</div>
+        <div class="time-card-label">我會在 ${SESSION_END_TIME[sessionKey] || "結診"} 前至診所報到，由工作人員安排順序。</div>
       </div>
     </div>`;
     html += '</div>';
@@ -954,7 +970,7 @@ async function goToConfirm() {
 
   if (state.isUnspecified) {
     slotDisplay = "";
-    arrivalDisplay = "依現場安排";
+    arrivalDisplay = "現場排號（" + (SESSION_END_TIME[state.session] || "結診") + " 前報到）";
   } else if (state.type === "初診") {
     // state.timeSlot是"0915"等時間code
     const npH = parseInt(state.timeSlot.substring(0, 2));
@@ -1075,17 +1091,37 @@ function renderBookingList(bookings) {
   bookings.forEach(function(b) {
     const statusCls = statusMap[b.status] || "status-pending";
     const canCancel = b.status !== "已取消";
-    const slotDisplay = b.slot === "不指定" ? "不指定號碼" : (b.slot + " 號");
     const displayName = escapeHtml(b.displayName || b.session + "診");
-    const checkInLine = `　報到：${escapeHtml(b.checkInTime)}`;
-    const slotLine = b.type === "初診" ? "" : `號碼：${escapeHtml(slotDisplay)}　`;
+
+    // 計算顯示內容
+    let slotLine = "";
+    let checkInLine = "";
+    if (b.type === "初診") {
+      // 初診：報到時間 → 醫師
+      checkInLine = `報到：${escapeHtml(b.checkInTime)}　`;
+    } else if (b.slot === "不指定") {
+      // 現場排號：標示 + 報到時間 → 醫師
+      slotLine = "現場排號　";
+      checkInLine = `報到時間：${escapeHtml(b.checkInTime)}　`;
+    } else {
+      // 複診指定：號碼 + 報到時間（反推時段區間）→ 醫師
+      const slotNum = parseInt(b.slot);
+      let rangeDisplay = "";
+      if (!isNaN(slotNum) && RETURN_TIME_CARDS[b.session]) {
+        const cards = RETURN_TIME_CARDS[b.session];
+        const matched = cards.find(function(c) { return slotNum >= c.minNum && slotNum <= c.maxNum; });
+        if (matched) rangeDisplay = matched.label;
+      }
+      slotLine = `號碼：${escapeHtml(b.slot)} 號　`;
+      checkInLine = rangeDisplay ? `報到時間：${rangeDisplay}　` : "";
+    }
     html += `<div class="booking-item">
       <div class="booking-item-header">
         <div class="booking-date">${escapeHtml(b.date)} ${displayName}</div>
         <div class="booking-status ${statusCls}">${escapeHtml(b.status)}</div>
       </div>
       <div class="booking-detail">
-        ${slotLine}醫師：${escapeHtml(b.doctor || "-")}${checkInLine}
+        ${slotLine}${checkInLine}醫師：${escapeHtml(b.doctor || "-")}
       </div>
       ${canCancel ? `<button class="booking-cancel" onclick="cancelBooking('${escapeHtml(b.bookingId)}', this)">取消此預約</button>` : ""}
     </div>`;
