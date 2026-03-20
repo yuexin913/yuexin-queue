@@ -572,6 +572,10 @@ function parseBirthROC(y, m, d) {
 // ===================================
 function goToEntry() {
   document.getElementById("headerSub").textContent = "線上服務";
+  // 重置送出按鈕狀態，避免第二次預約卡住
+  const btn = document.getElementById("btnSubmit");
+  if (btn) { btn.disabled = false; btn.textContent = "確認送出預約"; }
+  document.getElementById("newPatientNotice").innerHTML = "";
   showPage("pageEntry");
 }
 
