@@ -425,11 +425,12 @@
     <div style="font-size:15px;font-weight:400;color:#ffffff;margin-top:auto;" id="count-晚上">—</div>
   </div>
 
-  <!-- Row 4-9: 30格診單（JS 動態輸出到這裡）-->
-  <div id="scheduleContent" style="display:contents;">
+  <!-- Loading bar（獨立於 scheduleContent 之外）-->
+  <div id="scheduleLoading" style="grid-column:1/-1;background:var(--bg);padding:12px 8px 4px;">
     <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
-    載入診表中...
   </div>
+  <!-- Row 4-9: 30格診單（JS 動態輸出到這裡）-->
+  <div id="scheduleContent" style="display:contents;"></div>
 
   <!-- Row 9: 不指定 + 心理治療 -->
   <div class="tile tile-1" onclick="openUnspecModal()" style="position:relative;background:var(--kiwi);cursor:pointer;">
@@ -734,8 +735,9 @@ function getTodayStr() { const n = new Date(); return n.getFullYear() + "/" + St
 function esc(str) { return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
 async function loadSchedule() {
-  document.getElementById("scheduleContent").innerHTML =
-    `<div style="grid-column:1/-1;padding:16px;text-align:center;color:var(--text-light);font-size:13px;font-weight:200;background:var(--bg);"><div class="loading-bar-wrap"><div class="loading-bar"></div></div>載入診表中...</div>`;
+  document.getElementById("scheduleContent").innerHTML = "";
+  const loadingBar = document.getElementById("scheduleLoading");
+  if (loadingBar) loadingBar.style.display = "block";
   // 重置時段磚
   ["早上","下午","晚上"].forEach(function(s) {
     const el = document.getElementById("session-" + s);
@@ -747,8 +749,10 @@ async function loadSchedule() {
   document.getElementById("sessionDoctorSub").textContent = "";
   try {
     const data = await xhrGet(`${API_URL}?action=adminGetTodaySchedule&date=${dateToYMD(state.viewDate)}&lineId=${state.lineId}`);
+    if (loadingBar) loadingBar.style.display = "none";
     renderSchedule(data.bookings || []);
   } catch(e) {
+    if (loadingBar) loadingBar.style.display = "none";
     document.getElementById("scheduleContent").innerHTML =
       `<div style="grid-column:1/-1;padding:12px;background:var(--bg);"><div class="alert alert-error">診表暫時無法載入，請重新整理頁面。<br><small>${e.message}</small></div></div>`;
   }
