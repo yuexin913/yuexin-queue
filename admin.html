@@ -60,7 +60,6 @@
     grid-template-columns: repeat(5, 1fr);
     gap: var(--gap);
     background: var(--border);
-    min-height: 100vh;
     max-width: 480px;
     margin: 0 auto;
   }
@@ -72,7 +71,7 @@
     position: relative;
     overflow: hidden;
     cursor: default;
-    min-height: var(--cell);
+    aspect-ratio: 1 / 1;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -204,7 +203,6 @@
     padding: 6px 6px 4px;
     display: flex;
     flex-direction: column;
-    min-height: var(--cell);
     aspect-ratio: 1 / 1;
     cursor: default;
     overflow: hidden;
@@ -242,7 +240,6 @@
     grid-column: 1 / -1;
     border: none; padding: 8px 12px;
     display: flex; align-items: center; gap: 10px;
-    min-height: var(--cell);
     height: var(--cell);
   }
   .grid-np-banner:active { transform: scale(0.99); opacity: 0.9; transition: all 0.1s ease-out; }
@@ -258,18 +255,22 @@
   .checkin-mini.pending { background: rgba(255,255,255,0.25); color: #fff; }
   .checkin-mini.done    { background: rgba(0,0,0,0.2); color: #fff; }
 
-  /* scheduleContent 容器（30格和初診橫幅直接輸出到這裡）*/
-  #scheduleContent { display: contents; }
+  /* scheduleContent 容器 */
+  #scheduleContent {
+    grid-column: 1 / -1;
+    background: var(--bg);
+  }
+  #scheduleContent > div[style*="grid"] {
+    gap: 3px;
+  }
 
   /* Loading 狀態（span 5格）*/
-  .loading-tile {
-    grid-column: 1 / -1;
-    background: var(--bg-2);
-    padding: 20px;
-    text-align: center;
+  #scheduleContent {
+    padding: 8px;
     color: var(--text-light);
     font-size: 13px;
     font-weight: 200;
+    text-align: center;
   }
   .loading-bar-wrap { width: 100%; height: 3px; background: var(--bg-3); margin: 10px 0 4px; overflow: hidden; }
   .loading-bar { height: 100%; width: 40%; background: var(--marigold); animation: loadingSlide 1.2s ease-in-out infinite; }
@@ -437,11 +438,9 @@
   </div>
 
   <!-- Row 4-9: 30格診單（JS 動態輸出到這裡）-->
-  <div id="scheduleContent" style="display:contents;">
-    <div class="loading-tile">
-      <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
-      載入診表中...
-    </div>
+  <div id="scheduleContent" style="grid-column:1/-1;">
+    <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
+    載入診表中...
   </div>
 
   <!-- Row 10: 不指定 + 心理治療 -->
@@ -740,7 +739,7 @@ function esc(str) { return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&
 
 async function loadSchedule() {
   document.getElementById("scheduleContent").innerHTML =
-    `<div class="loading-tile"><div class="loading-bar-wrap"><div class="loading-bar"></div></div>載入診表中...</div>`;
+    `<div class="loading-bar-wrap"><div class="loading-bar"></div></div>載入診表中...`;
   // 重置時段磚
   ["早上","下午","晚上"].forEach(function(s) {
     const el = document.getElementById("session-" + s);
@@ -755,7 +754,7 @@ async function loadSchedule() {
     renderSchedule(data.bookings || []);
   } catch(e) {
     document.getElementById("scheduleContent").innerHTML =
-      `<div class="loading-tile"><div class="alert alert-error" style="margin:0;">診表暫時無法載入，請重新整理頁面。</div></div>`;
+      `<div class="alert alert-error">診表暫時無法載入，請重新整理頁面。</div>`;
   }
 }
 
@@ -935,7 +934,7 @@ function renderSessionContent(session) {
   });
 
   // 渲染 HTML
-  let html = `<div class="grid-30">`;
+  let html = `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;">`;
 
   for (let i = 0; i < 30; i++) {
     const c = cells[i];
@@ -975,7 +974,7 @@ function renderSessionContent(session) {
     }
   }
 
-  html += `</div>`; // end grid-30
+  html += `</div>`; // end grid
 
   // 更新不指定磚的人數 subtitle
   const unspecEl = document.getElementById("unspecCount");
