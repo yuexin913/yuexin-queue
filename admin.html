@@ -34,7 +34,7 @@
     --green-light: #1A2410;
     --cloud:       #F2EFE4;
     --gap:         3px;
-    --cell:        calc((min(100vw, 480px) - var(--gap) * 4) / 5);
+    --grid-width:  min(100vw, 480px);
   }
 
   /* ── 全域重置 ── */
@@ -60,6 +60,7 @@
     grid-template-columns: repeat(5, 1fr);
     gap: var(--gap);
     background: var(--border);
+    width: var(--grid-width);
     max-width: 480px;
     margin: 0 auto;
   }
@@ -71,10 +72,11 @@
     position: relative;
     overflow: hidden;
     cursor: default;
-    height: var(--cell);
+    aspect-ratio: 1 / 1;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    min-width: 0;
   }
   .tile:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
 
@@ -185,15 +187,16 @@
     font-size: 10px; font-weight: 700;
     padding: 2px 6px; letter-spacing: 0.5px;
   }
-  .tile-session { cursor: pointer; justify-content: flex-end; }
-  .tile-session .tile-label { font-size: 13px; font-weight: 700; }
-  .tile-session .tile-count {
-    font-size: 28px; font-weight: 700;
-    position: absolute; bottom: 8px; left: 10px;
-    line-height: 1;
+  .tile-session { cursor: pointer; }
+  .tile-session .tile-title { font-size: 12px !important; font-weight: 700; top: 8px; left: 10px; }
+  .tile-session .tile-subtitle {
+    font-size: 26px !important; font-weight: 700 !important;
+    bottom: 6px; left: 10px; right: 10px;
+    color: var(--text) !important;
+    overflow: visible;
   }
-  .tile-session.active { outline: 3px solid #fff; outline-offset: -3px; }
-  .tile-session:not(.active) { opacity: 0.5; }
+  .tile-session.active { outline: 3px solid #fff; outline-offset: -3px; opacity: 1 !important; }
+  .tile-session:not(.active) { opacity: 0.45; }
 
   /* ── 30格診單 ── */
   /* grid-cell 現在直接放在 .metro-grid 裡，不需要額外容器 */
@@ -203,10 +206,11 @@
     padding: 6px 6px 4px;
     display: flex;
     flex-direction: column;
-    height: var(--cell);
+    aspect-ratio: 1 / 1;
     cursor: default;
     overflow: hidden;
     position: relative;
+    min-width: 0;
   }
   .grid-cell:not(.empty):active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
   .grid-cell.has-patient  { background: var(--marigold); cursor: pointer; }
@@ -240,7 +244,7 @@
     grid-column: 1 / -1;
     border: none; padding: 8px 12px;
     display: flex; align-items: center; gap: 10px;
-    height: var(--cell);
+    aspect-ratio: 5 / 1;
   }
   .grid-np-banner:active { transform: scale(0.99); opacity: 0.9; transition: all 0.1s ease-out; }
   .grid-np-banner.has-patient   { background: var(--marigold); }
@@ -426,15 +430,15 @@
   </div>
   <div class="tile tile-1 tile-session tile-dark" id="session-早上" onclick="switchTab('早上')" style="position:relative;">
     <div class="tile-title" style="font-size:13px;">早上診</div>
-    <div class="tile-subtitle" style="font-size:24px;font-weight:700;bottom:6px;color:var(--text);" id="count-早上">—</div>
+    <div style="font-size:20px;font-weight:700;color:var(--text);margin-top:auto;" id="count-早上">—</div>
   </div>
   <div class="tile tile-1 tile-session tile-dark" id="session-下午" onclick="switchTab('下午')" style="position:relative;">
     <div class="tile-title" style="font-size:13px;">下午診</div>
-    <div class="tile-subtitle" style="font-size:24px;font-weight:700;bottom:6px;color:var(--text);" id="count-下午">—</div>
+    <div style="font-size:20px;font-weight:700;color:var(--text);margin-top:auto;" id="count-下午">—</div>
   </div>
   <div class="tile tile-1 tile-session tile-dark" id="session-晚上" onclick="switchTab('晚上')" style="position:relative;">
     <div class="tile-title" style="font-size:13px;">晚上診</div>
-    <div class="tile-subtitle" style="font-size:24px;font-weight:700;bottom:6px;color:var(--text);" id="count-晚上">—</div>
+    <div style="font-size:20px;font-weight:700;color:var(--text);margin-top:auto;" id="count-晚上">—</div>
   </div>
 
   <!-- Row 4-9: 30格診單（JS 動態輸出到這裡）-->
