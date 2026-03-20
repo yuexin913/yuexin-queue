@@ -198,7 +198,7 @@
   .tile-nav { background: var(--capri); cursor: pointer; justify-content: center; align-items: center; }
   .tile-nav-date { background: var(--capri); cursor: pointer; justify-content: center; align-items: center; }
   .tile-nav-date input[type="date"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; border: none; background: transparent; }
-  .tile-nav.disabled { background: #0090B8 !important; cursor: not-allowed; }
+  .tile-nav.disabled { background: #005f7a !important; cursor: not-allowed; }
   .tile-nav.disabled .tile-title { color: rgba(0,0,0,0.35) !important; }
   .tile-nav.disabled:active { transform: none; }
 
@@ -1060,8 +1060,8 @@ function renderSessionContent(session) {
       const cautionHtml = isPending
         ? `<div style="position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>` : "";
       html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="cursor:pointer;position:relative;">
-        <div style="position:absolute;top:7px;left:10px;font-size:15px;font-weight:400;color:#111111;">${esc(c.checkInTime)}前</div>
-        <div style="position:absolute;bottom:7px;left:10px;right:90px;font-size:12px;font-weight:700;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.name)}</div>
+        <div style="position:absolute;top:7px;left:6px;font-size:20px;font-weight:700;color:#111111;">${esc(c.checkInTime)}前</div>
+        <div style="position:absolute;bottom:6px;left:6px;right:90px;font-size:18px;font-weight:400;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.name)}</div>
         <button id="btn-${esc(c.bookingId)}"
           onclick="event.stopPropagation(); toggleCheckin('${esc(c.bookingId)}',this)"
           style="position:absolute;top:7px;right:7px;background:#000;color:${btnTextColor};border:none;font-family:inherit;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;letter-spacing:0.5px;">${btnLabel}</button>
@@ -1075,7 +1075,7 @@ function renderSessionContent(session) {
       const cautionHtml = (c.isAdminBooking && !isNotified) ? `<div class="cell-caution"></div>` : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
-        <span class="cell-name" style="font-size:12px;font-weight:700;color:#ffffff;position:absolute;bottom:5px;left:6px;right:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(c.name)}">${esc(c.name)}</span>
+        <span class="cell-name" style="font-size:18px;font-weight:400;color:#ffffff;position:absolute;bottom:5px;left:6px;right:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(c.name)}">${esc(c.name)}</span>
         ${cautionHtml}
       </div>`;
     } else {
