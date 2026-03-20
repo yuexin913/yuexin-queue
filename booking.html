@@ -214,6 +214,33 @@
   .time-card-unspecified.selected .time-card-title { color: white; }
   .time-card-unspecified:hover:not(.time-card-disabled) .time-card-title { color: var(--green-dark); }
 
+  /* 已選日期摘要列 */
+  .selected-date-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: var(--green-light);
+    border: 1.5px solid var(--border); border-radius: 10px;
+    margin-bottom: 12px; font-size: 15px; font-weight: 500; color: var(--green-dark);
+  }
+  .btn-text-link {
+    background: none; border: none; color: var(--green); font-size: 13px;
+    font-family: 'Noto Sans TC', sans-serif; cursor: pointer; padding: 0;
+    text-decoration: underline; text-underline-offset: 2px;
+  }
+
+  /* 診次選擇按鈕 */
+  .session-select-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .session-select-btn {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 10px;
+    background: var(--white); cursor: pointer; transition: all 0.2s; text-align: left;
+  }
+  .session-select-btn:hover:not(.session-select-disabled) { border-color: var(--green); background: var(--green-light); }
+  .session-select-btn.session-select-active { border-color: var(--green); background: var(--green-light); }
+  .session-select-btn.session-select-disabled { background: #f5f5f5; cursor: not-allowed; opacity: 0.5; }
+  .session-select-name { font-size: 15px; font-weight: 500; color: var(--green-dark); }
+  .session-select-time { font-size: 12px; color: var(--text-light); margin-top: 3px; }
+  .session-select-doctor { font-size: 14px; font-weight: 500; color: var(--green-dark); white-space: nowrap; margin-left: 12px; }
+
   .fully-booked {
     text-align: center; padding: 16px; color: var(--text-light); font-size: 13px;
     border: 1.5px solid var(--border); border-radius: 0 0 10px 10px; background: #fafafa;
@@ -430,7 +457,8 @@
       <div class="step-line"></div>
       <div class="step"><div class="step-num">3</div><span>確認送出</span></div>
     </div>
-    <div class="card">
+    <!-- 月曆區：選完日期後收起 -->
+    <div id="calendarArea" class="card">
       <div class="card-title">選擇日期</div>
       <div class="cal-header">
         <button class="cal-nav" onclick="changeMonth(-1)">‹</button>
@@ -442,7 +470,17 @@
       </div>
       <div class="cal-days" id="calDays"></div>
     </div>
-    <div id="slotsContainer"><div class="no-clinic">請先選擇日期</div></div>
+    <!-- 已選日期摘要（收起月曆後顯示） -->
+    <div id="selectedDateBar" style="display:none">
+      <div class="selected-date-bar">
+        <span id="selectedDateLabel"></span>
+        <button class="btn-text-link" onclick="reopenCalendar()">重新選擇</button>
+      </div>
+    </div>
+    <!-- 診次選擇（選完日期後顯示） -->
+    <div id="sessionContainer"></div>
+    <!-- 時段/號碼選擇（選完診次後展開） -->
+    <div id="slotsContainer"></div>
     <div id="nhiReminder" class="alert alert-warn" style="display:none;margin-top:12px">💡 <strong>複診預約重要提醒：</strong>為確保用藥安全及避免浪費健保資源，健保回診開藥（領藥）最多提前 1 天。若不確定您的健保回診日期，請先於門診時間致電診所 07-363-1313 確認。</div>
     <div id="errorPage2" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-outline" onclick="hideError('errorPage2');showPage('pageInfo')">← 返回</button>
@@ -464,7 +502,7 @@
     </div>
     <div class="alert alert-warn">✅ 送出後將立即收到 LINE 確認通知。</div>
     <div id="errorPage3" class="alert alert-error" style="display:none"></div>
-    <button class="btn btn-outline" onclick="state.session=null;state.timeSlot=null;state.isUnspecified=false;renderSlots();showPage('pageTime')">← 返回修改</button>
+    <button class="btn btn-outline" onclick="state.session=null;state.timeSlot=null;state.isUnspecified=false;renderSessions();renderSlots();showPage('pageTime')">← 返回修改</button>
     <button class="btn btn-primary" id="btnSubmit" onclick="submitBooking()">確認送出預約</button>
   </div>
 
@@ -473,9 +511,11 @@
     <div class="card" style="text-align:center;padding:32px 20px">
       <div class="success-icon">✅</div>
       <div class="success-title">預約申請完成！</div>
-      <div class="success-sub">
-        請查看 LINE 通知確認。
+      <div id="successSlotInfo" style="display:none;margin:12px 0 4px">
+        <div style="font-size:13px;color:var(--text-light);margin-bottom:4px">系統為您安排的號碼</div>
+        <div id="successSlotNumber" style="font-size:36px;font-weight:700;color:var(--green-dark);letter-spacing:2px"></div>
       </div>
+      <div class="success-sub">請查看 LINE 通知確認。</div>
       <div id="newPatientNotice"></div>
     </div>
     <button class="btn btn-outline" onclick="goToEntry()">返回首頁</button>
@@ -523,6 +563,7 @@ let state = {
   name: "", phone: "", birth: "",
   date: null, session: null, timeSlot: null, doctor: null,
   isUnspecified: false,
+  sessionSelected: false,
   bookingId: null,
   calYear: new Date().getFullYear(),
   calMonth: new Date().getMonth(),
@@ -582,7 +623,12 @@ function goToEntry() {
 function startBooking(type) {
   state.type = type;
   state.date = null; state.session = null; state.timeSlot = null;
-  state.isUnspecified = false;
+  state.isUnspecified = false; state.slotsData = null; state.sessionSelected = false;
+  // 清空基本資料欄位
+  ["inputName","inputPhone","inputBirthY","inputBirthM","inputBirthD"].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
   document.getElementById("headerSub").textContent = type + "預約";
   showPage("pageInfo");
 }
@@ -660,25 +706,97 @@ function changeMonth(delta) {
 
 async function selectDate(dateStr) {
   state.date = dateStr; state.session = null; state.timeSlot = null;
-  state.doctor = null; state.isUnspecified = false;
+  state.doctor = null; state.isUnspecified = false; state.sessionSelected = false;
   hideError("errorPage2");
   renderCalendar();
+  // 收起月曆，顯示已選日期列
+  const weekdays = ["日","一","二","三","四","五","六"];
+  const d = new Date(dateStr);
+  document.getElementById("selectedDateLabel").textContent = dateStr + "（週" + weekdays[d.getDay()] + "）";
+  document.getElementById("calendarArea").style.display = "none";
+  document.getElementById("selectedDateBar").style.display = "block";
+  document.getElementById("sessionContainer").innerHTML = '<div class="loading"><div class="spinner"></div>載入中...</div>';
+  document.getElementById("slotsContainer").innerHTML = "";
   await loadSlots(dateStr);
+}
+
+function reopenCalendar() {
+  state.date = null; state.session = null; state.timeSlot = null;
+  state.isUnspecified = false; state.sessionSelected = false;
+  document.getElementById("calendarArea").style.display = "block";
+  document.getElementById("selectedDateBar").style.display = "none";
+  document.getElementById("sessionContainer").innerHTML = "";
+  document.getElementById("slotsContainer").innerHTML = "";
+  renderCalendar();
 }
 
 // ===================================
 // 號碼格
 // ===================================
 async function loadSlots(dateStr) {
-  document.getElementById("slotsContainer").innerHTML = '<div class="loading"><div class="spinner"></div>載入中...</div>';
   try {
     const data = await xhrGet(`${API_URL}?action=getAvailableSlots&date=${dateStr.replace(/\//g,'')}`);
     if (!data.success) throw new Error(data.error);
     state.slotsData = data.sessions;
-    renderSlots();
+    renderSessions();
   } catch(e) {
-    document.getElementById("slotsContainer").innerHTML = '<div class="alert alert-error">系統連線異常，請確認網路後重試。</div>';
+    document.getElementById("sessionContainer").innerHTML = '<div class="alert alert-error">系統連線異常，請確認網路後重試。</div>';
   }
+}
+
+// 診次選擇列表（選完日期後顯示）
+const SESSION_DISPLAY_TIME = {
+  "早上": "09:00 – 12:00",
+  "下午": "14:00 – 17:00",
+  "晚上": "17:30 – 20:30"
+};
+function renderSessions() {
+  const sessions = state.slotsData;
+  const container = document.getElementById("sessionContainer");
+  if (!sessions || Object.keys(sessions).length === 0) {
+    container.innerHTML = '<div class="no-clinic">此日無門診</div>';
+    document.getElementById("slotsContainer").innerHTML = "";
+    return;
+  }
+  const order = ["早上","下午","晚上"];
+  let html = '<div class="session-select-list">';
+  order.forEach(function(sessionKey) {
+    if (!sessions[sessionKey]) return;
+    const s = sessions[sessionKey];
+    const displayName = s.displayName || sessionKey + "診";
+    const timeRange = SESSION_DISPLAY_TIME[sessionKey] || "";
+    const doctor = s.doctor || "";
+    const isActive = state.session === sessionKey;
+    const cls = "session-select-btn" + (isActive ? " session-select-active" : "");
+    html += `<div class="${cls}" onclick="selectSession('${sessionKey}')">
+      <div>
+        <div class="session-select-name">${displayName}</div>
+        <div class="session-select-time">${timeRange}</div>
+      </div>
+      <div class="session-select-doctor">${doctor}</div>
+    </div>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+  // 如果已有選擇的診次（從確認頁返回），直接展開時段
+  if (state.session && sessions[state.session]) {
+    renderSlots();
+  } else {
+    document.getElementById("slotsContainer").innerHTML = "";
+  }
+}
+
+function selectSession(sessionKey) {
+  state.session = sessionKey;
+  state.timeSlot = null;
+  state.isUnspecified = false;
+  state.sessionSelected = true;
+  renderSessions();
+  renderSlots();
+  // 平滑滾動到時段區
+  setTimeout(function() {
+    document.getElementById("slotsContainer").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, 50);
 }
 
 // 複診時段卡片定義（依各時段開診時間）
@@ -702,100 +820,76 @@ const RETURN_TIME_CARDS = {
 
 function renderSlots() {
   const sessions = state.slotsData;
-  if (!sessions || Object.keys(sessions).length === 0) {
-    document.getElementById("slotsContainer").innerHTML = '<div class="no-clinic">此日無門診</div>';
+  const container = document.getElementById("slotsContainer");
+  if (!state.session || !sessions || !sessions[state.session]) {
+    container.innerHTML = "";
     return;
   }
   const isNewPatient = state.type === "初診";
-  const order = ["早上","下午","晚上"];
-  let html = "";
+  const sessionKey = state.session;
+  const s = sessions[sessionKey];
+  const displayName = s.displayName || sessionKey + "診";
+  let html = `<div class="session-block">`;
 
-  order.forEach(function(sessionKey) {
-    if (!sessions[sessionKey]) return;
-    const s = sessions[sessionKey];
-    const displayName = s.displayName || sessionKey + "診";
-
-    html += `<div class="session-block">
-      <div class="session-header">
-        <div>
-          <div class="session-name">${displayName}</div>
-        </div>
-        <div class="session-doctor">${s.doctor || ""}</div>
-      </div>`;
-
-    if (isNewPatient) {
-      // 初診：邏輯完全不動
-      const slots = s.newPatientSlots || [];
-      const hasAvailable = slots.some(function(slot) { return slot.available; });
-      if (!hasAvailable) {
-        html += `<div class="fully-booked">此時段初診已額滿</div>`;
-      } else {
-        html += '<div class="slots-grid">';
-        slots.forEach(function(slot) {
-          const isSelected = state.session === sessionKey && state.timeSlot === slot.code;
-          const cls = "slot-btn" + (!slot.available ? " unavailable" : "") + (isSelected ? " selected" : "");
-          const onclick = slot.available ? `onclick="selectSlot('${sessionKey}','${slot.code}','${s.doctor}',false)"` : "";
-          const npDisplay = slot.display.replace(/(.*點)(\d+分)/, '$1<br>$2');
-          html += `<div class="${cls}" ${onclick}>${npDisplay}</div>`;
-        });
-        html += '</div>';
-      }
+  if (isNewPatient) {
+    const slots = s.newPatientSlots || [];
+    const hasAvailable = slots.some(function(slot) { return slot.available; });
+    if (!hasAvailable) {
+      html += `<div class="fully-booked">此時段初診已額滿</div>`;
     } else {
-      // 複診：時段卡片制
-      const returnSlots = s.returnSlots || [];
-      const cards = RETURN_TIME_CARDS[sessionKey] || [];
-
-      // 判斷各卡片是否有任何可用號碼
-      function cardHasAvailable(card) {
-        return returnSlots.some(function(slot) {
-          return slot.number >= card.minNum && slot.number <= card.maxNum && slot.available;
-        });
-      }
-
-      // 全部三張卡片都額滿才顯示「複診已額滿」
-      const allFull = cards.every(function(card) { return !cardHasAvailable(card); });
-
-      html += '<div class="time-cards">';
-
-      if (allFull) {
-        html += `<div class="fully-booked" style="border:none;padding:8px 0;">此時段複診已額滿</div>`;
-      } else {
-        cards.forEach(function(card) {
-          const available = cardHasAvailable(card);
-          const isSelected = state.session === sessionKey && state.timeSlot === card.value;
-          let cls = "time-card";
-          if (isSelected) cls += " selected";
-          if (!available) cls += " time-card-disabled";
-          const onclick = available ? `onclick="selectSlot('${sessionKey}','${card.value}','${s.doctor}',false)"` : "";
-          const badgeText = available ? "預計報到時段" : "已額滿";
-          html += `<div class="${cls}" ${onclick}>
-            <div class="time-card-left">
-              <div class="time-card-title">${card.label}</div>
-              <div class="time-card-label">預計報到時段</div>
-            </div>
-            <div class="time-card-badge">${badgeText}</div>
-          </div>`;
-        });
-      }
-
-      // 不指定：永遠可選
-      const isUnspecifiedSelected = state.session === sessionKey && state.isUnspecified;
-      let unspecifiedCls = "time-card time-card-unspecified";
-      if (isUnspecifiedSelected) unspecifiedCls += " selected";
-      html += `<div class="${unspecifiedCls}" onclick="selectSlot('${sessionKey}','不指定','${s.doctor}',true)">
-        <div class="time-card-left">
-          <div class="time-card-title">依現場安排</div>
-          <div class="time-card-label">無特定報到時間，由櫃檯為您彈性安插</div>
-        </div>
-      </div>`;
-
+      html += '<div class="slots-grid">';
+      slots.forEach(function(slot) {
+        const isSelected = state.timeSlot === slot.code;
+        const cls = "slot-btn" + (!slot.available ? " unavailable" : "") + (isSelected ? " selected" : "");
+        const onclick = slot.available ? `onclick="selectSlot('${sessionKey}','${slot.code}','${s.doctor}',false)"` : "";
+        const npDisplay = slot.display.replace(/(.*點)(\d+分)/, '$1<br>$2');
+        html += `<div class="${cls}" ${onclick}>${npDisplay}</div>`;
+      });
       html += '</div>';
     }
-
+  } else {
+    const returnSlots = s.returnSlots || [];
+    const cards = RETURN_TIME_CARDS[sessionKey] || [];
+    function cardHasAvailable(card) {
+      return returnSlots.some(function(slot) {
+        return slot.number >= card.minNum && slot.number <= card.maxNum && slot.available;
+      });
+    }
+    const allFull = cards.every(function(card) { return !cardHasAvailable(card); });
+    html += '<div class="time-cards">';
+    if (allFull) {
+      html += `<div class="fully-booked" style="border:none;padding:8px 0;">此時段複診已額滿</div>`;
+    } else {
+      cards.forEach(function(card) {
+        const available = cardHasAvailable(card);
+        const isSelected = state.timeSlot === card.value;
+        let cls = "time-card";
+        if (isSelected) cls += " selected";
+        if (!available) cls += " time-card-disabled";
+        const onclick = available ? `onclick="selectSlot('${sessionKey}','${card.value}','${s.doctor}',false)"` : "";
+        const badgeText = available ? "預計報到時段" : "已額滿";
+        html += `<div class="${cls}" ${onclick}>
+          <div class="time-card-left">
+            <div class="time-card-title">${card.label}</div>
+            <div class="time-card-label">預計報到時段</div>
+          </div>
+          <div class="time-card-badge">${badgeText}</div>
+        </div>`;
+      });
+    }
+    const isUnspecifiedSelected = state.isUnspecified;
+    let unspecifiedCls = "time-card time-card-unspecified";
+    if (isUnspecifiedSelected) unspecifiedCls += " selected";
+    html += `<div class="${unspecifiedCls}" onclick="selectSlot('${sessionKey}','不指定','${s.doctor}',true)">
+      <div class="time-card-left">
+        <div class="time-card-title">依現場安排</div>
+        <div class="time-card-label">無特定報到時間，由櫃檯為您彈性安插</div>
+      </div>
+    </div>`;
     html += '</div>';
-  });
-
-  document.getElementById("slotsContainer").innerHTML = html;
+  }
+  html += '</div>';
+  container.innerHTML = html;
 }
 
 function selectSlot(session, slot, doctor, isUnspecified) {
@@ -886,6 +980,16 @@ async function submitBooking() {
     const data = await xhrPost(API_URL, payload);
     if (!data.success) throw new Error(data.error);
     state.bookingId = data.bookingId;
+
+    // 顯示 GAS 自動發號的號碼（複診指定時段才有）
+    const slotInfo = document.getElementById("successSlotInfo");
+    const slotNum = document.getElementById("successSlotNumber");
+    if (data.assignedSlot && state.type !== "初診" && !state.isUnspecified) {
+      slotNum.textContent = data.assignedSlot + " 號";
+      slotInfo.style.display = "block";
+    } else {
+      slotInfo.style.display = "none";
+    }
 
     if (state.type === "初診") {
       document.getElementById("newPatientNotice").innerHTML =
