@@ -76,7 +76,7 @@
     flex-direction: column;
     justify-content: flex-start;
     min-width: 0;
-    align-self: stretch;
+    max-height: calc((min(100vw, 480px) - 3px * 4) / 5);
   }
   .tile:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
 
@@ -443,7 +443,7 @@
   </div>
 
   <!-- Row 4-9: 30格診單（JS 動態輸出到這裡）-->
-  <div id="scheduleContent" style="grid-column:1/-1;">
+  <div id="scheduleContent" style="display:contents;">
     <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
     載入診表中...
   </div>
@@ -476,7 +476,7 @@
     <div class="tile-title" style="font-size:18px;color:#fff;">資安</div>
     <div class="tile-subtitle">異常行為記錄</div>
   </div>
-  <div class="tile tile-1 tile-empty"></div>
+  <div class="tile tile-1" style="background:#FFFFFF;"></div>
 
 </div><!-- /metro-grid -->
 </div><!-- /pageMain -->
@@ -743,7 +743,7 @@ function esc(str) { return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&
 
 async function loadSchedule() {
   document.getElementById("scheduleContent").innerHTML =
-    `<div class="loading-bar-wrap"><div class="loading-bar"></div></div>載入診表中...`;
+    `<div style="grid-column:1/-1;padding:16px;text-align:center;color:var(--text-light);font-size:13px;font-weight:200;background:var(--bg);"><div class="loading-bar-wrap"><div class="loading-bar"></div></div>載入診表中...</div>`;
   // 重置時段磚
   ["早上","下午","晚上"].forEach(function(s) {
     const el = document.getElementById("session-" + s);
@@ -758,7 +758,7 @@ async function loadSchedule() {
     renderSchedule(data.bookings || []);
   } catch(e) {
     document.getElementById("scheduleContent").innerHTML =
-      `<div class="alert alert-error">診表暫時無法載入，請重新整理頁面。<br><small>${e.message}</small></div>`;
+      `<div style="grid-column:1/-1;padding:12px;background:var(--bg);"><div class="alert alert-error">診表暫時無法載入，請重新整理頁面。<br><small>${e.message}</small></div></div>`;
   }
 }
 
@@ -860,7 +860,7 @@ function renderSessionContent(session) {
   const doctor = list.length > 0 ? list[0].doctor : "";
 
   if (list.length === 0) {
-    el.innerHTML = `<div class="empty-state">此時段無預約</div>`;
+    el.innerHTML = `<div style="grid-column:1/-1;padding:20px;text-align:center;color:var(--text-light);font-size:13px;font-weight:200;background:var(--bg);">此時段無預約</div>`;
     return;
   }
 
@@ -927,7 +927,7 @@ function renderSessionContent(session) {
   });
 
   // 渲染 HTML
-  let html = `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;">`;
+  let html = ``;
 
   for (let i = 0; i < 30; i++) {
     const c = cells[i];
@@ -967,7 +967,7 @@ function renderSessionContent(session) {
     }
   }
 
-  html += `</div>`; // end grid
+
 
   // 更新不指定磚的人數 subtitle
   const unspecEl = document.getElementById("unspecCount");
