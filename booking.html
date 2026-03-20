@@ -866,10 +866,8 @@ async function submitBooking() {
   const btn = document.getElementById("btnSubmit");
   btn.disabled = true; btn.textContent = "送出中...";
   try {
-    // 【1a 暫時轉換】複診時段字串尚未被 GAS 支援，統一送「不指定」
-    // 待 1b（GAS 自動發號）部署後移除此轉換
-    const isReturnTimeCard = state.type !== "初診" && !state.isUnspecified;
-    const slotParam = (state.isUnspecified || isReturnTimeCard) ? "不指定" : state.timeSlot;
+    // 複診送時段字串（"0900-1000" 等），GAS 自動發號；初診送時間碼；不指定送 "不指定"
+    const slotParam = state.isUnspecified ? "不指定" : state.timeSlot;
     const payload = {
       action: "submitBooking",
       lineId: state.lineId,

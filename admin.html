@@ -382,6 +382,7 @@
 
   .contact-name  { font-size: 24px; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 4px; }
   .contact-birth { font-size: 13px; font-weight: 200; color: var(--text-light); text-align: center; margin-bottom: 8px; letter-spacing: 1px; }
+  .contact-timeslot { font-size: 13px; font-weight: 300; color: var(--marigold); text-align: center; margin-bottom: 8px; letter-spacing: 0.5px; }
   .contact-phone { display: block; font-size: 32px; font-weight: 700; color: var(--marigold); text-align: center; text-decoration: none; letter-spacing: 3px; margin-bottom: 20px; }
 
   .unspec-modal-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
@@ -514,6 +515,7 @@
     <div class="modal-title">聯絡病患<button class="modal-close" onclick="closeModal('modalContact')">✕</button></div>
     <div class="contact-name" id="contactName"></div>
     <div class="contact-birth" id="contactBirth"></div>
+    <div class="contact-timeslot" id="contactTimeSlot"></div>
     <a class="contact-phone" id="contactPhone" href=""></a>
     <div id="contactError" class="alert alert-error" style="display:none"></div>
     <div id="btnToggleNotifiedWrap">
@@ -641,6 +643,28 @@ const DEFAULT_DOCTOR_SCHEDULE = {
 const API_URL = "https://script.google.com/macros/s/AKfycbz1IB0HCFWaFlC7odExNsOWaZwTjz7osAjstXhx_5V0ZD4Ya58GGRRPfFAun2Itywbh6A/exec";
 let state = { lineId: "", adminName: "", pendingCancelId: "", bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false };
 let allBookings = [], activeSession = "";
+
+// 複診號碼 → 預計報到時段（對應 booking.html 和 GAS 的 RETURN_TIME_SLOT_CONFIG）
+const RETURN_SLOT_RANGES = [
+  { min: 1,  max: 5,  label: null },          // 保留給現場/代掛，不顯示時段
+  { min: 6,  max: 15, label: "第一時段" },
+  { min: 16, max: 25, label: "第二時段" },
+  { min: 26, max: 30, label: "第三時段" }
+];
+const RETURN_SLOT_LABELS = {
+  "早上": { "第一時段": "09:00 - 10:00", "第二時段": "10:00 - 11:00", "第三時段": "11:00 - 11:30" },
+  "下午": { "第一時段": "14:00 - 15:00", "第二時段": "15:00 - 16:00", "第三時段": "16:00 - 16:30" },
+  "晚上": { "第一時段": "17:30 - 18:30", "第二時段": "18:30 - 19:30", "第三時段": "19:30 - 20:00" }
+};
+function getReturnTimeSlotLabel(session, slotNum) {
+  const num = parseInt(slotNum);
+  if (isNaN(num)) return null;
+  const range = RETURN_SLOT_RANGES.find(r => num >= r.min && num <= r.max);
+  if (!range || !range.label) return null;
+  const sessionLabels = RETURN_SLOT_LABELS[session];
+  if (!sessionLabels) return null;
+  return sessionLabels[range.label] || null;
+}
 
 function dateToYMD(d) {
   return d.getFullYear() + String(d.getMonth()+1).padStart(2,"0") + String(d.getDate()).padStart(2,"0");
@@ -1076,7 +1100,7 @@ function renderSessionContent(session) {
       const isDone = c.status === "已看診";
       const isNotified = c.isAdminBooking && c.note.indexOf("[已通知]") !== -1;
       const bannerClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
-      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" onclick="openContactModalFromEl(this)"`;
+      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.slot||'')}" data-session="${esc(session)}" onclick="openContactModalFromEl(this)"`;
       // isPending = 代掛未通知（sunny lime）；否則（一般初診或已通知）= kiwi
       const isPending = c.isAdminBooking && !isNotified;
       // 按鈕文字顏色：與 tile 同色（kiwi 或 sunny）
@@ -1096,7 +1120,7 @@ function renderSessionContent(session) {
       const isNotified = c.isAdminBooking && c.note.indexOf("[已通知]") !== -1;
       const cellClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const numDisplay = `${c.num}`;
-      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
+      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const cautionHtml = (c.isAdminBooking && !isNotified) ? `<div class="cell-caution"></div>` : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
@@ -1159,7 +1183,9 @@ function openContactModalFromEl(el) {
   const isNotified = el.dataset.notified === "true";
   const isAdminBooking = el.dataset.admin === "true";
   const birth = el.dataset.birth || "";
-  openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth);
+  const slot = el.dataset.slot || "";
+  const session = el.dataset.session || "";
+  openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session);
 }
 
 function rocDate(birthStr) {
@@ -1172,12 +1198,17 @@ function rocDate(birthStr) {
   return birthStr;
 }
 
-function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth) {
+function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session) {
   state.contactBookingId = bookingId;
   state.contactIsNotified = (isNotified === true || isNotified === "true");
   const notified = state.contactIsNotified;
   document.getElementById("contactName").textContent = name;
   document.getElementById("contactBirth").textContent = birth ? rocDate(birth) : "";
+  // 顯示預計報到時段（複診有號碼時反推；初診或不指定則隱藏）
+  const tsEl = document.getElementById("contactTimeSlot");
+  const timeSlotLabel = slot && session ? getReturnTimeSlotLabel(session, slot) : null;
+  tsEl.textContent = timeSlotLabel ? "預計報到 " + timeSlotLabel : "";
+  tsEl.style.display = timeSlotLabel ? "block" : "none";
   document.getElementById("contactPhone").textContent = phone || "（無電話）";
   document.getElementById("contactPhone").href = phone ? "tel:" + phone : "";
   // 只有白名單代掛才顯示通知切換按鈕
