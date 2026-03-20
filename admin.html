@@ -934,16 +934,16 @@ function renderSessionContent(session) {
       const isNotified = c.isAdminBooking && c.note.indexOf("[已通知]") !== -1;
       const bannerClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" onclick="openContactModalFromEl(this)"`;
-      const isYellow = bannerClass === "admin-notified";
-      const textColor = isYellow ? "rgba(0,0,0,0.85)" : "#fff";
-      const subColor  = isYellow ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.75)";
-      const btnTextColor = isYellow ? "#1A1A1A" : bannerClass === "admin-pending" ? "var(--kiwi)" : "var(--marigold)";
+      // isPending = 代掛未通知（sunny lime）；否則（一般初診或已通知）= kiwi
+      const isPending = c.isAdminBooking && !isNotified;
+      // 按鈕文字顏色：與 tile 同色（kiwi 或 sunny）
+      const btnTextColor = isPending ? "var(--sunny)" : "var(--kiwi)";
       const btnLabel = isDone ? "已報到" : "未報到";
-      const cautionHtml = (c.isAdminBooking && !isNotified)
+      const cautionHtml = isPending
         ? `<div style="position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>` : "";
       html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="cursor:pointer;position:relative;">
-        <div class="tile-title" style="font-size:12px;color:${textColor};position:absolute;top:7px;left:10px;">${esc(c.checkInTime)}前</div>
-        <div class="tile-subtitle" style="position:absolute;bottom:7px;left:10px;right:80px;font-size:13px;font-weight:700;color:${textColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.name)}</div>
+        <div style="position:absolute;top:7px;left:10px;font-size:15px;font-weight:400;color:#111111;">${esc(c.checkInTime)}前</div>
+        <div style="position:absolute;bottom:7px;left:10px;right:90px;font-size:12px;font-weight:700;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.name)}</div>
         <button id="btn-${esc(c.bookingId)}"
           onclick="event.stopPropagation(); toggleCheckin('${esc(c.bookingId)}',this)"
           style="position:absolute;top:7px;right:7px;background:#000;color:${btnTextColor};border:none;font-family:inherit;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;letter-spacing:0.5px;">${btnLabel}</button>
@@ -956,15 +956,14 @@ function renderSessionContent(session) {
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const cautionHtml = (c.isAdminBooking && !isNotified) ? `<div class="cell-caution"></div>` : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
-        <span class="cell-num">${numDisplay}</span>
-        <span class="cell-name" title="${esc(c.name)}">${esc(c.name)}</span>
+        <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
+        <span class="cell-name" style="font-size:12px;font-weight:700;color:#ffffff;position:absolute;bottom:5px;left:6px;right:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(c.name)}">${esc(c.name)}</span>
         ${cautionHtml}
       </div>`;
     } else {
       // empty
       html += `<div class="grid-cell empty">
-        <span class="cell-num">${c.num}</span>
-        <span class="cell-name">　</span>
+        <span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${c.num}</span>
       </div>`;
     }
   }
