@@ -165,7 +165,7 @@
 
   <div class="page active" id="pageForm">
     <div class="alert alert-info">
-      🌱 以下資料將協助醫師在初診前了解您的狀況，讓看診更有效率。
+      🌱 以下基本資料將協助診所提供更適合您的預約與服務安排。
     </div>
 
     <!-- Q1 怎麼知道悅心診所 -->
@@ -178,31 +178,50 @@
             <div class="radio-dot"></div>
             <span class="radio-label">親友推薦</span>
           </label>
-          <label class="radio-option" onclick="selectRadio('referral','網路搜尋（Google、Google 地圖、AI 推薦等）')">
-            <input type="radio" name="referral" value="網路搜尋（Google、Google 地圖、AI 推薦等）">
+          <label class="radio-option" onclick="selectRadio('referral','網路搜尋（Google、地圖等）')">
+            <input type="radio" name="referral" value="網路搜尋（Google、地圖等）">
             <div class="radio-dot"></div>
-            <span class="radio-label">網路搜尋（Google、Google 地圖、AI 推薦等）</span>
+            <span class="radio-label">網路搜尋（Google、地圖等）</span>
           </label>
-          <label class="radio-option" onclick="selectRadio('referral','社群媒體（Facebook、Instagram、Threads、Dcard、PTT 等）')">
-            <input type="radio" name="referral" value="社群媒體（Facebook、Instagram、Threads、Dcard、PTT 等）">
+          <label class="radio-option" onclick="selectRadio('referral','社群媒體（FB、IG、Threads等）')">
+            <input type="radio" name="referral" value="社群媒體（FB、IG、Threads等）">
             <div class="radio-dot"></div>
-            <span class="radio-label">社群媒體（Facebook、Instagram、Threads、Dcard、PTT 等）</span>
+            <span class="radio-label">社群媒體（FB、IG、Threads等）</span>
           </label>
           <label class="radio-option" onclick="selectRadio('referral','醫師或心理師轉介')">
             <input type="radio" name="referral" value="醫師或心理師轉介">
             <div class="radio-dot"></div>
             <span class="radio-label">醫師或心理師轉介</span>
           </label>
-          <label class="radio-option" onclick="selectRadio('referral','路過／住家或公司附近')">
-            <input type="radio" name="referral" value="路過／住家或公司附近">
+          <label class="radio-option" onclick="selectRadio('referral','路過或住家附近')">
+            <input type="radio" name="referral" value="路過或住家附近">
             <div class="radio-dot"></div>
-            <span class="radio-label">路過／住家或公司附近</span>
+            <span class="radio-label">路過或住家附近</span>
           </label>
         </div>
       </div>
     </div>
 
-    <!-- Q2 目前居住地 -->
+    <!-- Q2 是否已成年 -->
+    <div class="card">
+      <div class="card-title">是否已成年？</div>
+      <div class="form-group">
+        <div class="radio-group" id="isAdultGroup">
+          <label class="radio-option" onclick="selectRadio('isAdult','是，我已年滿18歲。')">
+            <input type="radio" name="isAdult" value="是，我已年滿18歲。">
+            <div class="radio-dot"></div>
+            <span class="radio-label">是，我已年滿18歲。</span>
+          </label>
+          <label class="radio-option" onclick="selectRadio('isAdult','否，我尚未年滿18歲。')">
+            <input type="radio" name="isAdult" value="否，我尚未年滿18歲。">
+            <div class="radio-dot"></div>
+            <span class="radio-label">否，我尚未年滿18歲。</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q3 目前居住地 -->
     <div class="card">
       <div class="card-title">目前居住地？</div>
       <div class="form-group">
@@ -226,116 +245,119 @@
       </div>
     </div>
 
-    <!-- Q3 是否已成年 -->
+    <!-- Q4 同住狀況（複選，含互斥邏輯） -->
     <div class="card">
-      <div class="card-title">是否已成年？</div>
+      <div class="card-title">您目前的同住狀況為？（可複選）</div>
       <div class="form-group">
-        <div class="radio-group" id="firstVisitGroup">
-          <label class="radio-option" onclick="selectRadio('firstVisit','是，我已年滿18歲。')">
-            <input type="radio" name="firstVisit" value="是，我已年滿18歲。">
-            <div class="radio-dot"></div>
-            <span class="radio-label">是，我已年滿18歲。</span>
+        <div class="checkbox-group" id="livingWithGroup">
+          <label class="checkbox-option" onclick="toggleLivingWith(this, '獨居')">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">獨居</span>
           </label>
-          <label class="radio-option" onclick="selectRadio('firstVisit','否，我尚未年滿18歲。')">
-            <input type="radio" name="firstVisit" value="否，我尚未年滿18歲。">
-            <div class="radio-dot"></div>
-            <span class="radio-label">否，我尚未年滿18歲。</span>
+          <label class="checkbox-option" onclick="toggleLivingWith(this, '與伴侶或配偶同住')">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">與伴侶或配偶同住</span>
+          </label>
+          <label class="checkbox-option" onclick="toggleLivingWith(this, '與父母或長輩同住')">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">與父母或長輩同住</span>
+          </label>
+          <label class="checkbox-option" onclick="toggleLivingWith(this, '與小孩同住')">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">與小孩同住</span>
+          </label>
+          <label class="checkbox-option" onclick="toggleLivingWith(this, '與室友或朋友同住')">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">與室友或朋友同住</span>
+          </label>
+          <label class="checkbox-option" onclick="toggleLivingWith(this, '與兄弟姊妹同住')">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">與兄弟姊妹同住</span>
+          </label>
+          <label class="checkbox-option" onclick="toggleLivingWith(this, '住宿舍（學校或公司）')">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">住宿舍（學校或公司）</span>
+          </label>
+          <label class="checkbox-option" onclick="toggleLivingWith(this, '其他（不屬於以上任一狀況）')">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">其他（不屬於以上任一狀況）</span>
           </label>
         </div>
       </div>
     </div>
 
-    <!-- Q4 今天想談的大方向 -->
+    <!-- Q5 職業作息 -->
     <div class="card">
-      <div class="card-title">今天想來討論的大方向是？（可複選）</div>
+      <div class="card-title">您的職業與作息型態是？</div>
       <div class="form-group">
-        <div class="checkbox-group" id="topicGroup">
-          <label class="checkbox-option" onclick="toggleTopic(this)">
-            <div class="check-box">✓</div>
-            <span class="checkbox-label">睡眠狀況（如：難入睡、淺眠、多夢、早醒）</span>
+        <div class="radio-group" id="occupationGroup">
+          <label class="radio-option" onclick="selectRadio('occupation','一般白天上班族')">
+            <input type="radio" name="occupation" value="一般白天上班族">
+            <div class="radio-dot"></div>
+            <span class="radio-label">一般白天上班族</span>
           </label>
-          <label class="checkbox-option" onclick="toggleTopic(this)">
-            <div class="check-box">✓</div>
-            <span class="checkbox-label">情緒困擾（如：心情低落、容易落淚、焦慮、煩躁、易怒）</span>
+          <label class="radio-option" onclick="selectRadio('occupation','輪班或夜班工作者')">
+            <input type="radio" name="occupation" value="輪班或夜班工作者">
+            <div class="radio-dot"></div>
+            <span class="radio-label">輪班或夜班工作者</span>
           </label>
-          <label class="checkbox-option" onclick="toggleTopic(this)">
-            <div class="check-box">✓</div>
-            <span class="checkbox-label">壓力調適（如：工作、學業、經濟或生活轉變壓力）</span>
+          <label class="radio-option" onclick="selectRadio('occupation','學生')">
+            <input type="radio" name="occupation" value="學生">
+            <div class="radio-dot"></div>
+            <span class="radio-label">學生</span>
           </label>
-          <label class="checkbox-option" onclick="toggleTopic(this)">
-            <div class="check-box">✓</div>
-            <span class="checkbox-label">人際與家庭關係（如：伴侶、親子、職場人際溝通）</span>
+          <label class="radio-option" onclick="selectRadio('occupation','家管或全職照顧者')">
+            <input type="radio" name="occupation" value="家管或全職照顧者">
+            <div class="radio-dot"></div>
+            <span class="radio-label">家管或全職照顧者</span>
           </label>
-          <label class="checkbox-option" onclick="toggleTopic(this)">
-            <div class="check-box">✓</div>
-            <span class="checkbox-label">專注力或記憶力（如：無法集中精神、忘東忘西、疑似 ADHD）</span>
+          <label class="radio-option" onclick="selectRadio('occupation','自由業或彈性工時')">
+            <input type="radio" name="occupation" value="自由業或彈性工時">
+            <div class="radio-dot"></div>
+            <span class="radio-label">自由業或彈性工時</span>
           </label>
-          <label class="checkbox-option" onclick="toggleTopic(this)">
-            <div class="check-box">✓</div>
-            <span class="checkbox-label">自律神經或身體不適（如：心悸、胸悶、恐慌、查無病因的身體不舒服）</span>
-          </label>
-          <label class="checkbox-option" onclick="toggleTopic(this)">
-            <div class="check-box">✓</div>
-            <span class="checkbox-label">其他（請於看診時向醫師說明）</span>
+          <label class="radio-option" onclick="selectRadio('occupation','待業、待產或退休')">
+            <input type="radio" name="occupation" value="待業、待產或退休">
+            <div class="radio-dot"></div>
+            <span class="radio-label">待業、待產或退休</span>
           </label>
         </div>
       </div>
     </div>
 
-    <!-- Q5 希望的協助方式 -->
+    <!-- Q6 方便時段（複選） -->
     <div class="card">
-      <div class="card-title">您比較希望的協助方式是？</div>
+      <div class="card-title">未來若需安排回診，比較方便的時段是？（可複選）</div>
       <div class="form-group">
-        <div class="radio-group" id="preferenceGroup">
-          <label class="radio-option" onclick="selectRadio('preference','希望以醫師評估、開立藥物緩解症狀為主')">
-            <input type="radio" name="preference" value="希望以醫師評估、開立藥物緩解症狀為主">
-            <div class="radio-dot"></div>
-            <span class="radio-label">希望以醫師評估、開立藥物緩解症狀為主</span>
+        <div class="checkbox-group" id="availableTimeGroup">
+          <label class="checkbox-option" onclick="toggleAvailableTime(this, '平日早上')">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">平日早上</span>
           </label>
-          <label class="radio-option" onclick="selectRadio('preference','希望先盡量不吃藥，以討論心理狀態與生活調整為主')">
-            <input type="radio" name="preference" value="希望先盡量不吃藥，以討論心理狀態與生活調整為主">
-            <div class="radio-dot"></div>
-            <span class="radio-label">希望先盡量不吃藥，以討論心理狀態與生活調整為主</span>
+          <label class="checkbox-option" onclick="toggleAvailableTime(this, '平日下午')">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">平日下午</span>
           </label>
-          <label class="radio-option" onclick="selectRadio('preference','藥物協助與心理討論，兩者都希望進行')">
-            <input type="radio" name="preference" value="藥物協助與心理討論，兩者都希望進行">
-            <div class="radio-dot"></div>
-            <span class="radio-label">藥物協助與心理討論，兩者都希望進行</span>
+          <label class="checkbox-option" onclick="toggleAvailableTime(this, '平日晚上')">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">平日晚上</span>
           </label>
-          <label class="radio-option" onclick="selectRadio('preference','目前還不確定，希望由醫師評估與建議')">
-            <input type="radio" name="preference" value="目前還不確定，希望由醫師評估與建議">
-            <div class="radio-dot"></div>
-            <span class="radio-label">目前還不確定，希望由醫師評估與建議</span>
+          <label class="checkbox-option" onclick="toggleAvailableTime(this, '週六早上')">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">週六早上</span>
           </label>
-        </div>
-      </div>
-    </div>
-
-    <!-- Q6 診斷證明書 -->
-    <div class="card">
-      <div class="card-title">本次看診是否需要開立診斷證明書？</div>
-      <div class="form-group">
-        <div class="radio-group" id="certGroup">
-          <label class="radio-option" onclick="selectRadio('cert','需要（用於請假、保險、兵役、學校等用途）')">
-            <input type="radio" name="cert" value="需要（用於請假、保險、兵役、學校等用途）">
-            <div class="radio-dot"></div>
-            <span class="radio-label">需要（用於請假、保險、兵役、學校等用途）</span>
-          </label>
-          <label class="radio-option" onclick="selectRadio('cert','不需要')">
-            <input type="radio" name="cert" value="不需要">
-            <div class="radio-dot"></div>
-            <span class="radio-label">不需要</span>
-          </label>
-          <label class="radio-option" onclick="selectRadio('cert','還不確定，想先跟醫師討論')">
-            <input type="radio" name="cert" value="還不確定，想先跟醫師討論">
-            <div class="radio-dot"></div>
-            <span class="radio-label">還不確定，想先跟醫師討論</span>
+          <label class="checkbox-option" id="optFlexible" onclick="toggleAvailableTime(this, '排班不固定，需視情況而定')">
+            <div class="check-box">✓</div>
+            <span class="checkbox-label">排班不固定，需視情況而定</span>
           </label>
         </div>
       </div>
     </div>
 
     <div id="errorForm" class="alert alert-error" style="display:none"></div>
+    <p style="font-size:11px;color:var(--text-light);text-align:center;margin-bottom:12px;line-height:1.6;">
+      送出問卷即表示同意悅心診所蒐集、保存您的資料，僅供門診預約與醫療行政使用。
+    </p>
     <button class="btn btn-primary" id="btnSubmitNew" onclick="submitNewPatient()">送出資料</button>
     <button class="btn-skip" onclick="skipNewPatient()">略過</button>
   </div>
@@ -366,8 +388,8 @@ const name = decodeURIComponent(urlParams.get("name") || "");
 const lineId = decodeURIComponent(urlParams.get("lineId") || "");
 const apptDate = urlParams.get("apptDate") || "";
 
-const radioState = { referral: "", residence: "", firstVisit: "", preference: "", cert: "" };
-let selectedTopics = [];
+const radioState = { referral: "", isAdult: "", residence: "", occupation: "", livingWith: "" };
+let selectedAvailableTime = [];
 let isSubmitting = false; // 防連點全域旗標
 
 // ===================================
@@ -383,14 +405,66 @@ function selectRadio(group, val) {
 }
 
 // ===================================
-// Checkbox（Q4 大方向）
+// Checkbox（Q4 同住狀況，含互斥邏輯）
 // ===================================
-function toggleTopic(el) {
-  el.classList.toggle("selected");
-  selectedTopics = [];
-  document.querySelectorAll("#topicGroup .checkbox-option.selected").forEach(function(opt) {
-    selectedTopics.push(opt.querySelector(".checkbox-label").textContent.trim());
+const EXCLUSIVE_LIVING = ["獨居", "住宿舍（學校或公司）", "其他（不屬於以上任一狀況）"];
+let selectedLivingWith = [];
+
+function toggleLivingWith(el, val) {
+  const group = document.getElementById("livingWithGroup");
+  const isExclusive = EXCLUSIVE_LIVING.includes(val);
+  const wasSelected = el.classList.contains("selected");
+
+  if (wasSelected) {
+    // 取消勾選
+    el.classList.remove("selected");
+  } else {
+    if (isExclusive) {
+      // 互斥選項：取消所有其他
+      group.querySelectorAll(".checkbox-option").forEach(function(opt) {
+        opt.classList.remove("selected");
+      });
+      el.classList.add("selected");
+    } else {
+      // 一般選項：取消互斥選項
+      group.querySelectorAll(".checkbox-option").forEach(function(opt) {
+        const label = opt.querySelector(".checkbox-label").textContent.trim();
+        if (EXCLUSIVE_LIVING.includes(label)) opt.classList.remove("selected");
+      });
+      el.classList.add("selected");
+    }
+  }
+
+  // 重建陣列
+  selectedLivingWith = [];
+  group.querySelectorAll(".checkbox-option.selected").forEach(function(opt) {
+    selectedLivingWith.push(opt.querySelector(".checkbox-label").textContent.trim());
   });
+}
+const FLEXIBLE_LABEL = "排班不固定，需視情況而定";
+function toggleAvailableTime(el, val) {
+  const isFlexible = val === FLEXIBLE_LABEL;
+  const group = document.getElementById("availableTimeGroup");
+
+  if (isFlexible) {
+    // 勾選「排班不固定」→ 取消其他所有選項
+    group.querySelectorAll(".checkbox-option").forEach(function(opt) {
+      opt.classList.remove("selected");
+    });
+    el.classList.add("selected");
+    selectedAvailableTime = [FLEXIBLE_LABEL];
+  } else {
+    // 勾選特定時段 → 取消「排班不固定」
+    const flexEl = document.getElementById("optFlexible");
+    if (flexEl) flexEl.classList.remove("selected");
+    el.classList.toggle("selected");
+    // 重建陣列（排除排班不固定）
+    selectedAvailableTime = [];
+    group.querySelectorAll(".checkbox-option.selected").forEach(function(opt) {
+      const label = opt.querySelector(".checkbox-label").textContent.trim();
+      if (label !== FLEXIBLE_LABEL) selectedAvailableTime.push(label);
+    });
+  }
 }
 
 // ===================================
@@ -399,11 +473,11 @@ function toggleTopic(el) {
 async function submitNewPatient() {
   if (isSubmitting) return;
   if (!radioState.referral) return showError("請選擇如何得知悅心診所");
+  if (!radioState.isAdult) return showError("請選擇是否已成年");
   if (!radioState.residence) return showError("請選擇目前居住地");
-  if (!radioState.firstVisit) return showError("請選擇是否已成年");
-  if (selectedTopics.length === 0) return showError("請至少選擇一個今天想討論的大方向");
-  if (!radioState.preference) return showError("請選擇您希望的協助方式");
-  if (!radioState.cert) return showError("請選擇是否需要診斷證明書");
+  if (selectedLivingWith.length === 0) return showError("請至少選擇一個同住狀況");
+  if (!radioState.occupation) return showError("請選擇您的職業與作息型態");
+  if (selectedAvailableTime.length === 0) return showError("請至少選擇一個方便的回診時段");
 
   isSubmitting = true;
   const btn = document.getElementById("btnSubmitNew");
@@ -416,12 +490,12 @@ async function submitNewPatient() {
       name: name,
       lineId: lineId,
       apptDate: apptDate,
-      referral: radioState.referral || "",
+      referral: radioState.referral,
+      isAdult: radioState.isAdult,
       residence: radioState.residence,
-      firstVisit: radioState.firstVisit,
-      topics: selectedTopics.join("；"),
-      preference: radioState.preference,
-      cert: radioState.cert
+      livingWith: selectedLivingWith.join("；"),
+      occupation: radioState.occupation,
+      availableTime: selectedAvailableTime.join("；")
     };
     const data = await xhrPost(API_URL, payload);
     if (!data.success) throw new Error(data.error);

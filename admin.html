@@ -502,7 +502,9 @@
     <div class="tile-title" style="font-size:18px;color:#111111;">群發</div>
   </div>
   <div class="tile tile-1" id="securityTile" onclick="openModal('modalSecurity')" style="position:relative;background:var(--pink);cursor:pointer;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">資安</div>
+    <div class="tile-title" style="font-size:18px;color:#111111;">系統</div>
+    <div style="position:absolute;bottom:7px;left:10px;font-size:12px;font-weight:400;color:#111111;">異常通報</div>
+    <div id="securityUnreadDot" style="display:none;position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>
   </div>
   <div class="tile tile-1" style="position:relative;background:var(--cloud);">
     <div class="tile-title" style="font-size:15px;color:#111111;" id="adminBadge">...</div>
@@ -662,11 +664,14 @@
   </div>
 </div>
 
-<!-- Modal: 資安監控 -->
+<!-- Modal: 系統異常通報 -->
 <div class="modal-overlay" id="modalSecurity">
   <div class="modal">
-    <div class="modal-title">資安監控<button class="modal-close" onclick="closeModal('modalSecurity')">✕</button></div>
+    <div class="modal-title">系統異常通報<button class="modal-close" onclick="closeModal('modalSecurity')">✕</button></div>
     <div id="securityContent"><div class="loading">載入中...</div></div>
+    <div style="margin-top:12px">
+      <button class="btn" id="btnMarkRead" style="background:var(--marigold);color:#fff;font-size:13px;padding:10px;width:100%" onclick="doMarkSecurityRead()">✓ 標記全部已讀</button>
+    </div>
   </div>
 </div>
 
@@ -1678,34 +1683,59 @@ async function doBroadcastSend() {
   btn.disabled = false; btn.textContent = "確認發送";
 }
 
-/* ── 資安 caution 檢查 ── */
+/* ── 系統異常 caution 檢查 ── */
 async function checkSecurityCaution() {
   try {
     const data = await xhrGet(`${API_URL}?action=getSecurityLog&lineId=${state.lineId}`);
-    const tile = document.getElementById("securityTile");
-    if (!tile) return;
-    const oldCaution = tile.querySelector(".cell-caution");
-    if (oldCaution) oldCaution.remove();
-    if (data.logs && data.logs.length > 0) {
-      const c = document.createElement("div");
-      c.className = "cell-caution";
-      tile.appendChild(c);
-    }
+    const dot = document.getElementById("securityUnreadDot");
+    if (dot) dot.style.display = data.hasUnread ? "block" : "none";
   } catch(e) { /* 靜默失敗，不影響主流程 */ }
 }
 
-/* ── 資安監控 ── */
+/* ── 系統異常通報 ── */
 async function loadSecurity() {
   const el = document.getElementById("securityContent");
   el.innerHTML = `<div class="loading">載入中...</div>`;
   try {
     const data = await xhrGet(`${API_URL}?action=getSecurityLog&lineId=${state.lineId}`);
     const logs = data.logs || [];
+    // 更新未讀小黑點
+    const dot = document.getElementById("securityUnreadDot");
+    if (dot) dot.style.display = data.hasUnread ? "block" : "none";
+    // 更新標記已讀按鈕
+    const btn = document.getElementById("btnMarkRead");
+    if (btn) btn.style.display = data.hasUnread ? "block" : "none";
     if (logs.length === 0) { el.innerHTML = `<div class="empty-state">✅ 目前無異常記錄</div>`; return; }
-    el.innerHTML = logs.slice(0,50).map(function(log) {
-      return `<div class="log-item"><div class="log-time">${esc(log.time)}</div><div style="margin:2px 0;font-size:11px">${esc(log.lineId)}</div><div style="margin:2px 0;font-size:11px">姓名：${esc(log.name)}</div><div class="log-event">${esc(log.event)}</div></div>`;
+    el.innerHTML = logs.map(function(log) {
+      const readInfo = log.isRead
+        ? `<div style="font-size:10px;color:var(--text-light);margin-top:2px">已讀：${esc(log.readTime)}</div>`
+        : `<div style="font-size:10px;color:var(--marigold);margin-top:2px;font-weight:700">未讀</div>`;
+      return `<div class="log-item" style="opacity:${log.isRead ? '0.5' : '1'}">
+        <div class="log-time">${esc(log.time)}</div>
+        ${log.lineId ? `<div style="margin:2px 0;font-size:11px">${esc(log.lineId)}</div>` : ""}
+        ${log.name ? `<div style="margin:2px 0;font-size:11px">姓名：${esc(log.name)}</div>` : ""}
+        <div class="log-event">${esc(log.event)}</div>
+        ${readInfo}
+      </div>`;
     }).join("");
   } catch(e) { el.innerHTML = `<div class="alert alert-error">記錄暫時無法載入，請稍後再試。</div>`; }
+}
+
+/* ── 標記全部已讀 ── */
+async function doMarkSecurityRead() {
+  const btn = document.getElementById("btnMarkRead");
+  btn.disabled = true; btn.textContent = "更新中...";
+  try {
+    await xhrPost(API_URL, { action: "markSecurityRead", lineId: state.lineId });
+    const dot = document.getElementById("securityUnreadDot");
+    if (dot) dot.style.display = "none";
+    btn.style.display = "none";
+    btn.disabled = false; btn.textContent = "✓ 標記全部已讀";
+    // 重新載入顯示已讀狀態
+    loadSecurity();
+  } catch(e) {
+    btn.disabled = false; btn.textContent = "✓ 標記全部已讀";
+  }
 }
 
 initLiff();
