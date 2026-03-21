@@ -958,19 +958,27 @@ async function loadSchedule(preferredSession) {
 function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
   allBookings = bookings;
   const el = document.getElementById("scheduleContent");
-  // 優先使用 GAS 回傳的開診時段，fallback 到前端副本（相容舊版 GAS）
+  // 優先使用 GAS 回傳的開診時段（含醫師），fallback 到前端副本
   const dow = state.viewDate.getDay();
-  const openSessions = openSessionsFromGAS ||
-    ["早上","下午","晚上"].filter(s => {
-      const d = DEFAULT_DOCTOR_SCHEDULE[dow] || {};
-      return d[s] && d[s] !== "";
-    });
+  const rawSessions = openSessionsFromGAS ||
+    ["早上","下午","晚上"]
+      .filter(s => { const d = DEFAULT_DOCTOR_SCHEDULE[dow] || {}; return d[s] && d[s] !== ""; })
+      .map(s => ({ session: s, doctor: DEFAULT_DOCTOR_SCHEDULE[dow][s] || "—" }));
+
+  // 統一用 session 字串陣列做 includes 判斷
+  const openSessionNames = rawSessions.map(s => typeof s === "string" ? s : s.session);
+  // 建立 session → doctor 對照表
+  const sessionDoctorMap = {};
+  rawSessions.forEach(function(s) {
+    if (typeof s === "string") sessionDoctorMap[s] = "—";
+    else sessionDoctorMap[s.session] = s.doctor || "—";
+  });
 
   // 更新三個時段磚
   ["早上","下午","晚上"].forEach(function(s) {
     const tile = document.getElementById("session-" + s);
     const countEl = document.getElementById("count-" + s);
-    if (!openSessions.includes(s)) {
+    if (!openSessionNames.includes(s)) {
       tile.style.opacity = "0.2";
       tile.style.pointerEvents = "none";
       if (countEl) countEl.textContent = "—";
@@ -982,7 +990,7 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
     }
   });
 
-  if (openSessions.length === 0) {
+  if (openSessionNames.length === 0) {
     // 無開診（週日）：醫師磚顯示「休息」，仍渲染 30 個空格保持版面
     document.getElementById("sessionDoctorText").textContent = "休息";
     const subElR = document.getElementById("sessionDoctorSub");
@@ -995,16 +1003,19 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
     return;
   }
 
+  // 把 sessionDoctorMap 存到全域，供 switchTab 使用
+  window._sessionDoctorMap = sessionDoctorMap;
+
   // 決定預設時段：優先用傳入的 preferredSession，否則依當前時間
   let defaultSession = preferredSession;
-  if (!defaultSession || !openSessions.includes(defaultSession)) {
+  if (!defaultSession || !openSessionNames.includes(defaultSession)) {
     const now = new Date();
     const hhmm = now.getHours() * 100 + now.getMinutes();
     if (hhmm <= 1259) defaultSession = "早上";
     else if (hhmm <= 1714) defaultSession = "下午";
     else defaultSession = "晚上";
   }
-  activeSession = openSessions.includes(defaultSession) ? defaultSession : openSessions[0];
+  activeSession = openSessionNames.includes(defaultSession) ? defaultSession : openSessionNames[0];
   switchTab(activeSession);
 }
 
@@ -1022,9 +1033,11 @@ function switchTab(session) {
       if (tile.style.pointerEvents !== "none") tile.style.opacity = "0.5";
     }
   });
-  // 醫師資訊磚
+  // 醫師資訊磚：有預約從 booking 取，無預約從 sessionDoctorMap 取
   const list = allBookings.filter(b => b.session === session);
-  const doctor = list.length > 0 ? list[0].doctor : "—";
+  const doctor = list.length > 0
+    ? list[0].doctor
+    : (window._sessionDoctorMap && window._sessionDoctorMap[session]) || "—";
   const isSubstitute = list.length > 0 && list[0].isSubstitute;
   document.getElementById("sessionDoctorText").textContent = doctor;
   const doctorTile = document.getElementById("doctorTile");
@@ -1055,10 +1068,10 @@ function renderSessionContent(session) {
   const doctor = list.length > 0 ? list[0].doctor : "";
 
   if (list.length === 0) {
-    // 無預約：顯示30個空號格（靜態，無動畫）
+    // 無預約：顯示30個可點擊空格（供代掛使用）
     let emptyHtml = "";
     for (let i = 1; i <= 30; i++) {
-      emptyHtml += `<div class="grid-cell empty"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
+      emptyHtml += `<div class="grid-cell empty" style="cursor:pointer" onclick="openAdminAddBookingModal(${i})"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
     }
     el.innerHTML = emptyHtml;
     return;
