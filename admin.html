@@ -212,6 +212,17 @@
     font-size: 10px; font-weight: 700;
     padding: 2px 6px; letter-spacing: 0.5px;
   }
+  /* 醫師磚載入動畫 */
+  @keyframes loadingDots {
+    0%   { content: ""; }
+    33%  { content: "."; }
+    66%  { content: ".."; }
+    100% { content: "..."; }
+  }
+  .doctor-loading::after {
+    content: "";
+    animation: loadingDots 1.2s steps(1) infinite;
+  }
   .tile-session { cursor: pointer; }
   .tile-session.active { outline: 3px solid #fff; outline-offset: -3px; opacity: 1 !important; }
   .tile-session:not(.active) { opacity: 0.55; }
@@ -926,8 +937,14 @@ function getTodayStr() { const n = new Date(); return n.getFullYear() + "/" + St
 function esc(str) { return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
 async function loadSchedule(preferredSession) {
-  // A2：醫師磚顯示「載入中...」
-  document.getElementById("sessionDoctorText").textContent = "載入中...";
+  // A2：醫師磚顯示載入動畫
+  const doctorTextEl = document.getElementById("sessionDoctorText");
+  doctorTextEl.textContent = "載入中";
+  doctorTextEl.classList.add("doctor-loading");
+  // 清除代診標籤
+  const doctorTileEl = document.getElementById("doctorTile");
+  const oldNoteEl = doctorTileEl && doctorTileEl.querySelector(".doctor-substitute-note");
+  if (oldNoteEl) oldNoteEl.remove();
   const subEl = document.getElementById("sessionDoctorSub");
   if (subEl) subEl.textContent = "";
   // A3：時段磚人數顯示「—」
@@ -991,8 +1008,13 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
   });
 
   if (openSessionNames.length === 0) {
-    // 無開診（週日）：醫師磚顯示「休息」，仍渲染 30 個空格保持版面
-    document.getElementById("sessionDoctorText").textContent = "休息";
+    // 無開診（週日）：醫師磚顯示「休息」，清代診標籤，仍渲染 30 個空格保持版面
+    const dtEl = document.getElementById("sessionDoctorText");
+    dtEl.textContent = "休息";
+    dtEl.classList.remove("doctor-loading");
+    const dtTile = document.getElementById("doctorTile");
+    const oldN = dtTile && dtTile.querySelector(".doctor-substitute-note");
+    if (oldN) oldN.remove();
     const subElR = document.getElementById("sessionDoctorSub");
     if (subElR) subElR.textContent = "";
     let emptyHtml = "";
@@ -1039,6 +1061,7 @@ function switchTab(session) {
   const doctor = list.length > 0 ? list[0].doctor : sessionInfo.doctor;
   const isSubstitute = list.length > 0 ? list[0].isSubstitute : sessionInfo.isSubstitute;
   document.getElementById("sessionDoctorText").textContent = doctor;
+  document.getElementById("sessionDoctorText").classList.remove("doctor-loading");
   const doctorTile = document.getElementById("doctorTile");
   const oldNote = doctorTile.querySelector(".doctor-substitute-note");
   if (oldNote) oldNote.remove();
