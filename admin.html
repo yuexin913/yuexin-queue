@@ -506,6 +506,46 @@
   <div class="modal">
     <div class="modal-title">不指定名單<button class="modal-close" onclick="closeModal('modalUnspecified')">✕</button></div>
     <div id="unspecContent"><div class="loading">載入中...</div></div>
+    <div style="margin-top:12px">
+      <button class="btn" style="background:var(--kiwi);color:#111;font-size:13px;padding:10px;" onclick="toggleUnspecForm()">＋ 新增現場排號</button>
+      <div id="unspecAddForm" style="display:none;margin-top:12px">
+        <div class="form-group"><label class="form-label">姓名</label><input type="text" id="uAddName" placeholder="請輸入姓名"></div>
+        <div class="form-group"><label class="form-label">電話</label><input type="tel" id="uAddPhone" placeholder="09xxxxxxxx"></div>
+        <div class="form-group">
+          <label class="form-label">生日（民國年）</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="tel" id="uAddBirthY" placeholder="年" style="width:70px" maxlength="3">
+            <span>/</span>
+            <input type="tel" id="uAddBirthM" placeholder="月" style="width:55px" maxlength="2">
+            <span>/</span>
+            <input type="tel" id="uAddBirthD" placeholder="日" style="width:55px" maxlength="2">
+          </div>
+        </div>
+        <div id="unspecAddError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
+        <button class="btn" style="background:var(--marigold);color:#fff;font-size:13px;padding:10px;width:100%" onclick="doAdminAddBooking('不指定')">確認新增現場排號</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: 代掛（空格） -->
+<div class="modal-overlay" id="modalAdminAdd">
+  <div class="modal">
+    <div class="modal-title" id="adminAddTitle">代掛<button class="modal-close" onclick="closeModal('modalAdminAdd')">✕</button></div>
+    <div class="form-group"><label class="form-label">姓名</label><input type="text" id="aAddName" placeholder="請輸入姓名"></div>
+    <div class="form-group"><label class="form-label">電話</label><input type="tel" id="aAddPhone" placeholder="09xxxxxxxx"></div>
+    <div class="form-group">
+      <label class="form-label">生日（民國年）</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="tel" id="aAddBirthY" placeholder="年" style="width:70px" maxlength="3">
+        <span>/</span>
+        <input type="tel" id="aAddBirthM" placeholder="月" style="width:55px" maxlength="2">
+        <span>/</span>
+        <input type="tel" id="aAddBirthD" placeholder="日" style="width:55px" maxlength="2">
+      </div>
+    </div>
+    <div id="adminAddError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
+    <button class="btn" style="background:var(--marigold);color:#fff;font-size:13px;padding:10px;width:100%;margin-top:4px" id="btnAdminAdd" onclick="doAdminAddBooking(null)">確認代掛</button>
   </div>
 </div>
 
@@ -1125,7 +1165,7 @@ function renderSessionContent(session) {
       </div>`;
     } else {
       // empty
-      html += `<div class="grid-cell empty">
+      html += `<div class="grid-cell empty" style="cursor:pointer" onclick="openAdminAddBookingModal(${c.num})">
         <span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${c.num}</span>
       </div>`;
     }
@@ -1168,7 +1208,104 @@ function openUnspecModal() {
       </div>`;
     }).join("");
   }
+  // 重置新增表單
+  document.getElementById("unspecAddForm").style.display = "none";
+  document.getElementById("uAddName").value = "";
+  document.getElementById("uAddPhone").value = "";
+  document.getElementById("uAddBirthY").value = "";
+  document.getElementById("uAddBirthM").value = "";
+  document.getElementById("uAddBirthD").value = "";
+  document.getElementById("unspecAddError").style.display = "none";
   openModal("modalUnspecified");
+}
+
+function toggleUnspecForm() {
+  const form = document.getElementById("unspecAddForm");
+  form.style.display = form.style.display === "none" ? "block" : "none";
+}
+
+/* ── 空格代掛 Modal ── */
+let adminAddSlot = null; // 目前要代掛的號碼
+
+function openAdminAddBookingModal(slotNum) {
+  adminAddSlot = slotNum;
+  document.getElementById("adminAddTitle").textContent = "代掛 " + slotNum + " 號";
+  document.getElementById("aAddName").value = "";
+  document.getElementById("aAddPhone").value = "";
+  document.getElementById("aAddBirthY").value = "";
+  document.getElementById("aAddBirthM").value = "";
+  document.getElementById("aAddBirthD").value = "";
+  document.getElementById("adminAddError").style.display = "none";
+  openModal("modalAdminAdd");
+}
+
+/* ── 代掛送出（空格 + 不指定共用） ── */
+let isAdminAdding = false;
+async function doAdminAddBooking(forceSlot) {
+  if (isAdminAdding) return;
+
+  // 取得欄位值（依來源 Modal 決定）
+  const isUnspec = forceSlot === "不指定";
+  const nameEl   = isUnspec ? "uAddName"   : "aAddName";
+  const phoneEl  = isUnspec ? "uAddPhone"  : "aAddPhone";
+  const birthYEl = isUnspec ? "uAddBirthY" : "aAddBirthY";
+  const birthMEl = isUnspec ? "uAddBirthM" : "aAddBirthM";
+  const birthDEl = isUnspec ? "uAddBirthD" : "aAddBirthD";
+  const errEl    = isUnspec ? "unspecAddError" : "adminAddError";
+
+  const name   = document.getElementById(nameEl).value.trim();
+  const phone  = document.getElementById(phoneEl).value.replace(/[^\d]/g, "").trim();
+  const birthY = document.getElementById(birthYEl).value.trim();
+  const birthM = document.getElementById(birthMEl).value.trim();
+  const birthD = document.getElementById(birthDEl).value.trim();
+
+  const showErr = (msg) => {
+    const el = document.getElementById(errEl);
+    el.textContent = msg; el.style.display = "block";
+  };
+
+  if (!name) return showErr("請輸入姓名。");
+  if (!/^09\d{8}$/.test(phone)) return showErr("手機號碼格式不正確。");
+  const adYear = parseInt(birthY, 10) + 1911;
+  const mm = String(parseInt(birthM, 10)).padStart(2, "0");
+  const dd = String(parseInt(birthD, 10)).padStart(2, "0");
+  if (!birthY || !birthM || !birthD || isNaN(adYear)) return showErr("請輸入正確的生日。");
+  const birth = adYear + "-" + mm + "-" + dd;
+
+  const slot = forceSlot !== null ? forceSlot : String(adminAddSlot);
+  const dateStr = dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1$2$3");
+
+  isAdminAdding = true;
+  const btn = isUnspec
+    ? document.querySelector("#unspecAddForm button:last-child")
+    : document.getElementById("btnAdminAdd");
+  if (btn) { btn.disabled = true; btn.textContent = "新增中..."; }
+
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "adminAddBooking",
+      lineId: state.lineId,
+      name: name,
+      phone: phone,
+      birth: birth,
+      date: dateStr,
+      session: activeSession,
+      timeSlot: slot,
+      type: "複診"
+    });
+    if (!data.success) throw new Error(data.error);
+    closeModal(isUnspec ? "modalUnspecified" : "modalAdminAdd");
+    // 重新載入診表
+    loadSchedule(activeSession);
+  } catch(e) {
+    showErr(e.message || "新增失敗，請稍後再試。");
+  } finally {
+    isAdminAdding = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = isUnspec ? "確認新增現場排號" : "確認代掛";
+    }
+  }
 }
 
 /* ── 聯絡小卡 Modal ── */
