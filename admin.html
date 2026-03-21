@@ -967,11 +967,11 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
 
   // 統一用 session 字串陣列做 includes 判斷
   const openSessionNames = rawSessions.map(s => typeof s === "string" ? s : s.session);
-  // 建立 session → doctor 對照表
+  // 建立 session → { doctor, isSubstitute } 對照表
   const sessionDoctorMap = {};
   rawSessions.forEach(function(s) {
-    if (typeof s === "string") sessionDoctorMap[s] = "—";
-    else sessionDoctorMap[s.session] = s.doctor || "—";
+    if (typeof s === "string") sessionDoctorMap[s] = { doctor: "—", isSubstitute: false };
+    else sessionDoctorMap[s.session] = { doctor: s.doctor || "—", isSubstitute: s.isSubstitute || false };
   });
 
   // 更新三個時段磚
@@ -1035,10 +1035,9 @@ function switchTab(session) {
   });
   // 醫師資訊磚：有預約從 booking 取，無預約從 sessionDoctorMap 取
   const list = allBookings.filter(b => b.session === session);
-  const doctor = list.length > 0
-    ? list[0].doctor
-    : (window._sessionDoctorMap && window._sessionDoctorMap[session]) || "—";
-  const isSubstitute = list.length > 0 && list[0].isSubstitute;
+  const sessionInfo = (window._sessionDoctorMap && window._sessionDoctorMap[session]) || { doctor: "—", isSubstitute: false };
+  const doctor = list.length > 0 ? list[0].doctor : sessionInfo.doctor;
+  const isSubstitute = list.length > 0 ? list[0].isSubstitute : sessionInfo.isSubstitute;
   document.getElementById("sessionDoctorText").textContent = doctor;
   const doctorTile = document.getElementById("doctorTile");
   const oldNote = doctorTile.querySelector(".doctor-substitute-note");
@@ -1242,7 +1241,7 @@ let adminAddSlot = null; // 目前要代掛的號碼
 
 function openAdminAddBookingModal(slotNum) {
   adminAddSlot = slotNum;
-  document.getElementById("adminAddTitle").textContent = "代掛 " + slotNum + " 號";
+  document.getElementById("adminAddTitle").innerHTML = "代掛 " + slotNum + " 號<button class=\"modal-close\" onclick=\"closeModal('modalAdminAdd')\">✕</button>";
   document.getElementById("aAddName").value = "";
   document.getElementById("aAddPhone").value = "";
   document.getElementById("aAddBirthY").value = "";
