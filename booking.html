@@ -365,7 +365,8 @@
 
 <div class="header">
   <h1>悅心診所</h1>
-  <p id="headerSub">線上預約系統 <span style="font-size:10px;color:var(--error);font-weight:700;letter-spacing:0;">測試版</span></p>
+  <p id="headerSub">線上預約系統</p>
+  <span style="font-size:10px;color:var(--error);font-weight:700;letter-spacing:0;">測試版</span>
 </div>
 
 <div class="container">
@@ -493,7 +494,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin:10px 0;">
         <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
-        <button class="btn-text-link" onclick="toggleCalendar()" id="calToggleBtn" style="font-size:13px;white-space:nowrap;">或 自行展開日曆選擇 ▾</button>
+        <button class="btn-text-link" onclick="toggleCalendar()" id="calToggleBtn" style="font-size:15px;white-space:nowrap;">或 直接選擇日期</button>
         <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
       </div>
     </div>
@@ -509,6 +510,14 @@
         <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
       </div>
       <div class="cal-days" id="calDays"></div>
+    </div>
+    <!-- 藥量計算切換（日曆展開時顯示，預設隱藏） -->
+    <div id="medCalcToggleBar" style="display:none;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;margin:10px 0;">
+        <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
+        <button class="btn-text-link" onclick="toggleCalendar()" style="font-size:15px;white-space:nowrap;">或 輸入剩餘藥物天數</button>
+        <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
+      </div>
     </div>
     <!-- 已選日期摘要（收起月曆後顯示） -->
     <div id="selectedDateBar" style="display:none">
@@ -736,7 +745,9 @@ async function goToPageTime() {
   const calendarArea = document.getElementById("calendarArea");
   if (calendarArea) calendarArea.style.display = isReturn ? "none" : "block";
   const calToggleBtn = document.getElementById("calToggleBtn");
-  if (calToggleBtn) calToggleBtn.textContent = "或 自行展開日曆選擇 ▾";
+  if (calToggleBtn) calToggleBtn.style.display = isReturn ? "inline" : "none";
+  const medCalcToggleBar = document.getElementById("medCalcToggleBar");
+  if (medCalcToggleBar) medCalcToggleBar.style.display = "none";
   renderCalendar();
   document.getElementById("nhiReminder").style.display = isReturn ? "block" : "none";
 }
@@ -815,7 +826,9 @@ function reopenCalendar() {
     if (medCalcArea) medCalcArea.style.display = "block";
     document.getElementById("calendarArea").style.display = "none";
     const calToggleBtn = document.getElementById("calToggleBtn");
-    if (calToggleBtn) calToggleBtn.textContent = "或 自行展開日曆選擇 ▾";
+    if (calToggleBtn) calToggleBtn.style.display = "inline";
+    const medCalcToggleBar = document.getElementById("medCalcToggleBar");
+    if (medCalcToggleBar) medCalcToggleBar.style.display = "none";
   } else {
     // 初診：直接展開月曆
     document.getElementById("calendarArea").style.display = "block";
@@ -839,10 +852,24 @@ function setMedDays(days) {
 function toggleCalendar() {
   const cal = document.getElementById("calendarArea");
   const btn = document.getElementById("calToggleBtn");
+  const medToggleBar = document.getElementById("medCalcToggleBar");
+  const medCalcArea = document.getElementById("medCalcArea");
   const isHidden = cal.style.display === "none";
-  cal.style.display = isHidden ? "block" : "none";
-  if (btn) btn.textContent = isHidden ? "或 收起日曆 ▴" : "或 自行展開日曆選擇 ▾";
-  if (isHidden) renderCalendar();
+
+  if (isHidden) {
+    // 展開日曆：收起藥量區，顯示「或 輸入剩餘藥物天數」
+    cal.style.display = "block";
+    if (medCalcArea) medCalcArea.style.display = "none";
+    if (medToggleBar) medToggleBar.style.display = "block";
+    if (btn) btn.style.display = "none";
+    renderCalendar();
+  } else {
+    // 收起日曆：顯示藥量區，隱藏「或 輸入剩餘藥物天數」
+    cal.style.display = "none";
+    if (medCalcArea) medCalcArea.style.display = "block";
+    if (medToggleBar) medToggleBar.style.display = "none";
+    if (btn) btn.style.display = "inline";
+  }
 }
 
 function calculateMedDate() {
@@ -1405,6 +1432,6 @@ function handleAdminTap() {
 }
 </script>
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
-<div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#bbb;letter-spacing:0.08em;cursor:default;user-select:none;" onclick="handleAdminTap()">EST. 2024 YUEXIN PSYCHIATRIC CLINIC · 測試版</div>
+<div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#bbb;letter-spacing:0.08em;cursor:default;user-select:none;" onclick="handleAdminTap()">EST. 2024 YUEXIN PSYCHIATRIC CLINIC · BETA EDITION</div>
 </body>
 </html>
