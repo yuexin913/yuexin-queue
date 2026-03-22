@@ -1388,8 +1388,22 @@ function xhrPost(url, payload) {
 }
 
 initLiff();
+
+/* ── 暗門：2秒內點4次 EST. 2024 進入 Admin ── */
+let _adminTapCount = 0;
+let _adminTapTimer = null;
+function handleAdminTap() {
+  _adminTapCount++;
+  if (_adminTapTimer) clearTimeout(_adminTapTimer);
+  if (_adminTapCount >= 4) {
+    _adminTapCount = 0;
+    liff.openWindow({ url: "https://yuexin913.github.io/yuexin-queue/admin.html", external: false });
+    return;
+  }
+  _adminTapTimer = setTimeout(function() { _adminTapCount = 0; }, 2000);
+}
 </script>
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
-<div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#bbb;letter-spacing:0.08em;">EST. 2024 YUEXIN PSYCHIATRIC CLINIC</div>
+<div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#bbb;letter-spacing:0.08em;cursor:default;user-select:none;" onclick="handleAdminTap()">EST. 2024 YUEXIN PSYCHIATRIC CLINIC</div>
 </body>
 </html>
