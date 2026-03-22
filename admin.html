@@ -460,7 +460,7 @@
   </div>
 
   <!-- Row 2: 醫師資訊 + 時段磚 -->
-  <div class="tile tile-2" id="doctorTile" style="position:relative;background:var(--cloud);">
+  <div class="tile tile-2" id="doctorTile" style="position:relative;background:var(--cloud);cursor:pointer;" onclick="openDoctorModal()">
     <div class="tile-title" style="font-size:20px;color:#111111;" id="sessionDoctorText">—</div>
   </div>
   <div class="tile tile-1 tile-session" id="session-早上" onclick="switchTab('早上')" style="position:relative;background:var(--lagoon);">
@@ -496,7 +496,7 @@
     <div class="tile-title" style="font-size:18px;color:#111111;">查詢</div>
   </div>
   <div class="tile tile-1" onclick="openModal('modalSubstitute')" style="position:relative;background:var(--marigold);cursor:pointer;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">代診</div>
+    <div class="tile-title" style="font-size:18px;color:#111111;">門診異動</div>
   </div>
   <div class="tile tile-1" onclick="openModal('modalBroadcast')" style="position:relative;background:var(--orchid);cursor:pointer;">
     <div class="tile-title" style="font-size:18px;color:#111111;">群發</div>
@@ -597,28 +597,67 @@
   </div>
 </div>
 
-<!-- Modal: 代診排班 -->
+<!-- Modal: 醫師資訊 -->
+<div class="modal-overlay" id="modalDoctor">
+  <div class="modal" style="max-width:320px">
+    <div class="modal-title">本診醫師<button class="modal-close" onclick="closeModal('modalDoctor')">✕</button></div>
+    <div id="doctorModalContent" style="font-size:15px;padding:8px 0;"></div>
+  </div>
+</div>
+
+<!-- Modal: 門診異動 -->
 <div class="modal-overlay" id="modalSubstitute">
   <div class="modal">
-    <div class="modal-title">代診排班<button class="modal-close" onclick="closeModal('modalSubstitute')">✕</button></div>
+    <div class="modal-title">門診異動<button class="modal-close" onclick="closeModal('modalSubstitute')">✕</button></div>
+
+    <!-- 目前異動清單 -->
     <div style="background:#F8F8F8;border-left:4px solid var(--marigold);padding:10px 12px;margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:700;color:var(--orange-dark);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">目前排班代診</div>
+      <div style="font-size:11px;font-weight:700;color:var(--orange-dark);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">目前門診異動</div>
       <div id="subList"><div style="font-size:12px;color:var(--text-light);">載入中...</div></div>
     </div>
-    <div class="form-group"><label class="form-label">日期</label><input type="date" id="subDate"></div>
-    <div class="form-group">
-      <label class="form-label">時段</label>
-      <select id="subSession">
-        <option value="">請選擇時段</option>
-        <option value="早上">早上診</option>
-        <option value="下午">下午診</option>
-        <option value="晚上">晚上診</option>
-      </select>
+
+    <!-- Tab 切換 -->
+    <div style="display:flex;gap:4px;margin-bottom:14px;">
+      <button id="tabBtnSubstitute" onclick="switchSubTab('substitute')" style="flex:1;padding:8px;border:none;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;background:var(--marigold);color:white;">代診</button>
+      <button id="tabBtnClosed" onclick="switchSubTab('closed')" style="flex:1;padding:8px;border:none;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;background:#F0F0F0;color:var(--text-light);">停診</button>
     </div>
-    <div class="form-group"><label class="form-label">代診醫師姓名</label><input type="text" id="subDoctor" placeholder="輸入代診醫師姓名"></div>
-    <div id="subError" class="alert alert-error" style="display:none"></div>
-    <div id="subSuccess" class="alert alert-success" style="display:none"></div>
-    <button class="btn btn-primary" id="btnSub" onclick="doSubstitute()">確認更新</button>
+
+    <!-- 代診 Tab -->
+    <div id="tabSubstitute">
+      <div class="form-group"><label class="form-label">日期</label><input type="date" id="subDate"></div>
+      <div class="form-group">
+        <label class="form-label">時段</label>
+        <select id="subSession">
+          <option value="">請選擇時段</option>
+          <option value="早上">早上診</option>
+          <option value="下午">下午診</option>
+          <option value="晚上">晚上診</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">代診醫師姓名</label><input type="text" id="subDoctor" placeholder="輸入代診醫師姓名"></div>
+      <div id="subError" class="alert alert-error" style="display:none"></div>
+      <div id="subSuccess" class="alert alert-success" style="display:none"></div>
+      <button class="btn btn-primary" id="btnSub" onclick="doSubstitute()">確認更新</button>
+    </div>
+
+    <!-- 停診 Tab -->
+    <div id="tabClosed" style="display:none">
+      <div class="form-group"><label class="form-label">日期</label><input type="date" id="closedDate"></div>
+      <div class="form-group">
+        <label class="form-label">時段</label>
+        <select id="closedSession">
+          <option value="">請選擇時段</option>
+          <option value="早上">早上診</option>
+          <option value="下午">下午診</option>
+          <option value="晚上">晚上診</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">原因（選填）</label><input type="text" id="closedReason" placeholder="例：國定假日、颱風停診、醫師請假"></div>
+      <div id="closedError" class="alert alert-error" style="display:none"></div>
+      <div id="closedSuccess" class="alert alert-success" style="display:none"></div>
+      <button class="btn btn-primary" id="btnClosed" onclick="doClosed()">確認停診</button>
+    </div>
+
   </div>
 </div>
 
@@ -989,11 +1028,11 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
 
   // 統一用 session 字串陣列做 includes 判斷
   const openSessionNames = rawSessions.map(s => typeof s === "string" ? s : s.session);
-  // 建立 session → { doctor, isSubstitute } 對照表
+  // 建立 session → { doctor, isSubstitute, isClosed } 對照表
   const sessionDoctorMap = {};
   rawSessions.forEach(function(s) {
-    if (typeof s === "string") sessionDoctorMap[s] = { doctor: "—", isSubstitute: false };
-    else sessionDoctorMap[s.session] = { doctor: s.doctor || "—", isSubstitute: s.isSubstitute || false };
+    if (typeof s === "string") sessionDoctorMap[s] = { doctor: "—", isSubstitute: false, isClosed: false };
+    else sessionDoctorMap[s.session] = { doctor: s.doctor || "—", isSubstitute: s.isSubstitute || false, isClosed: s.isClosed || false };
   });
 
   // 更新三個時段磚
@@ -1060,29 +1099,36 @@ function switchTab(session) {
       if (tile.style.pointerEvents !== "none") tile.style.opacity = "0.5";
     }
   });
-  // 醫師資訊磚：有預約從 booking 取，無預約從 sessionDoctorMap 取
+  // 醫師資訊磚：優先從 sessionDoctorMap 取 isClosed，再取醫師名
   const list = allBookings.filter(b => b.session === session);
-  const sessionInfo = (window._sessionDoctorMap && window._sessionDoctorMap[session]) || { doctor: "—", isSubstitute: false };
-  const doctor = list.length > 0 ? list[0].doctor : sessionInfo.doctor;
-  const isSubstitute = list.length > 0 ? list[0].isSubstitute : sessionInfo.isSubstitute;
+  const sessionInfo = (window._sessionDoctorMap && window._sessionDoctorMap[session]) || { doctor: "—", isSubstitute: false, isClosed: false };
+  const isClosed = sessionInfo.isClosed;
+  const doctor = isClosed ? "停診" : (list.length > 0 ? list[0].doctor : sessionInfo.doctor);
+  const isSubstitute = !isClosed && (list.length > 0 ? list[0].isSubstitute : sessionInfo.isSubstitute);
   document.getElementById("sessionDoctorText").textContent = doctor;
   document.getElementById("sessionDoctorText").classList.remove("doctor-loading");
   const doctorTile = document.getElementById("doctorTile");
   const oldNote = doctorTile.querySelector(".doctor-substitute-note");
   if (oldNote) oldNote.remove();
-  if (isSubstitute) {
+  if (isClosed) {
+    const n = document.createElement("div");
+    n.className = "doctor-substitute-note";
+    n.textContent = "停診";
+    n.style.background = "var(--error)";
+    doctorTile.appendChild(n);
+  } else if (isSubstitute) {
     const n = document.createElement("div");
     n.className = "doctor-substitute-note";
     n.textContent = "代診";
     doctorTile.appendChild(n);
   }
-  renderSessionContent(session);
+  renderSessionContent(session, isClosed);
 }
 
 /* ════════════════════════════════════════════════
    核心渲染：30 格儀表板
    ════════════════════════════════════════════════ */
-function renderSessionContent(session) {
+function renderSessionContent(session, isClosed) {
   const el = document.getElementById("scheduleContent");
   const list = allBookings.filter(b => b.session === session);
   const npList = list.filter(b => b.type === "初診")
@@ -1094,13 +1140,32 @@ function renderSessionContent(session) {
   const unList = list.filter(b => b.type !== "初診" && b.slot === "不指定");
   const doctor = list.length > 0 ? list[0].doctor : "";
 
+  // 停診時：不指定磚 disable
+  const unspecTile = document.getElementById("unspecCount")?.closest(".tile");
+  if (unspecTile) {
+    if (isClosed) {
+      unspecTile.style.pointerEvents = "none";
+      unspecTile.style.opacity = "0.3";
+    } else {
+      unspecTile.style.pointerEvents = "auto";
+      unspecTile.style.opacity = "1";
+    }
+  }
+
   if (list.length === 0) {
-    // 無預約：顯示30個可點擊空格（供代掛使用）
     let emptyHtml = "";
     for (let i = 1; i <= 30; i++) {
-      emptyHtml += `<div class="grid-cell empty" style="cursor:pointer" onclick="openAdminAddBookingModal(${i})"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
+      if (isClosed) {
+        // 停診：空格不可點
+        emptyHtml += `<div class="grid-cell empty"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
+      } else {
+        emptyHtml += `<div class="grid-cell empty" style="cursor:pointer" onclick="openAdminAddBookingModal(${i})"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
+      }
     }
     el.innerHTML = emptyHtml;
+    // 更新不指定人數
+    const unspecEl = document.getElementById("unspecCount");
+    if (unspecEl) unspecEl.textContent = "";
     return;
   }
 
@@ -1205,9 +1270,11 @@ function renderSessionContent(session) {
       </div>`;
     } else {
       // empty
-      html += `<div class="grid-cell empty" style="cursor:pointer" onclick="openAdminAddBookingModal(${c.num})">
-        <span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${c.num}</span>
-      </div>`;
+      if (isClosed) {
+        html += `<div class="grid-cell empty"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${c.num}</span></div>`;
+      } else {
+        html += `<div class="grid-cell empty" style="cursor:pointer" onclick="openAdminAddBookingModal(${c.num})"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${c.num}</span></div>`;
+      }
     }
   }
 
@@ -1472,57 +1539,109 @@ function openModal(id) {
 }
 function closeModal(id) { document.getElementById(id).classList.remove("active"); }
 
-/* ── 代診排班 ── */
+/* ── 門診異動 Tab 切換 ── */
+function switchSubTab(tab) {
+  const isSub = tab === 'substitute';
+  document.getElementById('tabSubstitute').style.display = isSub ? '' : 'none';
+  document.getElementById('tabClosed').style.display = isSub ? 'none' : '';
+  document.getElementById('tabBtnSubstitute').style.background = isSub ? 'var(--marigold)' : '#F0F0F0';
+  document.getElementById('tabBtnSubstitute').style.color = isSub ? 'white' : 'var(--text-light)';
+  document.getElementById('tabBtnClosed').style.background = isSub ? '#F0F0F0' : 'var(--marigold)';
+  document.getElementById('tabBtnClosed').style.color = isSub ? 'var(--text-light)' : 'white';
+}
+
+/* ── 醫師磚 Modal ── */
+function openDoctorModal() {
+  const text = document.getElementById('sessionDoctorText');
+  const doctorTile = document.getElementById('doctorTile');
+  const note = doctorTile.querySelector('.doctor-substitute-note');
+  const name = text ? text.textContent.trim() : '—';
+  const noteText = note ? note.textContent.trim() : '';
+  let html = `<div style="font-weight:700;font-size:18px;margin-bottom:6px;">${esc(name)}</div>`;
+  if (noteText) html += `<div style="font-size:13px;color:var(--orange-dark);font-weight:700;">${esc(noteText)}</div>`;
+  document.getElementById('doctorModalContent').innerHTML = html;
+  openModal('modalDoctor');
+}
+
+/* ── 門診異動清單 ── */
 async function loadSubstituteList() {
-  const el = document.getElementById("subList");
+  const el = document.getElementById('subList');
   try {
     const data = await xhrGet(`${API_URL}?action=getSubstituteList&lineId=${state.lineId}`);
     const list = data.list || [];
     const sn = {"早上":"早上診","下午":"下午診","晚上":"晚上診"};
-    if (list.length === 0) { el.innerHTML = `<div style="font-size:12px;color:var(--text-light)">目前無代診安排</div>`; return; }
+    if (list.length === 0) { el.innerHTML = `<div style="font-size:12px;color:var(--text-light)">目前無門診異動</div>`; return; }
     el.innerHTML = list.map(function(item) {
       const dp = item.date.split("/");
+      const isClosed = item.type === '停診';
+      const typeLabel = isClosed
+        ? `<span style="font-size:10px;font-weight:700;color:white;background:var(--error);padding:1px 5px;margin-left:4px;">停診</span>`
+        : `<span style="font-size:10px;font-weight:700;color:white;background:var(--marigold);padding:1px 5px;margin-left:4px;">代診</span>`;
       return `<div style="font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center">
         <span style="color:var(--orange-dark);font-weight:400">${dp[1]}月${dp[2]}日</span>
         <span style="color:var(--text-light)">${sn[item.session]||item.session}</span>
+        ${typeLabel}
         <span style="font-weight:400;flex:1">${esc(item.doctor)}</span>
         <button onclick="cancelSubstitute('${esc(item.date)}','${esc(item.session)}',this)"
-          style="font-size:11px;padding:2px 7px;border-radius:6px;border:1px solid var(--error);background:white;color:var(--error);cursor:pointer">取消</button>
+          style="font-size:11px;padding:2px 7px;border:1px solid var(--error);background:white;color:var(--error);cursor:pointer">取消</button>
       </div>`;
-    }).join("") + `<div style="font-size:10px;color:var(--text-light);margin-top:5px">同一時段多次設定以最新一筆為準。</div>`;
-  } catch(e) { el.innerHTML = `<div style="font-size:12px;color:var(--error)">代診資料暫時無法讀取，請稍後再試。</div>`; }
+    }).join('') + `<div style="font-size:10px;color:var(--text-light);margin-top:5px">同一時段多次設定以最新一筆為準。</div>`;
+  } catch(e) { el.innerHTML = `<div style="font-size:12px;color:var(--error)">資料暫時無法讀取，請稍後再試。</div>`; }
 }
 
 async function cancelSubstitute(date, session, btn) {
-  btn.disabled = true; btn.textContent = "取消中...";
+  btn.disabled = true; btn.textContent = '取消中...';
   try {
-    const data = await xhrPost(API_URL, { action: "cancelSubstituteDoctor", date, session, lineId: state.lineId });
+    const data = await xhrPost(API_URL, { action: 'cancelSubstituteDoctor', date, session, lineId: state.lineId });
     if (data.success) loadSubstituteList();
-    else { btn.disabled = false; btn.textContent = "取消"; }
-  } catch(e) { btn.disabled = false; btn.textContent = "取消"; }
+    else { btn.disabled = false; btn.textContent = '取消'; }
+  } catch(e) { btn.disabled = false; btn.textContent = '取消'; }
 }
 
 async function doSubstitute() {
-  const date = document.getElementById("subDate").value;
-  const session = document.getElementById("subSession").value;
-  const doctor = document.getElementById("subDoctor").value.trim();
-  const errEl = document.getElementById("subError");
-  const sucEl = document.getElementById("subSuccess");
-  errEl.style.display = "none"; sucEl.style.display = "none";
-  if (!date || !session || !doctor) { errEl.textContent = "請確認日期、時段與醫師姓名均已填寫。"; errEl.style.display = "block"; return; }
-  const btn = document.getElementById("btnSub");
-  btn.disabled = true; btn.textContent = "更新中...";
+  const date = document.getElementById('subDate').value;
+  const session = document.getElementById('subSession').value;
+  const doctor = document.getElementById('subDoctor').value.trim();
+  const errEl = document.getElementById('subError');
+  const sucEl = document.getElementById('subSuccess');
+  errEl.style.display = 'none'; sucEl.style.display = 'none';
+  if (!date || !session || !doctor) { errEl.textContent = '請確認日期、時段與醫師姓名均已填寫。'; errEl.style.display = 'block'; return; }
+  const btn = document.getElementById('btnSub');
+  btn.disabled = true; btn.textContent = '更新中...';
   try {
-    const data = await xhrPost(API_URL, { action: "updateSubstituteDoctor", date: date.replace(/-/g,"/"), session, doctor, lineId: state.lineId });
+    const data = await xhrPost(API_URL, { action: 'updateSubstituteDoctor', date: date.replace(/-/g,'/'), session, doctor, type: '代診', lineId: state.lineId });
     if (data.success) {
-      sucEl.textContent = `✓ 已更新：${date} ${session}診 → ${doctor}`; sucEl.style.display = "block";
-      document.getElementById("subDate").value = "";
-      document.getElementById("subSession").value = "";
-      document.getElementById("subDoctor").value = "";
+      sucEl.textContent = `✓ 已更新：${date} ${session}診 → ${doctor}`; sucEl.style.display = 'block';
+      document.getElementById('subDate').value = '';
+      document.getElementById('subSession').value = '';
+      document.getElementById('subDoctor').value = '';
       loadSubstituteList();
-    } else { errEl.textContent = data.error || "更新未完成，請稍後再試。"; errEl.style.display = "block"; }
-  } catch(e) { errEl.textContent = "更新未完成，請稍後再試。"; errEl.style.display = "block"; }
-  btn.disabled = false; btn.textContent = "確認更新";
+    } else { errEl.textContent = data.error || '更新未完成，請稍後再試。'; errEl.style.display = 'block'; }
+  } catch(e) { errEl.textContent = '更新未完成，請稍後再試。'; errEl.style.display = 'block'; }
+  btn.disabled = false; btn.textContent = '確認更新';
+}
+
+async function doClosed() {
+  const date = document.getElementById('closedDate').value;
+  const session = document.getElementById('closedSession').value;
+  const reason = document.getElementById('closedReason').value.trim();
+  const errEl = document.getElementById('closedError');
+  const sucEl = document.getElementById('closedSuccess');
+  errEl.style.display = 'none'; sucEl.style.display = 'none';
+  if (!date || !session) { errEl.textContent = '請確認日期與時段均已填寫。'; errEl.style.display = 'block'; return; }
+  const btn = document.getElementById('btnClosed');
+  btn.disabled = true; btn.textContent = '設定中...';
+  try {
+    const data = await xhrPost(API_URL, { action: 'updateSubstituteDoctor', date: date.replace(/-/g,'/'), session, doctor: reason || '停診', type: '停診', reason: reason, lineId: state.lineId });
+    if (data.success) {
+      sucEl.textContent = `✓ 已設定停診：${date} ${session}診`; sucEl.style.display = 'block';
+      document.getElementById('closedDate').value = '';
+      document.getElementById('closedSession').value = '';
+      document.getElementById('closedReason').value = '';
+      loadSubstituteList();
+    } else { errEl.textContent = data.error || '設定未完成，請稍後再試。'; errEl.style.display = 'block'; }
+  } catch(e) { errEl.textContent = '設定未完成，請稍後再試。'; errEl.style.display = 'block'; }
+  btn.disabled = false; btn.textContent = '確認停診';
 }
 
 /* ── 進階查詢 ── */

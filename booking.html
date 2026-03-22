@@ -788,6 +788,16 @@ function renderSessions() {
     document.getElementById("slotsContainer").innerHTML = "";
     return;
   }
+
+  // 若所有開診時段均停診，整天視為停診
+  const sessionKeys = Object.keys(sessions);
+  const allClosed = sessionKeys.length > 0 && sessionKeys.every(k => sessions[k].isClosed);
+  if (allClosed) {
+    container.innerHTML = '<div class="no-clinic">此日停診，請選擇其他日期。</div>';
+    document.getElementById("slotsContainer").innerHTML = "";
+    return;
+  }
+
   const order = ["早上","下午","晚上"];
   let html = '<div class="session-select-list">';
 
@@ -797,13 +807,15 @@ function renderSessions() {
     const displayName = s ? (s.displayName || state.session + "診") : state.session + "診";
     const timeRange = SESSION_DISPLAY_TIME[state.session] || "";
     const doctor = s ? (s.doctor || "") : "";
+    const isSubstitute = s ? (s.isSubstitute || false) : false;
+    const doctorLabel = isSubstitute ? `${doctor}<span style="font-size:11px;color:var(--green-dark);margin-left:4px;">*代診</span>` : doctor;
     html += `<div class="session-select-btn session-select-active" style="cursor:default">
       <div>
         <div class="session-select-name">${displayName}</div>
         <div class="session-select-time">${timeRange}</div>
       </div>
       <div style="display:flex;align-items:center;gap:12px">
-        <span class="session-select-doctor">${doctor}</span>
+        <span class="session-select-doctor">${doctorLabel}</span>
         <button class="btn-text-link" onclick="reopenSessionSelect()">重新選擇</button>
       </div>
     </div>`;
@@ -815,13 +827,30 @@ function renderSessions() {
       const displayName = s.displayName || sessionKey + "診";
       const timeRange = SESSION_DISPLAY_TIME[sessionKey] || "";
       const doctor = s.doctor || "";
-      html += `<div class="session-select-btn" onclick="selectSession('${sessionKey}')">
-        <div>
-          <div class="session-select-name">${displayName}</div>
-          <div class="session-select-time">${timeRange}</div>
-        </div>
-        <div class="session-select-doctor">${doctor}</div>
-      </div>`;
+      const isSubstitute = s.isSubstitute || false;
+      const isClosed = s.isClosed || false;
+
+      if (isClosed) {
+        // 停診：反灰，顯示「停診」，不可點選
+        html += `<div class="session-select-btn" style="opacity:0.45;pointer-events:none;cursor:not-allowed;">
+          <div>
+            <div class="session-select-name">${displayName}</div>
+            <div class="session-select-time">${timeRange}</div>
+          </div>
+          <div class="session-select-doctor" style="color:#999;">停診</div>
+        </div>`;
+      } else {
+        const doctorLabel = isSubstitute
+          ? `${doctor}<span style="font-size:11px;margin-left:4px;">*代診</span>`
+          : doctor;
+        html += `<div class="session-select-btn" onclick="selectSession('${sessionKey}')">
+          <div>
+            <div class="session-select-name">${displayName}</div>
+            <div class="session-select-time">${timeRange}</div>
+          </div>
+          <div class="session-select-doctor">${doctorLabel}</div>
+        </div>`;
+      }
     });
   }
 
