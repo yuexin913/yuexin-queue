@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>悅心診所 線上服務</title>
+<title>悅心診所 線上預約系統</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500&display=swap');
@@ -365,7 +365,7 @@
 
 <div class="header">
   <h1>悅心診所</h1>
-  <p id="headerSub">線上服務</p>
+  <p id="headerSub">線上預約系統 <span style="font-size:10px;color:var(--error);font-weight:700;letter-spacing:0;">測試版</span></p>
 </div>
 
 <div class="container">
@@ -373,7 +373,7 @@
   <!-- 載入頁 -->
   <div class="page active" id="pageLoading">
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:20px;">
-      <div style="font-size:18px;font-weight:600;color:var(--green-dark);letter-spacing:1px;">悅心診所線上預約</div>
+      <div style="font-size:18px;font-weight:600;color:var(--green-dark);letter-spacing:1px;">系統載入中請稍候</div>
       <div class="spinner"></div>
     </div>
   </div>
@@ -392,6 +392,7 @@
 
   <!-- 入口頁 -->
   <div class="page" id="pageEntry">
+    <div style="background:var(--error);color:white;text-align:center;font-size:12px;font-weight:700;padding:6px;letter-spacing:1px;margin-bottom:8px;">系統目前為測試版。若發生操作異常請截圖回傳診所，感謝協助。</div>
     <div class="card" style="margin-top:8px">
       <div class="card-title">請選擇服務</div>
       <div class="entry-options">
@@ -662,7 +663,7 @@ function parseBirthROC(y, m, d) {
 // 入口
 // ===================================
 function goToEntry() {
-  document.getElementById("headerSub").textContent = "線上服務";
+  document.getElementById("headerSub").textContent = "線上預約系統";
   // 重置送出按鈕狀態
   const btn = document.getElementById("btnSubmit");
   if (btn) { btn.disabled = false; btn.textContent = "確認送出預約"; }
@@ -1404,6 +1405,6 @@ function handleAdminTap() {
 }
 </script>
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
-<div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#bbb;letter-spacing:0.08em;cursor:default;user-select:none;" onclick="handleAdminTap()">EST. 2024 YUEXIN PSYCHIATRIC CLINIC</div>
+<div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#bbb;letter-spacing:0.08em;cursor:default;user-select:none;" onclick="handleAdminTap()">EST. 2024 YUEXIN PSYCHIATRIC CLINIC · 測試版</div>
 </body>
 </html>
