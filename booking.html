@@ -477,7 +477,7 @@
     <!-- 藥量快速選日（僅複診顯示） -->
     <div id="medCalcArea" style="display:none;margin-bottom:12px;">
       <div class="card" style="padding:16px;">
-        <div class="card-title" style="margin-bottom:12px;">依據剩餘藥量算日子</div>
+        <div class="card-title" style="margin-bottom:12px;">依據餘藥天數</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           <button class="pill-btn" onclick="setMedDays(7)">7 天</button>
           <button class="pill-btn" onclick="setMedDays(14)">14 天</button>
@@ -486,9 +486,9 @@
         </div>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
           <input type="number" id="medDaysInput" inputmode="numeric" min="1" max="35"
-            placeholder="輸入天數（1–35）"
-            style="flex:1;padding:10px 12px;font-size:15px;font-family:inherit;border:1px solid var(--border-color, #ddd);background:transparent;color:inherit;outline:none;">
-          <button class="btn btn-primary" style="white-space:nowrap;padding:10px 14px;" onclick="calculateMedDate()">幫我找這天 →</button>
+            placeholder="天數（1–35）"
+            style="flex:1;min-width:80px;padding:10px 12px;font-size:15px;font-family:inherit;border:1px solid var(--border-color, #ddd);background:transparent;color:inherit;outline:none;">
+          <button class="btn btn-primary" style="white-space:nowrap;padding:10px 14px;" onclick="calculateMedDate()">計算回診日 →</button>
         </div>
         <div id="medCalcError" class="alert alert-error" style="display:none;margin-bottom:0;"></div>
       </div>
@@ -530,7 +530,7 @@
     <div id="sessionContainer"></div>
     <!-- 時段/號碼選擇（選完診次後展開） -->
     <div id="slotsContainer"></div>
-    <div id="nhiReminder" class="alert alert-warn" style="display:none;margin-top:12px">💡 <strong>複診預約重要提醒：</strong>為確保用藥安全及避免浪費健保資源，健保回診開藥（領藥）最多提前 1 天。若不確定您的健保回診日期，請先於門診時間致電診所 07-363-1313 確認。</div>
+    <div id="nhiReminder" class="alert alert-warn" style="display:none;margin-top:24px">💡 <strong>重要提醒：</strong>為確保用藥安全及避免浪費資源，健保看診開藥（領藥）原則上僅能提前 1 天。若不確定您的健保回診日期，敬請提前聯繫診所確認。</div>
     <div id="errorPage2" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-outline" onclick="hideError('errorPage2');showPage('pageInfo')">← 返回</button>
     <button class="btn btn-primary" onclick="goToConfirm()">下一步：確認預約 →</button>

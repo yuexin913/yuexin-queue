@@ -630,7 +630,7 @@
     <div class="modal-title">門診異動<button class="modal-close" onclick="closeModal('modalSubstitute')">✕</button></div>
 
     <!-- 目前異動清單 -->
-    <div style="background:#F8F8F8;border-left:4px solid var(--marigold);padding:10px 12px;margin-bottom:14px;">
+    <div style="background:var(--bg-2);border-left:4px solid var(--marigold);padding:10px 12px;margin-bottom:14px;">
       <div style="font-size:11px;font-weight:700;color:var(--orange-dark);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">目前門診異動</div>
       <div id="subList"><div style="font-size:12px;color:var(--text-light);">載入中...</div></div>
     </div>
@@ -1721,7 +1721,7 @@ async function loadSubstituteList() {
         <span style="color:var(--orange-dark);font-weight:400">${dp[1]}月${dp[2]}日</span>
         <span style="color:var(--text-light)">${sn[item.session]||item.session}</span>
         ${typeLabel}
-        <span style="font-weight:400;flex:1">${esc(item.doctor)}</span>
+        <span style="font-weight:400;flex:1;color:var(--text)">${esc(item.doctor)}</span>
         <button onclick="cancelSubstitute('${esc(item.date)}','${esc(item.session)}',this)"
           style="font-size:11px;padding:2px 7px;border:1px solid var(--error);background:white;color:var(--error);cursor:pointer">取消</button>
       </div>`;
