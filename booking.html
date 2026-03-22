@@ -247,6 +247,12 @@
   .btn-outline { background: white; color: var(--green-dark); border: 1.5px solid var(--green); }
   .btn-danger { background: white; color: var(--error); border: 1.5px solid var(--error); }
   .btn-danger:hover { background: #fdf0ef; }
+  .pill-btn {
+    padding: 6px 16px; border: 1.5px solid var(--green); border-radius: 20px;
+    background: white; color: var(--green-dark); font-family: inherit; font-size: 14px;
+    font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s;
+  }
+  .pill-btn:hover, .pill-btn.active { background: var(--green); color: white; }
 
   .alert {
     padding: 12px 14px; border-radius: 10px;
@@ -466,6 +472,30 @@
       <div class="step-line"></div>
       <div class="step"><div class="step-num">3</div><span>確認送出</span></div>
     </div>
+    <!-- 藥量快速選日（僅複診顯示） -->
+    <div id="medCalcArea" style="display:none;margin-bottom:12px;">
+      <div class="card" style="padding:16px;">
+        <div class="card-title" style="margin-bottom:12px;">依據剩餘藥量算日子</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="pill-btn" onclick="setMedDays(7)">7 天</button>
+          <button class="pill-btn" onclick="setMedDays(14)">14 天</button>
+          <button class="pill-btn" onclick="setMedDays(21)">21 天</button>
+          <button class="pill-btn" onclick="setMedDays(28)">28 天</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+          <input type="number" id="medDaysInput" inputmode="numeric" min="1" max="35"
+            placeholder="輸入天數（1–35）"
+            style="flex:1;padding:10px 12px;font-size:15px;font-family:inherit;border:1px solid var(--border-color, #ddd);background:transparent;color:inherit;outline:none;">
+          <button class="btn btn-primary" style="white-space:nowrap;padding:10px 14px;" onclick="calculateMedDate()">幫我找這天 →</button>
+        </div>
+        <div id="medCalcError" class="alert alert-error" style="display:none;margin-bottom:0;"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin:10px 0;">
+        <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
+        <button class="btn-text-link" onclick="toggleCalendar()" id="calToggleBtn" style="font-size:13px;white-space:nowrap;">或 自行展開日曆選擇 ▾</button>
+        <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
+      </div>
+    </div>
     <!-- 月曆區：選完日期後收起 -->
     <div id="calendarArea" class="card">
       <div class="card-title">選擇日期</div>
@@ -642,6 +672,13 @@ function goToEntry() {
   document.getElementById("selectedDateBar").style.display = "none";
   document.getElementById("sessionContainer").innerHTML = "";
   document.getElementById("slotsContainer").innerHTML = "";
+  const medCalcArea = document.getElementById("medCalcArea");
+  if (medCalcArea) medCalcArea.style.display = "none";
+  const medInput = document.getElementById("medDaysInput");
+  if (medInput) medInput.value = "";
+  document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
+  const medErr = document.getElementById("medCalcError");
+  if (medErr) medErr.style.display = "none";
   // 徹底清空 state，防止上次選擇殘留
   state.type = "";
   state.name = ""; state.phone = ""; state.birth = "";
@@ -691,8 +728,16 @@ async function goToPageTime() {
 
   // 先進入月曆頁，黑名單在背景驗證（絕大多數人都不在黑名單）
   showPage("pageTime");
+  const isReturn = state.type === "複診";
+  // 複診：顯示藥量計算區，月曆預設收起
+  const medCalcArea = document.getElementById("medCalcArea");
+  if (medCalcArea) medCalcArea.style.display = isReturn ? "block" : "none";
+  const calendarArea = document.getElementById("calendarArea");
+  if (calendarArea) calendarArea.style.display = isReturn ? "none" : "block";
+  const calToggleBtn = document.getElementById("calToggleBtn");
+  if (calToggleBtn) calToggleBtn.textContent = "或 自行展開日曆選擇 ▾";
   renderCalendar();
-  document.getElementById("nhiReminder").style.display = (state.type === "複診") ? "block" : "none";
+  document.getElementById("nhiReminder").style.display = isReturn ? "block" : "none";
 }
 
 // ===================================
@@ -701,7 +746,7 @@ async function goToPageTime() {
 function renderCalendar() {
   const today = new Date(); today.setHours(0,0,0,0);
   const minDate = new Date(today); minDate.setDate(today.getDate() + 1);
-  const maxDate = new Date(today); maxDate.setDate(today.getDate() + 30);
+  const maxDate = new Date(today); maxDate.setDate(today.getDate() + 35);
   const year = state.calYear; const month = state.calMonth;
   document.getElementById("calTitle").textContent = year + " 年 " + (month + 1) + " 月";
   const firstDay = new Date(year, month, 1).getDay();
@@ -733,6 +778,8 @@ async function selectDate(dateStr) {
   state.date = dateStr; state.session = null; state.timeSlot = null;
   state.doctor = null; state.isUnspecified = false; state.sessionSelected = false;
   hideError("errorPage2");
+  // 清除藥量 pill 高亮（無論透過 pill 或月曆選日都清除）
+  document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
   renderCalendar();
   // 收起月曆，顯示已選日期列
   const weekdays = ["日","一","二","三","四","五","六"];
@@ -740,6 +787,9 @@ async function selectDate(dateStr) {
   document.getElementById("selectedDateLabel").textContent = dateStr + "（週" + weekdays[d.getDay()] + "）";
   document.getElementById("calendarArea").style.display = "none";
   document.getElementById("selectedDateBar").style.display = "block";
+  // 複診：選完日期後收起藥量計算區，版面保持乾淨
+  const medCalcArea = document.getElementById("medCalcArea");
+  if (medCalcArea) medCalcArea.style.display = "none";
   document.getElementById("sessionContainer").innerHTML = '<div class="loading"><div class="spinner"></div>載入中...</div>';
   document.getElementById("slotsContainer").innerHTML = "";
   await loadSlots(dateStr);
@@ -748,16 +798,78 @@ async function selectDate(dateStr) {
 function reopenCalendar() {
   state.date = null; state.session = null; state.timeSlot = null;
   state.isUnspecified = false; state.sessionSelected = false;
-  document.getElementById("calendarArea").style.display = "block";
   document.getElementById("selectedDateBar").style.display = "none";
   document.getElementById("sessionContainer").innerHTML = "";
   document.getElementById("slotsContainer").innerHTML = "";
+  // 清空藥量輸入
+  const medInput = document.getElementById("medDaysInput");
+  if (medInput) medInput.value = "";
+  document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
+  const medErr = document.getElementById("medCalcError");
+  if (medErr) medErr.style.display = "none";
+
+  if (state.type === "複診") {
+    // 複診：恢復最乾淨初始狀態——只顯示計算器，月曆收起
+    const medCalcArea = document.getElementById("medCalcArea");
+    if (medCalcArea) medCalcArea.style.display = "block";
+    document.getElementById("calendarArea").style.display = "none";
+    const calToggleBtn = document.getElementById("calToggleBtn");
+    if (calToggleBtn) calToggleBtn.textContent = "或 自行展開日曆選擇 ▾";
+  } else {
+    // 初診：直接展開月曆
+    document.getElementById("calendarArea").style.display = "block";
+  }
   renderCalendar();
 }
 
 // ===================================
-// 初診時間格 / 複診時段卡片
+// 藥量快速選日
 // ===================================
+function setMedDays(days) {
+  const input = document.getElementById("medDaysInput");
+  if (input) input.value = days;
+  document.querySelectorAll(".pill-btn").forEach(function(b) {
+    b.classList.toggle("active", parseInt(b.textContent) === days);
+  });
+  const errEl = document.getElementById("medCalcError");
+  if (errEl) errEl.style.display = "none";
+}
+
+function toggleCalendar() {
+  const cal = document.getElementById("calendarArea");
+  const btn = document.getElementById("calToggleBtn");
+  const isHidden = cal.style.display === "none";
+  cal.style.display = isHidden ? "block" : "none";
+  if (btn) btn.textContent = isHidden ? "或 收起日曆 ▴" : "或 自行展開日曆選擇 ▾";
+  if (isHidden) renderCalendar();
+}
+
+function calculateMedDate() {
+  const errEl = document.getElementById("medCalcError");
+  errEl.style.display = "none";
+  const input = document.getElementById("medDaysInput");
+  const days = parseInt(input.value);
+  if (!days || days < 1 || days > 35) {
+    errEl.textContent = "請輸入 1–35 之間的天數。";
+    errEl.style.display = "block";
+    return;
+  }
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(today);
+  target.setDate(today.getDate() + days);
+  // 週日擋關
+  if (target.getDay() === 0) {
+    const weekdays = ["日","一","二","三","四","五","六"];
+    const m = target.getMonth() + 1;
+    const d = target.getDate();
+    errEl.textContent = `${days} 天後（${m} 月 ${d} 日）為週日，請重新輸入。`;
+    errEl.style.display = "block";
+    return;
+  }
+  selectDate(formatDateStr(target));
+}
+
+
 async function loadSlots(dateStr) {
   try {
     const data = await xhrGet(`${API_URL}?action=getAvailableSlots&date=${dateStr.replace(/\//g,'')}`);

@@ -323,14 +323,6 @@
   .tile-unspec:hover .tile-label { color: #fff; }
   .tile-unspec:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
 
-  .tile-therapy { background: var(--capri); cursor: default; }
-  .tile-therapy .tile-label { font-size: 16px; }
-  .tile-therapy-badge {
-    position: absolute; top: 8px; right: 8px;
-    background: rgba(0,0,0,0.2); color: #fff;
-    font-size: 10px; font-weight: 700; padding: 2px 8px; letter-spacing: 1px;
-  }
-
   /* ── 異常排班 ── */
   .conflict-tile {
     grid-column: 1 / -1;
@@ -434,6 +426,24 @@
   </div>
 </div>
 
+<!-- Login -->
+<div id="pageLogin" style="display:none;position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px;z-index:100;">
+  <div style="width:100%;max-width:320px;">
+    <div style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:1px;">悅心診所</div>
+    <div style="font-size:13px;font-weight:400;color:var(--text-light);margin-bottom:32px;letter-spacing:2px;text-transform:uppercase;">Admin Portal</div>
+    <div style="font-size:13px;font-weight:700;color:var(--text-light);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;">密碼</div>
+    <input type="password" id="loginPassword"
+      style="width:100%;padding:12px;font-size:16px;font-family:inherit;border:none;border-bottom:2px solid var(--marigold);background:transparent;color:var(--text);outline:none;margin-bottom:16px;"
+      placeholder="請輸入管理密碼"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <div id="loginError" style="display:none;font-size:13px;color:var(--error);margin-bottom:16px;line-height:1.5;"></div>
+    <button onclick="doLogin()" id="btnLogin"
+      style="width:100%;padding:14px;background:var(--marigold);color:white;border:none;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:1px;">
+      登入
+    </button>
+  </div>
+</div>
+
 <!-- Main -->
 <div id="pageMain">
 <div class="metro-grid" id="metroGrid">
@@ -506,7 +516,7 @@
     <div style="position:absolute;bottom:7px;left:10px;font-size:12px;font-weight:400;color:#111111;">異常通報</div>
     <div id="securityUnreadDot" style="display:none;position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>
   </div>
-  <div class="tile tile-1" style="position:relative;background:var(--cloud);">
+  <div class="tile tile-1" style="position:relative;background:var(--cloud);cursor:pointer;" onclick="openLogoutModal()">
     <div class="tile-title" style="font-size:15px;color:#111111;" id="adminBadge">...</div>
     <div style="position:absolute;bottom:7px;left:10px;font-size:12px;font-weight:400;color:#111111;">管理員</div>
   </div>
@@ -602,6 +612,16 @@
   <div class="modal" style="max-width:320px">
     <div class="modal-title">本診醫師<button class="modal-close" onclick="closeModal('modalDoctor')">✕</button></div>
     <div id="doctorModalContent" style="font-size:15px;padding:8px 0;"></div>
+  </div>
+</div>
+
+<!-- Modal: 登出確認 -->
+<div class="modal-overlay" id="modalLogout">
+  <div class="modal" style="max-width:280px;">
+    <div class="modal-title">管理員<button class="modal-close" onclick="closeModal('modalLogout')">✕</button></div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px;" id="logoutAdminName">—</div>
+    <div style="font-size:12px;color:var(--text-light);margin-bottom:20px;" id="logoutLoginTime"></div>
+    <button onclick="doLogout()" style="width:100%;padding:12px;background:var(--error);color:white;border:none;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">登出</button>
   </div>
 </div>
 
@@ -738,7 +758,7 @@ const DEFAULT_DOCTOR_SCHEDULE = {
   6: { "早上": "粟寧",   "下午": "",       "晚上": ""        }
 };
 const API_URL = "https://script.google.com/macros/s/AKfycbz1IB0HCFWaFlC7odExNsOWaZwTjz7osAjstXhx_5V0ZD4Ya58GGRRPfFAun2Itywbh6A/exec";
-let state = { lineId: "", adminName: "", pendingCancelId: "", bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false };
+let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false };
 let allBookings = [], activeSession = "";
 
 // 複診號碼 → 預計報到時段（對應 booking.html 和 GAS 的 RETURN_TIME_SLOT_CONFIG）
@@ -902,34 +922,34 @@ async function initLiff() {
     if (!liff.isLoggedIn()) { liff.login(); return; }
     const profile = await liff.getProfile();
     state.lineId = profile.userId;
-    const verify = await xhrGet(`${API_URL}?action=verifyAdmin&lineId=${state.lineId}`);
-    if (!verify.success) {
+
+    // 第一關：白名單快速檢查（傳空密碼，只驗 LINE ID）
+    // 非白名單永遠看不到密碼輸入頁
+    const check = await xhrGet(`${API_URL}?action=verifyAdmin&lineId=${encodeURIComponent(state.lineId)}&password=`);
+    if (check.error === "權限不足") {
+      // 非白名單：停在 auth 頁顯示錯誤，清空 pageMain 防止介面被窺探
       authAnimStop();
       document.getElementById("authTiles").style.display = "none";
       document.getElementById("authTitle").textContent = "頁面錯誤";
       document.getElementById("authSub").textContent = "";
-      // 清空主畫面 DOM，防止有心人士透過開發者工具窺探管理員介面
       document.getElementById("pageMain").innerHTML = "";
       return;
     }
-    state.adminName = verify.name;
-    document.getElementById("adminBadge").textContent = state.adminName.toUpperCase();
-    // 動畫停止，淡出 Auth，淡入 Metro Grid
+    // check.error === "需要密碼" 表示 LINE ID 在白名單，繼續進密碼輸入頁
+
+    // 第二關：白名單通過，顯示密碼輸入頁
     authAnimStop();
     const pageAuth = document.getElementById("pageAuth");
-    const pageMain = document.getElementById("pageMain");
+    const pageLogin = document.getElementById("pageLogin");
     pageAuth.style.transition = "opacity 0.3s ease";
     pageAuth.style.opacity = "0";
     setTimeout(function() {
       pageAuth.style.display = "none";
-      pageMain.style.opacity = "0";
-      pageMain.style.display = "block";
-      pageMain.style.transition = "opacity 0.3s ease";
-      setTimeout(function() { pageMain.style.opacity = "1"; }, 20);
+      pageLogin.style.display = "flex";
+      setTimeout(function() {
+        document.getElementById("loginPassword").focus();
+      }, 100);
     }, 300);
-    updateDateNav();
-    loadSchedule();
-    checkSecurityCaution();
   } catch(e) {
     authAnimStop();
     document.getElementById("authTiles").style.display = "none";
@@ -940,6 +960,102 @@ async function initLiff() {
 
 var XHR_TIMEOUT = 30000; // 30秒
 
+/* ── 登入／登出 ── */
+let isLoggingIn = false;
+async function doLogin() {
+  if (isLoggingIn) return;
+  const password = document.getElementById("loginPassword").value;
+  const errEl = document.getElementById("loginError");
+  const btn = document.getElementById("btnLogin");
+  errEl.style.display = "none";
+  if (!password) { errEl.textContent = "請輸入密碼。"; errEl.style.display = "block"; return; }
+
+  isLoggingIn = true;
+  btn.disabled = true; btn.textContent = "驗證中...";
+  try {
+    const data = await xhrGet(`${API_URL}?action=requestSession&lineId=${encodeURIComponent(state.lineId)}&password=${encodeURIComponent(password)}`);
+    if (data.success) {
+      state.sessionToken = data.token;
+      state.adminName = data.name;
+      state.loginTime = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+      document.getElementById("loginPassword").value = "";
+      enterMainPage();
+    } else if (data.error === "locked") {
+      btn.disabled = true;
+      errEl.textContent = "登入失敗次數過多，請稍後再試，或聯繫系統管理員。";
+      errEl.style.display = "block";
+    } else if (data.error === "wrong_password") {
+      document.getElementById("loginPassword").value = "";
+      document.getElementById("loginPassword").focus();
+      const rem = data.remaining || 0;
+      errEl.textContent = `密碼錯誤，請重新輸入。（剩餘 ${rem} 次）`;
+      errEl.style.display = "block";
+      btn.disabled = false; btn.textContent = "登入";
+    } else {
+      errEl.textContent = data.error || "登入失敗，請稍後再試。";
+      errEl.style.display = "block";
+      btn.disabled = false; btn.textContent = "登入";
+    }
+  } catch(e) {
+    errEl.textContent = "連線異常，請重新整理頁面。";
+    errEl.style.display = "block";
+    btn.disabled = false; btn.textContent = "登入";
+  }
+  isLoggingIn = false;
+}
+
+function enterMainPage() {
+  const pageLogin = document.getElementById("pageLogin");
+  const pageMain = document.getElementById("pageMain");
+  pageLogin.style.display = "none";
+  document.getElementById("adminBadge").textContent = state.adminName.toUpperCase();
+  pageMain.style.opacity = "0";
+  pageMain.style.display = "block";
+  pageMain.style.transition = "opacity 0.3s ease";
+  setTimeout(function() { pageMain.style.opacity = "1"; }, 20);
+  updateDateNav();
+  loadSchedule();
+  checkSecurityCaution();
+}
+
+function openLogoutModal() {
+  document.getElementById("logoutAdminName").textContent = state.adminName || "管理員";
+  document.getElementById("logoutLoginTime").textContent = state.loginTime ? "登入時間：" + state.loginTime : "";
+  openModal("modalLogout");
+}
+
+async function doLogout() {
+  try {
+    await xhrPost(API_URL, { action: "adminLogout", lineId: state.lineId, token: state.sessionToken });
+  } catch(e) { /* 即使失敗也繼續登出 */ }
+  state.sessionToken = "";
+  state.adminName = "";
+  state.loginTime = "";
+  closeModal("modalLogout");
+  document.getElementById("pageMain").style.display = "none";
+  const pageLogin = document.getElementById("pageLogin");
+  pageLogin.style.display = "flex";
+  document.getElementById("loginPassword").value = "";
+  document.getElementById("loginError").style.display = "none";
+  document.getElementById("btnLogin").disabled = false;
+  document.getElementById("btnLogin").textContent = "登入";
+  setTimeout(function() { document.getElementById("loginPassword").focus(); }, 100);
+}
+
+function handleSessionExpired() {
+  state.sessionToken = "";
+  document.getElementById("pageMain").style.display = "none";
+  const pageLogin = document.getElementById("pageLogin");
+  pageLogin.style.display = "flex";
+  document.getElementById("loginPassword").value = "";
+  const errEl = document.getElementById("loginError");
+  errEl.textContent = "登入已過期，請重新登入。";
+  errEl.style.display = "block";
+  document.getElementById("btnLogin").disabled = false;
+  document.getElementById("btnLogin").textContent = "登入";
+  setTimeout(function() { document.getElementById("loginPassword").focus(); }, 100);
+}
+
 function xhrParseResponse(text) {
   if (typeof text === "string" && text.trimStart().charAt(0) === "<") {
     throw new Error("SERVER_HTML"); // GAS 回傳 HTML 錯誤頁
@@ -948,12 +1064,21 @@ function xhrParseResponse(text) {
 }
 
 function xhrGet(url) {
+  // 自動附加 token（登入前的請求如 requestSession 不帶 token 也沒關係）
+  if (state.sessionToken) {
+    const sep = url.includes("?") ? "&" : "?";
+    url += sep + "token=" + encodeURIComponent(state.sessionToken);
+  }
   return new Promise(function(resolve, reject) {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
     xhr.timeout = XHR_TIMEOUT;
     xhr.onload = function() {
-      try { resolve(xhrParseResponse(xhr.responseText)); }
+      try {
+        const data = xhrParseResponse(xhr.responseText);
+        if (data && data.error === "session_expired") { handleSessionExpired(); return; }
+        resolve(data);
+      }
       catch(e) { reject(e); }
     };
     xhr.onerror = function() { reject(new Error("Network error")); };
@@ -963,13 +1088,21 @@ function xhrGet(url) {
 }
 
 function xhrPost(url, payload) {
+  // 自動附加 token
+  if (state.sessionToken && !payload.token) {
+    payload = Object.assign({}, payload, { token: state.sessionToken });
+  }
   return new Promise(function(resolve, reject) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-Type", "text/plain");
     xhr.timeout = XHR_TIMEOUT;
     xhr.onload = function() {
-      try { resolve(xhrParseResponse(xhr.responseText)); }
+      try {
+        const data = xhrParseResponse(xhr.responseText);
+        if (data && data.error === "session_expired") { handleSessionExpired(); return; }
+        resolve(data);
+      }
       catch(e) { reject(e); }
     };
     xhr.onerror = function() { reject(new Error("Network error")); };
@@ -1303,6 +1436,10 @@ function renderSessionContent(session, isClosed) {
 
 /* ── 不指定 Modal ── */
 function openUnspecModal() {
+  // 停診時段：不指定磚已 disable，但防呆再擋一層
+  const sessionInfo = (window._sessionDoctorMap && window._sessionDoctorMap[activeSession]) || {};
+  if (sessionInfo.isClosed) return;
+
   const list = allBookings.filter(b => b.session === activeSession && b.type !== "初診" && b.slot === "不指定");
   const el = document.getElementById("unspecContent");
   if (list.length === 0) {
@@ -1335,6 +1472,10 @@ function toggleUnspecForm() {
 let adminAddSlot = null; // 目前要代掛的號碼
 
 function openAdminAddBookingModal(slotNum) {
+  // 停診時段：空格 tile 的 onclick 已移除，但防呆再擋一層
+  const sessionInfo = (window._sessionDoctorMap && window._sessionDoctorMap[activeSession]) || {};
+  if (sessionInfo.isClosed) return;
+
   adminAddSlot = slotNum;
   document.getElementById("adminAddTitle").innerHTML = "代掛 " + slotNum + " 號<button class=\"modal-close\" onclick=\"closeModal('modalAdminAdd')\">✕</button>";
   document.getElementById("aAddName").value = "";
