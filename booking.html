@@ -366,7 +366,7 @@
 <div class="header">
   <h1>悅心診所</h1>
   <p id="headerSub">線上預約系統</p>
-  <span style="font-size:10px;color:var(--error);font-weight:700;letter-spacing:0;">測試版</span>
+  <span style="font-size:10px;color:#D4522A;font-weight:700;letter-spacing:0;">預覽版</span>
 </div>
 
 <div class="container">
@@ -393,7 +393,7 @@
 
   <!-- 入口頁 -->
   <div class="page" id="pageEntry">
-    <div style="background:var(--error);color:white;text-align:center;font-size:12px;font-weight:700;padding:6px;letter-spacing:1px;margin-bottom:8px;">系統目前為測試版。若發生操作異常請截圖回傳診所，感謝協助。</div>
+    <div style="background:#D4522A;color:white;text-align:center;font-size:13px;font-weight:700;padding:6px;letter-spacing:1px;margin-bottom:8px;">線上預約系統優先開放中｜如有操作問題請截圖回傳，感謝您的協助。</div>
     <div class="card" style="margin-top:8px">
       <div class="card-title">請選擇服務</div>
       <div class="entry-options">
@@ -1141,8 +1141,8 @@ async function goToConfirm() {
   try {
     const dateCode = state.date.replace(/\//g,'');
     const data = await xhrGet(`${API_URL}?action=checkLimit&lineId=${state.lineId}&date=${dateCode}`);
-    if (data.sameDayExceeded) return showError("errorPage2", "您當天已有預約，如需更改請取消原預約後再重新預約。若需加掛門診，請於門診時間來電：07-363-1313。");
-    if (data.sameWeekExceeded) return showError("errorPage2", "您本週預約已達上限，如需更改請取消原預約後再重新預約。若需加掛門診，請於門診時間來電：07-363-1313。");
+    if (data.sameDayExceeded) return showError("errorPage2", "您當天已有預約。如需更改，請先取消原預約後再重新預約。若需加掛門診，請於門診時間來電：07-363-1313。");
+    if (data.sameWeekExceeded) return showError("errorPage2", "您本週預約已達上限（每週最多二次）。如需更改，請先取消其中一筆預約，再重新預約。若需加掛門診，請於門診時間來電：07-363-1313。");
   } catch(e) { return showError("errorPage2", "連線中斷，請確認網路後重試。"); }
 
   const weekdays = ["日","一","二","三","四","五","六"];

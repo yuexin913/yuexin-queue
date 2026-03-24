@@ -202,20 +202,20 @@
       </div>
     </div>
 
-    <!-- Q2 是否已成年 -->
+    <!-- Q2 是否有人陪伴看診 -->
     <div class="card">
-      <div class="card-title">是否已成年？</div>
+      <div class="card-title">是否有人陪伴看診？</div>
       <div class="form-group">
         <div class="radio-group" id="isAdultGroup">
-          <label class="radio-option" onclick="selectRadio('isAdult','是，我已年滿18歲。')">
-            <input type="radio" name="isAdult" value="是，我已年滿18歲。">
+          <label class="radio-option" onclick="selectRadio('isAdult','我會自己來')">
+            <input type="radio" name="isAdult" value="我會自己來">
             <div class="radio-dot"></div>
-            <span class="radio-label">是，我已年滿18歲。</span>
+            <span class="radio-label">我會自己來</span>
           </label>
-          <label class="radio-option" onclick="selectRadio('isAdult','否，我尚未年滿18歲。')">
-            <input type="radio" name="isAdult" value="否，我尚未年滿18歲。">
+          <label class="radio-option" onclick="selectRadio('isAdult','會有家人或朋友陪同')">
+            <input type="radio" name="isAdult" value="會有家人或朋友陪同">
             <div class="radio-dot"></div>
-            <span class="radio-label">否，我尚未年滿18歲。</span>
+            <span class="radio-label">會有家人或朋友陪同</span>
           </label>
         </div>
       </div>
@@ -245,81 +245,54 @@
       </div>
     </div>
 
-    <!-- Q4 同住狀況（複選，含互斥邏輯） -->
+    <!-- Q4 同住狀況（單選） -->
     <div class="card">
-      <div class="card-title">您目前的同住狀況為？（可複選）</div>
+      <div class="card-title">您大部份時間和誰同住呢？</div>
       <div class="form-group">
-        <div class="checkbox-group" id="livingWithGroup">
-          <label class="checkbox-option" onclick="toggleLivingWith(this, '獨居')">
-            <div class="check-box">✓</div>
-            <span class="checkbox-label">獨居</span>
+        <div class="radio-group" id="livingWithGroup">
+          <label class="radio-option" onclick="selectRadio('livingWith','獨居')">
+            <input type="radio" name="livingWith" value="獨居">
+            <div class="radio-dot"></div>
+            <span class="radio-label">獨居</span>
           </label>
-          <label class="checkbox-option" onclick="toggleLivingWith(this, '與伴侶或配偶同住')">
-            <div class="check-box">✓</div>
-            <span class="checkbox-label">與伴侶或配偶同住</span>
+          <label class="radio-option" onclick="selectRadio('livingWith','家人／朋友／伴侶')">
+            <input type="radio" name="livingWith" value="家人／朋友／伴侶">
+            <div class="radio-dot"></div>
+            <span class="radio-label">家人／朋友／伴侶</span>
           </label>
-          <label class="checkbox-option" onclick="toggleLivingWith(this, '與父母或長輩同住')">
-            <div class="check-box">✓</div>
-            <span class="checkbox-label">與父母或長輩同住</span>
+          <label class="radio-option" onclick="selectRadio('livingWith','同學／同事（宿舍）')">
+            <input type="radio" name="livingWith" value="同學／同事（宿舍）">
+            <div class="radio-dot"></div>
+            <span class="radio-label">同學／同事（宿舍）</span>
           </label>
-          <label class="checkbox-option" onclick="toggleLivingWith(this, '與小孩同住')">
-            <div class="check-box">✓</div>
-            <span class="checkbox-label">與小孩同住</span>
-          </label>
-          <label class="checkbox-option" onclick="toggleLivingWith(this, '與室友或朋友同住')">
-            <div class="check-box">✓</div>
-            <span class="checkbox-label">與室友或朋友同住</span>
-          </label>
-          <label class="checkbox-option" onclick="toggleLivingWith(this, '與兄弟姊妹同住')">
-            <div class="check-box">✓</div>
-            <span class="checkbox-label">與兄弟姊妹同住</span>
-          </label>
-          <label class="checkbox-option" onclick="toggleLivingWith(this, '住宿舍（學校或公司）')">
-            <div class="check-box">✓</div>
-            <span class="checkbox-label">住宿舍（學校或公司）</span>
-          </label>
-          <label class="checkbox-option" onclick="toggleLivingWith(this, '其他（不屬於以上任一狀況）')">
-            <div class="check-box">✓</div>
-            <span class="checkbox-label">其他（不屬於以上任一狀況）</span>
+          <label class="radio-option" onclick="selectRadio('livingWith','其他（以上狀況均不符合）')">
+            <input type="radio" name="livingWith" value="其他（以上狀況均不符合）">
+            <div class="radio-dot"></div>
+            <span class="radio-label">其他（以上狀況均不符合）</span>
           </label>
         </div>
       </div>
     </div>
 
-    <!-- Q5 職業作息 -->
+    <!-- Q5 作息型態 -->
     <div class="card">
-      <div class="card-title">您的職業與作息型態是？</div>
+      <div class="card-title">您主要的作息型態是？</div>
       <div class="form-group">
         <div class="radio-group" id="occupationGroup">
-          <label class="radio-option" onclick="selectRadio('occupation','一般白天上班族')">
-            <input type="radio" name="occupation" value="一般白天上班族">
+          <label class="radio-option" onclick="selectRadio('occupation','白天活動晚上休息（例如上班族、學生）')">
+            <input type="radio" name="occupation" value="白天活動晚上休息（例如上班族、學生）">
             <div class="radio-dot"></div>
-            <span class="radio-label">一般白天上班族</span>
+            <span class="radio-label">白天活動晚上休息（例如上班族、學生）</span>
           </label>
-          <label class="radio-option" onclick="selectRadio('occupation','輪班或夜班工作者')">
-            <input type="radio" name="occupation" value="輪班或夜班工作者">
+          <label class="radio-option" onclick="selectRadio('occupation','白天休息晚上活動（例如固定夜班工作者）')">
+            <input type="radio" name="occupation" value="白天休息晚上活動（例如固定夜班工作者）">
             <div class="radio-dot"></div>
-            <span class="radio-label">輪班或夜班工作者</span>
+            <span class="radio-label">白天休息晚上活動（例如固定夜班工作者）</span>
           </label>
-          <label class="radio-option" onclick="selectRadio('occupation','學生')">
-            <input type="radio" name="occupation" value="學生">
+          <label class="radio-option" onclick="selectRadio('occupation','不固定（例如長期輪班、頻繁出差）')">
+            <input type="radio" name="occupation" value="不固定（例如長期輪班、頻繁出差）">
             <div class="radio-dot"></div>
-            <span class="radio-label">學生</span>
-          </label>
-          <label class="radio-option" onclick="selectRadio('occupation','家管或全職照顧者')">
-            <input type="radio" name="occupation" value="家管或全職照顧者">
-            <div class="radio-dot"></div>
-            <span class="radio-label">家管或全職照顧者</span>
-          </label>
-          <label class="radio-option" onclick="selectRadio('occupation','自由業或彈性工時')">
-            <input type="radio" name="occupation" value="自由業或彈性工時">
-            <div class="radio-dot"></div>
-            <span class="radio-label">自由業或彈性工時</span>
-          </label>
-          <label class="radio-option" onclick="selectRadio('occupation','待業、待產或退休')">
-            <input type="radio" name="occupation" value="待業、待產或退休">
-            <div class="radio-dot"></div>
-            <span class="radio-label">待業、待產或退休</span>
+            <span class="radio-label">不固定（例如長期輪班、頻繁出差）</span>
           </label>
         </div>
       </div>
@@ -366,10 +339,8 @@
   <div class="page" id="pageSuccess">
     <div class="card" style="text-align:center;padding:32px 20px">
       <div class="success-icon">🌱</div>
-      <div class="success-title">初診資料已送出</div>
+      <div class="success-title">預約完成</div>
       <div class="success-sub">
-        感謝您填寫初診資料<br>
-        醫師將在看診前閱覽您的資料<br>
         期待在悅心診所與您見面 ✨
       </div>
     </div>
@@ -388,7 +359,7 @@ const name = decodeURIComponent(urlParams.get("name") || "");
 const lineId = decodeURIComponent(urlParams.get("lineId") || "");
 const apptDate = urlParams.get("apptDate") || "";
 
-const radioState = { referral: "", isAdult: "", residence: "", occupation: "", livingWith: "" };
+const radioState = { referral: "", isAdult: "", residence: "", livingWith: "", occupation: "" };
 let selectedAvailableTime = [];
 let isSubmitting = false; // 防連點全域旗標
 
@@ -473,10 +444,10 @@ function toggleAvailableTime(el, val) {
 async function submitNewPatient() {
   if (isSubmitting) return;
   if (!radioState.referral) return showError("請選擇如何得知悅心診所");
-  if (!radioState.isAdult) return showError("請選擇是否已成年");
+  if (!radioState.isAdult) return showError("請選擇是否有人陪伴看診");
   if (!radioState.residence) return showError("請選擇目前居住地");
-  if (selectedLivingWith.length === 0) return showError("請至少選擇一個同住狀況");
-  if (!radioState.occupation) return showError("請選擇您的職業與作息型態");
+  if (!radioState.livingWith) return showError("請選擇同住狀況");
+  if (!radioState.occupation) return showError("請選擇您的作息型態");
   if (selectedAvailableTime.length === 0) return showError("請至少選擇一個方便的回診時段");
 
   isSubmitting = true;
@@ -493,7 +464,7 @@ async function submitNewPatient() {
       referral: radioState.referral,
       isAdult: radioState.isAdult,
       residence: radioState.residence,
-      livingWith: selectedLivingWith.join("；"),
+      livingWith: radioState.livingWith,
       occupation: radioState.occupation,
       availableTime: selectedAvailableTime.join("；")
     };

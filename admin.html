@@ -579,6 +579,7 @@
     <div class="contact-birth" id="contactBirth"></div>
     <div class="contact-timeslot" id="contactTimeSlot"></div>
     <a class="contact-phone" id="contactPhone" href=""></a>
+    <div id="contactNpSurvey" style="display:none;margin-top:12px;padding:10px 12px;border-left:3px solid var(--kiwi);background:var(--bg-2);"></div>
     <div id="contactError" class="alert alert-error" style="display:none"></div>
     <div id="btnToggleNotifiedWrap">
       <button class="btn" id="btnToggleNotified" onclick="doToggleNotified()"></button>
@@ -1353,7 +1354,13 @@ function renderSessionContent(session, isClosed) {
         isAdminBooking: np.isAdminBooking || false,
         note: np.note || "",
         birth: np.birth || "",
-        slot: np.slot || ""
+        slot: np.slot || "",
+        npReferral:     np.referral      || "",
+        npIsAdult:      np.isAdult       || "",
+        npResidence:    np.residence     || "",
+        npLivingWith:   np.livingWith    || "",
+        npOccupation:   np.occupation    || "",
+        npAvailableTime: np.availableTime || ""
       };
       // 把 rowStart+1 ~ rowStart+4 標記為 np_skip（渲染時略過）
       for (let k = 1; k < 5; k++) {
@@ -1373,7 +1380,7 @@ function renderSessionContent(session, isClosed) {
       const isDone = c.status === "已看診";
       const isNotified = c.isAdminBooking && c.note.indexOf("[已通知]") !== -1;
       const bannerClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
-      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.slot||'')}" data-session="${esc(session)}" onclick="openContactModalFromEl(this)"`;
+      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.slot||'')}" data-session="${esc(session)}" data-type="初診" data-np-referral="${esc(c.npReferral)}" data-np-isadult="${esc(c.npIsAdult)}" data-np-residence="${esc(c.npResidence)}" data-np-livingwith="${esc(c.npLivingWith)}" data-np-occupation="${esc(c.npOccupation)}" data-np-availabletime="${esc(c.npAvailableTime)}" onclick="openContactModalFromEl(this)"`;
       // isPending = 代掛未通知（sunny lime）；否則（一般初診或已通知）= kiwi
       const isPending = c.isAdminBooking && !isNotified;
       // 按鈕文字顏色：與 tile 同色（kiwi 或 sunny）
@@ -1567,7 +1574,16 @@ function openContactModalFromEl(el) {
   const birth = el.dataset.birth || "";
   const slot = el.dataset.slot || "";
   const session = el.dataset.session || "";
-  openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session);
+  const type = el.dataset.type || "";
+  const npSurvey = type === "初診" ? {
+    referral:      el.dataset.npReferral      || "",
+    isAdult:       el.dataset.npIsadult       || "",
+    residence:     el.dataset.npResidence     || "",
+    livingWith:    el.dataset.npLivingwith    || "",
+    occupation:    el.dataset.npOccupation    || "",
+    availableTime: el.dataset.npAvailabletime || ""
+  } : null;
+  openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey);
 }
 
 function rocDate(birthStr) {
@@ -1580,7 +1596,7 @@ function rocDate(birthStr) {
   return birthStr;
 }
 
-function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session) {
+function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey) {
   state.contactBookingId = bookingId;
   state.contactIsNotified = (isNotified === true || isNotified === "true");
   const notified = state.contactIsNotified;
@@ -1605,6 +1621,44 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
     wrap.style.display = "none";
   }
   document.getElementById("contactError").style.display = "none";
+
+  // 初診問卷區塊
+  const surveyEl = document.getElementById("contactNpSurvey");
+  if (npSurvey) {
+    const referralShort = (npSurvey.referral || "（未填）").replace(/（[^）]*）/g, "").trim() || "（未填）";
+    const adultShort = npSurvey.isAdult.indexOf("自己來") !== -1 ? "自行前來"
+      : npSurvey.isAdult.indexOf("家人") !== -1 ? "有人陪同"
+      : npSurvey.isAdult || "（未填）";
+    const residenceShort = npSurvey.residence === "高雄市楠梓區" ? "楠梓"
+      : npSurvey.residence === "高雄市其他行政區" ? "高雄"
+      : npSurvey.residence === "外縣市" ? "外縣市"
+      : npSurvey.residence || "（未填）";
+    const livingMap = { "獨居": "獨居", "家人／朋友／伴侶": "家人伴侶", "同學／同事（宿舍）": "宿舍", "其他（以上狀況均不符合）": "其他" };
+    const livingShort = livingMap[npSurvey.livingWith] || npSurvey.livingWith || "（未填）";
+    const occupationMap = {
+      "白天活動晚上休息（例如上班族、學生）": "日間活動",
+      "白天休息晚上活動（例如固定夜班工作者）": "夜間活動",
+      "不固定（例如長期輪班、頻繁出差）": "不固定"
+    };
+    const occupationShort = occupationMap[npSurvey.occupation] || npSurvey.occupation || "（未填）";
+    const availableShort = (npSurvey.availableTime || "（未填）").replace(/；/g, "、");
+
+    surveyEl.style.display = "block";
+    surveyEl.innerHTML = `
+      <div style="font-size:11px;font-weight:700;color:var(--kiwi);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">初診問卷</div>
+      <div style="font-size:12px;line-height:2;color:var(--text);">
+        <span style="color:var(--text-light);">如何得知　</span>${esc(referralShort)}<br>
+        <span style="color:var(--text-light);">陪伴看診　</span>${esc(adultShort)}<br>
+        <span style="color:var(--text-light);">居住地區　</span>${esc(residenceShort)}<br>
+        <span style="color:var(--text-light);">同住狀況　</span>${esc(livingShort)}<br>
+        <span style="color:var(--text-light);">作息型態　</span>${esc(occupationShort)}<br>
+        <span style="color:var(--text-light);">方便時段　</span>${esc(availableShort)}
+      </div>`;
+  } else {
+    surveyEl.style.display = "none";
+    surveyEl.innerHTML = "";
+  }
+
   document.getElementById("modalContact").classList.add("active");
 }
 
