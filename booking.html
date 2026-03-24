@@ -456,21 +456,23 @@
       <div class="card-title">初診預約</div>
       <div class="form-group">
         <label style="font-size:15px;font-weight:700">請問您是如何得知悅心診所的呢？</label>
-        <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px" id="sourceOptions">
-          <label class="radio-option" onclick="selectSource(this,'親友推薦')"><input type="radio" name="source" value="親友推薦" style="display:none"> 親友推薦</label>
-          <label class="radio-option" onclick="selectSource(this,'網路搜尋（Google）')"><input type="radio" name="source" value="網路搜尋（Google）" style="display:none"> 網路搜尋（Google）</label>
-          <label class="radio-option" onclick="selectSource(this,'社群媒體（FB、IG、Threads等）')"><input type="radio" name="source" value="社群媒體（FB、IG、Threads等）" style="display:none"> 社群媒體（FB、IG、Threads等）</label>
-          <label class="radio-option" onclick="selectSource(this,'醫師或心理師轉介')"><input type="radio" name="source" value="醫師或心理師轉介" style="display:none"> 醫師或心理師轉介</label>
-          <label class="radio-option" onclick="selectSource(this,'路過或住家／公司附近')"><input type="radio" name="source" value="路過或住家／公司附近" style="display:none"> 路過或住家／公司附近</label>
-          <label class="radio-option" onclick="selectSource(this,'其他')"><input type="radio" name="source" value="其他" style="display:none"> 其他</label>
+        <div id="sourceOptionsWrap">
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px" id="sourceOptions">
+            <label class="radio-option" onclick="selectSource(this,'親友推薦')"><input type="radio" name="source" value="親友推薦" style="display:none"> 親友推薦</label>
+            <label class="radio-option" onclick="selectSource(this,'網路搜尋（Google）')"><input type="radio" name="source" value="網路搜尋（Google）" style="display:none"> 網路搜尋（Google）</label>
+            <label class="radio-option" onclick="selectSource(this,'社群媒體（FB、IG、Threads等）')"><input type="radio" name="source" value="社群媒體（FB、IG、Threads等）" style="display:none"> 社群媒體（FB、IG、Threads等）</label>
+            <label class="radio-option" onclick="selectSource(this,'醫師或心理師轉介')"><input type="radio" name="source" value="醫師或心理師轉介" style="display:none"> 醫師或心理師轉介</label>
+            <label class="radio-option" onclick="selectSource(this,'路過或住家／公司附近')"><input type="radio" name="source" value="路過或住家／公司附近" style="display:none"> 路過或住家／公司附近</label>
+            <label class="radio-option" onclick="selectSource(this,'其他')"><input type="radio" name="source" value="其他" style="display:none"> 其他</label>
+          </div>
+          <div style="margin-top:20px;text-align:center;">
+            <a href="#" id="btnSourceSkip" style="font-size:15px;color:#999;text-decoration:underline;" onclick="event.preventDefault();toggleSourceOptions()">略過</a>
+          </div>
         </div>
       </div>
     </div>
-    <div style="text-align:center;margin-top:8px">
+    <div style="margin-top:16px">
       <button class="btn btn-primary" id="btnSourceNext" onclick="goToPageInfoFromSource(document.querySelector('input[name=source]:checked')?.value || '')" style="width:100%">下一步：填寫基本資料 →</button>
-      <div style="margin-top:10px">
-        <a href="#" style="font-size:13px;color:#999;text-decoration:underline" onclick="event.preventDefault();goToPageInfoFromSource('')">略過</a>
-      </div>
     </div>
   </div>
 
@@ -772,6 +774,26 @@ function selectSource(el, value) {
   el.classList.add("selected");
   var radio = el.querySelector("input[type=radio]");
   if (radio) radio.checked = true;
+}
+
+function toggleSourceOptions() {
+  var wrap = document.getElementById("sourceOptions");
+  var btn = document.getElementById("btnSourceSkip");
+  var isHidden = wrap.style.display === "none";
+  if (isHidden) {
+    // 展開
+    wrap.style.display = "flex";
+    btn.textContent = "略過";
+  } else {
+    // 收合：清除已選取，顯示「重新勾選」
+    document.querySelectorAll("#sourceOptions .radio-option").forEach(function(o) {
+      o.classList.remove("selected");
+    });
+    var radios = document.querySelectorAll("input[name=source]");
+    radios.forEach(function(r) { r.checked = false; });
+    wrap.style.display = "none";
+    btn.textContent = "重新勾選";
+  }
 }
 
 function goToPageInfoFromSource(source) {
