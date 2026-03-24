@@ -428,6 +428,30 @@
     </div>
   </div>
 
+  <!-- 初診：如何得知悅心診所 -->
+  <div class="page" id="pageSource">
+    <div class="card" style="margin-top:8px">
+      <div class="card-title">初診預約</div>
+      <div class="form-group">
+        <label style="font-size:15px;font-weight:700">請問您是如何得知悅心診所的呢？</label>
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px" id="sourceOptions">
+          <label class="radio-option" onclick="selectSource(this,'親友推薦')"><input type="radio" name="source" value="親友推薦" style="display:none"> 親友推薦</label>
+          <label class="radio-option" onclick="selectSource(this,'網路搜尋（Google、地圖等）')"><input type="radio" name="source" value="網路搜尋（Google、地圖等）" style="display:none"> 網路搜尋（Google、地圖等）</label>
+          <label class="radio-option" onclick="selectSource(this,'社群媒體（FB、IG、Threads等）')"><input type="radio" name="source" value="社群媒體（FB、IG、Threads等）" style="display:none"> 社群媒體（FB、IG、Threads等）</label>
+          <label class="radio-option" onclick="selectSource(this,'醫師或心理師轉介')"><input type="radio" name="source" value="醫師或心理師轉介" style="display:none"> 醫師或心理師轉介</label>
+          <label class="radio-option" onclick="selectSource(this,'路過或住家附近')"><input type="radio" name="source" value="路過或住家附近" style="display:none"> 路過或住家附近</label>
+          <label class="radio-option" onclick="selectSource(this,'其他')"><input type="radio" name="source" value="其他" style="display:none"> 其他</label>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:8px">
+      <button class="btn btn-primary" id="btnSourceNext" onclick="goToPageInfoFromSource(document.querySelector('input[name=source]:checked')?.value || '')" style="width:100%">下一步：填寫基本資料 →</button>
+      <div style="margin-top:10px">
+        <a href="#" style="font-size:13px;color:#999;text-decoration:underline" onclick="event.preventDefault();goToPageInfoFromSource('')">略過</a>
+      </div>
+    </div>
+  </div>
+
   <!-- 預約：基本資料 -->
   <div class="page" id="pageInfo">
     <div class="steps" id="stepsBar">
@@ -610,6 +634,7 @@ let state = {
   lineId: null,
   isVip: false,
   type: "",
+  source: "",
   name: "", phone: "", birth: "",
   date: null, session: null, timeSlot: null, doctor: null,
   isUnspecified: false,
@@ -690,7 +715,7 @@ function goToEntry() {
   const medErr = document.getElementById("medCalcError");
   if (medErr) medErr.style.display = "none";
   // 徹底清空 state，防止上次選擇殘留
-  state.type = "";
+  state.type = ""; state.source = "";
   state.name = ""; state.phone = ""; state.birth = "";
   state.date = null; state.session = null; state.timeSlot = null; state.doctor = null;
   state.isUnspecified = false; state.slotsData = null; state.sessionSelected = false;
@@ -701,6 +726,7 @@ function goToEntry() {
 
 function startBooking(type) {
   state.type = type;
+  state.source = "";
   state.date = null; state.session = null; state.timeSlot = null;
   state.isUnspecified = false; state.slotsData = null; state.sessionSelected = false;
   // 清空基本資料欄位
@@ -709,6 +735,24 @@ function startBooking(type) {
     if (el) el.value = "";
   });
   document.getElementById("headerSub").textContent = type + "預約";
+  // 初診先問來源，複診直接填資料
+  if (type === "初診") {
+    showPage("pageSource");
+  } else {
+    showPage("pageInfo");
+  }
+}
+
+function selectSource(el, value) {
+  document.querySelectorAll("#sourceOptions .radio-option").forEach(function(o) {
+    o.classList.remove("selected");
+  });
+  el.classList.add("selected");
+  el.querySelector("input").checked = true;
+}
+
+function goToPageInfoFromSource(source) {
+  state.source = source || "";
   showPage("pageInfo");
 }
 
@@ -1204,7 +1248,8 @@ async function submitBooking() {
       date: state.date.replace(/\//g, ''),
       session: state.session,
       timeSlot: slotParam,
-      type: state.type
+      type: state.type,
+      source: state.source || ""
     };
     const data = await xhrPost(API_URL, payload);
     if (!data.success) throw new Error(data.error);
