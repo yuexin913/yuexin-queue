@@ -1236,11 +1236,12 @@ async function submitBooking() {
 }
 
 function goToNewPatientForm() {
+  // S2 修補：lineId 和 name 改用 sessionStorage 傳遞，不放入 URL
+  sessionStorage.setItem('np_lineId',   state.lineId);
+  sessionStorage.setItem('np_name',     state.name);
+  sessionStorage.setItem('np_apptDate', state.date.replace(/\//g, ''));
   const url = "new-patient.html"
-    + "?bookingId=" + encodeURIComponent(state.bookingId)
-    + "&name=" + encodeURIComponent(state.name)
-    + "&lineId=" + encodeURIComponent(state.lineId)
-    + "&apptDate=" + encodeURIComponent(state.date.replace(/\//g, ''));
+    + "?bookingId=" + encodeURIComponent(state.bookingId);
   window.location.href = url;
 }
 
@@ -1328,7 +1329,7 @@ async function cancelBooking(bookingId, btn) {
     closeCancelModal();
     btn.disabled = true; btn.textContent = "取消中...";
     try {
-      const data = await xhrGet(`${API_URL}?action=cancelBooking&bookingId=${bookingId}&lineId=${state.lineId}`);
+      const data = await xhrPost(API_URL, { action: "cancelBooking", bookingId: bookingId, lineId: state.lineId });
       if (!data.success) throw new Error(data.error);
       btn.closest(".booking-item").querySelector(".booking-status").textContent = "已取消";
       btn.closest(".booking-item").querySelector(".booking-status").className = "booking-status status-cancelled";

@@ -355,9 +355,15 @@ const API_URL = "https://script.google.com/macros/s/AKfycbz1IB0HCFWaFlC7odExNsOW
 
 const urlParams = new URLSearchParams(window.location.search);
 const bookingId = decodeURIComponent(urlParams.get("bookingId") || "");
-const name = decodeURIComponent(urlParams.get("name") || "");
-const lineId = decodeURIComponent(urlParams.get("lineId") || "");
-const apptDate = urlParams.get("apptDate") || "";
+// S2 修補：lineId / name / apptDate 改從 sessionStorage 讀取，不再從 URL 取得
+const lineId   = sessionStorage.getItem("np_lineId")   || "";
+const name     = sessionStorage.getItem("np_name")     || "";
+const apptDate = sessionStorage.getItem("np_apptDate") || "";
+// 清除 sessionStorage，避免資料殘留
+sessionStorage.removeItem("np_lineId");
+sessionStorage.removeItem("np_name");
+sessionStorage.removeItem("np_apptDate");
+// 防護：若 lineId 或 bookingId 不存在，可能是直接開啟此頁，靜默繼續（問卷仍可填寫，略過不填亦可）
 
 const radioState = { referral: "", isAdult: "", residence: "", livingWith: "", occupation: "" };
 let selectedAvailableTime = [];

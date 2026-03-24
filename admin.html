@@ -759,7 +759,7 @@ const DEFAULT_DOCTOR_SCHEDULE = {
 };
 const API_URL = "https://script.google.com/macros/s/AKfycbz1IB0HCFWaFlC7odExNsOWaZwTjz7osAjstXhx_5V0ZD4Ya58GGRRPfFAun2Itywbh6A/exec";
 let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false };
-let allBookings = [], activeSession = "";
+let allBookings = [], activeSession = "", loadSeq = 0; // A1+A2：loadSeq 防止快速切換日期時舊回應覆蓋新資料
 
 // 複診號碼 → 預計報到時段（對應 booking.html 和 GAS 的 RETURN_TIME_SLOT_CONFIG）
 const RETURN_SLOT_RANGES = [
@@ -973,7 +973,7 @@ async function doLogin() {
   isLoggingIn = true;
   btn.disabled = true; btn.textContent = "驗證中...";
   try {
-    const data = await xhrGet(`${API_URL}?action=requestSession&lineId=${encodeURIComponent(state.lineId)}&password=${encodeURIComponent(password)}`);
+    const data = await xhrPost(API_URL, { action: "requestSession", lineId: state.lineId, password: password });
     if (data.success) {
       state.sessionToken = data.token;
       state.adminName = data.name;
@@ -1139,10 +1139,14 @@ async function loadSchedule(preferredSession) {
   document.getElementById("scheduleContent").innerHTML = skeletonHtml;
   const loadingBar = document.getElementById("scheduleLoading");
   if (loadingBar) loadingBar.style.display = "none";
+  // A1+A2：取得本次請求的序號，回應後比對，過期的回應直接丟棄不渲染
+  const mySeq = ++loadSeq;
   try {
     const data = await xhrGet(`${API_URL}?action=adminGetTodaySchedule&date=${dateToYMD(state.viewDate)}&lineId=${state.lineId}`);
+    if (mySeq !== loadSeq) return; // 已有更新的請求發出，此回應作廢
     renderSchedule(data.bookings || [], preferredSession, data.openSessions || null);
   } catch(e) {
+    if (mySeq !== loadSeq) return; // 同上，作廢
     if (loadingBar) loadingBar.style.display = "none";
     document.getElementById("scheduleContent").innerHTML =
       `<div style="grid-column:1/-1;padding:12px;background:var(--bg);"><div class="alert alert-error">診表暫時無法載入。<br><small>${e.message}<br>${e.stack||''}</small></div></div>`;
