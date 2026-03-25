@@ -925,7 +925,7 @@ function joinAnimTick() {
   var el = document.getElementById(prefix + step.cell);
   if (el) {
     if (step.on) {
-      el.style.background = JOIN_LETTERS[step.letter].color;
+      el.style.background = AUTH_COLORS[Math.floor(Math.random() * AUTH_COLORS.length)];
       el.classList.add("lit");
     } else {
       el.classList.remove("lit");
@@ -937,7 +937,7 @@ function joinAnimTick() {
 function authAnimStart() {
   if (joinAnimTimer) return;
   joinAnimStep = 0;
-  joinAnimTimer = setInterval(joinAnimTick, 120);
+  joinAnimTimer = setInterval(joinAnimTick, 80);
 }
 
 function authAnimStop() {
