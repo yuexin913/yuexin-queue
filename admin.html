@@ -52,26 +52,28 @@
     display: flex; flex-direction: column;
     min-height: 100vh; background: var(--bg);
   }
-  /* 磚塊動畫區（全寬置頂）*/
-  .auth-tiles {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 5px;
-    background: #111111;
-    width: 100%;
-    max-width: 480px;
-    margin: 0 auto;
+  /* JOI-N 九宮格彩蛋 */
+  .join-logo {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
   }
-  .auth-tile {
+  .join-letter {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    width: calc((min(100vw, 480px) - 5px * 4) / 5 / 4 * 3);
+    max-width: 36px;
+  }
+  .join-cell {
     aspect-ratio: 1 / 1;
     background: var(--bg-3);
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.25s ease;
   }
-  .auth-tiles.stopped .auth-tile {
-    background: var(--bg);
-  }
-  .auth-tile.visible { opacity: 1; }
+  .join-cell.lit { opacity: 1; }
   /* 文字區 */
   .auth-text {
     flex: 1; display: flex; flex-direction: column;
@@ -413,14 +415,33 @@
 
 <!-- Auth -->
 <div id="pageAuth">
-  <div class="auth-tiles" id="authTiles">
-    <div class="auth-tile" id="at0"></div>
-    <div class="auth-tile" id="at1"></div>
-    <div class="auth-tile" id="at2"></div>
-    <div class="auth-tile" id="at3"></div>
-    <div class="auth-tile" id="at4"></div>
-  </div>
   <div class="auth-text" id="authText">
+    <div class="join-logo" id="joinLogo">
+      <!-- J: 23,6,789 -->
+      <div class="join-letter" id="joinJ">
+        <div class="join-cell" id="jj0"></div><div class="join-cell" id="jj1"></div><div class="join-cell" id="jj2"></div>
+        <div class="join-cell" id="jj3"></div><div class="join-cell" id="jj4"></div><div class="join-cell" id="jj5"></div>
+        <div class="join-cell" id="jj6"></div><div class="join-cell" id="jj7"></div><div class="join-cell" id="jj8"></div>
+      </div>
+      <!-- O: 123,46,789 -->
+      <div class="join-letter" id="joinO">
+        <div class="join-cell" id="jo0"></div><div class="join-cell" id="jo1"></div><div class="join-cell" id="jo2"></div>
+        <div class="join-cell" id="jo3"></div><div class="join-cell" id="jo4"></div><div class="join-cell" id="jo5"></div>
+        <div class="join-cell" id="jo6"></div><div class="join-cell" id="jo7"></div><div class="join-cell" id="jo8"></div>
+      </div>
+      <!-- I: 2,5,8 -->
+      <div class="join-letter" id="joinI">
+        <div class="join-cell" id="ji0"></div><div class="join-cell" id="ji1"></div><div class="join-cell" id="ji2"></div>
+        <div class="join-cell" id="ji3"></div><div class="join-cell" id="ji4"></div><div class="join-cell" id="ji5"></div>
+        <div class="join-cell" id="ji6"></div><div class="join-cell" id="ji7"></div><div class="join-cell" id="ji8"></div>
+      </div>
+      <!-- N: 123,46,79 -->
+      <div class="join-letter" id="joinN">
+        <div class="join-cell" id="jn0"></div><div class="join-cell" id="jn1"></div><div class="join-cell" id="jn2"></div>
+        <div class="join-cell" id="jn3"></div><div class="join-cell" id="jn4"></div><div class="join-cell" id="jn5"></div>
+        <div class="join-cell" id="jn6"></div><div class="join-cell" id="jn7"></div><div class="join-cell" id="jn8"></div>
+      </div>
+    </div>
     <div class="auth-title" id="authTitle">悅心診所線上服務</div>
     <div class="auth-sub" id="authSub">請稍候...</div>
   </div>
@@ -759,7 +780,7 @@ const DEFAULT_DOCTOR_SCHEDULE = {
 };
 const API_URL = "https://script.google.com/macros/s/AKfycbz1IB0HCFWaFlC7odExNsOWaZwTjz7osAjstXhx_5V0ZD4Ya58GGRRPfFAun2Itywbh6A/exec";
 let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false };
-let allBookings = [], activeSession = "", loadSeq = 0; // A1+A2：loadSeq 防止快速切換日期時舊回應覆蓋新資料
+let allBookings = [], activeSession = "";
 
 // 複診號碼 → 預計報到時段（對應 booking.html 和 GAS 的 RETURN_TIME_SLOT_CONFIG）
 const RETURN_SLOT_RANGES = [
@@ -861,54 +882,74 @@ const AUTH_COLORS = [
   "#b362a7"  // orchid
 ];
 
-var authAnimTimer = null;
-var authAnimPhase = "fill"; // fill | empty
-var authAnimStep = 0;
-var authTileColors = [null, null, null, null, null];
+// JOI-N 九宮格動畫
+// 格子索引 0-8 對應九宮格位置：
+// 0 1 2
+// 3 4 5
+// 6 7 8
+var JOIN_LETTERS = {
+  J: { cells: [1,2, 5, 6,7,8], color: "var(--marigold)" },
+  O: { cells: [0,1,2, 3,5, 6,7,8], color: "var(--yellow)" },
+  I: { cells: [1, 4, 7], color: "var(--kiwi)" },
+  N: { cells: [0,1,2, 3,5, 6,8], color: "var(--capri)" }
+};
+var JOIN_ORDER = ["J","O","I","N"];
+var JOIN_PREFIX = { J:"jj", O:"jo", I:"ji", N:"jn" };
+var joinAnimTimer = null;
+var joinAnimState = []; // [{letter, cellIdx, phase}]
+var joinAnimStep = 0;
 
-function authGetRandomColor() {
-  return AUTH_COLORS[Math.floor(Math.random() * AUTH_COLORS.length)];
+function joinBuildSequence() {
+  // 建立動畫序列：每個字母依序亮起格子，然後依序熄滅，循環
+  var seq = [];
+  JOIN_ORDER.forEach(function(letter) {
+    var def = JOIN_LETTERS[letter];
+    def.cells.forEach(function(ci) {
+      seq.push({ letter: letter, cell: ci, on: true });
+    });
+  });
+  JOIN_ORDER.forEach(function(letter) {
+    var def = JOIN_LETTERS[letter];
+    def.cells.forEach(function(ci) {
+      seq.push({ letter: letter, cell: ci, on: false });
+    });
+  });
+  return seq;
 }
 
-function authAnimTick() {
-  if (authAnimPhase === "fill") {
-    // 填入一個磚塊
-    var color = authGetRandomColor();
-    authTileColors[authAnimStep] = color;
-    var tile = document.getElementById("at" + authAnimStep);
-    if (tile) { tile.style.background = color; tile.classList.add("visible"); }
-    authAnimStep++;
-    if (authAnimStep >= 5) {
-      authAnimPhase = "empty";
-      authAnimStep = 0;
-    }
-  } else {
-    // 消除一個磚塊
-    var tile = document.getElementById("at" + authAnimStep);
-    if (tile) { tile.classList.remove("visible"); }
-    authAnimStep++;
-    if (authAnimStep >= 5) {
-      authAnimPhase = "fill";
-      authAnimStep = 0;
+var joinSeq = joinBuildSequence();
+
+function joinAnimTick() {
+  var step = joinSeq[joinAnimStep % joinSeq.length];
+  var prefix = JOIN_PREFIX[step.letter];
+  var el = document.getElementById(prefix + step.cell);
+  if (el) {
+    if (step.on) {
+      el.style.background = JOIN_LETTERS[step.letter].color;
+      el.classList.add("lit");
+    } else {
+      el.classList.remove("lit");
     }
   }
+  joinAnimStep++;
 }
 
 function authAnimStart() {
-  if (authAnimTimer) return;
-  authAnimTimer = setInterval(authAnimTick, 250);
+  if (joinAnimTimer) return;
+  joinAnimStep = 0;
+  joinAnimTimer = setInterval(joinAnimTick, 120);
 }
 
 function authAnimStop() {
-  if (authAnimTimer) { clearInterval(authAnimTimer); authAnimTimer = null; }
-  // 所有磚塊淡出
-  for (var i = 0; i < 5; i++) {
-    var tile = document.getElementById("at" + i);
-    if (tile) tile.classList.remove("visible");
-  }
-  // 背景格子改成和頁面背景相同
-  const tilesEl = document.getElementById("authTiles");
-  if (tilesEl) tilesEl.classList.add("stopped");
+  if (joinAnimTimer) { clearInterval(joinAnimTimer); joinAnimTimer = null; }
+  // 所有 JOI-N 格子熄滅
+  JOIN_ORDER.forEach(function(letter) {
+    var prefix = JOIN_PREFIX[letter];
+    for (var i = 0; i < 9; i++) {
+      var el = document.getElementById(prefix + i);
+      if (el) el.classList.remove("lit");
+    }
+  });
 }
 
 function toggleHeaderMenu() {
@@ -929,7 +970,6 @@ async function initLiff() {
     if (check.error === "權限不足") {
       // 非白名單：停在 auth 頁顯示錯誤，清空 pageMain 防止介面被窺探
       authAnimStop();
-      document.getElementById("authTiles").style.display = "none";
       document.getElementById("authTitle").textContent = "頁面錯誤";
       document.getElementById("authSub").textContent = "";
       document.getElementById("pageMain").innerHTML = "";
@@ -952,7 +992,6 @@ async function initLiff() {
     }, 300);
   } catch(e) {
     authAnimStop();
-    document.getElementById("authTiles").style.display = "none";
     document.getElementById("authTitle").textContent = "暫時無法連線";
     document.getElementById("authSub").textContent = "請重新整理頁面。";
   }
@@ -973,7 +1012,7 @@ async function doLogin() {
   isLoggingIn = true;
   btn.disabled = true; btn.textContent = "驗證中...";
   try {
-    const data = await xhrPost(API_URL, { action: "requestSession", lineId: state.lineId, password: password });
+    const data = await xhrGet(`${API_URL}?action=requestSession&lineId=${encodeURIComponent(state.lineId)}&password=${encodeURIComponent(password)}`);
     if (data.success) {
       state.sessionToken = data.token;
       state.adminName = data.name;
@@ -1139,14 +1178,10 @@ async function loadSchedule(preferredSession) {
   document.getElementById("scheduleContent").innerHTML = skeletonHtml;
   const loadingBar = document.getElementById("scheduleLoading");
   if (loadingBar) loadingBar.style.display = "none";
-  // A1+A2：取得本次請求的序號，回應後比對，過期的回應直接丟棄不渲染
-  const mySeq = ++loadSeq;
   try {
     const data = await xhrGet(`${API_URL}?action=adminGetTodaySchedule&date=${dateToYMD(state.viewDate)}&lineId=${state.lineId}`);
-    if (mySeq !== loadSeq) return; // 已有更新的請求發出，此回應作廢
     renderSchedule(data.bookings || [], preferredSession, data.openSessions || null);
   } catch(e) {
-    if (mySeq !== loadSeq) return; // 同上，作廢
     if (loadingBar) loadingBar.style.display = "none";
     document.getElementById("scheduleContent").innerHTML =
       `<div style="grid-column:1/-1;padding:12px;background:var(--bg);"><div class="alert alert-error">診表暫時無法載入。<br><small>${e.message}<br>${e.stack||''}</small></div></div>`;
@@ -1359,7 +1394,12 @@ function renderSessionContent(session, isClosed) {
         note: np.note || "",
         birth: np.birth || "",
         slot: np.slot || "",
-        source: np.source || ""
+        npReferral:     np.referral      || "",
+        npIsAdult:      np.isAdult       || "",
+        npResidence:    np.residence     || "",
+        npLivingWith:   np.livingWith    || "",
+        npOccupation:   np.occupation    || "",
+        npAvailableTime: np.availableTime || ""
       };
       // 把 rowStart+1 ~ rowStart+4 標記為 np_skip（渲染時略過）
       for (let k = 1; k < 5; k++) {
@@ -1379,7 +1419,7 @@ function renderSessionContent(session, isClosed) {
       const isDone = c.status === "已看診";
       const isNotified = c.isAdminBooking && c.note.indexOf("[已通知]") !== -1;
       const bannerClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
-      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.slot||'')}" data-session="${esc(session)}" data-type="初診" data-source="${esc(c.source||'')}" onclick="openContactModalFromEl(this)"`;
+      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.slot||'')}" data-session="${esc(session)}" data-type="初診" data-np-referral="${esc(c.npReferral)}" data-np-isadult="${esc(c.npIsAdult)}" data-np-residence="${esc(c.npResidence)}" data-np-livingwith="${esc(c.npLivingWith)}" data-np-occupation="${esc(c.npOccupation)}" data-np-availabletime="${esc(c.npAvailableTime)}" onclick="openContactModalFromEl(this)"`;
       // isPending = 代掛未通知（sunny lime）；否則（一般初診或已通知）= kiwi
       const isPending = c.isAdminBooking && !isNotified;
       // 按鈕文字顏色：與 tile 同色（kiwi 或 sunny）
@@ -1574,8 +1614,15 @@ function openContactModalFromEl(el) {
   const slot = el.dataset.slot || "";
   const session = el.dataset.session || "";
   const type = el.dataset.type || "";
-  const source = type === "初診" ? (el.dataset.source || "") : null;
-  openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, source);
+  const npSurvey = type === "初診" ? {
+    referral:      el.dataset.npReferral      || "",
+    isAdult:       el.dataset.npIsadult       || "",
+    residence:     el.dataset.npResidence     || "",
+    livingWith:    el.dataset.npLivingwith    || "",
+    occupation:    el.dataset.npOccupation    || "",
+    availableTime: el.dataset.npAvailabletime || ""
+  } : null;
+  openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey);
 }
 
 function rocDate(birthStr) {
@@ -1588,7 +1635,7 @@ function rocDate(birthStr) {
   return birthStr;
 }
 
-function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, source) {
+function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey) {
   state.contactBookingId = bookingId;
   state.contactIsNotified = (isNotified === true || isNotified === "true");
   const notified = state.contactIsNotified;
@@ -1614,15 +1661,37 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
   }
   document.getElementById("contactError").style.display = "none";
 
-  // 來源欄位（初診才顯示）
+  // 初診問卷區塊
   const surveyEl = document.getElementById("contactNpSurvey");
-  if (source !== null) {
+  if (npSurvey) {
+    const referralShort = (npSurvey.referral || "（未填）").replace(/（[^）]*）/g, "").trim() || "（未填）";
+    const adultShort = npSurvey.isAdult.indexOf("自己來") !== -1 ? "自行前來"
+      : npSurvey.isAdult.indexOf("家人") !== -1 ? "有人陪同"
+      : npSurvey.isAdult || "（未填）";
+    const residenceShort = npSurvey.residence === "高雄市楠梓區" ? "楠梓"
+      : npSurvey.residence === "高雄市其他行政區" ? "高雄"
+      : npSurvey.residence === "外縣市" ? "外縣市"
+      : npSurvey.residence || "（未填）";
+    const livingMap = { "獨居": "獨居", "家人／朋友／伴侶": "家人伴侶", "同學／同事（宿舍）": "宿舍", "其他（以上狀況均不符合）": "其他" };
+    const livingShort = livingMap[npSurvey.livingWith] || npSurvey.livingWith || "（未填）";
+    const occupationMap = {
+      "白天活動晚上休息（例如上班族、學生）": "日間活動",
+      "白天休息晚上活動（例如固定夜班工作者）": "夜間活動",
+      "不固定（例如長期輪班、頻繁出差）": "不固定"
+    };
+    const occupationShort = occupationMap[npSurvey.occupation] || npSurvey.occupation || "（未填）";
+    const availableShort = (npSurvey.availableTime || "（未填）").replace(/；/g, "、");
+
     surveyEl.style.display = "block";
-    const sourceDisplay = source ? source.replace(/（[^）]*）/g, "").trim() : "（未填）";
     surveyEl.innerHTML = `
-      <div style="font-size:11px;font-weight:700;color:var(--kiwi);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">初診來源</div>
+      <div style="font-size:11px;font-weight:700;color:var(--kiwi);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">初診問卷</div>
       <div style="font-size:12px;line-height:2;color:var(--text);">
-        <span style="color:var(--text-light);">如何得知　</span>${esc(sourceDisplay)}
+        <span style="color:var(--text-light);">如何得知　</span>${esc(referralShort)}<br>
+        <span style="color:var(--text-light);">陪伴看診　</span>${esc(adultShort)}<br>
+        <span style="color:var(--text-light);">居住地區　</span>${esc(residenceShort)}<br>
+        <span style="color:var(--text-light);">同住狀況　</span>${esc(livingShort)}<br>
+        <span style="color:var(--text-light);">作息型態　</span>${esc(occupationShort)}<br>
+        <span style="color:var(--text-light);">方便時段　</span>${esc(availableShort)}
       </div>`;
   } else {
     surveyEl.style.display = "none";
