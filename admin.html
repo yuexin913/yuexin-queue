@@ -1012,7 +1012,7 @@ async function doLogin() {
   isLoggingIn = true;
   btn.disabled = true; btn.textContent = "驗證中...";
   try {
-    const data = await xhrGet(`${API_URL}?action=requestSession&lineId=${encodeURIComponent(state.lineId)}&password=${encodeURIComponent(password)}`);
+    const data = await xhrPost(API_URL, { action: "requestSession", lineId: state.lineId, password: password });
     if (data.success) {
       state.sessionToken = data.token;
       state.adminName = data.name;
