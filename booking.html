@@ -251,6 +251,15 @@
   .session-select-name { font-size: 15px; font-weight: 500; color: var(--green-dark); }
   .session-select-time { font-size: 12px; color: var(--text-light); margin-top: 3px; }
   .session-select-doctor { font-size: 16px; font-weight: 500; color: var(--green-dark); white-space: nowrap; margin-left: 12px; }
+  .doctor-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .doctor-info {
+    display: flex; align-items: center; gap: 8px;
+  }
 
   .fully-booked {
     text-align: center; padding: 16px; color: var(--text-light); font-size: 13px;
@@ -774,6 +783,19 @@ function startBooking(type) {
   }
 }
 
+// 醫師照片對應
+const DOCTOR_AVATARS = {
+  "粟寧":  "assets/doctors/su.png",
+  "郭玉柱": "assets/doctors/guo.png",
+  "王麟祥": "assets/doctors/seniorwang.png",
+  "王伯元": "assets/doctors/juniorwang.png"
+};
+
+function getDoctorAvatarHtml(doctor) {
+  if (!doctor || !DOCTOR_AVATARS[doctor]) return "";
+  return `<img class="doctor-avatar" src="${DOCTOR_AVATARS[doctor]}" alt="${doctor}" onerror="this.style.display='none'">`;
+}
+
 function selectSource(el, value) {
   document.querySelectorAll("#sourceOptions .radio-option").forEach(function(o) {
     o.classList.remove("selected");
@@ -1045,13 +1067,14 @@ function renderSessions() {
     const doctor = s ? (s.doctor || "") : "";
     const isSubstitute = s ? (s.isSubstitute || false) : false;
     const doctorLabel = isSubstitute ? `${doctor}<span style="font-size:11px;color:var(--green-dark);margin-left:4px;">*代診</span>` : doctor;
+    const avatarHtml1 = isSubstitute ? "" : getDoctorAvatarHtml(doctor);
     html += `<div class="session-select-btn session-select-active" style="cursor:default">
       <div>
         <div class="session-select-name">${displayName}</div>
         <div class="session-select-time">${timeRange}</div>
       </div>
       <div style="display:flex;align-items:center;gap:12px">
-        <span class="session-select-doctor">${doctorLabel}</span>
+        <div class="doctor-info">${avatarHtml1}<span class="session-select-doctor">${doctorLabel}</span></div>
         <button class="btn-text-link" onclick="reopenSessionSelect()">重新選擇</button>
       </div>
     </div>`;
@@ -1079,12 +1102,13 @@ function renderSessions() {
         const doctorLabel = isSubstitute
           ? `${doctor}<span style="font-size:11px;margin-left:4px;">*代診</span>`
           : doctor;
+        const avatarHtml2 = isSubstitute ? "" : getDoctorAvatarHtml(doctor);
         html += `<div class="session-select-btn" onclick="selectSession('${sessionKey}')">
           <div>
             <div class="session-select-name">${displayName}</div>
             <div class="session-select-time">${timeRange}</div>
           </div>
-          <div class="session-select-doctor">${doctorLabel}</div>
+          <div class="doctor-info">${avatarHtml2}<span class="session-select-doctor">${doctorLabel}</span></div>
         </div>`;
       }
     });
