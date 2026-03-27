@@ -2,8 +2,11 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 Admin Portal</title>
+  <meta name="description" content="悅心診所管理員後台">
+  <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@200;400;700&display=swap');
@@ -244,11 +247,10 @@
     min-width: 0;
   }
   .grid-cell:not(.empty):active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
-  /* 一般複診 & 代掛已通知：同色（實務意義相同）*/
+  /* 所有有預約的格子統一綠色，靠黑點區分是否需要手動處理 */
   .grid-cell.has-patient    { background: var(--kiwi); cursor: pointer; }
   .grid-cell.admin-notified { background: var(--kiwi); cursor: pointer; }
-  /* 代掛未通知：Sunny Lime，有 caution */
-  .grid-cell.admin-pending  { background: var(--sunny); cursor: pointer; }
+  .grid-cell.admin-pending  { background: var(--kiwi); cursor: pointer; }
   .grid-cell.empty { background: transparent; }
 
   .cell-num { font-size: 22px; font-weight: 700; line-height: 1; align-self: flex-start; }
@@ -283,11 +285,10 @@
     overflow: hidden;
   }
   .grid-np-banner:active { transform: scale(0.99); opacity: 0.9; transition: all 0.1s ease-out; }
-  /* 一般初診 & 代掛已通知：kiwi */
+  /* 所有初診橫幅統一綠色 */
   .grid-np-banner.has-patient    { background: var(--kiwi); }
   .grid-np-banner.admin-notified { background: var(--kiwi); cursor: pointer; }
-  /* 代掛未通知：sunny */
-  .grid-np-banner.admin-pending  { background: var(--sunny); cursor: pointer; }
+  .grid-np-banner.admin-pending  { background: var(--kiwi); cursor: pointer; }
   .checkin-mini { flex-shrink: 0; padding: 6px 12px; font-size: 12px; font-family: inherit; font-weight: 700; cursor: pointer; border: none; white-space: nowrap; }
   .checkin-mini:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
   .checkin-mini.pending { background: rgba(255,255,255,0.25); color: #fff; }
@@ -604,6 +605,39 @@
     <div id="contactError" class="alert alert-error" style="display:none"></div>
     <div id="btnToggleNotifiedWrap">
       <button class="btn" id="btnToggleNotified" onclick="doToggleNotified()"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: 代掛結果 -->
+<div class="modal-overlay" id="modalAdminAddResult">
+  <div class="modal">
+    <div class="modal-title">代掛結果<button class="modal-close" onclick="closeAdminAddResult()">✕</button></div>
+
+    <!-- 找到 LINE ID -->
+    <div id="adminAddResultFound" style="display:none;padding:8px 0;">
+      <div style="font-size:22px;margin-bottom:12px;">✅</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">代掛完成</div>
+      <div style="font-size:13px;color:var(--text-light);line-height:1.8;">已自動發送預約確認給病患。<br>前一天系統將自動發送提醒。</div>
+      <button class="btn" style="width:100%;margin-top:20px;background:var(--kiwi);color:#fff;" onclick="closeAdminAddResult()">關閉</button>
+    </div>
+
+    <!-- 找不到 LINE ID -->
+    <div id="adminAddResultNotFound" style="display:none;padding:8px 0;">
+      <div style="font-size:22px;margin-bottom:12px;">⚠️</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">找不到此病患的 LINE 帳號紀錄</div>
+      <div style="font-size:13px;color:var(--text-light);line-height:1.8;margin-bottom:16px;">代掛已完成，但無法自動發送通知給病患。</div>
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">請選擇後續處理方式：</div>
+      <button class="btn" style="width:100%;background:var(--kiwi);color:#fff;margin-bottom:8px;" onclick="closeAdminAddResult()">請病患用 LINE 完成初次預約<div style="font-size:11px;font-weight:400;margin-top:2px;">開啟本院 LINE → 圖文選單 → 線上預約</div></button>
+      <button class="btn" style="width:100%;background:var(--bg-3);color:var(--text);" onclick="confirmForceAdd()">⛔ 病患無手機</button>
+    </div>
+
+    <!-- 強制代掛確認 -->
+    <div id="adminAddResultForced" style="display:none;padding:8px 0;">
+      <div style="font-size:22px;margin-bottom:12px;">✅</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">代掛完成</div>
+      <div style="font-size:13px;color:var(--text-light);line-height:1.8;">預約確認已發送至管理員帳號。<br>請手動轉發給病患。</div>
+      <button class="btn" style="width:100%;margin-top:20px;background:var(--kiwi);color:#fff;" onclick="closeAdminAddResult()">關閉</button>
     </div>
   </div>
 </div>
@@ -1020,7 +1054,7 @@ async function doLogin() {
       document.getElementById("loginPassword").value = "";
       enterMainPage();
     } else if (data.error === "locked") {
-      btn.disabled = true;
+      btn.disabled = false; btn.textContent = "登入";
       errEl.textContent = "登入失敗次數過多，請稍後再試，或聯繫系統管理員。";
       errEl.style.display = "block";
     } else if (data.error === "wrong_password") {
@@ -1179,7 +1213,7 @@ async function loadSchedule(preferredSession) {
   const loadingBar = document.getElementById("scheduleLoading");
   if (loadingBar) loadingBar.style.display = "none";
   try {
-    const data = await xhrGet(`${API_URL}?action=adminGetTodaySchedule&date=${dateToYMD(state.viewDate)}&lineId=${state.lineId}`);
+    const data = await xhrPost(API_URL, { action: "adminGetTodaySchedule", date: dateToYMD(state.viewDate), lineId: state.lineId });
     renderSchedule(data.bookings || [], preferredSession, data.openSessions || null);
   } catch(e) {
     if (loadingBar) loadingBar.style.display = "none";
@@ -1417,9 +1451,9 @@ function renderSessionContent(session, isClosed) {
 
     if (c.type === "np_banner") {
       const isDone = c.status === "已看診";
-      const isNotified = c.isAdminBooking && c.note.indexOf("[已通知]") !== -1;
+      const isNotified = c.isAdminBooking && c.notifyStatus === "[已人工通知]";
       const bannerClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
-      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.slot||'')}" data-session="${esc(session)}" data-type="初診" data-np-referral="${esc(c.npReferral)}" data-np-isadult="${esc(c.npIsAdult)}" data-np-residence="${esc(c.npResidence)}" data-np-livingwith="${esc(c.npLivingWith)}" data-np-occupation="${esc(c.npOccupation)}" data-np-availabletime="${esc(c.npAvailableTime)}" onclick="openContactModalFromEl(this)"`;
+      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.slot||'')}" data-session="${esc(session)}" data-type="初診" data-np-referral="${esc(c.npReferral)}" data-np-isadult="${esc(c.npIsAdult)}" data-np-residence="${esc(c.npResidence)}" data-np-livingwith="${esc(c.npLivingWith)}" data-np-occupation="${esc(c.npOccupation)}" data-np-availabletime="${esc(c.npAvailableTime)}" onclick="openContactModalFromEl(this)"`;
       // isPending = 代掛未通知（sunny lime）；否則（一般初診或已通知）= kiwi
       const isPending = c.isAdminBooking && !isNotified;
       // 按鈕文字顏色：與 tile 同色（kiwi 或 sunny）
@@ -1436,10 +1470,10 @@ function renderSessionContent(session, isClosed) {
         ${cautionHtml}
       </div>`;
     } else if (c.type === "rt") {
-      const isNotified = c.isAdminBooking && c.note.indexOf("[已通知]") !== -1;
+      const isNotified = c.isAdminBooking && c.notifyStatus === "[已人工通知]";
       const cellClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const numDisplay = `${c.num}`;
-      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notified="${isNotified}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
+      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const cautionHtml = (c.isAdminBooking && !isNotified) ? `<div class="cell-caution"></div>` : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
@@ -1587,9 +1621,19 @@ async function doAdminAddBooking(forceSlot) {
       type: "複診"
     });
     if (!data.success) throw new Error(data.error);
-    closeModal(isUnspec ? "modalUnspecified" : "modalAdminAdd");
-    // 重新載入診表
-    loadSchedule(activeSession);
+    if (data.booked === false) {
+      // 找不到 LINE ID 且非強制代掛：不寫入，顯示選項 Modal
+      // 不關閉代掛 Modal，保留輸入內容供強制代掛使用
+      showAdminAddResult("notfound");
+    } else {
+      // 已寫入（找到 LINE ID 或強制代掛）
+      closeModal(isUnspec ? "modalUnspecified" : "modalAdminAdd");
+      if (data.lineIdFound) {
+        showAdminAddResult("found");
+      } else {
+        showAdminAddResult("forced");
+      }
+    }
   } catch(e) {
     showErr(e.message || "新增失敗，請稍後再試。");
     // 失敗時自動重整診表，讓管理員看到最新狀態
@@ -1603,13 +1647,84 @@ async function doAdminAddBooking(forceSlot) {
   }
 }
 
+/* ── 代掛結果 Modal ── */
+let pendingForceAddData = null; // 強制代掛時暫存資料
+
+function showAdminAddResult(type) {
+  const modal = document.getElementById("modalAdminAddResult");
+  const found = document.getElementById("adminAddResultFound");
+  const notfound = document.getElementById("adminAddResultNotFound");
+  const forced = document.getElementById("adminAddResultForced");
+  found.style.display = "none";
+  notfound.style.display = "none";
+  forced.style.display = "none";
+
+  if (type === "found") {
+    found.style.display = "block";
+    loadSchedule(activeSession);
+  } else if (type === "notfound") {
+    notfound.style.display = "block";
+    // 不重新載入診表（尚未寫入）
+  } else if (type === "forced") {
+    forced.style.display = "block";
+    loadSchedule(activeSession);
+  }
+  modal.classList.add("active");
+}
+
+function closeAdminAddResult() {
+  document.getElementById("modalAdminAddResult").classList.remove("active");
+}
+
+async function confirmForceAdd() {
+  // 病患無手機：重新呼叫 adminAddBooking，帶 forceAdd: true
+  const btn = document.querySelector("#adminAddResultNotFound button:last-child");
+  if (btn) { btn.disabled = true; btn.textContent = "代掛中..."; }
+  try {
+    const isUnspec = (adminAddSlot === "不指定");
+    const nameEl  = isUnspec ? "uAddName"   : "aAddName";
+    const phoneEl = isUnspec ? "uAddPhone"  : "aAddPhone";
+    const birthYEl = isUnspec ? "uAddBirthY" : "aAddBirthY";
+    const birthMEl = isUnspec ? "uAddBirthM" : "aAddBirthM";
+    const birthDEl = isUnspec ? "uAddBirthD" : "aAddBirthD";
+    const name  = document.getElementById(nameEl).value.trim();
+    const phone = document.getElementById(phoneEl).value.replace(/[^\d]/g, "").trim();
+    const birthY = document.getElementById(birthYEl).value.trim();
+    const birthM = document.getElementById(birthMEl).value.trim();
+    const birthD = document.getElementById(birthDEl).value.trim();
+    const adYear = parseInt(birthY, 10) + 1911;
+    const mm = String(parseInt(birthM, 10)).padStart(2, "0");
+    const dd = String(parseInt(birthD, 10)).padStart(2, "0");
+    const birth = adYear + "-" + mm + "-" + dd;
+    const slot = String(adminAddSlot);
+    const dateStr = dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1$2$3");
+    const data = await xhrPost(API_URL, {
+      action: "adminAddBooking",
+      lineId: state.lineId,
+      token: state.sessionToken,
+      name: name, phone: phone, birth: birth,
+      date: dateStr, session: activeSession,
+      timeSlot: slot, type: "複診",
+      forceAdd: true
+    });
+    if (!data.success) throw new Error(data.error);
+    closeAdminAddResult();
+    closeModal(isUnspec ? "modalUnspecified" : "modalAdminAdd");
+    showAdminAddResult("forced");
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = "⛔ 病患無手機"; }
+    alert(e.message || "代掛失敗，請稍後再試。");
+  }
+}
+
 /* ── 聯絡小卡 Modal ── */
 function openContactModalFromEl(el) {
   const bookingId = el.dataset.bid;
   const name = el.dataset.name;
   const phone = el.dataset.phone;
-  const isNotified = el.dataset.notified === "true";
+  const isNotified = el.dataset.notifyStatus === "[已人工通知]";
   const isAdminBooking = el.dataset.admin === "true";
+  const notifyStatus = el.dataset.notifyStatus || "";
   const birth = el.dataset.birth || "";
   const slot = el.dataset.slot || "";
   const session = el.dataset.session || "";
@@ -1648,7 +1763,7 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
   tsEl.style.display = timeSlotLabel ? "block" : "none";
   document.getElementById("contactPhone").textContent = phone || "（無電話）";
   document.getElementById("contactPhone").href = phone ? "tel:" + phone : "";
-  // 只有白名單代掛才顯示通知切換按鈕
+  // 只有強制代掛（白名單代掛）才顯示通知切換按鈕
   const wrap = document.getElementById("btnToggleNotifiedWrap");
   if (isAdminBooking) {
     wrap.style.display = "block";
@@ -1708,17 +1823,12 @@ async function doToggleNotified() {
   try {
     const data = await xhrPost(API_URL, { action: "toggleNotified", bookingId: state.contactBookingId, isNotified: newIsNotified, lineId: state.lineId });
     if (data.success) {
-      // 直接更新前端 allBookings 資料，不重新載入
+      // 更新前端 allBookings 的 notifyStatus
       const booking = allBookings.find(b => b.bookingId === state.contactBookingId);
       if (booking) {
-        if (newIsNotified) {
-          booking.note = (booking.note || "") + "[已通知]";
-        } else {
-          booking.note = (booking.note || "").replace("[已通知]", "");
-        }
+        booking.notifyStatus = data.notifyStatus;
       }
       closeModal("modalContact");
-      // 只重新渲染當前時段，不發網路請求
       renderSessionContent(activeSession);
     } else {
       btn.disabled = false;
@@ -1800,7 +1910,7 @@ function openDoctorModal() {
 async function loadSubstituteList() {
   const el = document.getElementById('subList');
   try {
-    const data = await xhrGet(`${API_URL}?action=getSubstituteList&lineId=${state.lineId}`);
+    const data = await xhrPost(API_URL, { action: "getSubstituteList", lineId: state.lineId });
     const list = data.list || [];
     const sn = {"早上":"早上診","下午":"下午診","晚上":"晚上診"};
     if (list.length === 0) { el.innerHTML = `<div style="font-size:12px;color:var(--text-light)">目前無門診異動</div>`; return; }
@@ -2038,7 +2148,7 @@ async function doBroadcastSend() {
 /* ── 系統異常 caution 檢查 ── */
 async function checkSecurityCaution() {
   try {
-    const data = await xhrGet(`${API_URL}?action=getSecurityLog&lineId=${state.lineId}`);
+    const data = await xhrPost(API_URL, { action: "getSecurityLog", lineId: state.lineId });
     const dot = document.getElementById("securityUnreadDot");
     if (dot) dot.style.display = data.hasUnread ? "block" : "none";
   } catch(e) { /* 靜默失敗，不影響主流程 */ }
@@ -2049,7 +2159,7 @@ async function loadSecurity() {
   const el = document.getElementById("securityContent");
   el.innerHTML = `<div class="loading">載入中...</div>`;
   try {
-    const data = await xhrGet(`${API_URL}?action=getSecurityLog&lineId=${state.lineId}`);
+    const data = await xhrPost(API_URL, { action: "getSecurityLog", lineId: state.lineId });
     const logs = data.logs || [];
     // 更新未讀小黑點
     const dot = document.getElementById("securityUnreadDot");

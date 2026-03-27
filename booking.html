@@ -2,8 +2,13 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
+  <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
+  <meta property="og:title" content="悅心診所 線上預約">
+  <meta property="og:description" content="初診、複診線上預約，快速方便。">
+  <meta property="og:type" content="website">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500&display=swap');
@@ -408,7 +413,7 @@
   <!-- 載入頁 -->
   <div class="page active" id="pageLoading">
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:20px;">
-      <div style="font-size:18px;font-weight:600;color:var(--green-dark);letter-spacing:1px;">系統載入中請稍候</div>
+      <div style="font-size:18px;font-weight:600;color:var(--green-dark);letter-spacing:1px;">載入中請稍後</div>
       <div class="spinner"></div>
     </div>
   </div>
@@ -427,7 +432,7 @@
 
   <!-- 入口頁 -->
   <div class="page" id="pageEntry">
-    <div style="background:#D4522A;color:white;text-align:center;font-size:13px;font-weight:700;padding:6px;letter-spacing:1px;margin-bottom:8px;">線上預約系統優先開放中｜如有操作問題請截圖回傳，感謝您的協助。</div>
+    <div style="background:#D4522A;color:white;text-align:center;font-size:13px;font-weight:700;padding:6px;letter-spacing:1px;margin-bottom:8px;">先行體驗｜操作問題請截圖回傳</div>
     <div class="card" style="margin-top:8px">
       <div class="card-title">請選擇服務</div>
       <div class="entry-options">
@@ -435,7 +440,7 @@
           <div class="entry-icon">🔄</div>
           <div class="entry-text">
             <div class="entry-title">複診預約</div>
-            <div class="entry-desc">曾在本院看診的患者</div>
+            <div class="entry-desc">過去曾於本院看診過。</div>
           </div>
           <div class="entry-arrow">›</div>
         </div>
@@ -443,7 +448,7 @@
           <div class="entry-icon">🌱</div>
           <div class="entry-text">
             <div class="entry-title">初診預約</div>
-            <div class="entry-desc">首次來診，需填寫初診資料</div>
+            <div class="entry-desc">首次來診，過去從未於本院看診。</div>
           </div>
           <div class="entry-arrow">›</div>
         </div>
@@ -459,7 +464,7 @@
           <div class="entry-icon">🛋️</div>
           <div class="entry-text">
             <div class="entry-title">心理治療預約</div>
-            <div class="entry-desc">線上預約尚未開放</div>
+            <div class="entry-desc">尚未開放</div>
           </div>
         </div>
       </div>
@@ -490,8 +495,9 @@
         </div>
       </div>
     </div>
-    <div style="margin-top:16px">
+    <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px">
       <button class="btn btn-primary" id="btnSourceNext" onclick="goToPageInfoFromSource(document.querySelector('input[name=source]:checked')?.value || '')" style="width:100%">下一步：填寫基本資料 →</button>
+      <button class="btn btn-outline" onclick="goToEntry()" style="width:100%">← 返回</button>
     </div>
   </div>
 
@@ -777,6 +783,13 @@ function startBooking(type) {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
+  // 重置 pageSource 選取狀態
+  document.querySelectorAll("#sourceOptions .radio-option").forEach(function(o) { o.classList.remove("selected"); });
+  document.querySelectorAll("input[name=source]").forEach(function(r) { r.checked = false; });
+  var sourceWrap = document.getElementById("sourceOptions");
+  if (sourceWrap) sourceWrap.style.display = "flex";
+  var skipBtn = document.getElementById("btnSourceSkip");
+  if (skipBtn) skipBtn.textContent = "略過";
   document.getElementById("headerSub").textContent = type + "預約";
   // 初診先問來源，複診直接填資料
   if (type === "初診") {
@@ -1069,7 +1082,7 @@ function renderSessions() {
     const timeRange = SESSION_DISPLAY_TIME[state.session] || "";
     const doctor = s ? (s.doctor || "") : "";
     const isSubstitute = s ? (s.isSubstitute || false) : false;
-    const doctorLabel = isSubstitute ? `${doctor}<span style="font-size:11px;color:var(--green-dark);margin-left:4px;">*代診</span>` : doctor;
+    const doctorLabel = isSubstitute ? `<span style="font-size:11px;background:var(--green);color:#fff;padding:1px 5px;border-radius:3px;margin-right:5px;">代診</span>${doctor}` : doctor;
     const avatarHtml1 = isSubstitute ? "" : getDoctorAvatarHtml(doctor);
     html += `<div class="session-select-btn session-select-active" style="cursor:default">
       <div>
@@ -1103,7 +1116,7 @@ function renderSessions() {
         </div>`;
       } else {
         const doctorLabel = isSubstitute
-          ? `${doctor}<span style="font-size:11px;margin-left:4px;">*代診</span>`
+          ? `<span style="font-size:11px;background:var(--green);color:#fff;padding:1px 5px;border-radius:3px;margin-right:5px;">代診</span>${doctor}`
           : doctor;
         const avatarHtml2 = isSubstitute ? "" : getDoctorAvatarHtml(doctor);
         html += `<div class="session-select-btn" onclick="selectSession('${sessionKey}')">
@@ -1293,7 +1306,6 @@ async function goToConfirm() {
     arrivalDisplay = matched ? matched.label : state.timeSlot;
   }
 
-  const esc = escapeHtml;
   document.getElementById("summaryContent").innerHTML = `
     <div class="summary-row"><span class="summary-label">就診類型</span><span class="summary-value">${esc(state.type)}</span></div>
     <div class="summary-row"><span class="summary-label">姓名</span><span class="summary-value">${esc(state.name)}</span></div>
@@ -1385,7 +1397,7 @@ async function queryBookings() {
     const data = await xhrPost(API_URL, { action: "queryBookings", name: name, lineId: state.lineId });
     if (!data.success) throw new Error(data.error);
     if (!data.found) {
-      showError("errorQuery", "查無線上預約紀錄。請確認輸入資料是否與預約資料一致。若您是透過電話或現場掛號，請於門診時間來電：07-363-1313查詢。");
+      showError("errorQuery", "查無預約紀錄。請確認姓名是否正確。");
       return;
     }
     renderBookingList(data.bookings);
@@ -1408,18 +1420,18 @@ function renderBookingList(bookings) {
   bookings.forEach(function(b) {
     const statusCls = statusMap[b.status] || "status-pending";
     const canCancel = b.status !== "已取消";
-    const displayName = escapeHtml(b.displayName || b.session + "診");
+    const displayName = esc(b.displayName || b.session + "診");
 
     // 計算顯示內容
     let slotLine = "";
     let checkInLine = "";
     if (b.type === "初診") {
       // 初診：報到時間 → 醫師
-      checkInLine = `報到：${escapeHtml(b.checkInTime)}　`;
+      checkInLine = `報到：${esc(b.checkInTime)}　`;
     } else if (b.slot === "不指定") {
       // 現場排號：標示 + 報到時間 → 醫師
       slotLine = "現場排號　";
-      checkInLine = `報到時間：${escapeHtml(b.checkInTime)}　`;
+      checkInLine = `報到時間：${esc(b.checkInTime)}　`;
     } else {
       // 複診指定：號碼 + 報到時間（反推時段區間）→ 醫師
       const slotNum = parseInt(b.slot);
@@ -1429,18 +1441,18 @@ function renderBookingList(bookings) {
         const matched = cards.find(function(c) { return slotNum >= c.minNum && slotNum <= c.maxNum; });
         if (matched) rangeDisplay = matched.label;
       }
-      slotLine = `號碼：${escapeHtml(b.slot)} 號　`;
+      slotLine = `號碼：${esc(b.slot)} 號　`;
       checkInLine = rangeDisplay ? `報到時間：${rangeDisplay}　` : "";
     }
     html += `<div class="booking-item">
       <div class="booking-item-header">
-        <div class="booking-date">${escapeHtml(b.date)} ${displayName}</div>
-        <div class="booking-status ${statusCls}">${escapeHtml(b.status)}</div>
+        <div class="booking-date">${esc(b.date)} ${displayName}</div>
+        <div class="booking-status ${statusCls}">${esc(b.status)}</div>
       </div>
       <div class="booking-detail">
-        ${slotLine}${checkInLine}醫師：${escapeHtml(b.doctor || "-")}
+        ${slotLine}${checkInLine}醫師：${esc(b.doctor || "-")}
       </div>
-      ${canCancel ? `<button class="booking-cancel" onclick="cancelBooking('${escapeHtml(b.bookingId)}', this)">取消此預約</button>` : ""}
+      ${canCancel ? `<button class="booking-cancel" onclick="cancelBooking('${esc(b.bookingId)}', this)">取消此預約</button>` : ""}
     </div>`;
   });
   document.getElementById("bookingList").innerHTML = html;
@@ -1490,7 +1502,7 @@ function showError(id, msg) {
 }
 function hideError(id) { document.getElementById(id).style.display = "none"; }
 
-function escapeHtml(str) {
+function esc(str) {
   return String(str)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
