@@ -1363,7 +1363,7 @@ async function submitBooking() {
     // 成功提醒文字（已移除）
     showPage("pageSuccess");
   } catch(e) {
-    showError("errorPage3", "預約未完成，請再試一次。");
+    showError("errorPage3", "預約未完成：" + (e.message || "請再試一次。"));
     btn.disabled = false; btn.textContent = "確認送出預約";
   } finally {
     isSubmitting = false;
