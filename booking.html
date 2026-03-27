@@ -559,9 +559,9 @@
         </div>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
           <input type="number" id="medDaysInput" inputmode="numeric" min="1" max="35"
-            placeholder="天數（1–35）"
-            style="flex:1;min-width:80px;padding:10px 12px;font-size:15px;font-family:inherit;border:1px solid var(--border-color, #ddd);background:transparent;color:inherit;outline:none;">
-          <button class="btn btn-primary" style="white-space:nowrap;padding:10px 14px;" onclick="calculateMedDate()">計算回診日 →</button>
+            placeholder="輸入天數（1–35）"
+            style="flex:2;min-width:0;padding:10px 12px;font-size:13px;font-family:inherit;border:1px solid var(--border-color, #ddd);background:transparent;color:inherit;outline:none;">
+          <button class="btn btn-primary" style="white-space:nowrap;padding:10px 14px;flex:1;" onclick="calculateMedDate()">計算回診日</button>
         </div>
         <div id="medCalcError" class="alert alert-error" style="display:none;margin-bottom:0;"></div>
       </div>
@@ -625,8 +625,8 @@
     <div class="alert alert-warn">✅ 送出後將立即收到 LINE 確認通知。</div>
     <div id="errorPage3" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-outline" onclick="state.session=null;state.timeSlot=null;state.isUnspecified=false;renderSessions();renderSlots();showPage('pageTime')">← 返回修改</button>
-    <p style="font-size:11px;color:var(--text-light);text-align:center;margin-bottom:12px;line-height:1.6;">
-      送出預約即表示同意悅心診所蒐集、保存您的資料，僅供門診預約與提醒使用。
+    <p style="font-size:12px;color:var(--text-light);text-align:center;margin-bottom:12px;line-height:1.6;">
+      送出預約即表示同意悅心診所蒐集並保存您的資料，供預約門診及提醒回診使用。
     </p>
     <button class="btn btn-primary" id="btnSubmit" onclick="submitBooking()">確認送出預約</button>
   </div>
@@ -1090,7 +1090,7 @@ function renderSessions() {
         <div class="session-select-time">${timeRange}</div>
       </div>
       <div style="display:flex;align-items:center;gap:12px">
-        <div class="doctor-info">${avatarHtml1}<span class="session-select-doctor">${doctorLabel}</span></div>
+        <div class="doctor-info"><span class="session-select-doctor">${doctorLabel}</span>${avatarHtml1}</div>
         <button class="btn-text-link" onclick="reopenSessionSelect()">重新選擇</button>
       </div>
     </div>`;
@@ -1124,7 +1124,7 @@ function renderSessions() {
             <div class="session-select-name">${displayName}</div>
             <div class="session-select-time">${timeRange}</div>
           </div>
-          <div class="doctor-info">${avatarHtml2}<span class="session-select-doctor">${doctorLabel}</span></div>
+          <div class="doctor-info"><span class="session-select-doctor">${doctorLabel}</span>${avatarHtml2}</div>
         </div>`;
       }
     });
@@ -1355,15 +1355,12 @@ async function submitBooking() {
       slotInfo.style.display = "none";
     }
 
-    if (state.type === "初診") {
-      document.getElementById("newPatientNotice").innerHTML =
-        `<div class="alert alert-info" style="margin-top:16px;text-align:left">🌱 第一次看診的朋友，可以先填寫初診資料，讓醫師更了解您的狀況。暫不填寫請「返回首頁」或直接退出預約系統。<br><br><button class="btn btn-primary" onclick="goToNewPatientForm()" style="margin-top:8px;width:100%">填寫初診資料 →</button></div>`;
-    }
+
 
     // 成功提醒文字（已移除）
     showPage("pageSuccess");
   } catch(e) {
-    showError("errorPage3", "預約未完成：" + (e.message || "請再試一次。"));
+    showError("errorPage3", "預約未完成，請再試一次。");
     btn.disabled = false; btn.textContent = "確認送出預約";
   } finally {
     isSubmitting = false;
