@@ -629,7 +629,16 @@
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px;">無法自動發送通知給病患。</div>
       <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">請選擇後續處理方式：</div>
       <button class="btn" style="width:100%;background:var(--kiwi);color:#fff;margin-bottom:8px;" onclick="closeAdminAddResult()">請病患用 LINE 完成初次預約<div style="font-size:11px;font-weight:400;margin-top:2px;">開啟本院 LINE → 圖文選單 → 線上預約</div></button>
+      <button class="btn" style="width:100%;background:var(--capri);color:#fff;margin-bottom:8px;" onclick="confirmClaimAdd()">📩 手動轉換：確認代掛<div style="font-size:11px;font-weight:400;margin-top:2px;">代掛完成後再產生認領連結傳給病患</div></button>
       <button class="btn" style="width:100%;background:var(--bg-3);color:var(--text);" onclick="confirmForceAdd()">⛔ 病患無手機：確認代掛。</button>
+    </div>
+
+    <!-- 手動轉換代掛完成 -->
+    <div id="adminAddResultClaim" style="display:none;padding:8px 0;">
+      <div style="font-size:22px;margin-bottom:12px;">✅</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">代掛完成</div>
+      <div style="font-size:13px;color:var(--text-light);line-height:1.8;margin-bottom:16px;">格子右上角將顯示「待確認」標籤。<br>點選標籤即可產生認領連結傳給病患。</div>
+      <button class="btn" style="width:100%;background:var(--kiwi);color:#fff;" onclick="closeAdminAddResult()">關閉</button>
     </div>
 
     <!-- 強制代掛確認 -->
@@ -638,6 +647,27 @@
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">代掛完成</div>
       <div style="font-size:13px;color:var(--text-light);line-height:1.8;">預約確認已發送至管理員帳號。<br>請手動轉發給病患。</div>
       <button class="btn" style="width:100%;margin-top:20px;background:var(--kiwi);color:#fff;" onclick="closeAdminAddResult()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: 產生認領連結 -->
+<div class="modal-overlay" id="modalClaimToken">
+  <div class="modal">
+    <div class="modal-title">產生認領連結<button class="modal-close" onclick="closeModal('modalClaimToken')">✕</button></div>
+    <div id="claimTokenContent" style="padding:8px 0;">
+      <div style="font-size:13px;color:var(--text-light);margin-bottom:20px;">點選確認後將產生認領連結，並發送訊息至管理員 LINE。</div>
+      <div id="claimTokenError" class="alert alert-error" style="display:none;margin-bottom:12px;"></div>
+      <div id="claimTokenResult" style="display:none;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--kiwi);margin-bottom:8px;">✅ 認領連結已發送至管理員 LINE</div>
+        <div style="font-size:12px;color:var(--text-light);margin-bottom:12px;">請複製以下訊息傳給病患：</div>
+        <textarea id="claimTokenMessage" readonly style="width:100%;height:160px;font-size:12px;padding:10px;background:var(--bg-2);border:1px solid var(--border);color:var(--text);resize:none;font-family:inherit;border-radius:6px;"></textarea>
+        <button class="btn" style="width:100%;background:var(--kiwi);color:#fff;margin-top:8px;" onclick="copyClaimMessage()">複製訊息</button>
+      </div>
+      <div id="claimTokenActions">
+        <button class="btn btn-primary" style="width:100%;margin-bottom:8px;" id="btnSendClaimToken" onclick="doSendClaimToken()">確認產生認領連結</button>
+        <button class="btn" style="width:100%;background:var(--bg-3);color:var(--text);" onclick="closeModal('modalClaimToken')">取消</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1461,24 +1491,31 @@ function renderSessionContent(session, isClosed) {
       const btnLabel = isDone ? "已報到" : "未報到";
       const cautionHtml = isPending
         ? `<div style="position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>` : "";
+      const npClaimBadge = c.notifyStatus === "[待認領]"
+        ? `<div onclick="event.stopPropagation();openClaimTokenModal('${esc(c.bookingId)}')" style="position:absolute;top:4px;left:50%;transform:translateX(-50%);background:#000;color:var(--kiwi);font-size:9px;font-weight:700;padding:2px 5px;cursor:pointer;letter-spacing:0.5px;white-space:nowrap;">待確認</div>`
+        : "";
       html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="cursor:pointer;position:relative;">
         <div style="position:absolute;top:7px;left:6px;font-size:20px;font-weight:700;color:#111111;">${esc(c.checkInTime)}前</div>
         <div style="position:absolute;bottom:6px;left:6px;right:90px;font-size:12px;font-weight:400;color:#111111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${esc(c.name)}</div>
         <button id="btn-${esc(c.bookingId)}"
           onclick="event.stopPropagation(); toggleCheckin('${esc(c.bookingId)}',this)"
           style="position:absolute;top:7px;right:7px;background:#000;color:${btnTextColor};border:none;font-family:inherit;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;letter-spacing:0.5px;">${btnLabel}</button>
-        ${cautionHtml}
+        ${cautionHtml}${npClaimBadge}
       </div>`;
     } else if (c.type === "rt") {
       const isNotified = c.isAdminBooking && c.notifyStatus === "[已人工通知]";
+      const isClaiming = c.notifyStatus === "[待認領]";
       const cellClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const numDisplay = `${c.num}`;
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const cautionHtml = (c.isAdminBooking && !isNotified) ? `<div class="cell-caution"></div>` : "";
+      const claimBadge = isClaiming
+        ? `<div onclick="event.stopPropagation();openClaimTokenModal('${esc(c.bookingId)}')" style="position:absolute;top:4px;right:4px;background:#000;color:var(--kiwi);font-size:9px;font-weight:700;padding:2px 5px;cursor:pointer;letter-spacing:0.5px;">待確認</div>`
+        : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
         <span class="cell-name" style="font-size:12px;font-weight:400;color:#111111;position:absolute;bottom:5px;left:6px;right:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${esc(c.name)}</span>
-        ${cautionHtml}
+        ${cautionHtml}${claimBadge}
       </div>`;
     } else {
       // empty
@@ -1655,18 +1692,22 @@ function showAdminAddResult(type) {
   const found = document.getElementById("adminAddResultFound");
   const notfound = document.getElementById("adminAddResultNotFound");
   const forced = document.getElementById("adminAddResultForced");
+  const claim = document.getElementById("adminAddResultClaim");
   found.style.display = "none";
   notfound.style.display = "none";
   forced.style.display = "none";
+  claim.style.display = "none";
 
   if (type === "found") {
     found.style.display = "block";
     loadSchedule(activeSession);
   } else if (type === "notfound") {
     notfound.style.display = "block";
-    // 不重新載入診表（尚未寫入）
   } else if (type === "forced") {
     forced.style.display = "block";
+    loadSchedule(activeSession);
+  } else if (type === "claim") {
+    claim.style.display = "block";
     loadSchedule(activeSession);
   }
   modal.classList.add("active");
@@ -1674,6 +1715,48 @@ function showAdminAddResult(type) {
 
 function closeAdminAddResult() {
   document.getElementById("modalAdminAddResult").classList.remove("active");
+}
+
+async function confirmClaimAdd() {
+  // 手動轉換：代掛，M欄=[待認領]，不產生 token
+  const btn = document.querySelector("#adminAddResultNotFound button:nth-child(3)");
+  if (btn) { btn.disabled = true; btn.textContent = "代掛中..."; }
+  try {
+    const isUnspec = (adminAddSlot === "不指定");
+    const nameEl  = isUnspec ? "uAddName"   : "aAddName";
+    const phoneEl = isUnspec ? "uAddPhone"  : "aAddPhone";
+    const birthYEl = isUnspec ? "uAddBirthY" : "aAddBirthY";
+    const birthMEl = isUnspec ? "uAddBirthM" : "aAddBirthM";
+    const birthDEl = isUnspec ? "uAddBirthD" : "aAddBirthD";
+    const name  = document.getElementById(nameEl).value.trim();
+    const phone = document.getElementById(phoneEl).value.replace(/[^\d]/g, "").trim();
+    const birthY = document.getElementById(birthYEl).value.trim();
+    const birthM = document.getElementById(birthMEl).value.trim();
+    const birthD = document.getElementById(birthDEl).value.trim();
+    const adYear = parseInt(birthY, 10) + 1911;
+    const mm = String(parseInt(birthM, 10)).padStart(2, "0");
+    const dd = String(parseInt(birthD, 10)).padStart(2, "0");
+    const birth = adYear + "-" + mm + "-" + dd;
+    const slot = String(adminAddSlot);
+    const dateStr = dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1$2$3");
+    const data = await xhrPost(API_URL, {
+      action: "adminAddBooking",
+      lineId: state.lineId,
+      token: state.sessionToken,
+      name: name, phone: phone, birth: birth,
+      date: dateStr, session: activeSession,
+      timeSlot: slot, type: "複診",
+      forceAdd: false,
+      claimAdd: true  // 標記為手動轉換
+    });
+    if (!data.success) throw new Error(data.error);
+    closeAdminAddResult();
+    closeModal(isUnspec ? "modalUnspecified" : "modalAdminAdd");
+    showAdminAddResult("claim");
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = "📩 手動轉換：確認代掛<div style=\"font-size:11px;font-weight:400;margin-top:2px;\">代掛完成後再產生認領連結傳給病患</div>"; }
+    alert(e.message || "代掛失敗，請稍後再試。");
+  }
 }
 
 async function confirmForceAdd() {
@@ -1715,6 +1798,54 @@ async function confirmForceAdd() {
     if (btn) { btn.disabled = false; btn.textContent = "⛔ 病患無手機：確認代掛。"; }
     alert(e.message || "代掛失敗，請稍後再試。");
   }
+}
+
+/* ── 認領 Token Modal ── */
+let currentClaimBookingId = null;
+
+function openClaimTokenModal(bookingId) {
+  currentClaimBookingId = bookingId;
+  document.getElementById("claimTokenError").style.display = "none";
+  document.getElementById("claimTokenResult").style.display = "none";
+  document.getElementById("claimTokenActions").style.display = "block";
+  document.getElementById("btnSendClaimToken").disabled = false;
+  document.getElementById("btnSendClaimToken").textContent = "確認產生認領連結";
+  document.getElementById("modalClaimToken").classList.add("active");
+}
+
+async function doSendClaimToken() {
+  const btn = document.getElementById("btnSendClaimToken");
+  btn.disabled = true; btn.textContent = "產生中...";
+  const errEl = document.getElementById("claimTokenError");
+  errEl.style.display = "none";
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "sendClaimToken",
+      bookingId: currentClaimBookingId,
+      lineId: state.lineId
+    });
+    if (!data.success) throw new Error(data.error);
+    // 顯示訊息和複製按鈕
+    document.getElementById("claimTokenMessage").value = data.message;
+    document.getElementById("claimTokenResult").style.display = "block";
+    document.getElementById("claimTokenActions").style.display = "none";
+    // 更新格子（黑點維持，標籤消失後等病患認領）
+    renderSessionContent(activeSession);
+  } catch(e) {
+    errEl.textContent = e.message || "產生失敗，請稍後再試。";
+    errEl.style.display = "block";
+    btn.disabled = false;
+    btn.textContent = "確認產生認領連結";
+  }
+}
+
+function copyClaimMessage() {
+  const ta = document.getElementById("claimTokenMessage");
+  ta.select();
+  document.execCommand("copy");
+  const btn = event.target;
+  btn.textContent = "✓ 已複製";
+  setTimeout(() => { btn.textContent = "複製訊息"; }, 2000);
 }
 
 /* ── 聯絡小卡 Modal ── */

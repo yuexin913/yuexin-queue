@@ -418,6 +418,44 @@
     </div>
   </div>
 
+  <!-- 認領預約頁 -->
+  <div class="page" id="pageClaimBooking">
+    <div class="card" style="margin-top:8px;text-align:center;">
+      <div id="claimLoadingArea" style="padding:20px 0;">
+        <div class="loading"><div class="spinner"></div>驗證中...</div>
+      </div>
+      <div id="claimConfirmArea" style="display:none;">
+        <div style="font-size:36px;margin-bottom:12px;">✅</div>
+        <div style="font-size:20px;font-weight:700;color:var(--green-dark);margin-bottom:4px;">預約確認</div>
+        <div style="font-size:14px;color:var(--text-light);margin-bottom:20px;">悅心診所 線上預約</div>
+        <div id="claimBookingDetail" style="text-align:left;margin-bottom:20px;"></div>
+        <div style="font-size:12px;color:var(--text-light);line-height:1.8;margin-bottom:20px;">
+          請於 1 小時內點選發送預約提醒。<br>
+          若您未預約卻收到此訊息，請聯繫診所。
+        </div>
+        <button class="btn btn-primary" id="btnClaimConfirm" onclick="doClaimBooking()" style="width:100%;">確認這是我的預約</button>
+      </div>
+      <div id="claimExpiredArea" style="display:none;padding:20px 0;">
+        <div style="font-size:36px;margin-bottom:12px;">⏰</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">連結已過期。</div>
+        <div style="font-size:13px;color:var(--text-light);line-height:1.8;">預約確認未完成。<br>請聯繫診所重新取得。</div>
+      </div>
+      <div id="claimErrorArea" style="display:none;padding:20px 0;">
+        <div style="font-size:36px;margin-bottom:12px;">❌</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">無效的認領連結</div>
+        <div style="font-size:13px;color:var(--text-light);line-height:1.8;">連結可能已使用或不存在，請聯繫診所。</div>
+      </div>
+      <div id="claimSuccessArea" style="display:none;padding:20px 0;">
+        <div style="font-size:36px;margin-bottom:12px;">🎉</div>
+        <div style="font-size:20px;font-weight:700;color:var(--green-dark);margin-bottom:8px;">預約完成！</div>
+        <div style="font-size:13px;color:var(--text-light);line-height:1.8;">請查看 LINE 通知確認。</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <button class="btn btn-outline" onclick="goToEntry()" style="width:100%;">重新預約</button>
+    </div>
+  </div>
+
   <!-- 載入錯誤頁（黑名單） -->
   <div class="page" id="pageLoadError">
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;padding:0 24px;text-align:center;">
@@ -497,7 +535,7 @@
     </div>
     <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px">
       <button class="btn btn-primary" id="btnSourceNext" onclick="goToPageInfoFromSource(document.querySelector('input[name=source]:checked')?.value || '')" style="width:100%">下一步：填寫基本資料 →</button>
-      <button class="btn btn-outline" onclick="goToEntry()" style="width:100%">← 返回</button>
+      <button class="btn btn-outline" onclick="goToEntry()" style="width:100%">重新預約</button>
     </div>
   </div>
 
@@ -534,7 +572,7 @@
       </div>
     </div>
     <div id="errorPage1" class="alert alert-error" style="display:none"></div>
-    <button class="btn btn-outline" onclick="goToEntry()">← 返回</button>
+    <button class="btn btn-outline" onclick="goToEntry()">重新預約</button>
     <button class="btn btn-primary" onclick="goToPageTime()">下一步：選擇看診日期 →</button>
   </div>
 
@@ -605,7 +643,7 @@
     <div id="slotsContainer"></div>
     <div id="nhiReminder" class="alert alert-warn" style="display:none;margin-top:24px">💡 <strong>重要提醒：</strong>為確保用藥安全及避免浪費資源，健保看診開藥（領藥）原則上僅能提前 1 天。若不確定您的健保回診日期，敬請提前聯繫診所確認。</div>
     <div id="errorPage2" class="alert alert-error" style="display:none"></div>
-    <button class="btn btn-outline" onclick="hideError('errorPage2');showPage('pageInfo')">← 返回</button>
+    <button class="btn btn-outline" onclick="goToEntry()">重新預約</button>
     <button class="btn btn-primary" onclick="goToConfirm()">下一步：確認預約 →</button>
   </div>
 
@@ -643,7 +681,7 @@
       <div class="success-sub">請查看 LINE 通知確認。</div>
       <div id="newPatientNotice"></div>
     </div>
-    <button class="btn btn-outline" onclick="goToEntry()">返回首頁</button>
+    <button class="btn btn-outline" onclick="goToEntry()">重新預約</button>
   </div>
 
   <!-- 查詢：輸入驗證 -->
@@ -657,7 +695,7 @@
       </div>
     </div>
     <div id="errorQuery" class="alert alert-error" style="display:none"></div>
-    <button class="btn btn-outline" onclick="goToEntry()">← 返回</button>
+    <button class="btn btn-outline" onclick="goToEntry()">重新預約</button>
     <button class="btn btn-primary" id="btnQuery" onclick="queryBookings()">查詢我的預約</button>
   </div>
 
@@ -669,7 +707,7 @@
     </div>
     <div id="cancelError" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-outline" onclick="showPage('pageQuery')">← 重新查詢</button>
-    <button class="btn btn-outline" onclick="goToEntry()">返回首頁</button>
+    <button class="btn btn-outline" onclick="goToEntry()">重新預約</button>
   </div>
 
 </div>
@@ -712,6 +750,16 @@ async function initLiff() {
       }
       state.isVip = bl.isVip === true;
     } catch(e) { /* 黑名單檢查失敗不擋，讓病患繼續 */ }
+
+    // 偵測 ?claim= 參數（認領預約連結）
+    const urlParams = new URLSearchParams(window.location.search);
+    const claimToken = urlParams.get("claim");
+    if (claimToken) {
+      showPage("pageClaimBooking");
+      await loadClaimBooking(claimToken);
+      return;
+    }
+
     showPage("pageEntry");
   } catch(e) {
     // LIFF載入失敗：顯示提示，不允許繼續操作
@@ -771,6 +819,93 @@ function goToEntry() {
   state.bookingId = null;
   isSubmitting = false;
   showPage("pageEntry");
+}
+
+/* ── 認領預約 ── */
+let currentClaimToken = null;
+
+async function loadClaimBooking(token) {
+  currentClaimToken = token;
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "claimBooking",
+      claim: token,
+      lineId: state.lineId,
+      confirmed: false
+    });
+    if (!data.success) {
+      if (data.error === "expired") {
+        showClaimArea("expired");
+      } else {
+        showClaimArea("error");
+      }
+      return;
+    }
+    if (data.confirmed === false) {
+      // 顯示預約摘要
+      const detail = document.getElementById("claimBookingDetail");
+      detail.innerHTML = `
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-color);">
+          <span style="color:var(--text-light);font-size:14px;">日期</span>
+          <span style="font-size:14px;font-weight:600;">${esc(data.date)}（週${esc(data.weekday)}）</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-color);">
+          <span style="color:var(--text-light);font-size:14px;">時段</span>
+          <span style="font-size:14px;font-weight:600;">${esc(data.session)}</span>
+        </div>
+        ${data.doctor ? `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-color);">
+          <span style="color:var(--text-light);font-size:14px;">醫師</span>
+          <span style="font-size:14px;font-weight:600;">${esc(data.doctor)}</span>
+        </div>` : ""}
+        <div style="display:flex;justify-content:space-between;padding:10px 0;">
+          <span style="color:var(--text-light);font-size:14px;">號碼</span>
+          <span style="font-size:14px;font-weight:600;">${esc(data.slot)}</span>
+        </div>`;
+      showClaimArea("confirm");
+    }
+  } catch(e) {
+    showClaimArea("error");
+  }
+}
+
+function showClaimArea(type) {
+  ["claimLoadingArea","claimConfirmArea","claimExpiredArea","claimErrorArea","claimSuccessArea"].forEach(function(id) {
+    document.getElementById(id).style.display = "none";
+  });
+  const map = {
+    loading: "claimLoadingArea",
+    confirm: "claimConfirmArea",
+    expired: "claimExpiredArea",
+    error:   "claimErrorArea",
+    success: "claimSuccessArea"
+  };
+  if (map[type]) document.getElementById(map[type]).style.display = "block";
+}
+
+async function doClaimBooking() {
+  const btn = document.getElementById("btnClaimConfirm");
+  btn.disabled = true; btn.textContent = "確認中...";
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "claimBooking",
+      claim: currentClaimToken,
+      lineId: state.lineId,
+      confirmed: true
+    });
+    if (!data.success) {
+      if (data.error === "expired") {
+        showClaimArea("expired");
+      } else {
+        showClaimArea("error");
+      }
+      return;
+    }
+    showClaimArea("success");
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = "確認這是我的預約";
+    alert("認領失敗，請稍後再試。");
+  }
 }
 
 function startBooking(type) {
@@ -1490,6 +1625,8 @@ function showPage(id) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   document.getElementById(id).classList.add("active");
   window.scrollTo(0, 0);
+  // 切換頁面時清除所有錯誤訊息
+  document.querySelectorAll(".alert-error").forEach(function(el) { el.style.display = "none"; el.textContent = ""; });
 }
 
 function showError(id, msg) {
