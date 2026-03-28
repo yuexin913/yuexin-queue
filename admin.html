@@ -289,7 +289,7 @@
   .grid-np-banner.has-patient    { background: var(--kiwi); }
   .grid-np-banner.admin-notified { background: var(--kiwi); cursor: pointer; }
   .grid-np-banner.admin-pending  { background: var(--kiwi); cursor: pointer; }
-  .checkin-mini { flex-shrink: 0; padding: 6px 12px; font-size: 12px; font-family: inherit; font-weight: 700; cursor: pointer; border: none; white-space: nowrap; }
+  .checkin-mini { flex-shrink: 0; padding: 8px 16px; font-size: 14px; font-family: inherit; font-weight: 700; cursor: pointer; border: none; white-space: nowrap; }
   .checkin-mini:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
   .checkin-mini.pending { background: rgba(255,255,255,0.25); color: #fff; }
   .checkin-mini.done    { background: rgba(0,0,0,0.2); color: #fff; }
@@ -513,7 +513,7 @@
   <div id="scheduleContent" style="display:contents;"></div>
 
   <!-- Row 9: 不指定 + 心理治療 -->
-  <div class="tile tile-1" onclick="openUnspecModal()" style="position:relative;background:var(--kiwi);cursor:pointer;">
+  <div class="tile tile-1" onclick="openUnspecModal()" style="position:relative;background:var(--sunny);cursor:pointer;">
     <div class="tile-title" style="font-size:18px;color:#111111;">現場</div>
     <div style="font-size:15px;font-weight:400;color:#ffffff;margin-top:auto;" id="unspecCount"></div>
   </div>
@@ -626,10 +626,10 @@
     <div id="adminAddResultNotFound" style="display:none;padding:8px 0;">
       <div style="font-size:22px;margin-bottom:12px;">⚠️</div>
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">找不到此病患的 LINE 帳號紀錄</div>
-      <div style="font-size:13px;color:var(--text-light);line-height:1.8;margin-bottom:16px;">代掛已完成，但無法自動發送通知給病患。</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px;">無法自動發送通知給病患。</div>
       <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">請選擇後續處理方式：</div>
       <button class="btn" style="width:100%;background:var(--kiwi);color:#fff;margin-bottom:8px;" onclick="closeAdminAddResult()">請病患用 LINE 完成初次預約<div style="font-size:11px;font-weight:400;margin-top:2px;">開啟本院 LINE → 圖文選單 → 線上預約</div></button>
-      <button class="btn" style="width:100%;background:var(--bg-3);color:var(--text);" onclick="confirmForceAdd()">⛔ 病患無手機</button>
+      <button class="btn" style="width:100%;background:var(--bg-3);color:var(--text);" onclick="confirmForceAdd()">⛔ 病患無手機：確認代掛。</button>
     </div>
 
     <!-- 強制代掛確認 -->
@@ -1712,7 +1712,7 @@ async function confirmForceAdd() {
     closeModal(isUnspec ? "modalUnspecified" : "modalAdminAdd");
     showAdminAddResult("forced");
   } catch(e) {
-    if (btn) { btn.disabled = false; btn.textContent = "⛔ 病患無手機"; }
+    if (btn) { btn.disabled = false; btn.textContent = "⛔ 病患無手機：確認代掛。"; }
     alert(e.message || "代掛失敗，請稍後再試。");
   }
 }
@@ -1768,8 +1768,8 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
   if (isAdminBooking) {
     wrap.style.display = "block";
     const btn = document.getElementById("btnToggleNotified");
-    if (notified) { btn.textContent = "✓ 已通知"; btn.className = "btn btn-notified-done"; }
-    else { btn.textContent = "未通知"; btn.className = "btn btn-notified-pending"; }
+    if (notified) { btn.textContent = "✓ 已發送回診提醒"; btn.className = "btn btn-notified-done"; }
+    else { btn.textContent = "未發送回診提醒"; btn.className = "btn btn-notified-pending"; }
     btn.disabled = false;
   } else {
     wrap.style.display = "none";
@@ -1780,33 +1780,12 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
   const surveyEl = document.getElementById("contactNpSurvey");
   if (npSurvey) {
     const referralShort = (npSurvey.referral || "（未填）").replace(/（[^）]*）/g, "").trim() || "（未填）";
-    const adultShort = npSurvey.isAdult.indexOf("自己來") !== -1 ? "自行前來"
-      : npSurvey.isAdult.indexOf("家人") !== -1 ? "有人陪同"
-      : npSurvey.isAdult || "（未填）";
-    const residenceShort = npSurvey.residence === "高雄市楠梓區" ? "楠梓"
-      : npSurvey.residence === "高雄市其他行政區" ? "高雄"
-      : npSurvey.residence === "外縣市" ? "外縣市"
-      : npSurvey.residence || "（未填）";
-    const livingMap = { "獨居": "獨居", "家人／朋友／伴侶": "家人伴侶", "同學／同事（宿舍）": "宿舍", "其他（以上狀況均不符合）": "其他" };
-    const livingShort = livingMap[npSurvey.livingWith] || npSurvey.livingWith || "（未填）";
-    const occupationMap = {
-      "白天活動晚上休息（例如上班族、學生）": "日間活動",
-      "白天休息晚上活動（例如固定夜班工作者）": "夜間活動",
-      "不固定（例如長期輪班、頻繁出差）": "不固定"
-    };
-    const occupationShort = occupationMap[npSurvey.occupation] || npSurvey.occupation || "（未填）";
-    const availableShort = (npSurvey.availableTime || "（未填）").replace(/；/g, "、");
 
     surveyEl.style.display = "block";
     surveyEl.innerHTML = `
       <div style="font-size:11px;font-weight:700;color:var(--kiwi);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">初診問卷</div>
       <div style="font-size:12px;line-height:2;color:var(--text);">
-        <span style="color:var(--text-light);">如何得知　</span>${esc(referralShort)}<br>
-        <span style="color:var(--text-light);">陪伴看診　</span>${esc(adultShort)}<br>
-        <span style="color:var(--text-light);">居住地區　</span>${esc(residenceShort)}<br>
-        <span style="color:var(--text-light);">同住狀況　</span>${esc(livingShort)}<br>
-        <span style="color:var(--text-light);">作息型態　</span>${esc(occupationShort)}<br>
-        <span style="color:var(--text-light);">方便時段　</span>${esc(availableShort)}
+        <span style="color:var(--text-light);">如何得知　</span>${esc(referralShort)}
       </div>`;
   } else {
     surveyEl.style.display = "none";
@@ -1832,12 +1811,12 @@ async function doToggleNotified() {
       renderSessionContent(activeSession);
     } else {
       btn.disabled = false;
-      btn.textContent = state.contactIsNotified ? "✓ 已通知" : "未通知";
+      btn.textContent = state.contactIsNotified ? "✓ 已發送回診提醒" : "未發送回診提醒";
       alert("狀態更新未完成，請稍後再試。");
     }
   } catch(e) {
     btn.disabled = false;
-    btn.textContent = state.contactIsNotified ? "✓ 已通知" : "未通知";
+    btn.textContent = state.contactIsNotified ? "✓ 已發送回診提醒" : "未發送回診提醒";
     alert("狀態更新未完成，請稍後再試。");
   }
 }
