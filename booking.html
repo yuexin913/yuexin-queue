@@ -1384,7 +1384,7 @@ function renderSlots() {
     html += `<div class="${unspecifiedCls}" ${unspecifiedOnclick}>
       <div class="time-card-left">
         <div class="time-card-title">現場排號</div>
-        <div class="time-card-label">${unspecifiedAvailable ? "我會在 " + (SESSION_END_TIME[sessionKey] || "結診") + " 前至診所報到，由工作人員安排順序。" : "已額滿"}</div>
+        <div class="time-card-label">${unspecifiedAvailable ? "當天還不確定時間，會於 " + (SESSION_END_TIME[sessionKey] || "結診") + " 前至診所報到。前一天請發LINE訊息提醒我。" : "已額滿"}</div>
       </div>
     </div>`;
     html += '</div>';

@@ -394,7 +394,8 @@
   .unspec-modal-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .unspec-modal-row:last-child { border-bottom: none; }
   .unspec-modal-num  { font-size: 11px; color: var(--text-light); width: 18px; text-align: center; flex-shrink: 0; }
-  .unspec-modal-name { font-weight: 400; flex: 1; }
+  .unspec-modal-name { font-weight: 600; flex: 1; }
+  .unspec-modal-info { font-size: 11px; color: var(--text-light); }
 
   /* 群發模式切換 */
   .btn-mode { flex: 1; padding: 8px; border: none; font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
@@ -515,7 +516,7 @@
   <!-- Row 9: 不指定 + 心理治療 -->
   <div class="tile tile-1" onclick="openUnspecModal()" style="position:relative;background:var(--sunny);cursor:pointer;">
     <div class="tile-title" style="font-size:18px;color:#111111;">現場</div>
-    <div style="font-size:15px;font-weight:400;color:#ffffff;margin-top:auto;" id="unspecCount"></div>
+    <div style="font-size:15px;font-weight:400;color:#111111;margin-top:auto;" id="unspecCount"></div>
   </div>
   <div class="tile tile-4" style="position:relative;background:#AEB6BB;">
     <div class="tile-title" style="font-size:15px;color:#111111;">心理治療</div>
@@ -605,6 +606,10 @@
     <div id="contactError" class="alert alert-error" style="display:none"></div>
     <div id="btnToggleNotifiedWrap">
       <button class="btn" id="btnToggleNotified" onclick="doToggleNotified()"></button>
+    </div>
+    <div id="btnCancelBookingWrap" style="display:none;margin-top:8px;">
+      <button class="btn btn-danger" style="width:100%;"
+        onclick="confirmCancel(state.contactBookingId, document.getElementById('contactName').textContent, document.getElementById('contactTimeSlot').textContent, 'modalContact')">取消此預約</button>
     </div>
   </div>
 </div>
@@ -838,11 +843,16 @@
 <!-- Modal: 取消確認 -->
 <div class="modal-overlay" id="modalCancelConfirm">
   <div class="modal">
-    <div class="modal-title">確認取消預約</div>
-    <p style="font-size:14px;color:var(--text);margin-bottom:14px;line-height:1.7;font-weight:400;" id="cancelConfirmText"></p>
+    <div class="modal-title">取消預約</div>
+    <p style="font-size:14px;color:var(--text);margin-bottom:14px;line-height:1.7;font-weight:400;" id="cancelConfirmText">輸入 <strong>go</strong> 確認取消此預約並發送通知給病患</p>
+    <div class="form-group">
+      <input type="text" id="cancelGoInput" placeholder="輸入 go" autocomplete="off" maxlength="2"
+        oninput="document.getElementById('btnConfirmCancel').disabled = this.value.toLowerCase() !== 'go';"
+        style="text-align:center;font-size:20px;font-weight:700;letter-spacing:8px;">
+    </div>
     <div id="cancelError" class="alert alert-error" style="display:none"></div>
-    <button class="btn btn-danger" id="btnConfirmCancel" onclick="doCancel()">確認取消並發送通知</button>
-    <button class="btn btn-outline" onclick="closeModal('modalCancelConfirm')">返回</button>
+    <button class="btn btn-danger" id="btnConfirmCancel" onclick="doCancel()" disabled>確定取消</button>
+    <button class="btn" style="background:var(--bg-3);color:var(--text);" onclick="closeModal('modalCancelConfirm')">放棄取消</button>
   </div>
 </div>
 
@@ -859,7 +869,7 @@ const DEFAULT_DOCTOR_SCHEDULE = {
   6: { "早上": "粟寧",   "下午": "",       "晚上": ""        }
 };
 const API_URL = "https://script.google.com/macros/s/AKfycbz1IB0HCFWaFlC7odExNsOWaZwTjz7osAjstXhx_5V0ZD4Ya58GGRRPfFAun2Itywbh6A/exec";
-let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false };
+let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false };
 let allBookings = [], activeSession = "";
 
 // 複診號碼 → 預計報到時段（對應 booking.html 和 GAS 的 RETURN_TIME_SLOT_CONFIG）
@@ -1499,7 +1509,7 @@ function renderSessionContent(session, isClosed) {
       const isDone = c.status === "已看診";
       const isNotified = c.isAdminBooking && c.notifyStatus === "[已人工通知]";
       const bannerClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
-      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.slot||'')}" data-session="${esc(session)}" data-type="初診" data-np-referral="${esc(c.npReferral)}" data-np-isadult="${esc(c.npIsAdult)}" data-np-residence="${esc(c.npResidence)}" data-np-livingwith="${esc(c.npLivingWith)}" data-np-occupation="${esc(c.npOccupation)}" data-np-availabletime="${esc(c.npAvailableTime)}" onclick="openContactModalFromEl(this)"`;
+      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.slot||'')}" data-session="${esc(session)}" data-type="初診" data-status="${esc(c.status||'')} " data-np-referral="${esc(c.npReferral)}" data-np-isadult="${esc(c.npIsAdult)}" data-np-residence="${esc(c.npResidence)}" data-np-livingwith="${esc(c.npLivingWith)}" data-np-occupation="${esc(c.npOccupation)}" data-np-availabletime="${esc(c.npAvailableTime)}" onclick="openContactModalFromEl(this)"`;
       // isPending = 代掛未通知（sunny lime）；否則（一般初診或已通知）= kiwi
       const isPending = c.isAdminBooking && !isNotified;
       // 按鈕文字顏色：與 tile 同色（kiwi 或 sunny）
@@ -1523,7 +1533,7 @@ function renderSessionContent(session, isClosed) {
       const isClaiming = c.notifyStatus === "[待認領]";
       const cellClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const numDisplay = `${c.num}`;
-      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
+      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" data-status="${esc(c.status||'')} " onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const cautionHtml = (c.isAdminBooking && !isNotified) ? `<div class="cell-caution"></div>` : "";
       const claimBadge = isClaiming
         ? `<div onclick="event.stopPropagation();openClaimTokenModal('${esc(c.bookingId)}')" style="position:absolute;top:4px;right:4px;background:#000;color:var(--kiwi);font-size:9px;font-weight:700;padding:2px 5px;cursor:pointer;letter-spacing:0.5px;">待確認</div>`
@@ -1578,9 +1588,14 @@ function openUnspecModal() {
     el.innerHTML = `<div class="empty-state">目前無不指定病患</div>`;
   } else {
     el.innerHTML = list.map(function(b, i) {
+      const birthStr = b.birth ? rocDate(b.birth) : "";
+      const phoneStr = b.phone || "";
       return `<div class="unspec-modal-row">
         <span class="unspec-modal-num">${i + 1}</span>
         <span class="unspec-modal-name">${esc(b.name)}</span>
+        <span class="unspec-modal-info">${birthStr}${birthStr && phoneStr ? "　" : ""}${phoneStr}</span>
+        <button class="btn btn-danger btn-sm" style="flex-shrink:0;font-size:11px;padding:3px 8px;"
+          onclick="confirmCancel('${esc(b.bookingId)}','${esc(b.name)}','${esc(b.date)}','modalUnspecified')">取消</button>
       </div>`;
     }).join("");
   }
@@ -1956,6 +1971,11 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
   }
   document.getElementById("contactError").style.display = "none";
 
+  // 取消按鈕：已取消/已看診不顯示
+  const cancelWrap = document.getElementById("btnCancelBookingWrap");
+  const currentStatus = el ? el.getAttribute("data-status") : "";
+  cancelWrap.style.display = (currentStatus === "已取消" || currentStatus === "已看診") ? "none" : "block";
+
   // 初診問卷區塊
   const surveyEl = document.getElementById("contactNpSurvey");
   if (npSurvey) {
@@ -2212,11 +2232,13 @@ function renderQueryResults(bookings) {
   el.innerHTML = html;
 }
 
-function confirmCancel(bookingId, name, date) {
+function confirmCancel(bookingId, name, date, fromModal) {
   state.pendingCancelId = bookingId;
-  document.getElementById("cancelConfirmText").textContent = `確定要取消 ${name} 的 ${date} 預約嗎？取消後將自動發送LINE通知給病患。`;
+  state.cancelFromModal = fromModal || null;
+  document.getElementById("cancelGoInput").value = "";
+  document.getElementById("btnConfirmCancel").disabled = true;
   document.getElementById("cancelError").style.display = "none";
-  closeModal("modalQuery");
+  if (fromModal) closeModal(fromModal);
   openModal("modalCancelConfirm");
 }
 
@@ -2226,11 +2248,15 @@ async function doCancel() {
   try {
     const data = await xhrPost(API_URL, { action: "cancelBooking", bookingId: state.pendingCancelId, lineId: state.lineId });
     if (data.success) {
-      closeModal("modalCancelConfirm"); openModal("modalQuery");
-      document.getElementById("queryResults").innerHTML = `<div class="alert alert-success">預約已取消，LINE通知已發送。</div>`;
+      closeModal("modalCancelConfirm");
+      if (state.cancelFromModal === "modalQuery") {
+        openModal("modalQuery");
+        document.getElementById("queryResults").innerHTML = `<div class="alert alert-success">預約已取消，LINE通知已發送。</div>`;
+      }
+      loadSchedule(activeSession);
     } else { document.getElementById("cancelError").textContent = data.error || "取消未完成，請稍後再試。"; document.getElementById("cancelError").style.display = "block"; }
   } catch(e) { document.getElementById("cancelError").textContent = "取消未完成，請稍後再試。"; document.getElementById("cancelError").style.display = "block"; }
-  btn.disabled = false; btn.textContent = "確認取消並發送通知";
+  btn.disabled = false; btn.textContent = "確定取消";
 }
 
 /* ── 群發訊息 ── */
