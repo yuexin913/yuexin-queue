@@ -1612,7 +1612,7 @@ function showAdminAddResult(type) {
 
 function closeAdminAddResult() {
   document.getElementById("modalAdminAddResult").classList.remove("active");
-  // 重置代掛表單（防止上次殘留資料影響下次操作）
+  // 重置代掛表單
   ["aAddName","aAddPhone","aAddBirthY","aAddBirthM","aAddBirthD",
    "uAddName","uAddPhone","uAddBirthY","uAddBirthM","uAddBirthD"].forEach(function(id) {
     var el = document.getElementById(id);
@@ -1622,6 +1622,9 @@ function closeAdminAddResult() {
   var errU = document.getElementById("unspecAddError");
   if (errA) { errA.style.display = "none"; errA.textContent = ""; }
   if (errU) { errU.style.display = "none"; errU.textContent = ""; }
+  // 重置 notFound 按鈕文字
+  const forceBtn = document.querySelector("#adminAddResultNotFound button:last-child");
+  if (forceBtn) { forceBtn.disabled = false; forceBtn.textContent = "⛔ 病患無手機：確認代掛。"; }
 }
 
 async function confirmForceAdd() {
