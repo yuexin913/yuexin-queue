@@ -1715,6 +1715,16 @@ function showAdminAddResult(type) {
 
 function closeAdminAddResult() {
   document.getElementById("modalAdminAddResult").classList.remove("active");
+  // 重置代掛表單（防止上次殘留資料影響下次操作）
+  ["aAddName","aAddPhone","aAddBirthY","aAddBirthM","aAddBirthD",
+   "uAddName","uAddPhone","uAddBirthY","uAddBirthM","uAddBirthD"].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  var errA = document.getElementById("adminAddError");
+  var errU = document.getElementById("unspecAddError");
+  if (errA) { errA.style.display = "none"; errA.textContent = ""; }
+  if (errU) { errU.style.display = "none"; errU.textContent = ""; }
 }
 
 async function confirmClaimAdd() {
