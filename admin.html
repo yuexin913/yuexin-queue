@@ -643,8 +643,9 @@
     <div id="adminAddResultClaim" style="display:none;padding:8px 0;">
       <div style="font-size:22px;margin-bottom:12px;">✅</div>
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">代掛完成</div>
-      <div style="font-size:13px;color:var(--text-light);line-height:1.8;margin-bottom:16px;">格子右上角將顯示「待確認」標籤。<br>點選標籤即可產生認領連結傳給病患。</div>
-      <button class="btn" style="width:100%;background:var(--kiwi);color:#fff;" onclick="closeAdminAddResult()">關閉</button>
+      <div style="font-size:13px;color:var(--text-light);line-height:1.8;margin-bottom:16px;">點選下方按鈕，立即產生認領連結傳給病患。</div>
+      <button class="btn" style="width:100%;background:var(--capri);color:#fff;margin-bottom:8px;" onclick="closeAdminAddResult();openClaimTokenModal(state.lastClaimBookingId);">產生認領連結</button>
+      <button class="btn" style="width:100%;background:var(--bg-3);color:var(--text);" onclick="closeAdminAddResult()">稍後再說</button>
     </div>
 
     <!-- 強制代掛確認 -->
@@ -1792,6 +1793,7 @@ async function confirmClaimAdd() {
       claimAdd: true  // 標記為手動轉換
     });
     if (!data.success) throw new Error(data.error);
+    state.lastClaimBookingId = data.bookingId || "";
     closeAdminAddResult();
     closeModal(isUnspec ? "modalUnspecified" : "modalAdminAdd");
     showAdminAddResult("claim");
@@ -1933,7 +1935,8 @@ function openContactModalFromEl(el) {
     occupation:    el.dataset.npOccupation    || "",
     availableTime: el.dataset.npAvailabletime || ""
   } : null;
-  openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey, el);
+  const notifyStatus = el.dataset.notifyStatus || "";
+  openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey, el, notifyStatus);
 }
 
 function rocDate(birthStr) {
@@ -1946,7 +1949,7 @@ function rocDate(birthStr) {
   return birthStr;
 }
 
-function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey, el) {
+function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey, el, notifyStatus) {
   state.contactBookingId = bookingId;
   state.contactIsNotified = (isNotified === true || isNotified === "true");
   const notified = state.contactIsNotified;
@@ -1959,9 +1962,9 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
   tsEl.style.display = timeSlotLabel ? "block" : "none";
   document.getElementById("contactPhone").textContent = phone || "（無電話）";
   document.getElementById("contactPhone").href = phone ? "tel:" + phone : "";
-  // 只有強制代掛（白名單代掛）才顯示通知切換按鈕
+  // 只有強制代掛（白名單代掛）且非[待認領]才顯示通知切換按鈕
   const wrap = document.getElementById("btnToggleNotifiedWrap");
-  if (isAdminBooking) {
+  if (isAdminBooking && notifyStatus !== "[待認領]") {
     wrap.style.display = "block";
     const btn = document.getElementById("btnToggleNotified");
     if (notified) { btn.textContent = "✓ 已發送回診提醒"; btn.className = "btn btn-notified-done"; }
