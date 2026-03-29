@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <link rel="icon" href="assets/doctors/yuexinlogo.png" type="image/png">
+  <link rel="preload" href="assets/doctors/su.webp" as="image" type="image/webp">
+  <link rel="preload" href="assets/doctors/guo.webp" as="image" type="image/webp">
+  <link rel="preload" href="assets/doctors/seniorwang.webp" as="image" type="image/webp">
+  <link rel="preload" href="assets/doctors/juniorwang.webp" as="image" type="image/webp">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
@@ -936,10 +940,10 @@ function startBooking(type) {
 
 // 醫師照片對應
 const DOCTOR_AVATARS = {
-  "粟寧":  "assets/doctors/su.png",
-  "郭玉柱": "assets/doctors/guo.png",
-  "王麟祥": "assets/doctors/seniorwang.png",
-  "王伯元": "assets/doctors/juniorwang.png"
+  "粟寧":  "assets/doctors/su.webp",
+  "郭玉柱": "assets/doctors/guo.webp",
+  "王麟祥": "assets/doctors/seniorwang.webp",
+  "王伯元": "assets/doctors/juniorwang.webp"
 };
 
 function getDoctorAvatarHtml(doctor) {
