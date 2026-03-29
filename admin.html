@@ -1935,7 +1935,6 @@ function openContactModalFromEl(el) {
     occupation:    el.dataset.npOccupation    || "",
     availableTime: el.dataset.npAvailabletime || ""
   } : null;
-  const notifyStatus = el.dataset.notifyStatus || "";
   openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey, el, notifyStatus);
 }
 
