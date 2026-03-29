@@ -1388,7 +1388,7 @@ function renderSessionContent(session, isClosed) {
       const bannerClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.slot||'')}" data-session="${esc(session)}" data-type="初診" data-status="${esc(c.status||'')}" data-np-referral="${esc(c.npReferral)}" data-np-isadult="${esc(c.npIsAdult)}" data-np-residence="${esc(c.npResidence)}" data-np-livingwith="${esc(c.npLivingWith)}" data-np-occupation="${esc(c.npOccupation)}" data-np-availabletime="${esc(c.npAvailableTime)}" onclick="openContactModalFromEl(this)"`;
       // isPending = 代掛未通知（sunny lime）；否則（一般初診或已通知）= kiwi
-      const isPending = c.isAdminBooking && !isNotified;
+      const isPending = c.isAdminBooking && c.notifyStatus === "[人工預約]";
       // 按鈕文字顏色：與 tile 同色（kiwi 或 sunny）
       const btnTextColor = isPending ? "var(--sunny)" : "var(--kiwi)";
       const btnLabel = isDone ? "已報到" : "未報到";
@@ -1408,7 +1408,7 @@ function renderSessionContent(session, isClosed) {
       const cellClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const numDisplay = `${c.num}`;
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" data-status="${esc(c.status||'')}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
-      const cautionHtml = (c.isAdminBooking && !isNotified) ? `<div class="cell-caution"></div>` : "";
+      const cautionHtml = (c.isAdminBooking && (c.notifyStatus === "[人工預約]")) ? `<div class="cell-caution"></div>` : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
         <span class="cell-name" style="font-size:12px;font-weight:400;color:#111111;position:absolute;bottom:5px;left:6px;right:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${esc(c.name)}</span>
@@ -1734,9 +1734,11 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
   tsEl.style.display = timeSlotLabel ? "block" : "none";
   document.getElementById("contactPhone").textContent = phone || "（無電話）";
   document.getElementById("contactPhone").href = phone ? "tel:" + phone : "";
-  // 只有強制代掛（白名單代掛）才顯示通知切換按鈕
+  // 只有 [人工預約] 或 [已人工通知]（無手機代掛）才顯示切換按鈕
+  // [待通知] / [已通知] 的病患有 LINE ID，系統自動處理，不需要手動切換
   const wrap = document.getElementById("btnToggleNotifiedWrap");
-  if (isAdminBooking) {
+  const showToggle = isAdminBooking && (notifyStatus === "[人工預約]" || notifyStatus === "[已人工通知]");
+  if (showToggle) {
     wrap.style.display = "block";
     const btn = document.getElementById("btnToggleNotified");
     if (notified) { btn.textContent = "✓ 已發送回診提醒"; btn.className = "btn btn-notified-done"; }
