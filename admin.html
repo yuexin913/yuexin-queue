@@ -651,6 +651,22 @@
   </div>
 </div>
 
+<!-- Modal: 二次確認（輸入 go） -->
+<div class="modal-overlay" id="modalConfirmGo">
+  <div class="modal">
+    <div class="modal-title">操作確認<button class="modal-close" onclick="closeModal('modalConfirmGo')">✕</button></div>
+    <div id="confirmGoMessage" style="font-size:14px;color:var(--text);line-height:1.8;margin-bottom:16px;"></div>
+    <div class="form-group">
+      <label class="form-label">請輸入 <strong>go</strong> 確認</label>
+      <input type="text" id="confirmGoInput" placeholder="輸入 go" autocomplete="off"
+        oninput="document.getElementById('btnConfirmGoSubmit').disabled = this.value.toLowerCase() !== 'go';">
+    </div>
+    <div id="confirmGoError" class="alert alert-error" style="display:none;margin-bottom:8px;"></div>
+    <button class="btn btn-primary" id="btnConfirmGoSubmit" onclick="submitConfirmGo()" disabled style="width:100%;margin-bottom:8px;">確認</button>
+    <button class="btn" style="width:100%;background:var(--bg-3);color:var(--text);" onclick="closeModal('modalConfirmGo')">取消</button>
+  </div>
+</div>
+
 <!-- Modal: 產生認領連結 -->
 <div class="modal-overlay" id="modalClaimToken">
   <div class="modal">
@@ -799,9 +815,9 @@
     <div id="bcSuccess" class="alert alert-success" style="display:none"></div>
     <button class="btn btn-outline" id="btnBcPreview" onclick="doBroadcastPreview()">預覽發送人數</button>
     <div id="bcConfirmWrap" style="display:none;margin-bottom:8px;">
-      <div class="alert alert-error" style="margin-bottom:8px;">⚠️ 此操作無法復原！請輸入 <strong>913</strong> 以解鎖發送：</div>
-      <input type="tel" id="bcConfirmInput" placeholder="輸入 913" maxlength="3"
-        oninput="document.getElementById('btnBcSend').disabled = this.value !== '913';"
+      <div class="alert alert-error" style="margin-bottom:8px;">⚠️ 此操作無法復原！請輸入 <strong>go</strong> 確認：</div>
+      <input type="text" id="bcConfirmInput" placeholder="輸入 go" maxlength="2" autocomplete="off"
+        oninput="document.getElementById('btnBcSend').disabled = this.value.toLowerCase() !== 'go';"
         style="text-align:center;font-size:20px;font-weight:700;letter-spacing:8px;">
     </div>
     <button class="btn btn-primary" id="btnBcSend" onclick="doBroadcastSend()" style="display:none;" disabled>確認發送</button>
@@ -1021,7 +1037,7 @@ function toggleHeaderMenu() {
 }
 
 async function initLiff() {
-  authAnimStart();
+  // 不先播動畫，先驗證身份
   try {
     await liff.init({ liffId: "2009340533-qmLOBHw1" });
     if (!liff.isLoggedIn()) { liff.login(); return; }
@@ -1029,20 +1045,21 @@ async function initLiff() {
     state.lineId = profile.userId;
 
     // 第一關：白名單快速檢查（傳空密碼，只驗 LINE ID）
-    // 非白名單永遠看不到密碼輸入頁
     const check = await xhrGet(`${API_URL}?action=verifyAdmin&lineId=${encodeURIComponent(state.lineId)}&password=`);
     if (check.error === "權限不足") {
-      // 非白名單：停在 auth 頁顯示錯誤，清空 pageMain 防止介面被窺探
-      authAnimStop();
+      // 非白名單：直接顯示錯誤，完全不播動畫
       document.getElementById("authTitle").textContent = "頁面錯誤";
       document.getElementById("authSub").textContent = "";
       document.getElementById("pageMain").innerHTML = "";
       return;
     }
-    // check.error === "需要密碼" 表示 LINE ID 在白名單，繼續進密碼輸入頁
+    // check.error === "需要密碼" 表示白名單，才播動畫
 
-    // 第二關：白名單通過，顯示密碼輸入頁
+    // 第二關：白名單通過，播 JOI-N 動畫後顯示密碼頁
+    authAnimStart();
+    await new Promise(function(resolve) { setTimeout(resolve, 1200); }); // 動畫播放 1.2 秒
     authAnimStop();
+
     const pageAuth = document.getElementById("pageAuth");
     const pageLogin = document.getElementById("pageLogin");
     pageAuth.style.transition = "opacity 0.3s ease";
@@ -1055,7 +1072,6 @@ async function initLiff() {
       }, 100);
     }, 300);
   } catch(e) {
-    authAnimStop();
     document.getElementById("authTitle").textContent = "暫時無法連線";
     document.getElementById("authSub").textContent = "請重新整理頁面。";
   }
@@ -1810,6 +1826,29 @@ async function confirmForceAdd() {
   }
 }
 
+/* ── 二次確認 Modal（輸入 go）── */
+let confirmGoCallback = null;
+
+function openConfirmGoModal(message, callback) {
+  confirmGoCallback = callback;
+  document.getElementById("confirmGoMessage").textContent = message;
+  document.getElementById("confirmGoInput").value = "";
+  document.getElementById("btnConfirmGoSubmit").disabled = true;
+  document.getElementById("confirmGoError").style.display = "none";
+  document.getElementById("modalConfirmGo").classList.add("active");
+  setTimeout(function() { document.getElementById("confirmGoInput").focus(); }, 100);
+}
+
+async function submitConfirmGo() {
+  const val = document.getElementById("confirmGoInput").value.toLowerCase();
+  if (val !== "go") return;
+  closeModal("modalConfirmGo");
+  if (confirmGoCallback) {
+    await confirmGoCallback();
+    confirmGoCallback = null;
+  }
+}
+
 /* ── 認領 Token Modal ── */
 let currentClaimBookingId = null;
 
@@ -2069,19 +2108,29 @@ async function doSubstitute() {
   const sucEl = document.getElementById('subSuccess');
   errEl.style.display = 'none'; sucEl.style.display = 'none';
   if (!date || !session || !doctor) { errEl.textContent = '請確認日期、時段與醫師姓名均已填寫。'; errEl.style.display = 'block'; return; }
-  const btn = document.getElementById('btnSub');
-  btn.disabled = true; btn.textContent = '更新中...';
-  try {
-    const data = await xhrPost(API_URL, { action: 'updateSubstituteDoctor', date: date.replace(/-/g,'/'), session, doctor, type: '代診', lineId: state.lineId });
-    if (data.success) {
-      sucEl.textContent = `✓ 已更新：${date} ${session}診 → ${doctor}`; sucEl.style.display = 'block';
-      document.getElementById('subDate').value = '';
-      document.getElementById('subSession').value = '';
-      document.getElementById('subDoctor').value = '';
-      loadSubstituteList();
-    } else { errEl.textContent = data.error || '更新未完成，請稍後再試。'; errEl.style.display = 'block'; }
-  } catch(e) { errEl.textContent = '更新未完成，請稍後再試。'; errEl.style.display = 'block'; }
-  btn.disabled = false; btn.textContent = '確認更新';
+
+  // 第一次確認
+  openConfirmGoModal(
+    '確認後將發送 LINE 訊息提醒病患更換醫師。確認發送？',
+    async function() {
+      const btn = document.getElementById('btnSub');
+      btn.disabled = true; btn.textContent = '更新中...';
+      try {
+        // 先設定門診異動
+        const data = await xhrPost(API_URL, { action: 'updateSubstituteDoctor', date: date.replace(/-/g,'/'), session, doctor, type: '代診', lineId: state.lineId });
+        if (!data.success) throw new Error(data.error || '設定未完成');
+        // 再發代診通知
+        const notifyData = await xhrPost(API_URL, { action: 'notifySubstituteSession', date: date.replace(/-/g,'/'), session, doctor, lineId: state.lineId });
+        sucEl.textContent = `✓ 已更新：${date} ${session}診 → ${doctor}，已通知 ${notifyData.sentCount || 0} 位病患`;
+        sucEl.style.display = 'block';
+        document.getElementById('subDate').value = '';
+        document.getElementById('subSession').value = '';
+        document.getElementById('subDoctor').value = '';
+        loadSubstituteList();
+      } catch(e) { errEl.textContent = e.message || '更新未完成，請稍後再試。'; errEl.style.display = 'block'; }
+      btn.disabled = false; btn.textContent = '確認更新';
+    }
+  );
 }
 
 async function doClosed() {
@@ -2092,19 +2141,30 @@ async function doClosed() {
   const sucEl = document.getElementById('closedSuccess');
   errEl.style.display = 'none'; sucEl.style.display = 'none';
   if (!date || !session) { errEl.textContent = '請確認日期與時段均已填寫。'; errEl.style.display = 'block'; return; }
-  const btn = document.getElementById('btnClosed');
-  btn.disabled = true; btn.textContent = '設定中...';
-  try {
-    const data = await xhrPost(API_URL, { action: 'updateSubstituteDoctor', date: date.replace(/-/g,'/'), session, doctor: reason || '停診', type: '停診', reason: reason, lineId: state.lineId });
-    if (data.success) {
-      sucEl.textContent = `✓ 已設定停診：${date} ${session}診`; sucEl.style.display = 'block';
-      document.getElementById('closedDate').value = '';
-      document.getElementById('closedSession').value = '';
-      document.getElementById('closedReason').value = '';
-      loadSubstituteList();
-    } else { errEl.textContent = data.error || '設定未完成，請稍後再試。'; errEl.style.display = 'block'; }
-  } catch(e) { errEl.textContent = '設定未完成，請稍後再試。'; errEl.style.display = 'block'; }
-  btn.disabled = false; btn.textContent = '確認停診';
+
+  // 第一次確認
+  openConfirmGoModal(
+    '確認後將取消該診次所有預約，並發送 LINE 訊息提醒病患。確認發送？',
+    async function() {
+      const btn = document.getElementById('btnClosed');
+      btn.disabled = true; btn.textContent = '設定中...';
+      try {
+        // 先設定停診
+        const data = await xhrPost(API_URL, { action: 'updateSubstituteDoctor', date: date.replace(/-/g,'/'), session, doctor: reason || '停診', type: '停診', reason: reason, lineId: state.lineId });
+        if (!data.success) throw new Error(data.error || '設定未完成');
+        // 再取消預約 + 發通知
+        const notifyData = await xhrPost(API_URL, { action: 'notifyAndCancelSession', date: date.replace(/-/g,'/'), session, reason: reason || '停診', lineId: state.lineId });
+        sucEl.textContent = `✓ 已設定停診：${date} ${session}診，已取消並通知 ${notifyData.cancelledCount || 0} 位病患`;
+        sucEl.style.display = 'block';
+        document.getElementById('closedDate').value = '';
+        document.getElementById('closedSession').value = '';
+        document.getElementById('closedReason').value = '';
+        loadSubstituteList();
+        loadSchedule(activeSession);
+      } catch(e) { errEl.textContent = e.message || '設定未完成，請稍後再試。'; errEl.style.display = 'block'; }
+      btn.disabled = false; btn.textContent = '確認停診';
+    }
+  );
 }
 
 /* ── 進階查詢 ── */
@@ -2250,7 +2310,7 @@ async function doBroadcastSend() {
   errEl.style.display = "none"; sucEl.style.display = "none";
   // 飛彈發射密碼已在按鈕 disabled 邏輯中驗證，這裡再次確認
   const confirmVal = document.getElementById("bcConfirmInput").value;
-  if (confirmVal !== "913") return;
+  if (confirmVal.toLowerCase() !== "go") return;
   const btn = document.getElementById("btnBcSend");
   btn.disabled = true; btn.textContent = "發送中...";
   // 顯示全螢幕 Loading Overlay，防止誤觸
