@@ -1509,7 +1509,7 @@ function renderSessionContent(session, isClosed) {
       const isDone = c.status === "已看診";
       const isNotified = c.isAdminBooking && c.notifyStatus === "[已人工通知]";
       const bannerClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
-      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.slot||'')}" data-session="${esc(session)}" data-type="初診" data-status="${esc(c.status||'')} " data-np-referral="${esc(c.npReferral)}" data-np-isadult="${esc(c.npIsAdult)}" data-np-residence="${esc(c.npResidence)}" data-np-livingwith="${esc(c.npLivingWith)}" data-np-occupation="${esc(c.npOccupation)}" data-np-availabletime="${esc(c.npAvailableTime)}" onclick="openContactModalFromEl(this)"`;
+      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.slot||'')}" data-session="${esc(session)}" data-type="初診" data-status="${esc(c.status||'')}" data-np-referral="${esc(c.npReferral)}" data-np-isadult="${esc(c.npIsAdult)}" data-np-residence="${esc(c.npResidence)}" data-np-livingwith="${esc(c.npLivingWith)}" data-np-occupation="${esc(c.npOccupation)}" data-np-availabletime="${esc(c.npAvailableTime)}" onclick="openContactModalFromEl(this)"`;
       // isPending = 代掛未通知（sunny lime）；否則（一般初診或已通知）= kiwi
       const isPending = c.isAdminBooking && !isNotified;
       // 按鈕文字顏色：與 tile 同色（kiwi 或 sunny）
@@ -1533,7 +1533,7 @@ function renderSessionContent(session, isClosed) {
       const isClaiming = c.notifyStatus === "[待認領]";
       const cellClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const numDisplay = `${c.num}`;
-      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" data-status="${esc(c.status||'')} " onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
+      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" data-status="${esc(c.status||'')}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const cautionHtml = (c.isAdminBooking && !isNotified) ? `<div class="cell-caution"></div>` : "";
       const claimBadge = isClaiming
         ? `<div onclick="event.stopPropagation();openClaimTokenModal('${esc(c.bookingId)}')" style="position:absolute;top:4px;right:4px;background:#000;color:var(--kiwi);font-size:9px;font-weight:700;padding:2px 5px;cursor:pointer;letter-spacing:0.5px;">待確認</div>`
@@ -1932,7 +1932,7 @@ function openContactModalFromEl(el) {
     occupation:    el.dataset.npOccupation    || "",
     availableTime: el.dataset.npAvailabletime || ""
   } : null;
-  openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey);
+  openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey, el);
 }
 
 function rocDate(birthStr) {
@@ -1945,7 +1945,7 @@ function rocDate(birthStr) {
   return birthStr;
 }
 
-function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey) {
+function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey, el) {
   state.contactBookingId = bookingId;
   state.contactIsNotified = (isNotified === true || isNotified === "true");
   const notified = state.contactIsNotified;
