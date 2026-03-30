@@ -1550,6 +1550,7 @@ async function doAdminAddBooking(forceSlot) {
   if (btn) { btn.disabled = true; btn.textContent = "新增中..."; }
 
   try {
+    console.log("doAdminAddBooking sending:", {name, phone, birth, date: dateStr, session: activeSession, slot});
     const data = await xhrPost(API_URL, {
       action: "adminAddBooking",
       lineId: state.lineId,
