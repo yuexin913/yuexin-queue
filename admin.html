@@ -319,7 +319,7 @@
   .grid-cell.skeleton { background: var(--bg-3); animation: skeletonPulse 1.4s ease-in-out infinite; }
   .grid-cell.skeleton .cell-num { color: transparent; }
 
-  /* ── Row 10：不指定＋心理治療 ── */
+  /* ── Row 10：現場排號＋心理治療 ── */
   .tile-unspec { background: var(--bg-3); cursor: pointer; justify-content: center; align-items: center; }
   .tile-unspec .tile-label { font-size: 13px; font-weight: 700; text-align: center; color: var(--text-light); }
   .tile-unspec:hover { background: var(--marigold); }
@@ -413,6 +413,16 @@
   /* 代診排班 inline 按鈕 */
   .sub-cancel-btn { font-size: 11px; padding: 3px 8px; border: 1px solid var(--error); background: transparent; color: var(--error); cursor: pointer; font-family: inherit; }
   .sub-cancel-btn:hover { background: var(--error); color: #fff; }
+
+  /* ── Toast 通知 ── */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(12px);
+    background: var(--kiwi); color: #111; font-size: 13px; font-weight: 700;
+    padding: 10px 20px; z-index: 1000; opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none; white-space: nowrap; letter-spacing: 0.5px;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
@@ -515,7 +525,7 @@
   <!-- Row 4-9: 30格診單（JS 動態輸出到這裡）-->
   <div id="scheduleContent" style="display:contents;"></div>
 
-  <!-- Row 9: 不指定 + 心理治療 -->
+  <!-- Row 9: 現場排號 + 心理治療 -->
   <div class="tile tile-1" onclick="openUnspecModal()" style="position:relative;background:var(--sunny);cursor:pointer;">
     <div class="tile-title" style="font-size:18px;color:#111111;">現場</div>
     <div style="font-size:15px;font-weight:400;color:#111111;margin-top:auto;" id="unspecCount"></div>
@@ -548,10 +558,10 @@
 </div><!-- /metro-grid -->
 </div><!-- /pageMain -->
 
-<!-- Modal: 不指定名單 -->
+<!-- Modal: 現場排號名單 -->
 <div class="modal-overlay" id="modalUnspecified">
   <div class="modal">
-    <div class="modal-title">不指定名單<button class="modal-close" onclick="closeModal('modalUnspecified')">✕</button></div>
+    <div class="modal-title">現場排號名單<button class="modal-close" onclick="closeModal('modalUnspecified')">✕</button></div>
     <div id="unspecContent"><div class="loading">載入中...</div></div>
     <div style="margin-top:12px">
       <button class="btn" style="background:var(--kiwi);color:#111;font-size:13px;padding:10px;" onclick="toggleUnspecForm()">＋ 新增現場排號</button>
@@ -721,7 +731,7 @@
 <!-- Modal: 取消確認 -->
 <div class="modal-overlay" id="modalCancelConfirm">
   <div class="modal">
-    <div class="modal-title">取消預約</div>
+    <div class="modal-title">取消預約<button class="modal-close" onclick="closeModal('modalCancelConfirm')">✕</button></div>
     <p style="font-size:14px;color:var(--text);margin-bottom:14px;line-height:1.7;font-weight:400;" id="cancelConfirmText">輸入 <strong>go</strong> 確認取消此預約並發送通知給病患</p>
     <div class="form-group">
       <input type="text" id="cancelGoInput" placeholder="輸入 go" autocomplete="off" maxlength="2"
@@ -1095,7 +1105,9 @@ function xhrGet(url) {
 }
 
 function xhrPost(url, payload) {
-  // 自動附加 token
+  // payload 若未包含 token，自動注入 state.sessionToken
+  // 因此呼叫端不需要手動傳入 token（傳了也不會重複，Object.assign 以後者優先）
+  // 例外：登入前的 requestSession 請求不帶 token，sessionToken 為空字串，條件不成立，正常略過
   if (state.sessionToken && !payload.token) {
     payload = Object.assign({}, payload, { token: state.sessionToken });
   }
@@ -1273,6 +1285,8 @@ function renderSessionContent(session, isClosed) {
   const list = allBookings.filter(b => b.session === session);
   const npList = list.filter(b => b.type === "初診")
     .slice().sort(function(a, b) {
+      // 初診 slot 為 4 位時間碼（如 "0915"），parseInt 後數字大小與時間順序一致
+      // 前提：時間碼格式固定為 "HHMM"，不跨午夜。若格式變更需同步修改此排序
       return parseInt(a.slot || "0") - parseInt(b.slot || "0");
     });
 
@@ -1410,7 +1424,7 @@ function renderSessionContent(session, isClosed) {
       const isNotified = c.isAdminBooking && c.notifyStatus === "[已人工通知]";
       const cellClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const numDisplay = `${c.num}`;
-      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" data-status="${esc(c.status||'')}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
+      const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" data-type="複診" data-status="${esc(c.status||'')}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const cautionHtml = (c.isAdminBooking && (c.notifyStatus === "[人工預約]")) ? `<div class="cell-caution"></div>` : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
@@ -1450,7 +1464,7 @@ function renderSessionContent(session, isClosed) {
   el.innerHTML = html;
 }
 
-/* ── 不指定 Modal ── */
+/* ── 現場排號 Modal ── */
 function openUnspecModal() {
   // 停診時段：不指定磚已 disable，但防呆再擋一層
   const sessionInfo = (window._sessionDoctorMap && window._sessionDoctorMap[activeSession]) || {};
@@ -1459,7 +1473,7 @@ function openUnspecModal() {
   const list = allBookings.filter(b => b.session === activeSession && b.type !== "初診" && b.slot === "不指定");
   const el = document.getElementById("unspecContent");
   if (list.length === 0) {
-    el.innerHTML = `<div class="empty-state">目前無不指定病患</div>`;
+    el.innerHTML = `<div class="empty-state">目前無現場排號病患</div>`;
   } else {
     el.innerHTML = list.map(function(b, i) {
       const birthStr = b.birth ? rocDate(b.birth) : "";
@@ -1508,7 +1522,7 @@ function openAdminAddBookingModal(slotNum) {
   openModal("modalAdminAdd");
 }
 
-/* ── 代掛送出（空格 + 不指定共用） ── */
+/* ── 代掛送出（空格 + 現場排號共用） ── */
 let isAdminAdding = false;
 async function doAdminAddBooking(forceSlot) {
   if (isAdminAdding) return;
@@ -1542,7 +1556,7 @@ async function doAdminAddBooking(forceSlot) {
   const birth = adYear + "-" + mm + "-" + dd;
 
   const slot = forceSlot !== null ? forceSlot : String(adminAddSlot);
-  const dateStr = dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1$2$3");
+  const dateStr = dateToYMD(state.viewDate); // 回傳格式為 "yyyyMMdd"，GAS normalizeDateStr 直接支援
 
   isAdminAdding = true;
   const btn = isUnspec
@@ -1642,7 +1656,13 @@ async function confirmForceAdd() {
     const birth = p.birth || "";
     const slot  = p.slot || String(adminAddSlot);
     const isUnspec = p.isUnspec || false;
-    const dateStr = dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1$2$3");
+    // 防呆：若暫存資料不完整（正常流程不應發生），中止並提示
+    if (!name || !phone || !birth || !slot || slot === "null") {
+      if (btn) { btn.disabled = false; btn.textContent = "⛔ 病患無手機：確認代掛。"; }
+      alert("狀態異常，請關閉後重新代掛。");
+      return;
+    }
+    const dateStr = dateToYMD(state.viewDate); // 回傳格式為 "yyyyMMdd"，GAS normalizeDateStr 直接支援
     const data = await xhrPost(API_URL, {
       action: "adminAddBooking",
       lineId: state.lineId,
@@ -2001,13 +2021,15 @@ function renderQueryResults(bookings) {
     html += `<div class="result-item">
       <div class="result-header"><div class="result-date">${esc(b.date)} ${esc(b.displayName)}</div><div class="result-status">${esc(b.status)}</div></div>
       <div class="result-detail">${esc(b.name)}　${slotDisplay}　${esc(b.type)}${b.doctor?"　醫師："+esc(b.doctor):""}</div>
-      ${b.status!=="已取消"?`<button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="confirmCancel('${esc(b.bookingId)}','${esc(b.name)}','${esc(b.date)}')">取消此預約</button>`:""}
+      ${b.status!=="已取消"?`<button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="confirmCancel('${esc(b.bookingId)}','${esc(b.name)}','${esc(b.date)}','modalQuery')">取消此預約</button>`:""}
     </div>`;
   });
   el.innerHTML = html;
 }
 
 function confirmCancel(bookingId, name, date, fromModal) {
+  // date 參數目前未使用，保留供未來在確認 Modal 顯示「取消 XX 日期的預約」提示文字用
+  // 注意：聯絡小卡呼叫點傳入的是時段文字而非日期，若未來啟用此參數需一併修正該呼叫點
   state.pendingCancelId = bookingId;
   state.cancelFromModal = fromModal || null;
   document.getElementById("cancelGoInput").value = "";
@@ -2017,6 +2039,17 @@ function confirmCancel(bookingId, name, date, fromModal) {
   openModal("modalCancelConfirm");
 }
 
+/* ── Toast 通知 ── */
+let toastTimer = null;
+function showToast(msg, duration) {
+  duration = duration || 2200;
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { el.classList.remove("show"); }, duration);
+}
+
 async function doCancel() {
   const btn = document.getElementById("btnConfirmCancel");
   btn.disabled = true; btn.textContent = "取消中...";
@@ -2024,6 +2057,7 @@ async function doCancel() {
     const data = await xhrPost(API_URL, { action: "cancelBooking", bookingId: state.pendingCancelId, lineId: state.lineId });
     if (data.success) {
       closeModal("modalCancelConfirm");
+      showToast("✓ 預約已取消，LINE 通知已發送");
       if (state.cancelFromModal === "modalQuery") {
         openModal("modalQuery");
         document.getElementById("queryResults").innerHTML = `<div class="alert alert-success">預約已取消，LINE通知已發送。</div>`;
@@ -2188,6 +2222,8 @@ initLiff();
   <div class="loading-overlay-bar"><div class="loading-overlay-bar-inner"></div></div>
   <div class="loading-overlay-text">訊息發送中<br>請勿關閉頁面...</div>
 </div>
+<!-- Toast 通知 -->
+<div id="toast"></div>
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
 </body>
 </html>
