@@ -747,7 +747,7 @@ const DEFAULT_DOCTOR_SCHEDULE = {
   6: { "早上": "粟寧",   "下午": "",       "晚上": ""        }
 };
 const API_URL = "https://script.google.com/macros/s/AKfycbz1IB0HCFWaFlC7odExNsOWaZwTjz7osAjstXhx_5V0ZD4Ya58GGRRPfFAun2Itywbh6A/exec";
-let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false };
+let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, pendingForceAdd: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false };
 let allBookings = [], activeSession = "";
 
 // 複診號碼 → 預計報到時段（對應 booking.html 和 GAS 的 RETURN_TIME_SLOT_CONFIG）
@@ -1564,8 +1564,9 @@ async function doAdminAddBooking(forceSlot) {
     });
     if (!data.success) throw new Error(data.error);
     if (data.booked === false) {
-      // 找不到 LINE ID 且非強制代掛：不寫入，顯示選項 Modal
-      // 不關閉代掛 Modal，保留輸入內容供強制代掛使用
+      // 找不到 LINE ID：暫存資料、關閉來源 Modal、顯示選項 Modal
+      state.pendingForceAdd = { name, phone, birth, slot: String(slot), isUnspec };
+      closeModal(isUnspec ? "modalUnspecified" : "modalAdminAdd");
       showAdminAddResult("notfound");
     } else {
       // 已寫入（找到 LINE ID 或強制代掛）
@@ -1631,26 +1632,16 @@ function closeAdminAddResult() {
 }
 
 async function confirmForceAdd() {
-  // 病患無手機：重新呼叫 adminAddBooking，帶 forceAdd: true
+  // 病患無手機：使用暫存資料重新呼叫 adminAddBooking，帶 forceAdd: true
   const btn = document.querySelector("#adminAddResultNotFound button:last-child");
   if (btn) { btn.disabled = true; btn.textContent = "代掛中..."; }
   try {
-    const isUnspec = (adminAddSlot === "不指定");
-    const nameEl  = isUnspec ? "uAddName"   : "aAddName";
-    const phoneEl = isUnspec ? "uAddPhone"  : "aAddPhone";
-    const birthYEl = isUnspec ? "uAddBirthY" : "aAddBirthY";
-    const birthMEl = isUnspec ? "uAddBirthM" : "aAddBirthM";
-    const birthDEl = isUnspec ? "uAddBirthD" : "aAddBirthD";
-    const name  = document.getElementById(nameEl).value.trim();
-    const phone = document.getElementById(phoneEl).value.replace(/[^\d]/g, "").trim();
-    const birthY = document.getElementById(birthYEl).value.trim();
-    const birthM = document.getElementById(birthMEl).value.trim();
-    const birthD = document.getElementById(birthDEl).value.trim();
-    const adYear = parseInt(birthY, 10) + 1911;
-    const mm = String(parseInt(birthM, 10)).padStart(2, "0");
-    const dd = String(parseInt(birthD, 10)).padStart(2, "0");
-    const birth = adYear + "-" + mm + "-" + dd;
-    const slot = String(adminAddSlot);
+    const p = state.pendingForceAdd || {};
+    const name  = p.name || "";
+    const phone = p.phone || "";
+    const birth = p.birth || "";
+    const slot  = p.slot || String(adminAddSlot);
+    const isUnspec = p.isUnspec || false;
     const dateStr = dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1$2$3");
     const data = await xhrPost(API_URL, {
       action: "adminAddBooking",
@@ -1662,8 +1653,8 @@ async function confirmForceAdd() {
       forceAdd: true
     });
     if (!data.success) throw new Error(data.error);
+    state.pendingForceAdd = null;
     closeAdminAddResult();
-    closeModal(isUnspec ? "modalUnspecified" : "modalAdminAdd");
     showAdminAddResult("forced");
   } catch(e) {
     if (btn) { btn.disabled = false; btn.textContent = "⛔ 病患無手機：確認代掛。"; }
