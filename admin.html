@@ -342,6 +342,7 @@
   /* ── Modal ── */
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
   #modalConfirmGo { z-index: 300; }
+  #modalAdminAddResult { z-index: 250; }
   .modal-overlay.active { display: flex; }
   .modal { background: var(--bg-2); padding: 24px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; }
   .modal-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; border-left: 4px solid var(--marigold); padding-left: 10px; }
@@ -1550,7 +1551,6 @@ async function doAdminAddBooking(forceSlot) {
   if (btn) { btn.disabled = true; btn.textContent = "新增中..."; }
 
   try {
-    console.log("doAdminAddBooking sending:", {name, phone, birth, date: dateStr, session: activeSession, slot});
     const data = await xhrPost(API_URL, {
       action: "adminAddBooking",
       lineId: state.lineId,
