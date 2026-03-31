@@ -1731,6 +1731,8 @@ function _lpCancel(isTouch) {
   if (!isTouch && _lpIsTouch) return; // 觸控裝置：忽略 mouseleave
   clearTimeout(_lpTimer);
   if (!_lpDone) { _lpIsTouch = false; _lpDone = false; }
+  var el = _LP_EL();
+  if (el) el.style.color = "#bbb";
 }
 
 function _lpReset() {
@@ -1739,7 +1741,7 @@ function _lpReset() {
   _lpTapCount = 0;
   if (_lpTapTimer) clearTimeout(_lpTapTimer);
   var el = _LP_EL();
-  if (el) el.style.color = "";
+  if (el) el.style.color = "#bbb"; // 明確寫回灰色，不依賴 stylesheet 回退
 }
 </script>
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
