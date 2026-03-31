@@ -955,7 +955,7 @@ async function initLiff() {
 
     // 第二關：白名單通過，播 JOI-N 動畫後顯示密碼頁
     authAnimStart();
-    await new Promise(function(resolve) { setTimeout(resolve, 400); }); // 動畫播放 0.4 秒
+    await new Promise(function(resolve) { setTimeout(resolve, 960); }); // 動畫播放 0.96 秒（48格 × 20ms，完整一圈）
     authAnimStop();
 
     const pageAuth = document.getElementById("pageAuth");
