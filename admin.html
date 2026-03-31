@@ -915,7 +915,7 @@ function joinAnimTick() {
 function authAnimStart() {
   if (joinAnimTimer) return;
   joinAnimStep = 0;
-  joinAnimTimer = setInterval(joinAnimTick, 20);
+  joinAnimTimer = setInterval(joinAnimTick, 50);
 }
 
 function authAnimStop() {
@@ -955,7 +955,7 @@ async function initLiff() {
 
     // 第二關：白名單通過，播 JOI-N 動畫後顯示密碼頁
     authAnimStart();
-    await new Promise(function(resolve) { setTimeout(resolve, 960); }); // 動畫播放 0.96 秒（48格 × 20ms，完整一圈）
+    await new Promise(function(resolve) { setTimeout(resolve, 2400); }); // 動畫播放 2.4 秒（48格 × 50ms，完整一圈）
     authAnimStop();
 
     const pageAuth = document.getElementById("pageAuth");
