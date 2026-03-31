@@ -1699,7 +1699,7 @@ let _lpTapTimer = null;    // 點擊視窗計時器
 const _ADMIN_URL = "https://yuexin913.github.io/yuexin-queue/admin.html";
 const _LP_EL = () => document.getElementById("adminSecretEl");
 
-function _lpTouchStart() {
+function _lpStart() {
   _lpDone = false;
   _lpTimer = setTimeout(function() {
     _lpDone = true;
@@ -1707,7 +1707,7 @@ function _lpTouchStart() {
     // 變橘色
     var el = _LP_EL();
     if (el) el.style.color = "#ff8601";
-    // 震動回饋
+    // 震動回饋（手機）
     if (navigator.vibrate) navigator.vibrate(50);
     // 1 秒視窗：時間到恢復灰色
     if (_lpTapTimer) clearTimeout(_lpTapTimer);
@@ -1717,11 +1717,11 @@ function _lpTouchStart() {
   }, 1000);
 }
 
-function _lpTouchEnd(e) {
+function _lpEnd(e) {
   clearTimeout(_lpTimer);
   if (!_lpDone) return;
-  // 長按完成後的 touchend 算第一次點擊
-  e.preventDefault(); // 防止 Android 300ms tap delay 重複觸發
+  // 長按完成後的放開算第一次點擊
+  if (e.cancelable) e.preventDefault(); // 防止 Android 300ms tap delay 重複觸發
   _lpTapCount++;
   if (_lpTapCount >= 3) {
     _lpReset();
@@ -1729,8 +1729,8 @@ function _lpTouchEnd(e) {
   }
 }
 
-function _lpTouchMove() {
-  // 滑動取消長按
+function _lpCancel() {
+  // 滑動或移出取消長按
   clearTimeout(_lpTimer);
   if (!_lpDone) _lpDone = false;
 }
@@ -1746,8 +1746,11 @@ function _lpReset() {
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
 <div id="adminSecretEl"
   style="text-align:center;padding:24px 0 12px;font-size:10px;color:#bbb;letter-spacing:0.08em;cursor:default;user-select:none;transition:color 0.2s ease;"
-  ontouchstart="_lpTouchStart()"
-  ontouchend="_lpTouchEnd(event)"
-  ontouchmove="_lpTouchMove()">EST. 2024 YUEXIN PSYCHIATRIC CLINIC · BETA EDITION</div>
+  ontouchstart="_lpStart()"
+  ontouchend="_lpEnd(event)"
+  ontouchmove="_lpCancel()"
+  onmousedown="_lpStart()"
+  onmouseup="_lpEnd(event)"
+  onmouseleave="_lpCancel()">EST. 2024 YUEXIN PSYCHIATRIC CLINIC · BETA EDITION</div>
 </body>
 </html>
