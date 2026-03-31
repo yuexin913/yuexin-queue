@@ -1691,21 +1691,63 @@ function xhrPost(url, payload) {
 
 initLiff();
 
-/* ── 暗門：2秒內點4次 EST. 2024 進入 Admin ── */
-let _adminTapCount = 0;
-let _adminTapTimer = null;
-function handleAdminTap() {
-  _adminTapCount++;
-  if (_adminTapTimer) clearTimeout(_adminTapTimer);
-  if (_adminTapCount >= 4) {
-    _adminTapCount = 0;
-    liff.openWindow({ url: "https://yuexin913.github.io/yuexin-queue/admin.html", external: false });
-    return;
+/* ── 暗門：長按 1 秒變橘色，1 秒內連點 3 下進入 Admin ── */
+let _lpTimer = null;       // 長按計時器
+let _lpDone = false;       // 長按是否已完成
+let _lpTapCount = 0;       // 長按後的點擊次數
+let _lpTapTimer = null;    // 點擊視窗計時器
+const _ADMIN_URL = "https://yuexin913.github.io/yuexin-queue/admin.html";
+const _LP_EL = () => document.getElementById("adminSecretEl");
+
+function _lpTouchStart() {
+  _lpDone = false;
+  _lpTimer = setTimeout(function() {
+    _lpDone = true;
+    _lpTapCount = 0;
+    // 變橘色
+    var el = _LP_EL();
+    if (el) el.style.color = "#ff8601";
+    // 震動回饋
+    if (navigator.vibrate) navigator.vibrate(50);
+    // 1 秒視窗：時間到恢復灰色
+    if (_lpTapTimer) clearTimeout(_lpTapTimer);
+    _lpTapTimer = setTimeout(function() {
+      _lpReset();
+    }, 1000);
+  }, 1000);
+}
+
+function _lpTouchEnd(e) {
+  clearTimeout(_lpTimer);
+  if (!_lpDone) return;
+  // 長按完成後的 touchend 算第一次點擊
+  e.preventDefault(); // 防止 Android 300ms tap delay 重複觸發
+  _lpTapCount++;
+  if (_lpTapCount >= 3) {
+    _lpReset();
+    liff.openWindow({ url: _ADMIN_URL, external: false });
   }
-  _adminTapTimer = setTimeout(function() { _adminTapCount = 0; }, 2000);
+}
+
+function _lpTouchMove() {
+  // 滑動取消長按
+  clearTimeout(_lpTimer);
+  if (!_lpDone) _lpDone = false;
+}
+
+function _lpReset() {
+  _lpDone = false;
+  _lpTapCount = 0;
+  if (_lpTapTimer) clearTimeout(_lpTapTimer);
+  var el = _LP_EL();
+  if (el) el.style.color = "";  // 恢復灰色（CSS inline 清空，回到 stylesheet）
 }
 </script>
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
-<div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#bbb;letter-spacing:0.08em;cursor:default;user-select:none;" onclick="handleAdminTap()">EST. 2024 YUEXIN PSYCHIATRIC CLINIC · BETA EDITION</div>
+<div id="adminSecretEl"
+  style="text-align:center;padding:24px 0 12px;font-size:10px;color:#bbb;letter-spacing:0.08em;cursor:default;user-select:none;transition:color 0.2s ease;"
+  ontouchstart="_lpTouchStart()"
+  ontouchend="_lpTouchEnd(event)"
+  ontouchmove="_lpTouchMove()">EST. 2024 YUEXIN PSYCHIATRIC CLINIC · BETA EDITION</div>
 </body>
 </html>
