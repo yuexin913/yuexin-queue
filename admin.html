@@ -915,7 +915,7 @@ function joinAnimTick() {
 function authAnimStart() {
   if (joinAnimTimer) return;
   joinAnimStep = 0;
-  joinAnimTimer = setInterval(joinAnimTick, 30);
+  joinAnimTimer = setInterval(joinAnimTick, 20);
 }
 
 function authAnimStop() {
@@ -955,7 +955,7 @@ async function initLiff() {
 
     // 第二關：白名單通過，播 JOI-N 動畫後顯示密碼頁
     authAnimStart();
-    await new Promise(function(resolve) { setTimeout(resolve, 600); }); // 動畫播放 0.6 秒
+    await new Promise(function(resolve) { setTimeout(resolve, 400); }); // 動畫播放 0.4 秒
     authAnimStop();
 
     const pageAuth = document.getElementById("pageAuth");
@@ -970,12 +970,18 @@ async function initLiff() {
       }, 100);
     }, 300);
   } catch(e) {
-    document.getElementById("authTitle").textContent = "暫時無法連線";
-    document.getElementById("authSub").textContent = "請重新整理頁面。";
+    document.getElementById("authTitle").textContent = "連線逾時";
+    document.getElementById("authSub").innerHTML =
+      "請稍後再試，或點下方重新載入。<br><br>" +
+      "<button onclick=\"location.reload()\" style=\"" +
+        "margin-top:4px;padding:10px 24px;background:var(--marigold);color:#fff;" +
+        "border:none;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;" +
+        "letter-spacing:1px;\">" +
+      "重新載入</button>";
   }
 }
 
-var XHR_TIMEOUT = 55000; // 55秒（GAS 冷啟動＋LINE API 回應時間）
+var XHR_TIMEOUT = 30000; // 30秒（暖機後 GAS 回應應在 1-2 秒內，30秒足夠且避免用戶等太久）
 
 /* ── 登入／登出 ── */
 let isLoggingIn = false;

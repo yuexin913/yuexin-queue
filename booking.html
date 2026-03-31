@@ -753,7 +753,10 @@ async function initLiff() {
     const profile = await liff.getProfile();
     state.lineId = profile.userId;
 
-    // 黑名單驗證（在首頁顯示前完成，確保病患看到畫面時已通過驗證）
+    // LIFF init 完成 → 立刻顯示全屏載入畫面（比黑屏更有反應感）
+    showPage("pageLoading");
+
+    // 黑名單驗證（在 pageLoading 期間背景執行）
     try {
       const bl = await xhrGet(`${API_URL}?action=checkBlacklist&lineId=${state.lineId}`);
       if (bl.blocked) {
@@ -772,6 +775,7 @@ async function initLiff() {
       return;
     }
 
+    // 驗證完成，直接切換到 pageEntry
     showPage("pageEntry");
   } catch(e) {
     // LIFF載入失敗：顯示提示，不允許繼續操作
