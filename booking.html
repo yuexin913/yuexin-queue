@@ -477,7 +477,12 @@
   <!-- 入口頁 -->
   <div class="page" id="pageEntry">
     <div style="background:#D4522A;color:white;text-align:center;font-size:13px;font-weight:700;padding:6px;letter-spacing:1px;margin-bottom:8px;">先行體驗｜操作問題請截圖回傳</div>
-    <div class="card" style="margin-top:8px">
+    <!-- 樂觀載入預留區：目前未啟用，_lockEntryBtns(true) 時才顯示 -->
+    <div id="entryVerifyingBar" style="display:none;align-items:center;justify-content:center;gap:8px;padding:10px 0 4px;opacity:1;transition:opacity 0.3s ease;">
+      <div class="spinner" style="width:14px;height:14px;border-width:2px;"></div>
+      <span style="font-size:12px;color:var(--text-light);">確認中...</span>
+    </div>
+    <div class="card" style="margin-top:4px">
       <div class="card-title">請選擇服務</div>
       <div class="entry-options">
         <div class="entry-btn" onclick="startBooking('複診')">
@@ -748,26 +753,7 @@ async function initLiff() {
     const profile = await liff.getProfile();
     state.lineId = profile.userId;
 
-    // 偵測 ?claim= 參數（認領預約連結，需等驗證完才處理）
-    const urlParams = new URLSearchParams(window.location.search);
-    const claimToken = urlParams.get("claim");
-    if (claimToken) {
-      // claim 流程不需樂觀載入，維持原本等待邏輯
-      try {
-        const bl = await xhrGet(`${API_URL}?action=checkBlacklist&lineId=${state.lineId}`);
-        if (bl.blocked) { showPage("pageLoadError"); return; }
-        state.isVip = bl.isVip === true;
-      } catch(e) { /* 黑名單檢查失敗不擋 */ }
-      showPage("pageClaimBooking");
-      await loadClaimBooking(claimToken);
-      return;
-    }
-
-    // ── 樂觀載入：立即顯示 pageEntry，按鈕暫時 disable ──
-    // 背景同時跑黑名單驗證，完成後才解鎖按鈕
-    _lockEntryBtns(true);
-    showPage("pageEntry");
-
+    // 黑名單驗證（在首頁顯示前完成，確保病患看到畫面時已通過驗證）
     try {
       const bl = await xhrGet(`${API_URL}?action=checkBlacklist&lineId=${state.lineId}`);
       if (bl.blocked) {
@@ -775,13 +761,18 @@ async function initLiff() {
         return;
       }
       state.isVip = bl.isVip === true;
-    } catch(e) {
-      // 黑名單檢查失敗不擋，讓病患繼續
+    } catch(e) { /* 黑名單檢查失敗不擋，讓病患繼續 */ }
+
+    // 偵測 ?claim= 參數（認領預約連結）
+    const urlParams = new URLSearchParams(window.location.search);
+    const claimToken = urlParams.get("claim");
+    if (claimToken) {
+      showPage("pageClaimBooking");
+      await loadClaimBooking(claimToken);
+      return;
     }
 
-    // 驗證完成（成功或失敗容錯），解鎖按鈕
-    _lockEntryBtns(false);
-
+    showPage("pageEntry");
   } catch(e) {
     // LIFF載入失敗：顯示提示，不允許繼續操作
     document.querySelector(".container").innerHTML = `
@@ -793,13 +784,18 @@ async function initLiff() {
   }
 }
 
-// 鎖定／解鎖 pageEntry 的三個入口按鈕
+// _lockEntryBtns：保留供未來樂觀載入使用，目前未啟用
 function _lockEntryBtns(lock) {
   var btns = document.querySelectorAll("#pageEntry .entry-btn:not([style*='pointer-events:none'])");
   btns.forEach(function(btn) {
     if (lock) btn.classList.add("entry-btn-disabled");
     else btn.classList.remove("entry-btn-disabled");
   });
+  var bar = document.getElementById("entryVerifyingBar");
+  if (bar) {
+    if (lock) { bar.style.display = "flex"; bar.style.opacity = "1"; }
+    else { bar.style.opacity = "0"; setTimeout(function() { bar.style.display = "none"; }, 300); }
+  }
 }
 
 // ===================================
