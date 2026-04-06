@@ -1506,6 +1506,7 @@ function renderSessionContent(session, isClosed) {
           style="position:absolute;top:7px;right:7px;background:#000;color:${btnTextColor};border:none;font-family:inherit;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;letter-spacing:0.5px;">${btnLabel}</button>
         ${cautionHtml}${xinkuanHtml}
       </div>`;
+    } else if (c.type === "rt") {
       const isNotified = c.isAdminBooking && c.notifyStatus === "[已人工通知]";
       const cellClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const numDisplay = `${c.num}`;
