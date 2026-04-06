@@ -270,6 +270,13 @@
     background: #000;
     position: absolute; bottom: 7px; right: 6px;
   }
+  /* 心寬轉介標記：左下角朱紅色點 */
+  .cell-xinkuan {
+    width: 8px; height: 8px;
+    background: #C0392B;
+    border-radius: 50%;
+    position: absolute; bottom: 7px; left: 6px;
+  }
   .grid-cell.has-patient .cell-name    { color: #ffffff; }
   .grid-cell.admin-pending .cell-name  { color: #ffffff; }
   .grid-cell.admin-notified .cell-name { color: #ffffff; }
@@ -1488,6 +1495,8 @@ function renderSessionContent(session, isClosed) {
       const btnLabel = isDone ? "已報到" : "未報到";
       const cautionHtml = isPending
         ? `<div style="position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>` : "";
+      const xinkuanHtml = c.note === "心寬轉介"
+        ? `<div style="position:absolute;top:7px;right:48px;width:8px;height:8px;background:#C0392B;border-radius:50%;"></div>` : "";
 
       html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="cursor:pointer;position:relative;">
         <div style="position:absolute;top:7px;left:6px;font-size:20px;font-weight:700;color:#111111;">${esc(c.checkInTime)}前</div>
@@ -1495,18 +1504,18 @@ function renderSessionContent(session, isClosed) {
         <button id="btn-${esc(c.bookingId)}"
           onclick="event.stopPropagation(); toggleCheckin('${esc(c.bookingId)}',this)"
           style="position:absolute;top:7px;right:7px;background:#000;color:${btnTextColor};border:none;font-family:inherit;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;letter-spacing:0.5px;">${btnLabel}</button>
-        ${cautionHtml}
+        ${cautionHtml}${xinkuanHtml}
       </div>`;
-    } else if (c.type === "rt") {
       const isNotified = c.isAdminBooking && c.notifyStatus === "[已人工通知]";
       const cellClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const numDisplay = `${c.num}`;
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" data-type="複診" data-status="${esc(c.status||'')}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const cautionHtml = (c.isAdminBooking && (c.notifyStatus === "[人工預約]")) ? `<div class="cell-caution"></div>` : "";
+      const xinkuanHtml = c.note === "心寬轉介" ? `<div class="cell-xinkuan"></div>` : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
         <span class="cell-name" style="font-size:12px;font-weight:400;color:#111111;position:absolute;bottom:5px;left:6px;right:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${esc(c.name)}</span>
-        ${cautionHtml}
+        ${cautionHtml}${xinkuanHtml}
       </div>`;
     } else {
       // empty
@@ -1592,8 +1601,13 @@ function renderUnspecList() {
       notifyTag = `<span class="unspec-notify-auto">系統</span>`;
     }
 
+    const xinkuanDot = b.note === "心寬轉介"
+      ? `<span style="display:inline-block;width:8px;height:8px;background:#C0392B;border-radius:50%;flex-shrink:0;"></span>`
+      : "";
+
     return `<div class="unspec-modal-row">
       <span class="unspec-modal-num">${i + 1}</span>
+      ${xinkuanDot}
       <span class="unspec-modal-name">${esc(b.name)}</span>
       <span class="unspec-modal-info">${birthStr}${birthStr && phoneStr ? "　" : ""}${phoneStr}</span>
       ${notifyTag}
