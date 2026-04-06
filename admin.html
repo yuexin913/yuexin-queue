@@ -398,6 +398,10 @@
   .unspec-modal-num  { font-size: 11px; color: var(--text-light); width: 18px; text-align: center; flex-shrink: 0; }
   .unspec-modal-name { font-weight: 600; flex: 1; }
   .unspec-modal-info { font-size: 11px; color: var(--text-light); }
+  /* 現場排號通知狀態標籤 */
+  .unspec-notify-pending  { font-size: 11px; font-weight: 700; color: var(--marigold); background: var(--orange-light); padding: 2px 7px; cursor: pointer; flex-shrink: 0; letter-spacing: 0.5px; }
+  .unspec-notify-done     { font-size: 11px; font-weight: 400; color: var(--text-light); background: var(--bg-3); padding: 2px 7px; cursor: pointer; flex-shrink: 0; }
+  .unspec-notify-auto     { font-size: 11px; font-weight: 200; color: var(--text-light); padding: 2px 4px; flex-shrink: 0; }
 
   /* 群發模式切換 */
   .btn-mode { flex: 1; padding: 8px; border: none; font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
@@ -580,6 +584,7 @@
   <div class="tile tile-1" onclick="openUnspecModal()" style="position:relative;background:var(--sunny);cursor:pointer;">
     <div class="tile-title" style="font-size:18px;color:#111111;">現場</div>
     <div style="font-size:15px;font-weight:400;color:#111111;margin-top:auto;" id="unspecCount"></div>
+    <div id="unspecPendingDot" style="display:none;position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>
   </div>
   <div class="tile tile-3" style="position:relative;background:#AEB6BB;">
     <div class="tile-title" style="font-size:15px;color:#111111;">心理治療</div>
@@ -1515,9 +1520,14 @@ function renderSessionContent(session, isClosed) {
 
 
 
-  // 更新不指定磚的人數 subtitle
+  // 更新不指定磚的人數 subtitle 和黑點
   const unspecEl = document.getElementById("unspecCount");
   if (unspecEl) unspecEl.textContent = unList.length > 0 ? unList.length + " 人" : "";
+  const unspecDot = document.getElementById("unspecPendingDot");
+  if (unspecDot) {
+    const hasPending = unList.some(b => b.notifyStatus === "[人工預約]");
+    unspecDot.style.display = hasPending ? "block" : "none";
+  }
 
   // 異常排班區（格位衝突，絕對不能隱藏）
   if (conflictList.length > 0) {
@@ -1542,23 +1552,7 @@ function openUnspecModal() {
   const sessionInfo = (window._sessionDoctorMap && window._sessionDoctorMap[activeSession]) || {};
   if (sessionInfo.isClosed) return;
 
-  const list = allBookings.filter(b => b.session === activeSession && b.type !== "初診" && b.slot === "不指定");
-  const el = document.getElementById("unspecContent");
-  if (list.length === 0) {
-    el.innerHTML = `<div class="empty-state">目前無現場排號病患</div>`;
-  } else {
-    el.innerHTML = list.map(function(b, i) {
-      const birthStr = b.birth ? rocDate(b.birth) : "";
-      const phoneStr = b.phone || "";
-      return `<div class="unspec-modal-row">
-        <span class="unspec-modal-num">${i + 1}</span>
-        <span class="unspec-modal-name">${esc(b.name)}</span>
-        <span class="unspec-modal-info">${birthStr}${birthStr && phoneStr ? "　" : ""}${phoneStr}</span>
-        <button class="btn btn-danger btn-sm" style="flex-shrink:0;font-size:11px;padding:3px 8px;"
-          onclick="confirmCancel('${esc(b.bookingId)}','${esc(b.name)}','${esc(b.date)}','modalUnspecified')">取消</button>
-      </div>`;
-    }).join("");
-  }
+  renderUnspecList();
   // 重置新增表單
   document.getElementById("unspecAddForm").style.display = "none";
   document.getElementById("uAddName").value = "";
@@ -1568,6 +1562,71 @@ function openUnspecModal() {
   document.getElementById("uAddBirthD").value = "";
   document.getElementById("unspecAddError").style.display = "none";
   openModal("modalUnspecified");
+}
+
+function renderUnspecList() {
+  const list = allBookings.filter(b => b.session === activeSession && b.type !== "初診" && b.slot === "不指定");
+  const el = document.getElementById("unspecContent");
+  if (list.length === 0) {
+    el.innerHTML = `<div class="empty-state">目前無現場排號病患</div>`;
+    return;
+  }
+  el.innerHTML = list.map(function(b, i) {
+    const birthStr = b.birth ? rocDate(b.birth) : "";
+    const phoneStr = b.phone || "";
+    const ns = b.notifyStatus || "";
+    const isAdminBooking = b.isAdminBooking || false;
+
+    // 通知狀態標籤
+    let notifyTag = "";
+    if (ns === "[人工預約]") {
+      // 需手動通知，可點擊切換
+      notifyTag = `<span class="unspec-notify-pending"
+        onclick="openUnspecContactCard('${esc(b.bookingId)}')">■ 待通知</span>`;
+    } else if (ns === "[已人工通知]") {
+      // 已手動通知，可點擊撤銷
+      notifyTag = `<span class="unspec-notify-done"
+        onclick="openUnspecContactCard('${esc(b.bookingId)}')">✓ 已通知</span>`;
+    } else {
+      // [待通知] / [已通知]：系統自動處理，不顯示標籤
+      notifyTag = `<span class="unspec-notify-auto">系統</span>`;
+    }
+
+    return `<div class="unspec-modal-row">
+      <span class="unspec-modal-num">${i + 1}</span>
+      <span class="unspec-modal-name">${esc(b.name)}</span>
+      <span class="unspec-modal-info">${birthStr}${birthStr && phoneStr ? "　" : ""}${phoneStr}</span>
+      ${notifyTag}
+      <button class="btn btn-danger btn-sm" style="flex-shrink:0;font-size:11px;padding:3px 8px;"
+        onclick="confirmCancel('${esc(b.bookingId)}','${esc(b.name)}','${esc(b.date)}','modalUnspecified')">取消</button>
+    </div>`;
+  }).join("");
+}
+
+function openUnspecContactCard(bookingId) {
+  // 從 allBookings 找到該筆資料，開聯絡小卡
+  const b = allBookings.find(function(x) { return x.bookingId === bookingId; });
+  if (!b) return;
+  // 關閉現場 Modal，開聯絡小卡（取消後回到現場 Modal）
+  closeModal("modalUnspecified");
+  openContactModal(
+    b.bookingId, b.name, b.phone,
+    b.notifyStatus === "[已人工通知]",
+    b.isAdminBooking || false,
+    b.birth || "", b.slot || "", b.session || "",
+    null, // npSurvey
+    null, // el（無對應 DOM 元素）
+    b.notifyStatus || ""
+  );
+  // 取消按鈕：現場排號用 modalUnspecified 作為 fromModal
+  state.contactBookingId = b.bookingId;
+  // 覆寫取消按鈕的 onclick，讓取消後回到現場名單
+  const cancelBtn = document.querySelector("#btnCancelBookingWrap button");
+  if (cancelBtn) {
+    cancelBtn.onclick = function() {
+      confirmCancel(b.bookingId, b.name, b.date, "modalContact");
+    };
+  }
 }
 
 function toggleUnspecForm() {
@@ -1876,6 +1935,10 @@ async function doToggleNotified() {
       }
       closeModal("modalContact");
       renderSessionContent(activeSession);
+      // 若來源是現場名單（slot === "不指定"），同步更新名單內容
+      if (booking && booking.slot === "不指定") {
+        renderUnspecList();
+      }
     } else {
       btn.disabled = false;
       btn.textContent = state.contactIsNotified ? "✓ 已發送回診提醒" : "未發送回診提醒";
