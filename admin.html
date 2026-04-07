@@ -811,6 +811,78 @@
   </div>
 </div>
 
+<!-- Modal: 進階查詢 -->
+<div class="modal-overlay" id="modalQuery">
+  <div class="modal">
+    <div class="modal-title">進階查詢<button class="modal-close" onclick="closeModal('modalQuery')">✕</button></div>
+    <div class="form-group"><label class="form-label">姓名</label><input type="text" id="qName" placeholder="請輸入姓名"></div>
+    <div class="form-group"><label class="form-label">電話</label><input type="tel" id="qPhone" placeholder="09xxxxxxxx"></div>
+    <div class="form-group">
+      <label class="form-label">生日（民國年）</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="tel" id="qBirthY" placeholder="年" style="width:70px" maxlength="3">
+        <span>/</span>
+        <input type="tel" id="qBirthM" placeholder="月" style="width:55px" maxlength="2">
+        <span>/</span>
+        <input type="tel" id="qBirthD" placeholder="日" style="width:55px" maxlength="2">
+      </div>
+    </div>
+    <div id="qError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
+    <button class="btn" style="background:var(--yellow);color:#111;font-size:13px;padding:10px;width:100%;margin-bottom:12px;" id="btnQuery" onclick="doQuery()">查詢</button>
+    <div id="queryResults"></div>
+  </div>
+</div>
+
+<!-- Modal: 代診／停診 -->
+<div class="modal-overlay" id="modalSubstitute">
+  <div class="modal">
+    <div class="modal-title">門診異動<button class="modal-close" onclick="closeModal('modalSubstitute')">✕</button></div>
+    <!-- Tab 切換 -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;">
+      <button id="tabBtnSubstitute" onclick="switchSubTab('substitute')"
+        style="flex:1;padding:8px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:var(--marigold);color:white;">代診</button>
+      <button id="tabBtnClosed" onclick="switchSubTab('closed')"
+        style="flex:1;padding:8px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:#F0F0F0;color:var(--text-light);">停診</button>
+    </div>
+    <!-- 代診 Tab -->
+    <div id="tabSubstitute">
+      <div class="form-group"><label class="form-label">日期</label><input type="date" id="subDate"></div>
+      <div class="form-group">
+        <label class="form-label">時段</label>
+        <select id="subSession" style="width:100%;padding:10px;font-size:14px;background:var(--bg-2);color:var(--text);border:none;border-bottom:2px solid var(--border);">
+          <option value="">請選擇</option>
+          <option value="早上">早上診</option>
+          <option value="下午">下午診</option>
+          <option value="晚上">晚上診</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">代診醫師</label><input type="text" id="subDoctor" placeholder="請輸入代診醫師姓名"></div>
+      <div id="subError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
+      <div id="subSuccess" class="alert alert-success" style="display:none;margin-bottom:8px"></div>
+      <button class="btn" style="background:var(--marigold);color:#fff;font-size:13px;padding:10px;width:100%;margin-bottom:14px;" id="btnSub" onclick="doSubstitute()">確認更新</button>
+      <div style="font-size:12px;font-weight:700;color:var(--text-light);margin-bottom:6px;">已設定的異動</div>
+      <div id="subList"><div class="loading">載入中...</div></div>
+    </div>
+    <!-- 停診 Tab -->
+    <div id="tabClosed" style="display:none">
+      <div class="form-group"><label class="form-label">日期</label><input type="date" id="closedDate"></div>
+      <div class="form-group">
+        <label class="form-label">時段</label>
+        <select id="closedSession" style="width:100%;padding:10px;font-size:14px;background:var(--bg-2);color:var(--text);border:none;border-bottom:2px solid var(--border);">
+          <option value="">請選擇</option>
+          <option value="早上">早上診</option>
+          <option value="下午">下午診</option>
+          <option value="晚上">晚上診</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">原因（選填）</label><input type="text" id="closedReason" placeholder="例：醫師出差、臨時停診"></div>
+      <div id="closedError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
+      <div id="closedSuccess" class="alert alert-success" style="display:none;margin-bottom:8px"></div>
+      <button class="btn btn-danger" style="font-size:13px;padding:10px;width:100%;" id="btnClosed" onclick="doClosed()">確認停診</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: 35天預覽 -->
 <div class="modal-overlay" id="modalPreview">
   <div class="modal" style="max-height:88vh;overflow-y:auto;padding:16px;">
