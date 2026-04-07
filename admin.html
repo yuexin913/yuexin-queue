@@ -589,7 +589,7 @@
 
   <!-- Row 9: 現場排號 + 心理治療 -->
   <div class="tile tile-1" onclick="openUnspecModal()" style="position:relative;background:var(--sunny);cursor:pointer;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">現場</div>
+    <div class="tile-title" style="font-size:18px;color:#111111;">不指定</div>
     <div style="font-size:15px;font-weight:400;color:#111111;margin-top:auto;" id="unspecCount"></div>
     <div id="unspecPendingDot" style="display:none;position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>
   </div>
@@ -628,10 +628,10 @@
 <!-- Modal: 現場排號名單 -->
 <div class="modal-overlay" id="modalUnspecified">
   <div class="modal">
-    <div class="modal-title">現場排號名單<button class="modal-close" onclick="closeModal('modalUnspecified')">✕</button></div>
+    <div class="modal-title">不指定時段名單<button class="modal-close" onclick="closeModal('modalUnspecified')">✕</button></div>
     <div id="unspecContent"><div class="loading">載入中...</div></div>
     <div style="margin-top:12px">
-      <button class="btn" style="background:var(--kiwi);color:#111;font-size:13px;padding:10px;" onclick="toggleUnspecForm()">＋ 新增現場排號</button>
+      <button class="btn" style="background:var(--kiwi);color:#111;font-size:13px;padding:10px;" onclick="toggleUnspecForm()">＋ 新增不指定</button>
       <div id="unspecAddForm" style="display:none;margin-top:12px">
         <div class="form-group"><label class="form-label">姓名</label><input type="text" id="uAddName" placeholder="請輸入姓名"></div>
         <div class="form-group"><label class="form-label">電話</label><input type="tel" id="uAddPhone" placeholder="09xxxxxxxx"></div>
@@ -646,7 +646,7 @@
           </div>
         </div>
         <div id="unspecAddError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
-        <button class="btn" style="background:var(--marigold);color:#fff;font-size:13px;padding:10px;width:100%" onclick="doAdminAddBooking('不指定')">確認新增現場排號</button>
+        <button class="btn" style="background:var(--marigold);color:#fff;font-size:13px;padding:10px;width:100%" onclick="doAdminAddBooking('不指定')">確認新增不指定</button>
       </div>
     </div>
   </div>
@@ -1578,7 +1578,7 @@ function renderUnspecList() {
   const list = allBookings.filter(b => b.session === activeSession && b.type !== "初診" && b.slot === "不指定");
   const el = document.getElementById("unspecContent");
   if (list.length === 0) {
-    el.innerHTML = `<div class="empty-state">目前無現場排號病患</div>`;
+    el.innerHTML = `<div class="empty-state">目前無不指定時段病患</div>`;
     return;
   }
   el.innerHTML = list.map(function(b, i) {
@@ -1745,7 +1745,7 @@ async function doAdminAddBooking(forceSlot) {
     isAdminAdding = false;
     if (btn) {
       btn.disabled = false;
-      btn.textContent = isUnspec ? "確認新增現場排號" : "確認代掛";
+      btn.textContent = isUnspec ? "確認新增不指定" : "確認代掛";
     }
   }
 }

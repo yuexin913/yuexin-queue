@@ -1508,8 +1508,8 @@ function renderSlots() {
     const unspecifiedOnclick = unspecifiedAvailable ? `onclick="selectSlot('${sessionKey}','不指定','${s.doctor}',true)"` : "";
     html += `<div class="${unspecifiedCls}" ${unspecifiedOnclick}>
       <div class="time-card-left">
-        <div class="time-card-title">現場排號</div>
-        <div class="time-card-label">${unspecifiedAvailable ? "當天還不確定時間，會於 " + (SESSION_END_TIME[sessionKey] || "結診") + " 前至診所報到。前一天請發LINE訊息提醒我。" : "已額滿"}</div>
+        <div class="time-card-title">不指定時段</div>
+        <div class="time-card-label">${unspecifiedAvailable ? "例行回診開立相同藥物。請於 " + (SESSION_END_TIME[sessionKey] || "結診") + " 前抵達，前一天將收到 LINE 提醒。" : "已額滿"}</div>
       </div>
     </div>`;
     html += '</div>';
@@ -1555,7 +1555,7 @@ async function goToConfirm() {
 
   if (state.isUnspecified) {
     slotDisplay = "";
-    arrivalDisplay = "現場排號（" + (SESSION_END_TIME[state.session] || "結診") + " 前報到）";
+    arrivalDisplay = "不指定時段（" + (SESSION_END_TIME[state.session] || "結診") + " 前抵達）";
   } else if (state.type === "初診") {
     // state.timeSlot是"0915"等時間code
     const npH = parseInt(state.timeSlot.substring(0, 2));
@@ -1690,8 +1690,8 @@ function renderBookingList(bookings) {
       // 初診：報到時間 → 醫師
       checkInLine = `報到：${esc(b.checkInTime)}　`;
     } else if (b.slot === "不指定") {
-      // 現場排號：標示 + 報到時間 → 醫師
-      slotLine = "現場排號　";
+      // 不指定時段：標示 + 報到時間 → 醫師
+      slotLine = "不指定時段　";
       checkInLine = `報到時間：${esc(b.checkInTime)}　`;
     } else {
       // 複診指定：號碼 + 報到時間（反推時段區間）→ 醫師
