@@ -270,13 +270,7 @@
     background: #000;
     position: absolute; bottom: 7px; right: 6px;
   }
-  /* 心寬轉介標記：左下角朱紅色點 */
-  .cell-xinkuan {
-    width: 8px; height: 8px;
-    background: #C0392B;
-    border-radius: 50%;
-    position: absolute; bottom: 7px; left: 6px;
-  }
+  /* 心寬轉介標記：姓名紅底線 + 紅色星號 */
   .grid-cell.has-patient .cell-name    { color: #ffffff; }
   .grid-cell.admin-pending .cell-name  { color: #ffffff; }
   .grid-cell.admin-notified .cell-name { color: #ffffff; }
@@ -690,6 +684,13 @@
       <button class="btn btn-danger" style="width:100%;"
         onclick="confirmCancel(state.contactBookingId, document.getElementById('contactName').textContent, document.getElementById('contactTimeSlot').textContent, 'modalContact')">取消此預約</button>
     </div>
+    <div id="btnCopyMsgWrap" style="display:none;margin-top:8px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">複製 LINE 訊息</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn" style="flex:1;background:var(--lagoon);color:#fff;font-size:13px;padding:10px;" onclick="copyLineMsg(false)">預約通知</button>
+        <button class="btn" style="flex:1;background:var(--capri);color:#fff;font-size:13px;padding:10px;" onclick="copyLineMsg(true)">回診提醒</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -720,8 +721,13 @@
     <div id="adminAddResultForced" style="display:none;padding:8px 0;">
       <div style="font-size:22px;margin-bottom:12px;">✅</div>
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">代掛完成</div>
-      <div style="font-size:13px;color:var(--text-light);line-height:1.8;">預約確認已發送至管理員帳號。<br>請手動轉發給病患。</div>
-      <button class="btn" style="width:100%;margin-top:20px;background:var(--kiwi);color:#fff;" onclick="closeAdminAddResult()">關閉</button>
+      <div style="font-size:13px;color:var(--text-light);line-height:1.8;margin-bottom:16px;">病患無手機，請用 LINE 手動通知。</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">複製 LINE 訊息</div>
+      <div style="display:flex;gap:6px;margin-bottom:16px;">
+        <button class="btn" style="flex:1;background:var(--lagoon);color:#fff;font-size:13px;padding:10px;" onclick="copyLineMsgForAdd(false)">預約通知</button>
+        <button class="btn" style="flex:1;background:var(--capri);color:#fff;font-size:13px;padding:10px;" onclick="copyLineMsgForAdd(true)">回診提醒</button>
+      </div>
+      <button class="btn" style="width:100%;background:var(--kiwi);color:#fff;" onclick="closeAdminAddResult()">關閉</button>
     </div>
   </div>
 </div>
@@ -907,7 +913,7 @@ const DEFAULT_DOCTOR_SCHEDULE = {
   6: { "早上": "粟寧",   "下午": "",       "晚上": ""        }
 };
 const API_URL = "https://script.google.com/macros/s/AKfycbxfbtWB6tyWUvFY1r_d26yxdm3Iz6zVALuZgUwLYyqIOHkJrn7TJJADkUE8VPkKOkZkqw/exec";
-let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, pendingForceAdd: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false };
+let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, pendingForceAdd: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false, contactType: "", contactDoctor: "", contactDate: "", contactSession: "" };
 let allBookings = [], activeSession = "";
 
 // 複診號碼 → 預計報到時段（對應 booking.html 和 GAS 的 RETURN_TIME_SLOT_CONFIG）
@@ -1568,15 +1574,15 @@ function renderSessionContent(session, isClosed) {
       const cautionHtml = isPending
         ? `<div style="position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>` : "";
       const xinkuanHtml = c.note === "心寬轉介"
-        ? `<div style="position:absolute;top:7px;right:48px;width:8px;height:8px;background:#C0392B;border-radius:50%;"></div>` : "";
+        ? `<span style="border-bottom:2px solid #C0392B;"> </span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>` : "";
 
       html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="cursor:pointer;position:relative;">
         <div style="position:absolute;top:7px;left:6px;font-size:20px;font-weight:700;color:#111111;">${esc(c.checkInTime)}前</div>
-        <div style="position:absolute;bottom:6px;left:6px;right:90px;font-size:12px;font-weight:400;color:#111111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${esc(c.name)}</div>
+        <div style="position:absolute;bottom:6px;left:6px;right:90px;font-size:12px;font-weight:400;color:#111111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${c.note === "心寬轉介" ? `<span style="border-bottom:2px solid #C0392B;">${esc(c.name)}</span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>` : esc(c.name)}</div>
         <button id="btn-${esc(c.bookingId)}"
           onclick="event.stopPropagation(); toggleCheckin('${esc(c.bookingId)}',this)"
           style="position:absolute;top:7px;right:7px;background:#000;color:${btnTextColor};border:none;font-family:inherit;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;letter-spacing:0.5px;">${btnLabel}</button>
-        ${cautionHtml}${xinkuanHtml}
+        ${cautionHtml}
       </div>`;
     } else if (c.type === "rt") {
       const isNotified = c.isAdminBooking && c.notifyStatus === "[已人工通知]";
@@ -1584,10 +1590,10 @@ function renderSessionContent(session, isClosed) {
       const numDisplay = `${c.num}`;
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" data-type="複診" data-status="${esc(c.status||'')}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const cautionHtml = (c.isAdminBooking && (c.notifyStatus === "[人工預約]")) ? `<div class="cell-caution"></div>` : "";
-      const xinkuanHtml = c.note === "心寬轉介" ? `<div class="cell-xinkuan"></div>` : "";
+      const xinkuanHtml = c.note === "心寬轉介" ? `<span style="color:#C0392B;font-size:10px;font-weight:700;position:absolute;bottom:5px;right:6px;"> *</span>` : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
-        <span class="cell-name" style="font-size:12px;font-weight:400;color:#111111;position:absolute;bottom:5px;left:6px;right:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${esc(c.name)}</span>
+        <span style="font-size:12px;font-weight:400;color:#111111;position:absolute;bottom:5px;left:6px;right:${c.note === '心寬轉介' ? '18px' : '20px'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;${c.note === '心寬轉介' ? 'border-bottom:2px solid #C0392B;' : ''}" title="${esc(c.name)}">${esc(c.name)}</span>
         ${cautionHtml}${xinkuanHtml}
       </div>`;
     } else {
@@ -1675,13 +1681,12 @@ function renderUnspecList() {
     }
 
     const xinkuanDot = b.note === "心寬轉介"
-      ? `<span style="display:inline-block;width:8px;height:8px;background:#C0392B;border-radius:50%;flex-shrink:0;"></span>`
+      ? `<span style="color:#C0392B;font-size:10px;font-weight:700;flex-shrink:0;"> *</span>`
       : "";
 
     return `<div class="unspec-modal-row">
       <span class="unspec-modal-num">${i + 1}</span>
-      ${xinkuanDot}
-      <span class="unspec-modal-name">${esc(b.name)}</span>
+      <span class="unspec-modal-name">${b.note === "心寬轉介" ? `<span style="border-bottom:2px solid #C0392B;">${esc(b.name)}</span>` : esc(b.name)}${xinkuanDot}</span>
       <span class="unspec-modal-info">${birthStr}${birthStr && phoneStr ? "　" : ""}${phoneStr}</span>
       ${notifyTag}
       <button class="btn btn-danger btn-sm" style="flex-shrink:0;font-size:11px;padding:3px 8px;"
@@ -1946,6 +1951,101 @@ function openContactModalFromEl(el) {
   openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey, el, notifyStatus);
 }
 
+/* ── 複製 LINE 訊息 ── */
+function buildLineMsg(type, isReminder, name, date, session, slot, doctor) {
+  // date 格式：2026/04/10，需要星期幾
+  const weekdays = ["日","一","二","三","四","五","六"];
+  const d = new Date(date.replace(/\//g, "-"));
+  const weekday = isNaN(d) ? "" : weekdays[d.getDay()];
+  const displayName = session + "診";
+  const SESSION_END = { "早上": "11:30", "下午": "16:30", "晚上": "20:00" };
+
+  // 複診：反推時段區間
+  function getRtRange(slotNum) {
+    const n = parseInt(slotNum);
+    const label = getReturnTimeSlotLabel(session, String(n));
+    return label || "";
+  }
+
+  const header = isReminder ? "【悅心診所 回診提醒】" : "【悅心診所 預約確認】";
+  const dateStr = date + "（週" + weekday + "）";
+  const doctorLine = doctor ? "▸ 醫師：" + doctor + "\n" : "";
+  const footer = "\n取消或更改預約，請再次使用線上預約系統。如需其他協助請聯繫診所。";
+
+  if (type === "不指定") {
+    const endTime = SESSION_END[session] || "結診";
+    const intro = isReminder
+      ? name + " 您好，提醒您明天（" + date + "）有預約："
+      : name + " 您好，您的預約已完成。";
+    return header + "\n"
+      + intro + "\n\n"
+      + "▸ 日期：" + (isReminder ? date : dateStr) + "\n"
+      + "▸ 時段：" + displayName + "\n"
+      + doctorLine
+      + "▸ 報到時間：" + endTime + " 前\n"
+      + footer + "\n\n「注意事項」\n請於時間內報到，看診順序由工作人員依現場情況安排。";
+  } else {
+    // 複診
+    const rtRange = getRtRange(slot);
+    const intro = isReminder
+      ? name + " 您好，提醒您明天（" + date + "）有預約："
+      : name + " 您好，您的預約已完成。";
+    return header + "\n"
+      + intro + "\n\n"
+      + "▸ 日期：" + (isReminder ? date : dateStr) + "\n"
+      + "▸ 時段：" + displayName + "\n"
+      + doctorLine
+      + "▸ 號碼：" + parseInt(slot) + " 號\n"
+      + (rtRange ? "▸ 報到時間：" + rtRange + "\n" : "")
+      + footer + "\n\n「注意事項」\n報到時段僅為預估，實際看診時間可能稍有延遲。";
+  }
+}
+
+function copyLineMsg(isReminder) {
+  const name = document.getElementById("contactName").textContent || "您";
+  const msg = buildLineMsg(
+    state.contactType, isReminder,
+    name, state.contactDate, state.contactSession,
+    state.contactBookingSlot, state.contactDoctor
+  );
+  navigator.clipboard.writeText(msg).then(function() {
+    showToast("✓ 已複製" + (isReminder ? "回診提醒" : "預約通知"));
+  }).catch(function() {
+    // fallback for older browsers
+    const ta = document.createElement("textarea");
+    ta.value = msg;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    showToast("✓ 已複製" + (isReminder ? "回診提醒" : "預約通知"));
+  });
+}
+
+function copyLineMsgForAdd(isReminder) {
+  const p = state.pendingForceAdd || {};
+  const session = activeSession;
+  const date = dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1/$2/$3");
+  // 取當前時段醫師（從畫面上的醫師磚讀取）
+  const doctorEl = document.getElementById("sessionDoctorText");
+  const doctor = doctorEl ? doctorEl.textContent.trim() : "";
+  const type = p.isUnspec ? "不指定" : "複診";
+  const msg = buildLineMsg(type, isReminder, p.name || "您", date, session, p.slot || "", doctor);
+  navigator.clipboard.writeText(msg).then(function() {
+    showToast("✓ 已複製" + (isReminder ? "回診提醒" : "預約通知"));
+  }).catch(function() {
+    const ta = document.createElement("textarea");
+    ta.value = msg;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    showToast("✓ 已複製" + (isReminder ? "回診提醒" : "預約通知"));
+  });
+}
+
 function rocDate(birthStr) {
   // GAS 已回傳民國年格式如 "79/05/20"，直接格式化顯示
   if (!birthStr) return "";
@@ -1959,6 +2059,13 @@ function rocDate(birthStr) {
 function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey, el, notifyStatus) {
   state.contactBookingId = bookingId;
   state.contactIsNotified = (isNotified === true || isNotified === "true");
+  // 從 allBookings 補充訊息組裝需要的欄位
+  const bk = allBookings.find(function(x) { return x.bookingId === bookingId; });
+  state.contactType    = (bk && bk.type)   || (el && el.dataset.type) || "";
+  state.contactDoctor  = (bk && bk.doctor) || "";
+  state.contactDate    = (bk && bk.date)   || dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1/$2/$3");
+  state.contactSession = session || "";
+  state.contactBookingSlot = slot || "";
   const notified = state.contactIsNotified;
   document.getElementById("contactName").textContent = name;
   document.getElementById("contactBirth").textContent = birth ? rocDate(birth) : "";
@@ -2006,6 +2113,11 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
   }
 
   document.getElementById("modalContact").classList.add("active");
+
+  // 複製訊息按鈕：只有管理員代掛（非初診）才顯示
+  const copyWrap = document.getElementById("btnCopyMsgWrap");
+  const showCopy = isAdminBooking && state.contactType !== "初診";
+  copyWrap.style.display = showCopy ? "block" : "none";
 }
 
 async function doToggleNotified() {
