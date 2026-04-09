@@ -2565,7 +2565,8 @@ async function openPreviewModal() {
     renderPreview(data.days);
   } catch(e) {
     document.getElementById("previewContent").innerHTML =
-      '<div class="alert alert-error">資料暫時無法載入，請稍後再試。</div>';
+      '<div class="alert alert-error" style="margin-bottom:12px;">資料暫時無法載入，請稍後再試。</div>' +
+      '<button class="btn" style="width:100%;background:var(--lagoon);color:#fff;" onclick="openPreviewModal()">重新載入</button>';
   }
 }
 
