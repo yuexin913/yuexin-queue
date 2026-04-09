@@ -1978,7 +1978,26 @@ function buildLineMsg(type, isReminder, name, date, session, slot, doctor) {
   const doctorLine = doctor ? "▸ 醫師：" + doctor + "\n" : "";
   const footer = "\n取消或更改預約，請再次使用線上預約系統。如需其他協助請聯繫診所。";
 
-  if (type === "不指定") {
+  if (type === "初診") {
+    // slot 是時間碼如 "0915"
+    const npH = parseInt((slot || "0000").substring(0, 2));
+    const npM = (slot || "0000").substring(2, 4);
+    const npTimeDisplay = npH + "點" + npM + "分";
+    const header = isReminder ? "【悅心診所 看診提醒】" : "【悅心診所 預約確認】";
+    const intro = isReminder
+      ? name + " 您好，提醒您明天（" + date + "）有初診預約："
+      : name + " 您好，您的初診預約已完成。";
+    return header + "\n"
+      + intro + "\n\n"
+      + "▸ 日期：" + (isReminder ? date : dateStr) + "\n"
+      + "▸ 時段：" + displayName + "\n"
+      + doctorLine
+      + "▸ 報到時間：" + npTimeDisplay + "前\n"
+      + footer + "\n\n「注意事項」\n"
+      + "1.報到時間非實際看診時間。\n"
+      + "2.初診需較長時間會談，看診順序由工作人員依現場情況安排。\n"
+      + "3.逾時報到視同取消預約，需重新排空號或改其他時段。";
+  } else if (type === "不指定") {
     const endTime = SESSION_END[session] || "結診";
     const intro = isReminder
       ? name + " 您好，提醒您明天（" + date + "）有預約："
@@ -2122,7 +2141,7 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
 
   // 複製訊息按鈕：只有管理員代掛（非初診）才顯示
   const copyWrap = document.getElementById("btnCopyMsgWrap");
-  const showCopy = isAdminBooking && state.contactType !== "初診";
+  const showCopy = isAdminBooking;
   copyWrap.style.display = showCopy ? "block" : "none";
 }
 
