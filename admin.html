@@ -1592,15 +1592,15 @@ function renderSessionContent(session, isClosed) {
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" data-type="複診" data-status="${esc(c.status||'')}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const cautionHtml = (c.isAdminBooking && (c.notifyStatus === "[人工預約]")) ? `<div class="cell-caution"></div>` : "";
       const isXinkuan = c.note === "心寬轉介";
-      const xinkuanHtml = isXinkuan ? `<span style="color:#C0392B;font-size:10px;font-weight:700;position:absolute;bottom:5px;right:6px;"> *</span>` : "";
+      const xinkuanHtml = "";
       const nameRight = cautionHtml ? "22px" : "20px";
       const nameHtml = isXinkuan
-        ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(c.name)}</span>`
+        ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(c.name)}</span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>`
         : esc(c.name);
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
         <span style="font-size:12px;font-weight:400;color:#111111;position:absolute;bottom:5px;left:6px;right:${nameRight};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${nameHtml}</span>
-        ${cautionHtml}${xinkuanHtml}
+        ${cautionHtml}
       </div>`;
     } else {
       // empty
