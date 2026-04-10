@@ -448,6 +448,12 @@
   <span style="font-size:10px;color:#D4522A;font-weight:700;letter-spacing:0;">預覽版</span>
 </div>
 
+<!-- 全螢幕等待遮罩 -->
+<div id="bookingOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+  <div class="spinner" style="width:32px;height:32px;border-width:3px;border-color:rgba(255,255,255,0.3);border-top-color:#fff;"></div>
+  <div id="bookingOverlayText" style="font-size:15px;font-weight:600;color:#fff;letter-spacing:0.5px;"></div>
+</div>
+
 <div class="container">
 
   <!-- 載入頁 -->
@@ -732,6 +738,15 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbxfbtWB6tyWUvFY1r_d26yxdm3Iz6zVALuZgUwLYyqIOHkJrn7TJJADkUE8VPkKOkZkqw/exec";
 const LIFF_ID = "2009340533-JKP6Q8Qg";
 let isSubmitting = false; // 防連點全域旗標
+
+function showOverlay(text) {
+  const el = document.getElementById("bookingOverlay");
+  document.getElementById("bookingOverlayText").textContent = text || "";
+  el.style.display = "flex";
+}
+function hideOverlay() {
+  document.getElementById("bookingOverlay").style.display = "none";
+}
 
 let state = {
   lineId: null,
@@ -1070,7 +1085,16 @@ async function selectDate(dateStr) {
   if (medCalcArea) medCalcArea.style.display = "none";
   document.getElementById("sessionContainer").innerHTML = '<div class="loading"><div class="spinner"></div>載入中...</div>';
   document.getElementById("slotsContainer").innerHTML = "";
-  await loadSlots(dateStr);
+  // 自動捲動到診次區，讓 spinner 進入視野
+  setTimeout(function() {
+    document.getElementById("sessionContainer").scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 50);
+  showOverlay("載入門診資訊...");
+  try {
+    await loadSlots(dateStr);
+  } finally {
+    hideOverlay();
+  }
 }
 
 function reopenCalendar() {
@@ -1405,12 +1429,21 @@ async function goToConfirm() {
   }
   hideError("errorPage2");
 
+  const btn = document.querySelector("#pageTime .btn-primary");
+  if (btn) { btn.disabled = true; btn.textContent = "確認中..."; }
+  showOverlay("確認中...");
   try {
     const dateCode = state.date.replace(/\//g,'');
     const data = await xhrGet(`${API_URL}?action=checkLimit&lineId=${state.lineId}&date=${dateCode}`);
     if (data.sameDayExceeded) return showError("errorPage2", "您當天已有預約。如需更改，請先取消原預約後再重新預約。若需加掛門診，請於門診時間來電：07-363-1313。");
     if (data.sameWeekExceeded) return showError("errorPage2", "您本週預約已達上限（每週最多二次）。如需更改，請先取消其中一筆預約，再重新預約。若需加掛門診，請於門診時間來電：07-363-1313。");
-  } catch(e) { return showError("errorPage2", "連線中斷，請確認網路後重試。"); }
+  } catch(e) {
+    showError("errorPage2", "連線中斷，請確認網路後重試。");
+    return;
+  } finally {
+    hideOverlay();
+    if (btn) { btn.disabled = false; btn.textContent = "下一步：確認預約 →"; }
+  }
 
   const weekdays = ["日","一","二","三","四","五","六"];
   const weekday = weekdays[new Date(state.date).getDay()];
@@ -1458,6 +1491,7 @@ async function submitBooking() {
   isSubmitting = true;
   const btn = document.getElementById("btnSubmit");
   btn.disabled = true; btn.textContent = "送出中...";
+  showOverlay("送出預約中...");
   try {
     // 複診送時段字串（"0900-1000" 等），GAS 自動發號；初診送時間碼；不指定送 "不指定"
     const slotParam = state.isUnspecified ? "不指定" : state.timeSlot;
@@ -1499,6 +1533,7 @@ async function submitBooking() {
     btn.disabled = false; btn.textContent = "確認送出預約";
   } finally {
     isSubmitting = false;
+    hideOverlay();
   }
 }
 
@@ -1524,6 +1559,7 @@ async function queryBookings() {
 
   const btn = document.getElementById("btnQuery");
   btn.disabled = true; btn.textContent = "查詢中...";
+  showOverlay("查詢中...");
 
   try {
     const data = await xhrPost(API_URL, { action: "queryBookings", name: name, lineId: state.lineId });
@@ -1539,6 +1575,7 @@ async function queryBookings() {
   } finally {
     isSubmitting = false;
     btn.disabled = false; btn.textContent = "查詢我的預約";
+    hideOverlay();
   }
 }
 
