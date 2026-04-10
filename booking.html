@@ -1624,7 +1624,10 @@ async function submitBooking() {
     // 成功提醒文字（已移除）
     showPage("pageSuccess");
   } catch(e) {
-    showError("errorPage3", "預約未完成，請再試一次。");
+    // GAS 回傳的業務邏輯錯誤（data.error）直接顯示；網路/timeout 錯誤顯示通用訊息
+    const msg = (e.message && !e.message.includes("XMLHttp") && !e.message.includes("timeout") && !e.message.includes("network"))
+      ? e.message : "預約未完成，請再試一次。";
+    showError("errorPage3", msg);
     btn.disabled = false; btn.textContent = "確認送出預約";
   } finally {
     isSubmitting = false;
