@@ -1524,9 +1524,15 @@ function renderSessionContent(session, isClosed) {
         conflictList.push(b);
         return;
       }
-      // 同號碼衝突：該格已有人，後來的也推進衝突區
+      // 同號碼衝突：該格已有人，把原本的人和新來的人都推進衝突區
       if (cells[idx].type === "rt") {
+        // 原本已在格子裡的人也要加進衝突清單（只加一次）
+        const existing = cells[idx];
+        if (!conflictList.find(function(c) { return c.bookingId === existing.bookingId; })) {
+          conflictList.push({ name: existing.name, slot: existing.slot, bookingId: existing.bookingId });
+        }
         conflictList.push(b);
+        cells[idx] = { type: "empty", num: slot }; // 格子清空，兩人都移到衝突區
         return;
       }
       cells[idx] = { type: "rt", num: slot, name: b.name, bookingId: b.bookingId, status: b.status, phone: b.phone || "", isAdminBooking: b.isAdminBooking || false, note: b.note || "", birth: b.birth || "", slot: b.slot || "", notifyStatus: b.notifyStatus || "", date: b.date || "" };
@@ -1631,19 +1637,6 @@ function renderSessionContent(session, isClosed) {
   if (unspecDot) {
     const hasPending = unList.some(b => b.notifyStatus === "[人工預約]");
     unspecDot.style.display = hasPending ? "block" : "none";
-  }
-
-  // 異常排班區（格位衝突，絕對不能隱藏）
-  if (conflictList.length > 0) {
-    html += `<div class="conflict-zone">
-      <div class="conflict-title">⚠️ 異常排班（${conflictList.length} 人）：重複預約，請人工確認。</div>`;
-    conflictList.forEach(function(b) {
-      html += `<div class="conflict-row">
-        <span class="conflict-slot">${esc(b.slot)}號</span>
-        <span class="conflict-name">${esc(b.name)}</span>
-      </div>`;
-    });
-    html += `</div>`;
   }
 
   el.innerHTML = html;
