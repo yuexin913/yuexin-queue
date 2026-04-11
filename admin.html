@@ -1331,7 +1331,7 @@ async function loadSchedule(preferredSession) {
   } catch(e) {
     if (loadingBar) loadingBar.style.display = "none";
     document.getElementById("scheduleContent").innerHTML =
-      `<div style="grid-column:1/-1;padding:12px;background:var(--bg);"><div class="alert alert-error">診表暫時無法載入。<br><small>${e.message}<br>${e.stack||''}</small></div></div>`;
+      `<div style="grid-column:1/-1;padding:12px;background:var(--bg);"><div class="alert alert-error">${e.message === "SERVER_HTML" ? "系統暫時無法使用，請稍後再試。" : "診表暫時無法載入。<br><small>" + e.message + "</small>"}</div></div>`;
   }
 }
 
@@ -1563,7 +1563,8 @@ function renderSessionContent(session, isClosed) {
         npResidence:    np.residence     || "",
         npLivingWith:   np.livingWith    || "",
         npOccupation:   np.occupation    || "",
-        npAvailableTime: np.availableTime || ""
+        npAvailableTime: np.availableTime || "",
+        npRowStart: rowStart
       };
       // 把 rowStart+1 ~ rowStart+4 標記為 np_skip（渲染時略過）
       for (let k = 1; k < 5; k++) {
@@ -1591,7 +1592,7 @@ function renderSessionContent(session, isClosed) {
       const btnLabel = isDone ? "已報到" : "未報到";
       const cautionHtml = isPending
         ? `<div style="position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>` : "";
-      const npConflictHtml = conflictNpRowStarts.has(rowStart)
+      const npConflictHtml = conflictNpRowStarts.has(c.npRowStart)
         ? `<div style="position:absolute;bottom:6px;right:7px;font-size:14px;line-height:1;">⚠️</div>` : "";
       const isXinkuan = c.note === "心寬轉介";
       const xinkuanHtml = isXinkuan
