@@ -1519,6 +1519,11 @@ function renderSessionContent(session, isClosed) {
         conflictList.push(b);
         return;
       }
+      // 同號碼衝突：該格已有人，後來的也推進衝突區
+      if (cells[idx].type === "rt") {
+        conflictList.push(b);
+        return;
+      }
       cells[idx] = { type: "rt", num: slot, name: b.name, bookingId: b.bookingId, status: b.status, phone: b.phone || "", isAdminBooking: b.isAdminBooking || false, note: b.note || "", birth: b.birth || "", slot: b.slot || "", notifyStatus: b.notifyStatus || "", date: b.date || "" };
     }
   });
