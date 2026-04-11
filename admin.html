@@ -1515,6 +1515,7 @@ function renderSessionContent(session, isClosed) {
 
   // 塞入複診（slot 決定位置）
   const conflictList = [];
+  const conflictNpRowStarts = new Set(); // 記錄與複診衝突的初診 rowStart
   rtList.forEach(function(b) {
     const slot = parseInt(b.slot, 10);
     if (slot >= 1 && slot <= 30) {
@@ -1522,6 +1523,7 @@ function renderSessionContent(session, isClosed) {
       const rowStart = idx < 5 ? null : Math.floor((idx - 5) / 5) * 5 + 5;
       if (rowStart !== null && npRowStarts.has(rowStart)) {
         conflictList.push(b);
+        conflictNpRowStarts.add(rowStart); // 標記這個初診列有衝突
         return;
       }
       // 同號碼衝突：該格已有人，把原本的人和新來的人都推進衝突區
@@ -1532,7 +1534,7 @@ function renderSessionContent(session, isClosed) {
           conflictList.push({ name: existing.name, slot: existing.slot, bookingId: existing.bookingId });
         }
         conflictList.push(b);
-        cells[idx] = { type: "empty", num: slot }; // 格子清空，兩人都移到衝突區
+        cells[idx] = { type: "conflict", num: slot }; // 格子標記為衝突
         return;
       }
       cells[idx] = { type: "rt", num: slot, name: b.name, bookingId: b.bookingId, status: b.status, phone: b.phone || "", isAdminBooking: b.isAdminBooking || false, note: b.note || "", birth: b.birth || "", slot: b.slot || "", notifyStatus: b.notifyStatus || "", date: b.date || "" };
@@ -1589,6 +1591,8 @@ function renderSessionContent(session, isClosed) {
       const btnLabel = isDone ? "已報到" : "未報到";
       const cautionHtml = isPending
         ? `<div style="position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>` : "";
+      const npConflictHtml = conflictNpRowStarts.has(rowStart)
+        ? `<div style="position:absolute;bottom:6px;right:7px;font-size:14px;line-height:1;">⚠️</div>` : "";
       const isXinkuan = c.note === "心寬轉介";
       const xinkuanHtml = isXinkuan
         ? `<span style="border-bottom:2px solid #C0392B;"> </span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>` : "";
@@ -1599,7 +1603,7 @@ function renderSessionContent(session, isClosed) {
         <button id="btn-${esc(c.bookingId)}"
           onclick="event.stopPropagation(); toggleCheckin('${esc(c.bookingId)}',this)"
           style="position:absolute;top:7px;right:7px;background:#000;color:${btnTextColor};border:none;font-family:inherit;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;letter-spacing:0.5px;">${btnLabel}</button>
-        ${cautionHtml}
+        ${cautionHtml}${npConflictHtml}
       </div>`;
     } else if (c.type === "rt") {
       const isNotified = c.isAdminBooking && c.notifyStatus === "[已人工通知]";
@@ -1617,6 +1621,12 @@ function renderSessionContent(session, isClosed) {
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
         <span style="font-size:12px;font-weight:400;color:#111111;position:absolute;bottom:5px;left:6px;right:${nameRight};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${nameHtml}</span>
         ${cautionHtml}
+      </div>`;
+    } else if (c.type === "conflict") {
+      // 衝突格：紅底 + ⚠️
+      html += `<div class="grid-cell" style="background:#C0392B;position:relative;">
+        <span style="font-size:20px;font-weight:200;color:rgba(255,255,255,0.6);position:absolute;top:6px;left:6px;">${c.num}</span>
+        <span style="font-size:22px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">⚠️</span>
       </div>`;
     } else {
       // empty
