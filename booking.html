@@ -1350,18 +1350,17 @@ function renderSlots() {
   if (isNewPatient) {
     const slots = s.newPatientSlots || [];
     const hasAvailable = slots.some(function(slot) { return slot.available; });
+    html += '<div class="slots-grid">';
+    slots.forEach(function(slot) {
+      const isSelected = state.timeSlot === slot.code;
+      const cls = "slot-btn" + (!slot.available || !hasAvailable ? " unavailable" : "") + (isSelected ? " selected" : "");
+      const onclick = (slot.available && hasAvailable) ? `onclick="selectSlot('${sessionKey}','${slot.code}','${s.doctor}',false)"` : "";
+      const npDisplay = slot.display.replace(/(.*點)(\d+分)/, '$1<br>$2');
+      html += `<div class="${cls}" ${onclick}>${npDisplay}</div>`;
+    });
+    html += '</div>';
     if (!hasAvailable) {
-      html += `<div class="fully-booked">此時段初診已額滿。<br><span style="font-size:12px;font-weight:400;">若有需要，歡迎來電或傳訊洽詢：07-363-1313</span></div>`;
-    } else {
-      html += '<div class="slots-grid">';
-      slots.forEach(function(slot) {
-        const isSelected = state.timeSlot === slot.code;
-        const cls = "slot-btn" + (!slot.available ? " unavailable" : "") + (isSelected ? " selected" : "");
-        const onclick = slot.available ? `onclick="selectSlot('${sessionKey}','${slot.code}','${s.doctor}',false)"` : "";
-        const npDisplay = slot.display.replace(/(.*點)(\d+分)/, '$1<br>$2');
-        html += `<div class="${cls}" ${onclick}>${npDisplay}</div>`;
-      });
-      html += '</div>';
+      html += `<div class="fully-booked" style="margin-top:8px;">此時段初診已額滿。<br><span style="font-size:12px;font-weight:400;">若有需要，請來電或傳訊洽詢：07-363-1313</span></div>`;
     }
   } else {
     const returnSlots = s.returnSlots || [];
