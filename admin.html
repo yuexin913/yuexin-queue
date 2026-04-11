@@ -610,6 +610,7 @@
   <div class="tile tile-1" id="securityTile" onclick="openModal('modalSecurity')" style="position:relative;background:var(--pink);cursor:pointer;">
     <div class="tile-title" style="font-size:18px;color:#111111;">系統</div>
     <div id="securityUnreadDot" style="display:none;position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>
+    <div id="conflictBadge" style="display:none;position:absolute;top:6px;right:6px;min-width:18px;height:18px;background:#C0392B;color:#fff;border-radius:50%;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 3px;"></div>
   </div>
   <div class="tile tile-1" style="position:relative;background:var(--cloud);cursor:pointer;" onclick="openLogoutModal()">
     <div class="tile-title" style="font-size:15px;color:#111111;" id="adminBadge">...</div>
@@ -794,6 +795,10 @@
 <div class="modal-overlay" id="modalSecurity">
   <div class="modal">
     <div class="modal-title">系統異常通報<button class="modal-close" onclick="closeModal('modalSecurity')">✕</button></div>
+    <div id="conflictWarning" style="display:none;margin-bottom:14px;padding:10px 12px;background:#2A1010;border-left:3px solid #C0392B;border-radius:4px;">
+      <div style="font-size:13px;font-weight:700;color:#E74C3C;margin-bottom:8px;">⚠️ 重複預約：請人工確認。</div>
+      <div id="conflictWarningList" style="font-size:13px;color:var(--text);line-height:2;"></div>
+    </div>
     <div id="securityContent"><div class="loading">載入中...</div></div>
     <div style="margin-top:12px">
       <button class="btn" id="btnMarkRead" style="background:var(--marigold);color:#fff;font-size:13px;padding:10px;width:100%" onclick="doMarkSecurityRead()">✓ 標記全部已讀</button>
@@ -1631,18 +1636,40 @@ function renderSessionContent(session, isClosed) {
   // 異常排班區（格位衝突，絕對不能隱藏）
   if (conflictList.length > 0) {
     html += `<div class="conflict-zone">
-      <div class="conflict-title">⚠️ 異常排班（${conflictList.length} 人）—— 號碼與初診格位衝突，請人工確認</div>`;
+      <div class="conflict-title">⚠️ 異常排班（${conflictList.length} 人）：重複預約，請人工確認。</div>`;
     conflictList.forEach(function(b) {
       html += `<div class="conflict-row">
         <span class="conflict-slot">${esc(b.slot)}號</span>
         <span class="conflict-name">${esc(b.name)}</span>
-        <span class="conflict-note">格位重疊</span>
       </div>`;
     });
     html += `</div>`;
   }
 
   el.innerHTML = html;
+
+  // 更新系統 tile 衝突角標
+  const badge = document.getElementById("conflictBadge");
+  const warning = document.getElementById("conflictWarning");
+  const warningList = document.getElementById("conflictWarningList");
+  if (badge) {
+    if (conflictList.length > 0) {
+      badge.textContent = conflictList.length;
+      badge.style.display = "flex";
+    } else {
+      badge.style.display = "none";
+    }
+  }
+  if (warning && warningList) {
+    if (conflictList.length > 0) {
+      warningList.innerHTML = conflictList.map(function(b) {
+        return `<div>${esc(b.slot)}號　${esc(b.name)}</div>`;
+      }).join("");
+      warning.style.display = "block";
+    } else {
+      warning.style.display = "none";
+    }
+  }
 }
 
 /* ── 現場排號 Modal ── */
