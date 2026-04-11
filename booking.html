@@ -1351,7 +1351,7 @@ function renderSlots() {
     const slots = s.newPatientSlots || [];
     const hasAvailable = slots.some(function(slot) { return slot.available; });
     if (!hasAvailable) {
-      html += `<div class="fully-booked">此時段初診已額滿</div>`;
+      html += `<div class="fully-booked">此時段初診已額滿。<br><span style="font-size:12px;font-weight:400;">若有需要，歡迎來電或傳訊洽詢：07-363-1313</span></div>`;
     } else {
       html += '<div class="slots-grid">';
       slots.forEach(function(slot) {
