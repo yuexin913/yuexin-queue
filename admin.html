@@ -692,6 +692,10 @@
         <button class="btn" style="flex:1;background:var(--capri);color:#fff;font-size:13px;padding:10px;" onclick="copyLineMsg(true)">回診提醒</button>
       </div>
     </div>
+    <div id="btnContactMethodWrap" style="display:none;margin-top:8px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">聯繫方式</div>
+      <button class="btn" id="btnContactMethod" style="width:100%;font-size:13px;padding:10px;" onclick="cycleContactMethod()"></button>
+    </div>
   </div>
 </div>
 
@@ -1537,7 +1541,7 @@ function renderSessionContent(session, isClosed) {
         cells[idx] = { type: "conflict", num: slot }; // 格子標記為衝突
         return;
       }
-      cells[idx] = { type: "rt", num: slot, name: b.name, bookingId: b.bookingId, status: b.status, phone: b.phone || "", isAdminBooking: b.isAdminBooking || false, note: b.note || "", birth: b.birth || "", slot: b.slot || "", notifyStatus: b.notifyStatus || "", date: b.date || "" };
+      cells[idx] = { type: "rt", num: slot, name: b.name, bookingId: b.bookingId, status: b.status, phone: b.phone || "", isAdminBooking: b.isAdminBooking || false, note: b.note || "", source: b.source || "", birth: b.birth || "", slot: b.slot || "", notifyStatus: b.notifyStatus || "", date: b.date || "" };
     }
   });
 
@@ -1592,6 +1596,7 @@ function renderSessionContent(session, isClosed) {
         phone: np.phone || "",
         isAdminBooking: np.isAdminBooking || false,
         note: np.note || "",
+        source: np.source || "",
         birth: np.birth || "",
         slot: np.slot || "",
         notifyStatus: np.notifyStatus || "",
@@ -1633,9 +1638,7 @@ function renderSessionContent(session, isClosed) {
         ? `<div style="position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>` : "";
       const npConflictHtml = (c.hasRtConflict || conflictNpRowStarts.has(c.npRowStart))
         ? `<div style="position:absolute;bottom:6px;right:7px;font-size:14px;line-height:1;">⚠️</div>` : "";
-      const isXinkuan = c.note === "心寬轉介";
-      const xinkuanHtml = isXinkuan
-        ? `<span style="border-bottom:2px solid #C0392B;"> </span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>` : "";
+      const isXinkuan = c.source === "心寬轉介";
 
       html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="cursor:pointer;position:relative;">
         <div style="position:absolute;top:7px;left:6px;font-size:20px;font-weight:700;color:#111111;">${esc(c.checkInTime)}前</div>
@@ -1651,7 +1654,7 @@ function renderSessionContent(session, isClosed) {
       const numDisplay = `${c.num}`;
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" data-type="複診" data-status="${esc(c.status||'')}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const cautionHtml = (c.isAdminBooking && (c.notifyStatus === "[人工預約]")) ? `<div class="cell-caution"></div>` : "";
-      const isXinkuan = c.note === "心寬轉介";
+      const isXinkuan = c.source === "心寬轉介";
       const xinkuanHtml = "";
       const nameRight = cautionHtml ? "22px" : "20px";
       const nameHtml = isXinkuan
@@ -1770,13 +1773,13 @@ function renderUnspecList() {
       notifyTag = `<span class="unspec-notify-auto">系統</span>`;
     }
 
-    const xinkuanDot = b.note === "心寬轉介"
+    const xinkuanDot = b.source === "心寬轉介"
       ? `<span style="color:#C0392B;font-size:10px;font-weight:700;flex-shrink:0;"> *</span>`
       : "";
 
     return `<div class="unspec-modal-row">
       <span class="unspec-modal-num">${i + 31}</span>
-      <span class="unspec-modal-name">${b.note === "心寬轉介" ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(b.name)}</span>` : esc(b.name)}${xinkuanDot}</span>
+      <span class="unspec-modal-name">${b.source === "心寬轉介" ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(b.name)}</span>` : esc(b.name)}${xinkuanDot}</span>
       <span class="unspec-modal-info">${birthStr}${birthStr && phoneStr ? "　" : ""}${phoneStr}</span>
       ${notifyTag}
       <button class="btn btn-danger btn-sm" style="flex-shrink:0;font-size:11px;padding:3px 8px;"
@@ -2176,7 +2179,11 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
   state.contactSession = session || "";
   state.contactBookingSlot = slot || "";
   const notified = state.contactIsNotified;
-  document.getElementById("contactName").textContent = name;
+  // 姓名 + 聯繫方式 emoji
+  const bkForName = allBookings.find(function(b) { return b.bookingId === bookingId; });
+  const currentMethod = (bkForName && bkForName.note) ? bkForName.note : "";
+  const methodEmoji = currentMethod === "電話通知" ? " 📞" : currentMethod === "簡訊通知" ? " 💬" : "";
+  document.getElementById("contactName").textContent = name + methodEmoji;
   document.getElementById("contactBirth").textContent = birth ? rocDate(birth) : "";
   // 顯示預計報到時段（複診有號碼時反推；初診或不指定則隱藏）
   const tsEl = document.getElementById("contactTimeSlot");
@@ -2223,10 +2230,76 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
 
   document.getElementById("modalContact").classList.add("active");
 
-  // 複製訊息按鈕：只有管理員代掛（非初診）才顯示
+  // 複製訊息按鈕：只有管理員代掛才顯示
   const copyWrap = document.getElementById("btnCopyMsgWrap");
   const showCopy = isAdminBooking;
   copyWrap.style.display = showCopy ? "block" : "none";
+
+  // 聯繫方式按鈕：只有管理員代掛才顯示
+  const methodWrap = document.getElementById("btnContactMethodWrap");
+  if (isAdminBooking) {
+    methodWrap.style.display = "block";
+    // 讀取目前 N 欄值（從 allBookings 取得）
+    const bk = allBookings.find(function(b) { return b.bookingId === bookingId; });
+    const rawMethod = (bk && bk.note) ? bk.note : "";
+    // 只接受合法值，其他一律當作 LINE（空白）
+    const currentMethod = CONTACT_METHOD_CYCLE.indexOf(rawMethod) !== -1 ? rawMethod : "";
+    updateContactMethodBtn(currentMethod);
+  } else {
+    methodWrap.style.display = "none";
+  }
+}
+
+const CONTACT_METHOD_CYCLE = ["", "電話通知", "簡訊通知"];
+const CONTACT_METHOD_LABELS = { "": "💚 LINE", "電話通知": "📞 電話通知", "簡訊通知": "💬 簡訊通知" };
+const CONTACT_METHOD_COLORS = { "": "var(--kiwi)", "電話通知": "#E67E22", "簡訊通知": "var(--capri)" };
+
+function updateContactMethodBtn(method) {
+  const btn = document.getElementById("btnContactMethod");
+  if (!btn) return;
+  btn.textContent = CONTACT_METHOD_LABELS[method] || "💚 LINE";
+  btn.style.background = CONTACT_METHOD_COLORS[method] || "var(--kiwi)";
+  btn.style.color = "#fff";
+  btn.dataset.method = method;
+}
+
+async function cycleContactMethod() {
+  const btn = document.getElementById("btnContactMethod");
+  const current = btn.dataset.method || "";
+  const idx = CONTACT_METHOD_CYCLE.indexOf(current);
+  const next = CONTACT_METHOD_CYCLE[(idx + 1) % CONTACT_METHOD_CYCLE.length];
+  btn.disabled = true;
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "updateContactMethod",
+      bookingId: state.contactBookingId,
+      method: next,
+      lineId: state.lineId,
+      token: state.sessionToken
+    });
+    if (data.success) {
+      // 更新前端 allBookings
+      const bk = allBookings.find(function(b) { return b.bookingId === state.contactBookingId; });
+      if (bk) bk.note = next;
+      updateContactMethodBtn(next);
+      // 更新 modal 姓名後的 emoji
+      updateContactNameEmoji(next);
+    }
+  } catch(e) {
+    // 失敗時不更新
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function updateContactNameEmoji(method) {
+  const nameEl = document.getElementById("contactName");
+  if (!nameEl) return;
+  // 移除舊的 emoji
+  let name = nameEl.textContent.replace(/ 📞$| 💬$/, "");
+  if (method === "電話通知") name += " 📞";
+  else if (method === "簡訊通知") name += " 💬";
+  nameEl.textContent = name;
 }
 
 async function doToggleNotified() {
