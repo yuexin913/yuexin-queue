@@ -393,6 +393,7 @@
   .contact-birth { font-size: 13px; font-weight: 200; color: var(--text-light); text-align: center; margin-bottom: 8px; letter-spacing: 1px; }
   .contact-timeslot { font-size: 13px; font-weight: 300; color: var(--marigold); text-align: center; margin-bottom: 8px; letter-spacing: 0.5px; }
   .contact-phone { display: block; font-size: 32px; font-weight: 700; color: var(--marigold); text-align: center; text-decoration: none; letter-spacing: 3px; margin-bottom: 20px; }
+  .contact-phone.no-phone { font-size: 16px; font-weight: 400; color: var(--text-light); letter-spacing: 0; cursor: default; }
 
   .unspec-modal-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .unspec-modal-row:last-child { border-bottom: none; }
@@ -2190,8 +2191,15 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
   const timeSlotLabel = slot && session ? getReturnTimeSlotLabel(session, slot) : null;
   tsEl.textContent = timeSlotLabel ? "預計報到 " + timeSlotLabel : "";
   tsEl.style.display = timeSlotLabel ? "block" : "none";
-  document.getElementById("contactPhone").textContent = phone || "（無電話）";
-  document.getElementById("contactPhone").href = phone ? "tel:" + phone : "";
+  const phoneEl = document.getElementById("contactPhone");
+  phoneEl.textContent = phone || "（無電話）";
+  if (phone) {
+    phoneEl.href = "tel:" + phone;
+    phoneEl.classList.remove("no-phone");
+  } else {
+    phoneEl.href = "javascript:void(0)";
+    phoneEl.classList.add("no-phone");
+  }
   // 只有 [人工預約] 或 [已人工通知]（無手機代掛）才顯示切換按鈕
   // [待通知] / [已通知] 的病患有 LINE ID，系統自動處理，不需要手動切換
   const wrap = document.getElementById("btnToggleNotifiedWrap");

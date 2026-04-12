@@ -718,10 +718,9 @@
   <div class="page" id="pageQuery">
     <div class="card">
       <div class="card-title">查詢預約</div>
-      <div class="alert alert-info" style="margin-bottom:16px">請輸入預約時填寫的姓名</div>
       <div class="form-group">
         <label for="queryName">姓名 <span class="required">*</span></label>
-        <input type="text" id="queryName" placeholder="請輸入姓名">
+        <input type="text" id="queryName" placeholder="請輸入預約時填寫的姓名">
       </div>
     </div>
     <div id="errorQuery" class="alert alert-error" style="display:none"></div>
@@ -734,6 +733,11 @@
     <div class="card">
       <div class="card-title">我的預約</div>
       <div id="bookingList"></div>
+      <div id="bookingPagination" style="display:none;margin-top:12px;align-items:center;justify-content:space-between;gap:8px;">
+        <button class="btn btn-outline" id="btnPrevPage" onclick="changePage(-1)" style="flex:1;padding:8px;font-size:13px;">← 上一頁</button>
+        <div id="pageIndicator" style="font-size:13px;color:var(--text-light);white-space:nowrap;"></div>
+        <button class="btn btn-outline" id="btnNextPage" onclick="changePage(1)" style="flex:1;padding:8px;font-size:13px;">下一頁 →</button>
+      </div>
     </div>
     <div id="cancelError" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-outline" onclick="showPage('pageQuery')">← 重新查詢</button>
@@ -1599,30 +1603,52 @@ async function queryBookings() {
   }
 }
 
+let allBookingResults = [];
+let currentPage = 1;
+const PAGE_SIZE = 10;
+
 function renderBookingList(bookings) {
-  if (!bookings || bookings.length === 0) {
-    document.getElementById("bookingList").innerHTML = '<div class="no-clinic">目前沒有預約記錄</div>';
+  allBookingResults = bookings || [];
+  currentPage = 1;
+  renderBookingPage();
+}
+
+function renderBookingPage() {
+  const bookings = allBookingResults;
+  const totalPages = Math.max(1, Math.ceil(bookings.length / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const end = Math.min(start + PAGE_SIZE, bookings.length);
+  const pageBookings = bookings.slice(start, end);
+
+  const listEl = document.getElementById("bookingList");
+  const paginationEl = document.getElementById("bookingPagination");
+  const indicatorEl = document.getElementById("pageIndicator");
+  const prevBtn = document.getElementById("btnPrevPage");
+  const nextBtn = document.getElementById("btnNextPage");
+
+  if (!pageBookings || pageBookings.length === 0) {
+    listEl.innerHTML = '<div class="no-clinic">目前沒有預約記錄</div>';
+    paginationEl.style.display = "none";
     return;
   }
+
   const statusMap = { "待確認": "status-pending", "已確認": "status-confirmed", "已取消": "status-cancelled" };
   let html = "";
-  bookings.forEach(function(b) {
+  pageBookings.forEach(function(b) {
     const statusCls = statusMap[b.status] || "status-pending";
     const canCancel = b.status !== "已取消";
     const displayName = esc(b.displayName || b.session + "診");
 
-    // 計算顯示內容
     let slotLine = "";
     let checkInLine = "";
     if (b.type === "初診") {
-      // 初診：報到時間 → 醫師
       checkInLine = `報到：${esc(b.checkInTime)}　`;
     } else if (b.slot === "不指定") {
-      // 不指定時段：標示 + 報到時間 → 醫師
       slotLine = "不指定時段　";
       checkInLine = `報到時間：${esc(b.checkInTime)}　`;
     } else {
-      // 複診指定：號碼 + 報到時間（反推時段區間）→ 醫師
       const slotNum = parseInt(b.slot);
       let rangeDisplay = "";
       if (!isNaN(slotNum) && RETURN_TIME_CARDS[b.session]) {
@@ -1645,7 +1671,24 @@ function renderBookingList(bookings) {
       ${canCancel ? `<button class="booking-cancel" onclick="cancelBooking('${esc(b.bookingId)}', this)">取消此預約</button>` : ""}
     </div>`;
   });
-  document.getElementById("bookingList").innerHTML = html;
+  listEl.innerHTML = html;
+
+  // 分頁控制
+  if (totalPages > 1) {
+    paginationEl.style.display = "flex";
+    indicatorEl.textContent = `第 ${currentPage} / ${totalPages} 頁`;
+    prevBtn.disabled = currentPage === 1;
+    nextBtn.disabled = currentPage === totalPages;
+  } else {
+    paginationEl.style.display = "none";
+  }
+}
+
+function changePage(delta) {
+  const totalPages = Math.ceil(allBookingResults.length / PAGE_SIZE);
+  currentPage = Math.max(1, Math.min(currentPage + delta, totalPages));
+  renderBookingPage();
+  window.scrollTo(0, 0);
 }
 
 async function cancelBooking(bookingId, btn) {
@@ -1656,6 +1699,9 @@ async function cancelBooking(bookingId, btn) {
     try {
       const data = await xhrPost(API_URL, { action: "cancelBooking", bookingId: bookingId, lineId: state.lineId });
       if (!data.success) throw new Error(data.error);
+      // allBookingResults の該当エントリを更新（ページ切り替え時に正しく表示するため）
+      const bk = allBookingResults.find(function(b) { return b.bookingId === bookingId; });
+      if (bk) bk.status = "已取消";
       btn.closest(".booking-item").querySelector(".booking-status").textContent = "已取消";
       btn.closest(".booking-item").querySelector(".booking-status").className = "booking-status status-cancelled";
       btn.remove();
