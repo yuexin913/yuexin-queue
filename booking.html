@@ -518,6 +518,14 @@
           </div>
           <div class="entry-arrow">›</div>
         </div>
+        <div class="entry-btn" onclick="startXinkuanBooking()">
+          <div class="entry-icon">🏥</div>
+          <div class="entry-text">
+            <div class="entry-title">楠梓心寬轉介</div>
+            <div class="entry-desc">由楠梓心寬診所轉介來診。</div>
+          </div>
+          <div class="entry-arrow">›</div>
+        </div>
         <div class="entry-btn" style="opacity:0.45;pointer-events:none;cursor:not-allowed;">
           <div class="entry-icon">🛋️</div>
           <div class="entry-text">
@@ -944,6 +952,19 @@ function startBooking(type) {
   } else {
     showPage("pageInfo");
   }
+}
+
+function startXinkuanBooking() {
+  state.type = "複診";
+  state.source = "心寬轉介";
+  state.date = null; state.session = null; state.timeSlot = null;
+  state.isUnspecified = false; state.slotsData = null; state.sessionSelected = false;
+  ["inputName","inputPhone","inputBirthY","inputBirthM","inputBirthD"].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  document.getElementById("headerSub").textContent = "楠梓心寬轉介預約";
+  showPage("pageInfo");
 }
 
 // 醫師照片對應
