@@ -1545,6 +1545,16 @@ function renderSessionContent(session, isClosed) {
   npList.forEach(function(np) {
     const rowStart = np.npRowStart;
     if (rowStart !== null && rowStart !== undefined && rowStart < 30) {
+      // 同時間碼衝突：該列已有初診，兩筆都推進衝突區
+      if (cells[rowStart].type === "np_banner") {
+        const existing = cells[rowStart];
+        if (!conflictList.find(function(c) { return c.bookingId === existing.bookingId; })) {
+          conflictList.push({ name: existing.name, slot: existing.slot || existing.checkInTime, bookingId: existing.bookingId });
+        }
+        conflictList.push({ name: np.name, slot: np.slot || np.checkInTime, bookingId: np.bookingId });
+        cells[rowStart] = { type: "conflict", num: rowStart + 1 };
+        return;
+      }
       cells[rowStart] = {
         type: "np_banner",
         checkInTime: np.checkInTime,
