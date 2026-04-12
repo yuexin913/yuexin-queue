@@ -1545,14 +1545,26 @@ function renderSessionContent(session, isClosed) {
   npList.forEach(function(np) {
     const rowStart = np.npRowStart;
     if (rowStart !== null && rowStart !== undefined && rowStart < 30) {
-      // 同時間碼衝突：該列已有初診，兩筆都推進衝突區
-      if (cells[rowStart].type === "np_banner") {
-        const existing = cells[rowStart];
-        if (!conflictList.find(function(c) { return c.bookingId === existing.bookingId; })) {
-          conflictList.push({ name: existing.name, slot: existing.slot || existing.checkInTime, bookingId: existing.bookingId });
+      // 同時間碼衝突：該列已有初診或已標記衝突，推進衝突區
+      if (cells[rowStart].type === "np_banner" || cells[rowStart].type === "conflict") {
+        // 若是第一次衝突（np_banner），把原本那筆也加入
+        if (cells[rowStart].type === "np_banner") {
+          const existing = cells[rowStart];
+          if (!conflictList.find(function(c) { return c.bookingId === existing.bookingId; })) {
+            conflictList.push({ name: existing.name, slot: existing.slot, checkInTime: existing.checkInTime, bookingId: existing.bookingId });
+          }
+          // 清掉原本初診佔用的 np_skip，還原為 empty
+          for (let k = 1; k < 5; k++) {
+            if (rowStart + k < 30 && cells[rowStart + k].type === "np_skip") {
+              cells[rowStart + k] = { type: "empty", num: rowStart + k + 1 };
+            }
+          }
+          cells[rowStart] = { type: "conflict", num: rowStart + 1, isNpConflict: true };
         }
-        conflictList.push({ name: np.name, slot: np.slot || np.checkInTime, bookingId: np.bookingId });
-        cells[rowStart] = { type: "conflict", num: rowStart + 1 };
+        // 新來的也加入（不重複）
+        if (!conflictList.find(function(c) { return c.bookingId === np.bookingId; })) {
+          conflictList.push({ name: np.name, slot: np.slot, checkInTime: np.checkInTime, bookingId: np.bookingId });
+        }
         return;
       }
       cells[rowStart] = {
@@ -1634,11 +1646,19 @@ function renderSessionContent(session, isClosed) {
         ${cautionHtml}
       </div>`;
     } else if (c.type === "conflict") {
-      // 衝突格：紅底 + ⚠️
-      html += `<div class="grid-cell" style="background:#C0392B;position:relative;">
-        <span style="font-size:20px;font-weight:200;color:rgba(255,255,255,0.6);position:absolute;top:6px;left:6px;">${c.num}</span>
-        <span style="font-size:22px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">⚠️</span>
-      </div>`;
+      if (c.isNpConflict) {
+        // 初診衝突：全幅紅色橫幅
+        html += `<div class="grid-np-banner" style="background:#C0392B;position:relative;cursor:default;">
+          <div style="position:absolute;top:7px;left:6px;font-size:20px;font-weight:700;color:rgba(255,255,255,0.8);">⚠️ 初診重複預約</div>
+          <div style="position:absolute;bottom:6px;left:6px;font-size:12px;color:rgba(255,255,255,0.8);">請至系統磚查看詳情</div>
+        </div>`;
+      } else {
+        // 複診衝突：紅底 + ⚠️
+        html += `<div class="grid-cell" style="background:#C0392B;position:relative;">
+          <span style="font-size:20px;font-weight:200;color:rgba(255,255,255,0.6);position:absolute;top:6px;left:6px;">${c.num}</span>
+          <span style="font-size:22px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">⚠️</span>
+        </div>`;
+      }
     } else {
       // empty
       if (isClosed) {
@@ -1677,7 +1697,8 @@ function renderSessionContent(session, isClosed) {
   if (warning && warningList) {
     if (conflictList.length > 0) {
       warningList.innerHTML = conflictList.map(function(b) {
-        return `<div>${esc(b.slot)}號　${esc(b.name)}</div>`;
+        const slotDisplay = b.checkInTime ? b.checkInTime + "前" : (b.slot ? b.slot + "號" : "");
+        return `<div>${slotDisplay}　${esc(b.name)}</div>`;
       }).join("");
       warning.style.display = "block";
     } else {
