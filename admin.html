@@ -397,8 +397,8 @@
   .unspec-modal-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .unspec-modal-row:last-child { border-bottom: none; }
   .unspec-modal-num  { font-size: 11px; color: var(--text-light); width: 18px; text-align: center; flex-shrink: 0; }
-  .unspec-modal-name { font-weight: 600; flex: 1; }
-  .unspec-modal-info { font-size: 11px; color: var(--text-light); }
+  .unspec-modal-name { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .unspec-modal-info { font-size: 11px; color: var(--text-light); flex-shrink: 0; }
   /* 現場排號通知狀態標籤 */
   .unspec-notify-pending  { font-size: 11px; font-weight: 700; color: var(--marigold); background: var(--orange-light); padding: 2px 7px; cursor: pointer; flex-shrink: 0; letter-spacing: 0.5px; }
   .unspec-notify-done     { font-size: 11px; font-weight: 400; color: var(--text-light); background: var(--bg-3); padding: 2px 7px; cursor: pointer; flex-shrink: 0; }
