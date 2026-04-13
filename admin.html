@@ -2240,8 +2240,7 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
 
   // 複製訊息按鈕：只有管理員代掛才顯示
   const copyWrap = document.getElementById("btnCopyMsgWrap");
-  const showCopy = isAdminBooking;
-  copyWrap.style.display = showCopy ? "block" : "none";
+  copyWrap.style.display = "block";
 
   // 聯繫方式按鈕：只有管理員代掛才顯示
   const methodWrap = document.getElementById("btnContactMethodWrap");
