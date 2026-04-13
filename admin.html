@@ -317,6 +317,7 @@
   @keyframes loadingSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
   /* Skeleton pulse */
   @keyframes skeletonPulse { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.6; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .grid-cell.skeleton { background: var(--bg-3); animation: skeletonPulse 1.4s ease-in-out infinite; }
   .grid-cell.skeleton .cell-num { color: transparent; }
 
@@ -1305,6 +1306,7 @@ function getTodayStr() { const n = new Date(); return n.getFullYear() + "/" + St
 function esc(str) { return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
 async function loadSchedule(preferredSession) {
+  showAdminOverlay("載入診表中...");
   // A2：醫師磚顯示載入動畫
   const doctorTextEl = document.getElementById("sessionDoctorText");
   doctorTextEl.textContent = "查詢中";
@@ -1333,7 +1335,9 @@ async function loadSchedule(preferredSession) {
   try {
     const data = await xhrPost(API_URL, { action: "adminGetTodaySchedule", date: dateToYMD(state.viewDate), lineId: state.lineId });
     renderSchedule(data.bookings || [], preferredSession, data.openSessions || null);
+    hideAdminOverlay();
   } catch(e) {
+    hideAdminOverlay();
     if (loadingBar) loadingBar.style.display = "none";
     document.getElementById("scheduleContent").innerHTML =
       `<div style="grid-column:1/-1;padding:12px;background:var(--bg);"><div class="alert alert-error">${e.message === "SERVER_HTML" ? "系統暫時無法使用，請稍後再試。" : "診表暫時無法載入。<br><small>" + e.message + "</small>"}</div></div>`;
@@ -1880,6 +1884,7 @@ async function doAdminAddBooking(forceSlot) {
     ? document.querySelector("#unspecAddForm button:last-child")
     : document.getElementById("btnAdminAdd");
   if (btn) { btn.disabled = true; btn.textContent = "新增中..."; }
+  showAdminOverlay("代掛中...");
 
   try {
     const data = await xhrPost(API_URL, {
@@ -1914,6 +1919,7 @@ async function doAdminAddBooking(forceSlot) {
     loadSchedule(activeSession);
   } finally {
     isAdminAdding = false;
+    hideAdminOverlay();
     if (btn) {
       btn.disabled = false;
       btn.textContent = isUnspec ? "確認新增不指定" : "確認代掛";
@@ -2281,6 +2287,7 @@ async function cycleContactMethod() {
   const idx = CONTACT_METHOD_CYCLE.indexOf(current);
   const next = CONTACT_METHOD_CYCLE[(idx + 1) % CONTACT_METHOD_CYCLE.length];
   btn.disabled = true;
+  showAdminOverlay("更新聯繫方式...");
   try {
     const data = await xhrPost(API_URL, {
       action: "updateContactMethod",
@@ -2290,16 +2297,15 @@ async function cycleContactMethod() {
       token: state.sessionToken
     });
     if (data.success) {
-      // 更新前端 allBookings
       const bk = allBookings.find(function(b) { return b.bookingId === state.contactBookingId; });
       if (bk) bk.note = next;
       updateContactMethodBtn(next);
-      // 更新 modal 姓名後的 emoji
       updateContactNameEmoji(next);
     }
   } catch(e) {
     // 失敗時不更新
   } finally {
+    hideAdminOverlay();
     btn.disabled = false;
   }
 }
@@ -2318,26 +2324,28 @@ async function doToggleNotified() {
   const btn = document.getElementById("btnToggleNotified");
   const newIsNotified = !state.contactIsNotified;
   btn.disabled = true; btn.textContent = "更新中...";
+  showAdminOverlay("更新通知狀態...");
   try {
     const data = await xhrPost(API_URL, { action: "toggleNotified", bookingId: state.contactBookingId, isNotified: newIsNotified, lineId: state.lineId });
     if (data.success) {
-      // 更新前端 allBookings 的 notifyStatus
+      hideAdminOverlay();
       const booking = allBookings.find(b => b.bookingId === state.contactBookingId);
       if (booking) {
         booking.notifyStatus = data.notifyStatus;
       }
       closeModal("modalContact");
       renderSessionContent(activeSession);
-      // 若來源是現場名單（slot === "不指定"），同步更新名單內容
       if (booking && booking.slot === "不指定") {
         renderUnspecList();
       }
     } else {
+      hideAdminOverlay();
       btn.disabled = false;
       btn.textContent = state.contactIsNotified ? "✓ 已發送回診提醒" : "未發送回診提醒";
       alert("狀態更新未完成，請稍後再試。");
     }
   } catch(e) {
+    hideAdminOverlay();
     btn.disabled = false;
     btn.textContent = state.contactIsNotified ? "✓ 已發送回診提醒" : "未發送回診提醒";
     alert("狀態更新未完成，請稍後再試。");
@@ -2349,6 +2357,7 @@ async function toggleCheckin(bookingId, btn) {
   const isDone = btn.classList.contains("done");
   const newStatus = isDone ? "已確認" : "已看診";
   btn.disabled = true; btn.textContent = "更新中...";
+  showAdminOverlay("更新報到狀態...");
   try {
     const data = await xhrPost(API_URL, { action: "adminUpdateStatus", bookingId, status: newStatus, lineId: state.lineId });
     if (data.success) {
@@ -2363,6 +2372,7 @@ async function toggleCheckin(bookingId, btn) {
     btn.parentNode.appendChild(errTip);
     setTimeout(function() { if (errTip.parentNode) errTip.parentNode.removeChild(errTip); }, 4000);
   }
+  hideAdminOverlay();
   btn.disabled = false;
 }
 
@@ -2539,10 +2549,12 @@ async function doQuery() {
   if (!name && !phone && !birth) { errEl.textContent = "請至少輸入姓名、電話或生日其中一項。"; errEl.style.display = "block"; return; }
   const btn = document.getElementById("btnQuery");
   btn.disabled = true; btn.textContent = "查詢中...";
+  showAdminOverlay("查詢中...");
   try {
     const data = await xhrPost(API_URL, { action: "adminQueryBookings", name, phone, birth, lineId: state.lineId });
     renderQueryResults(data.bookings || []);
   } catch(e) { errEl.textContent = "查詢未完成，請稍後再試。"; errEl.style.display = "block"; }
+  hideAdminOverlay();
   btn.disabled = false; btn.textContent = "查詢";
 }
 
@@ -2575,6 +2587,17 @@ function confirmCancel(bookingId, name, date, fromModal) {
 
 /* ── Toast 通知 ── */
 let toastTimer = null;
+function showAdminOverlay(text) {
+  const el = document.getElementById("adminOverlay");
+  const txt = document.getElementById("adminOverlayText");
+  if (txt) txt.textContent = text || "";
+  if (el) el.style.display = "flex";
+}
+function hideAdminOverlay() {
+  const el = document.getElementById("adminOverlay");
+  if (el) el.style.display = "none";
+}
+
 function showToast(msg, duration) {
   duration = duration || 2200;
   const el = document.getElementById("toast");
@@ -2587,6 +2610,7 @@ function showToast(msg, duration) {
 async function doCancel() {
   const btn = document.getElementById("btnConfirmCancel");
   btn.disabled = true; btn.textContent = "取消中...";
+  showAdminOverlay("取消預約中...");
   try {
     const data = await xhrPost(API_URL, { action: "cancelBooking", bookingId: state.pendingCancelId, lineId: state.lineId, token: state.sessionToken });
     if (data.success) {
@@ -2597,8 +2621,8 @@ async function doCancel() {
         document.getElementById("queryResults").innerHTML = `<div class="alert alert-success">預約已取消，LINE通知已發送。</div>`;
       }
       loadSchedule(activeSession);
-    } else { document.getElementById("cancelError").textContent = data.error || "取消未完成，請稍後再試。"; document.getElementById("cancelError").style.display = "block"; }
-  } catch(e) { document.getElementById("cancelError").textContent = "取消未完成，請稍後再試。"; document.getElementById("cancelError").style.display = "block"; }
+    } else { hideAdminOverlay(); document.getElementById("cancelError").textContent = data.error || "取消未完成，請稍後再試。"; document.getElementById("cancelError").style.display = "block"; }
+  } catch(e) { hideAdminOverlay(); document.getElementById("cancelError").textContent = "取消未完成，請稍後再試。"; document.getElementById("cancelError").style.display = "block"; }
   btn.disabled = false; btn.textContent = "確定取消";
 }
 
@@ -2863,6 +2887,10 @@ initLiff();
   <div class="loading-overlay-text" id="substituteOverlayText">發送代診通知中<br>請勿關閉頁面...</div>
 </div>
 <!-- Toast 通知 -->
+<div id="adminOverlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,0.5);z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:12px;">
+  <div style="width:32px;height:32px;border:3px solid #ddd;border-top-color:#111;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+  <div id="adminOverlayText" style="font-size:14px;font-weight:600;color:#111111;letter-spacing:0.5px;"></div>
+</div>
 <div id="toast"></div>
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
 </body>
