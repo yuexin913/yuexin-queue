@@ -2085,8 +2085,13 @@ function buildLineMsg(type, isReminder, name, date, session, slot, doctor) {
       + "1.報到時間非實際看診時間。\n"
       + "2.初診需較長時間會談，看診順序由工作人員依現場情況安排。\n"
       + "3.逾時報到視同取消預約，需重新排空號或改其他時段。";
-  } else if (type === "不指定") {
-    const endTime = SESSION_END[session] || "結診";
+  } else if (type === "不指定" || String(slot) === "不指定") {
+    const timeRange = RETURN_SLOT_LABELS[session]
+      ? Object.values(RETURN_SLOT_LABELS[session])[0].split(" - ")[0] : "";
+    const SESSION_RANGE = {
+      "早上": "09:00 - 11:30", "下午": "14:00 - 16:30", "晚上": "17:30 - 20:00"
+    };
+    const rangeDisplay = SESSION_RANGE[session] || "診間時間內";
     const intro = isReminder
       ? name + " 您好，提醒您明天（" + date + "）有預約："
       : name + " 您好，您的預約已完成。";
@@ -2095,8 +2100,8 @@ function buildLineMsg(type, isReminder, name, date, session, slot, doctor) {
       + "▸ 日期：" + (isReminder ? date : dateStr) + "\n"
       + "▸ 時段：" + displayName + "\n"
       + doctorLine
-      + "▸ 報到時間：" + endTime + " 前\n"
-      + footer + "\n\n「注意事項」\n請於時間內報到，看診順序由工作人員依現場情況安排。";
+      + "▸ 報到時間：" + rangeDisplay + "\n"
+      + footer + "\n\n「注意事項」\n請於時間內報到，看診順序由工作人員依現場情況安排.";
   } else {
     // 複診
     const rtRange = getRtRange(slot);
@@ -2583,7 +2588,7 @@ async function doCancel() {
   const btn = document.getElementById("btnConfirmCancel");
   btn.disabled = true; btn.textContent = "取消中...";
   try {
-    const data = await xhrPost(API_URL, { action: "cancelBooking", bookingId: state.pendingCancelId, lineId: state.lineId });
+    const data = await xhrPost(API_URL, { action: "cancelBooking", bookingId: state.pendingCancelId, lineId: state.lineId, token: state.sessionToken });
     if (data.success) {
       closeModal("modalCancelConfirm");
       showToast("✓ 預約已取消，LINE 通知已發送");

@@ -1791,67 +1791,25 @@ function xhrPost(url, payload) {
 
 initLiff();
 
-/* ── 暗門：長按 1 秒變橘色，1 秒內連點 3 下進入 Admin ── */
-let _lpTimer = null;       // 長按計時器
-let _lpDone = false;       // 長按是否已完成
-let _lpTapCount = 0;       // 長按後的點擊次數
-let _lpTapTimer = null;    // 點擊視窗計時器
-let _lpIsTouch = false;    // 是否為觸控事件（防止 touch + mouse 雙重觸發）
+/* ── 暗門：2秒內連點3下進入 Admin ── */
+let _tapCount = 0;
+let _tapTimer = null;
 const _ADMIN_URL = "https://yuexin913.github.io/yuexin-queue/admin.html";
-const _LP_EL = () => document.getElementById("adminSecretEl");
 
-function _lpStart(isTouch) {
-  if (isTouch) _lpIsTouch = true;
-  if (!isTouch && _lpIsTouch) return; // 觸控裝置：忽略隨後觸發的 mousedown
-  if (_lpDone) return; // 長按已完成且在點擊視窗內，不重置
-  _lpTimer = setTimeout(function() {
-    _lpDone = true;
-    _lpTapCount = 0;
-    var el = _LP_EL();
-    if (el) el.style.color = "#ff8601";
-    if (navigator.vibrate) navigator.vibrate(50);
-    if (_lpTapTimer) clearTimeout(_lpTapTimer);
-    _lpTapTimer = setTimeout(function() { _lpReset(); }, 1000);
-  }, 1000);
-}
-
-function _lpEnd(e, isTouch) {
-  if (!isTouch && _lpIsTouch) return; // 觸控裝置：忽略隨後觸發的 mouseup
-  clearTimeout(_lpTimer);
-  if (!_lpDone) { if (isTouch) _lpIsTouch = false; return; }
-  if (e.cancelable) e.preventDefault();
-  _lpTapCount++;
-  if (_lpTapCount >= 3) {
-    _lpReset();
+function _handleTap() {
+  _tapCount++;
+  if (_tapTimer) clearTimeout(_tapTimer);
+  if (_tapCount >= 3) {
+    _tapCount = 0;
     liff.openWindow({ url: _ADMIN_URL, external: false });
+    return;
   }
-}
-
-function _lpCancel(isTouch) {
-  if (!isTouch && _lpIsTouch) return; // 觸控裝置：忽略 mouseleave
-  clearTimeout(_lpTimer);
-  if (!_lpDone) { _lpIsTouch = false; _lpDone = false; }
-  var el = _LP_EL();
-  if (el) el.style.color = "#bbb";
-}
-
-function _lpReset() {
-  _lpDone = false;
-  _lpIsTouch = false;
-  _lpTapCount = 0;
-  if (_lpTapTimer) clearTimeout(_lpTapTimer);
-  var el = _LP_EL();
-  if (el) el.style.color = "#bbb"; // 明確寫回灰色，不依賴 stylesheet 回退
+  _tapTimer = setTimeout(function() { _tapCount = 0; }, 2000);
 }
 </script>
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
 <div id="adminSecretEl"
-  style="text-align:center;padding:24px 0 12px;font-size:10px;color:#bbb;letter-spacing:0.08em;cursor:default;user-select:none;transition:color 0.2s ease;"
-  ontouchstart="_lpStart(true)"
-  ontouchend="_lpEnd(event,true)"
-  ontouchmove="_lpCancel(true)"
-  onmousedown="_lpStart(false)"
-  onmouseup="_lpEnd(event,false)"
-  onmouseleave="_lpCancel(false)">EST. 2024 YUEXIN PSYCHIATRIC CLINIC · BETA EDITION</div>
+  style="text-align:center;padding:24px 0 12px;font-size:10px;color:#bbb;letter-spacing:0.08em;cursor:default;user-select:none;-webkit-user-select:none;"
+  onclick="_handleTap()">EST. 2024 YUEXIN PSYCHIATRIC CLINIC · BETA EDITION</div>
 </body>
 </html>
