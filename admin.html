@@ -399,8 +399,9 @@
   .unspec-modal-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .unspec-modal-row:last-child { border-bottom: none; }
   .unspec-modal-num  { font-size: 11px; color: var(--text-light); width: 18px; text-align: center; flex-shrink: 0; }
-  .unspec-modal-name { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .unspec-modal-info { font-size: 11px; color: var(--text-light); flex-shrink: 0; }
+  .unspec-modal-main { flex: 1; min-width: 0; }
+  .unspec-modal-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .unspec-modal-info { font-size: 11px; color: var(--text-light); margin-top: 2px; }
   /* 現場排號通知狀態標籤 */
   .unspec-notify-pending  { font-size: 11px; font-weight: 700; color: var(--marigold); background: var(--orange-light); padding: 2px 7px; cursor: pointer; flex-shrink: 0; letter-spacing: 0.5px; }
   .unspec-notify-done     { font-size: 11px; font-weight: 400; color: var(--text-light); background: var(--bg-3); padding: 2px 7px; cursor: pointer; flex-shrink: 0; }
@@ -1797,8 +1798,10 @@ function renderUnspecList() {
 
     return `<div class="unspec-modal-row">
       <span class="unspec-modal-num">${i + 31}</span>
-      <span class="unspec-modal-name">${b.source === "心寬轉介" ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(b.name)}</span>` : esc(b.name)}${xinkuanDot}</span>
-      <span class="unspec-modal-info">${birthStr}${birthStr && phoneStr ? "　" : ""}${phoneStr}</span>
+      <div class="unspec-modal-main">
+        <div class="unspec-modal-name">${b.source === "心寬轉介" ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(b.name)}</span>` : esc(b.name)}${xinkuanDot}</div>
+        <div class="unspec-modal-info">${birthStr}${birthStr && phoneStr ? "　" : ""}${phoneStr}</div>
+      </div>
       ${notifyTag}
       <button class="btn btn-danger btn-sm" style="flex-shrink:0;font-size:11px;padding:3px 8px;"
         onclick="confirmCancel('${esc(b.bookingId)}','${esc(b.name)}','${esc(b.date)}','modalUnspecified')">取消</button>
