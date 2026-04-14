@@ -614,7 +614,39 @@
       <div class="step-line"></div>
       <div class="step"><div class="step-num">3</div><span>確認送出</span></div>
     </div>
-    <!-- 月曆區 -->
+    <!-- 藥量快速選日（僅複診顯示） -->
+    <div id="medCalcArea" style="display:none;margin-bottom:12px;">
+      <div class="card" style="padding:16px;">
+        <div class="card-title" style="margin-bottom:12px;">依據餘藥天數</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="pill-btn" onclick="setMedDays(7)">7 天</button>
+          <button class="pill-btn" onclick="setMedDays(14)">14 天</button>
+          <button class="pill-btn" onclick="setMedDays(21)">21 天</button>
+          <button class="pill-btn" onclick="setMedDays(28)">28 天</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+          <input type="number" id="medDaysInput" inputmode="numeric" min="1" max="35"
+            placeholder="輸入天數（1–35）"
+            style="flex:2;min-width:0;padding:10px 12px;font-size:13px;font-family:inherit;border:1px solid var(--border-color, #ddd);background:transparent;color:inherit;outline:none;">
+          <button class="btn btn-primary" style="white-space:nowrap;padding:10px 14px;flex:1;" onclick="calculateMedDate()">計算回診日</button>
+        </div>
+        <div id="medCalcError" class="alert alert-error" style="display:none;margin-bottom:0;"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin:10px 0;">
+        <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
+        <button class="btn-text-link" onclick="toggleCalendar()" id="calToggleBtn" style="font-size:15px;white-space:nowrap;">或 直接選擇日期</button>
+        <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
+      </div>
+    </div>
+    <!-- 藥量計算切換（日曆展開時顯示，預設隱藏） -->
+    <div id="medCalcToggleBar" style="display:none;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;margin:10px 0;">
+        <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
+        <button class="btn-text-link" onclick="toggleCalendar()" style="font-size:15px;white-space:nowrap;">或 輸入剩餘藥物天數</button>
+        <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
+      </div>
+    </div>
+    <!-- 月曆區：選完日期後收起 -->
     <div id="calendarArea" class="card">
       <div class="card-title">選擇日期</div>
       <div class="cal-header">
@@ -632,33 +664,6 @@
       <div class="selected-date-bar">
         <span id="selectedDateLabel"></span>
         <button class="btn-text-link" onclick="reopenCalendar()">重新選擇</button>
-      </div>
-    </div>
-    <!-- 餘藥天數區塊（複診才顯示） -->
-    <div id="medCalcArea" style="display:none;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;gap:10px;margin:16px 0 0;">
-        <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
-        <button class="btn-text-link" onclick="toggleMedCalc()" id="medCalcToggleBtn" style="font-size:15px;white-space:nowrap;">或 輸入剩餘藥物天數</button>
-        <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
-      </div>
-      <div id="medCalcBody" style="display:none;margin-top:12px;">
-        <div class="card" style="padding:16px;">
-          <div class="card-title" style="margin-bottom:12px;">依據餘藥天數</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="pill-btn" onclick="setMedDays(7)">7 天</button>
-            <button class="pill-btn" onclick="setMedDays(14)">14 天</button>
-            <button class="pill-btn" onclick="setMedDays(21)">21 天</button>
-            <button class="pill-btn" onclick="setMedDays(28)">28 天</button>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
-            <input type="number" id="medDaysInput" inputmode="numeric" min="1" max="35"
-              placeholder="輸入天數（1–35）"
-              style="flex:2;min-width:0;padding:10px 12px;font-size:13px;font-family:inherit;border:1px solid var(--border-color, #ddd);background:transparent;color:inherit;outline:none;">
-            <button class="btn btn-primary" style="white-space:nowrap;padding:10px 14px;flex:1;" onclick="calculateMedDate()">計算回診日</button>
-          </div>
-          <div id="medCalcResult" style="display:none;font-size:13px;color:var(--green-dark);font-weight:600;margin-bottom:4px;padding:6px 0;"></div>
-          <div id="medCalcError" class="alert alert-error" style="display:none;margin-bottom:0;"></div>
-        </div>
       </div>
     </div>
     <!-- 診次選擇（選完日期後顯示） -->
@@ -1040,11 +1045,13 @@ async function goToPageTime() {
   // 先進入月曆頁，黑名單在背景驗證（絕大多數人都不在黑名單）
   showPage("pageTime");
   const isReturn = state.type === "複診";
-  // 複診：月曆和餘藥區塊都顯示；初診：只顯示月曆
+  // 複診：顯示藥量計算區，月曆預設展開
   const medCalcArea = document.getElementById("medCalcArea");
   if (medCalcArea) medCalcArea.style.display = isReturn ? "block" : "none";
   const calendarArea = document.getElementById("calendarArea");
   if (calendarArea) calendarArea.style.display = "block";
+  const medCalcToggleBar = document.getElementById("medCalcToggleBar");
+  if (medCalcToggleBar) medCalcToggleBar.style.display = "none";
   renderCalendar();
   document.getElementById("nhiReminder").style.display = isReturn ? "block" : "none";
 }
@@ -1132,12 +1139,14 @@ function reopenCalendar() {
   if (medCalcToggleBtn) medCalcToggleBtn.textContent = "或 輸入剩餘藥物天數";
 
   if (state.type === "複診") {
-    // 複診：月曆和餘藥區塊都顯示
     const medCalcArea = document.getElementById("medCalcArea");
     if (medCalcArea) medCalcArea.style.display = "block";
+    const calToggleBtn = document.getElementById("calToggleBtn");
+    if (calToggleBtn) calToggleBtn.style.display = "inline";
+    const medCalcToggleBar = document.getElementById("medCalcToggleBar");
+    if (medCalcToggleBar) medCalcToggleBar.style.display = "none";
     document.getElementById("calendarArea").style.display = "block";
   } else {
-    // 初診：只顯示月曆
     document.getElementById("calendarArea").style.display = "block";
   }
   renderCalendar();
@@ -1179,19 +1188,9 @@ function toggleCalendar() {
   }
 }
 
-function toggleMedCalc() {
-  const body = document.getElementById("medCalcBody");
-  const btn = document.getElementById("medCalcToggleBtn");
-  const isHidden = body.style.display === "none";
-  body.style.display = isHidden ? "block" : "none";
-  btn.textContent = isHidden ? "或 收折餘藥天數" : "或 輸入剩餘藥物天數";
-}
-
 function calculateMedDate() {
   const errEl = document.getElementById("medCalcError");
-  const resultEl = document.getElementById("medCalcResult");
   errEl.style.display = "none";
-  resultEl.style.display = "none";
   const input = document.getElementById("medDaysInput");
   const days = parseInt(input.value);
   if (!days || days < 1 || days > 35) {
@@ -1202,28 +1201,14 @@ function calculateMedDate() {
   const today = new Date(); today.setHours(0,0,0,0);
   const target = new Date(today);
   target.setDate(today.getDate() + days);
-  // 週日擋關
   if (target.getDay() === 0) {
+    const weekdays = ["日","一","二","三","四","五","六"];
     const m = target.getMonth() + 1;
     const d = target.getDate();
     errEl.textContent = `${days} 天後（${m} 月 ${d} 日）為週日，請重新輸入。`;
     errEl.style.display = "block";
     return;
   }
-  // 跳到對應月份
-  state.calYear = target.getFullYear();
-  state.calMonth = target.getMonth();
-  // 顯示月曆（若已選日期收起了）
-  document.getElementById("calendarArea").style.display = "block";
-  document.getElementById("selectedDateBar").style.display = "none";
-  renderCalendar();
-  // 顯示計算結果提示
-  const weekdays = ["日","一","二","三","四","五","六"];
-  const m = target.getMonth() + 1;
-  const d = target.getDate();
-  resultEl.textContent = `→ ${m} 月 ${d} 日（週${weekdays[target.getDay()]}）`;
-  resultEl.style.display = "block";
-  // 自動選取日期（月曆會自動跳到對應月份）
   selectDate(formatDateStr(target));
 }
 
