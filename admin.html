@@ -736,6 +736,19 @@
       </div>
       <button class="btn" style="width:100%;background:var(--kiwi);color:#fff;" onclick="closeAdminAddResult()">關閉</button>
     </div>
+
+    <!-- 找到1筆或多筆：確認/選擇病患 -->
+    <div id="adminAddResultMatch" style="display:none;padding:8px 0;">
+      <div id="adminAddMatchTitle" style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px;"></div>
+      <div id="adminAddMatchList" style="margin-bottom:16px;"></div>
+      <div style="font-size:12px;color:var(--text-light);margin-bottom:8px;">填入 <strong>go</strong> 確認發送 LINE 預約通知</div>
+      <input type="text" id="adminAddMatchGoInput" placeholder="輸入 go" autocomplete="off" maxlength="3"
+        style="width:100%;padding:10px;border:1px solid var(--border);background:var(--bg-2);color:var(--text);font-size:14px;margin-bottom:8px;"
+        oninput="document.getElementById('btnAdminAddMatchConfirm').disabled = this.value.toLowerCase() !== 'go';">
+      <button class="btn" id="btnAdminAddMatchConfirm" style="width:100%;background:var(--kiwi);color:#fff;margin-bottom:8px;" onclick="confirmMatchBooking(false)" disabled>確定發送通知</button>
+      <button class="btn" style="width:100%;background:var(--bg-3);color:var(--text);margin-bottom:8px;" onclick="confirmMatchBooking(true)">⛔ 人工通知（不發 LINE）</button>
+      <button class="btn" style="width:100%;background:var(--bg-3);color:var(--text);" onclick="closeAdminAddResult()">取消</button>
+    </div>
   </div>
 </div>
 
@@ -924,7 +937,7 @@ const DEFAULT_DOCTOR_SCHEDULE = {
   6: { "早上": "粟寧",   "下午": "",       "晚上": ""        }
 };
 const API_URL = "https://script.google.com/macros/s/AKfycbxfbtWB6tyWUvFY1r_d26yxdm3Iz6zVALuZgUwLYyqIOHkJrn7TJJADkUE8VPkKOkZkqw/exec";
-let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, pendingForceAdd: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false, contactType: "", contactDoctor: "", contactDate: "", contactSession: "" };
+let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, pendingForceAdd: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false, contactType: "", contactDoctor: "", contactDate: "", contactSession: "", pendingAdminAddParams: null, _matchCandidates: [], _selectedMatchIdx: -1 };
 let allBookings = [], activeSession = "";
 
 // 複診號碼 → 預計報到時段（對應 booking.html 和 GAS 的 RETURN_TIME_SLOT_CONFIG）
@@ -1886,26 +1899,36 @@ async function doAdminAddBooking(forceSlot) {
   if (btn) { btn.disabled = true; btn.textContent = "新增中..."; }
   showAdminOverlay("代掛中...");
 
+  // 儲存本次代掛參數，供確認後重新送出使用
+  const addPayload = {
+    action: "adminAddBooking",
+    lineId: state.lineId,
+    token: state.sessionToken,
+    name: name,
+    phone: phone,
+    birth: birth,
+    date: dateStr,
+    session: activeSession,
+    timeSlot: slot,
+    type: "複診"
+  };
+  state.pendingAdminAddParams = addPayload;
+
   try {
-    const data = await xhrPost(API_URL, {
-      action: "adminAddBooking",
-      lineId: state.lineId,
-      name: name,
-      phone: phone,
-      birth: birth,
-      date: dateStr,
-      session: activeSession,
-      timeSlot: slot,
-      type: "複診"
-    });
+    const data = await xhrPost(API_URL, addPayload);
     if (!data.success) throw new Error(data.error);
     if (data.booked === false) {
-      // 找不到 LINE ID：暫存資料、關閉來源 Modal、顯示選項 Modal
-      state.pendingForceAdd = { name, phone, birth, slot: String(slot), isUnspec };
       closeModal(isUnspec ? "modalUnspecified" : "modalAdminAdd");
-      showAdminAddResult("notfound");
+      if (data.matches && data.matches.length > 0) {
+        // 找到1筆或多筆：顯示確認/選擇畫面
+        state.pendingForceAdd = { name, phone, birth, slot: String(slot), isUnspec };
+        showAdminAddResult("match", data.matches);
+      } else {
+        // 找不到 LINE ID
+        state.pendingForceAdd = { name, phone, birth, slot: String(slot), isUnspec };
+        showAdminAddResult("notfound");
+      }
     } else {
-      // 已寫入（找到 LINE ID 或強制代掛）
       closeModal(isUnspec ? "modalUnspecified" : "modalAdminAdd");
       if (data.lineIdFound) {
         showAdminAddResult("found");
@@ -1915,7 +1938,6 @@ async function doAdminAddBooking(forceSlot) {
     }
   } catch(e) {
     showErr(e.message || "新增失敗，請稍後再試。");
-    // 失敗時自動重整診表，讓管理員看到最新狀態
     loadSchedule(activeSession);
   } finally {
     isAdminAdding = false;
@@ -1930,14 +1952,16 @@ async function doAdminAddBooking(forceSlot) {
 /* ── 代掛結果 Modal ── */
 let pendingForceAddData = null; // 強制代掛時暫存資料
 
-function showAdminAddResult(type) {
+function showAdminAddResult(type, matches) {
   const modal = document.getElementById("modalAdminAddResult");
   const found = document.getElementById("adminAddResultFound");
   const notfound = document.getElementById("adminAddResultNotFound");
   const forced = document.getElementById("adminAddResultForced");
+  const match = document.getElementById("adminAddResultMatch");
   found.style.display = "none";
   notfound.style.display = "none";
   forced.style.display = "none";
+  match.style.display = "none";
 
   if (type === "found") {
     found.style.display = "block";
@@ -1947,8 +1971,79 @@ function showAdminAddResult(type) {
   } else if (type === "forced") {
     forced.style.display = "block";
     loadSchedule(activeSession);
+  } else if (type === "match") {
+    // 1筆或多筆：顯示確認/選擇畫面
+    const isMultiple = matches.length > 1;
+    document.getElementById("adminAddMatchTitle").textContent = isMultiple
+      ? "找到多筆資料，請選擇病患："
+      : "確認病患資料：";
+    document.getElementById("adminAddMatchGoInput").value = "";
+    document.getElementById("btnAdminAddMatchConfirm").disabled = true;
+
+    const listEl = document.getElementById("adminAddMatchList");
+    listEl.innerHTML = matches.map(function(m, i) {
+      const radioHtml = isMultiple
+        ? `<input type="radio" name="matchPatient" value="${i}" id="matchOpt${i}" onchange="selectMatchPatient(${i})" style="margin-right:6px;">`
+        : "";
+      const labelHtml = `<label for="matchOpt${i}" style="font-size:13px;cursor:pointer;">
+        ${m.name || ""}　${m.birth || ""}　${m.phone || ""}
+      </label>`;
+      return `<div style="padding:8px;border:1px solid var(--border);border-radius:4px;margin-bottom:6px;display:flex;align-items:center;">
+        ${radioHtml}${labelHtml}
+      </div>`;
+    }).join("");
+
+    // 1筆時預設選中
+    if (!isMultiple) {
+      state._selectedMatchIdx = 0;
+    } else {
+      state._selectedMatchIdx = -1;
+    }
+    state._matchCandidates = matches;
+
+    match.style.display = "block";
   }
   modal.classList.add("active");
+}
+
+function selectMatchPatient(idx) {
+  state._selectedMatchIdx = idx;
+}
+
+async function confirmMatchBooking(isManual) {
+  if (!isManual) {
+    const goVal = document.getElementById("adminAddMatchGoInput").value;
+    if (goVal.toLowerCase() !== "go") return;
+  }
+  if (state._selectedMatchIdx < 0) return;
+
+  const selected = state._matchCandidates[state._selectedMatchIdx];
+  if (!selected) return;
+
+  const selectedLineId = isManual ? null : selected.lineId;
+
+  // 重新送出代掛，帶入 selectedLineId
+  const p = state.pendingAdminAddParams;
+  if (!p) return;
+
+  showAdminOverlay("代掛中...");
+  try {
+    const payload = Object.assign({}, p, {
+      selectedLineId: selectedLineId,
+      forceAdd: isManual ? true : false
+    });
+    const data = await xhrPost(API_URL, payload);
+    if (data.success && data.booked) {
+      closeAdminAddResult();
+      showAdminAddResult(isManual ? "forced" : "found");
+    } else {
+      showToast("代掛未完成，請稍後再試。");
+    }
+  } catch(e) {
+    showToast("代掛未完成，請稍後再試。");
+  } finally {
+    hideAdminOverlay();
+  }
 }
 
 function closeAdminAddResult() {
