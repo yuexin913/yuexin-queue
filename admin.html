@@ -2145,6 +2145,7 @@ async function confirmForceAdd() {
     });
     if (!data.success) throw new Error(data.error);
     state.pendingForceAdd = null;
+    state.forcedBookingId = data.bookingId || "";
     closeAdminAddResult();
     showAdminAddResult("forced");
   } catch(e) {
