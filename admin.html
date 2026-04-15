@@ -942,7 +942,7 @@ const DEFAULT_DOCTOR_SCHEDULE = {
   6: { "早上": "粟寧",   "下午": "",       "晚上": ""        }
 };
 const API_URL = "https://script.google.com/macros/s/AKfycbxfbtWB6tyWUvFY1r_d26yxdm3Iz6zVALuZgUwLYyqIOHkJrn7TJJADkUE8VPkKOkZkqw/exec";
-let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, pendingForceAdd: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false, contactType: "", contactDoctor: "", contactDate: "", contactSession: "", pendingAdminAddParams: null, _matchCandidates: [], _selectedMatchIdx: -1, forcedBookingId: "" };
+let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, pendingForceAdd: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false, contactType: "", contactDoctor: "", contactDate: "", contactSession: "", pendingAdminAddParams: null, _matchCandidates: [], _selectedMatchIdx: -1, forcedBookingId: "", forcedBookingName: "" };
 let allBookings = [], activeSession = "";
 
 // 複診號碼 → 預計報到時段（對應 booking.html 和 GAS 的 RETURN_TIME_SLOT_CONFIG）
@@ -2070,7 +2070,7 @@ async function copyBindLink(followUp) {
     });
     if (!data.success) throw new Error(data.error || "產生失敗");
     const bindUrl = "https://yuexin913.github.io/yuexin-queue/booking.html?bind=" + data.bindToken;
-    const p = state.pendingForceAdd || {};
+    const patientName = state.forcedBookingName || (state.pendingForceAdd && state.pendingForceAdd.name) || "您";
     const dateStr = state.contactDate || dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1/$2/$3");
     const sessionCfg = SESSION_CONFIG ? SESSION_CONFIG[activeSession] : null;
     const displayName = sessionCfg ? sessionCfg.displayName : activeSession + "診";
@@ -2078,7 +2078,7 @@ async function copyBindLink(followUp) {
     const dParts = dateStr.split("/");
     const dateDisplay = parseInt(dParts[1]) + "月" + parseInt(dParts[2]) + "日";
     const msg = "【悅心診所 預約確認】\n"
-      + (p.name || "您") + " 您好，已為您預約 " + dateDisplay + " " + displayName + "！\n\n"
+      + patientName + " 您好，已為您預約 " + dateDisplay + " " + displayName + "！\n\n"
       + "請點選以下連結確認您的預約資訊：\n"
       + bindUrl + "\n\n"
       + "請於 10 分鐘內點選。若您並未預約回診請忽略此訊息！";
@@ -2144,8 +2144,9 @@ async function confirmForceAdd() {
       forceAdd: true
     });
     if (!data.success) throw new Error(data.error);
-    state.pendingForceAdd = null;
     state.forcedBookingId = data.bookingId || "";
+    state.forcedBookingName = (state.pendingForceAdd && state.pendingForceAdd.name) || "";
+    state.pendingForceAdd = null;
     closeAdminAddResult();
     showAdminAddResult("forced");
   } catch(e) {
