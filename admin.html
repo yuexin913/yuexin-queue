@@ -695,6 +695,12 @@
         <button class="btn" style="flex:1;background:var(--capri);color:#fff;font-size:13px;padding:10px;" onclick="copyLineMsg(true)">回診提醒</button>
       </div>
     </div>
+    <div id="btnBindLinkWrap" style="display:none;margin-top:8px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">病患綁定連結（10 分鐘有效）</div>
+      <button class="btn" style="width:100%;background:var(--marigold);color:#fff;margin-bottom:6px;font-size:13px;" onclick="copyBindLinkFromContact(false)">📋 複製綁定連結（複診）</button>
+      <button class="btn" style="width:100%;background:var(--orchid);color:#fff;font-size:13px;" onclick="copyBindLinkFromContact(true)">📋 複製綁定連結（含初診關懷）</button>
+      <div id="bindLinkContactError" class="alert alert-error" style="display:none;margin-top:6px;"></div>
+    </div>
     <div id="btnContactMethodWrap" style="display:none;margin-top:8px;">
       <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">聯繫方式</div>
       <button class="btn" id="btnContactMethod" style="width:100%;font-size:13px;padding:10px;" onclick="cycleContactMethod()"></button>
@@ -2054,6 +2060,51 @@ async function confirmMatchBooking(isManual) {
   }
 }
 
+async function copyBindLinkFromContact(followUp) {
+  const errEl = document.getElementById("bindLinkContactError");
+  errEl.style.display = "none";
+  const bookingId = state.contactBookingId;
+  if (!bookingId) { errEl.textContent = "找不到預約編號。"; errEl.style.display = "block"; return; }
+  showAdminOverlay("產生連結中...");
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "generateBindToken",
+      lineId: state.lineId,
+      token: state.sessionToken,
+      bookingId: bookingId,
+      followUp: followUp
+    });
+    if (!data.success) throw new Error(data.error || "產生失敗");
+    const bindUrl = "https://yuexin913.github.io/yuexin-queue/booking.html?bind=" + data.bindToken;
+    const nameEl = document.getElementById("contactName");
+    const patientName = nameEl ? nameEl.textContent.replace(/[💚📞💬]/g, "").trim() : "您";
+    const dateStr = state.contactDate || dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1/$2/$3");
+    const sessionDisplayMap = { "早上": "上午診", "下午": "下午診", "晚上": "晚上診" };
+    const displayName = sessionDisplayMap[state.contactSession] || state.contactSession + "診";
+    const dParts = dateStr.split("/");
+    const dateDisplay = parseInt(dParts[1]) + "月" + parseInt(dParts[2]) + "日";
+    const msg = "【悅心診所 預約確認】\n"
+      + patientName + " 您好，已為您預約 " + dateDisplay + " " + displayName + "！\n\n"
+      + "請點選以下連結確認您的預約資訊：\n"
+      + bindUrl + "\n\n"
+      + "請於 10 分鐘內點選。若您並未預約回診請忽略此訊息！";
+    navigator.clipboard.writeText(msg).then(function() {
+      showToast("✓ 已複製綁定連結");
+    }).catch(function() {
+      const ta = document.createElement("textarea");
+      ta.value = msg; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); document.body.removeChild(ta);
+      showToast("✓ 已複製綁定連結");
+    });
+  } catch(e) {
+    errEl.textContent = e.message || "產生連結失敗，請稍後再試。";
+    errEl.style.display = "block";
+  } finally {
+    hideAdminOverlay();
+  }
+}
+
 async function copyBindLink(followUp) {
   const errEl = document.getElementById("bindLinkError");
   errEl.style.display = "none";
@@ -2072,8 +2123,8 @@ async function copyBindLink(followUp) {
     const bindUrl = "https://yuexin913.github.io/yuexin-queue/booking.html?bind=" + data.bindToken;
     const patientName = state.forcedBookingName || (state.pendingForceAdd && state.pendingForceAdd.name) || "您";
     const dateStr = state.contactDate || dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1/$2/$3");
-    const sessionCfg = SESSION_CONFIG ? SESSION_CONFIG[activeSession] : null;
-    const displayName = sessionCfg ? sessionCfg.displayName : activeSession + "診";
+    const sessionDisplayMap = { "早上": "上午診", "下午": "下午診", "晚上": "晚上診" };
+    const displayName = sessionDisplayMap[activeSession] || activeSession + "診";
     // 日期格式：mm月dd日
     const dParts = dateStr.split("/");
     const dateDisplay = parseInt(dParts[1]) + "月" + parseInt(dParts[2]) + "日";
@@ -2402,6 +2453,12 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
   // 複製訊息按鈕：只有管理員代掛才顯示
   const copyWrap = document.getElementById("btnCopyMsgWrap");
   copyWrap.style.display = "block";
+
+  // 綁定連結按鈕：人工預約（尚未綁定 LINE ID）才顯示
+  const bindLinkWrap = document.getElementById("btnBindLinkWrap");
+  const bindLinkErr = document.getElementById("bindLinkContactError");
+  if (bindLinkErr) bindLinkErr.style.display = "none";
+  bindLinkWrap.style.display = (notifyStatus === "[人工預約]") ? "block" : "none";
 
   // 聯繫方式按鈕：只有管理員代掛才顯示
   const methodWrap = document.getElementById("btnContactMethodWrap");
