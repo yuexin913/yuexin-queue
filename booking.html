@@ -248,6 +248,12 @@
     font-family: 'Noto Sans TC', sans-serif; cursor: pointer; padding: 0;
     text-decoration: underline; text-underline-offset: 2px;
   }
+  .btn-text-link-strong {
+    background: none; border: none; color: var(--green-dark); font-size: 15px;
+    font-family: 'Noto Sans TC', sans-serif; cursor: pointer; padding: 0;
+    text-decoration: underline; text-underline-offset: 3px;
+    font-weight: 700; white-space: nowrap; letter-spacing: 0.5px;
+  }
 
   /* 診次選擇按鈕 */
   .session-select-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
@@ -540,6 +546,15 @@
     </div>
   </div>
 
+  <!-- 綁定確認頁 -->
+  <div class="page" id="pageBind">
+    <div class="card" style="margin-top:16px;text-align:center;">
+      <div id="pageBindContent">
+        <div class="loading"><div class="spinner"></div>查詢中...</div>
+      </div>
+    </div>
+  </div>
+
   <!-- 初診：如何得知悅心診所 -->
   <div class="page" id="pageSource">
     <div class="card" style="margin-top:8px">
@@ -638,7 +653,7 @@
     <div id="medCalcToggleBar" style="display:none;margin-bottom:4px;">
       <div style="display:flex;align-items:center;gap:10px;margin:10px 0;">
         <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
-        <button class="btn-text-link" onclick="toggleCalendar()" id="calToggleBtn" style="font-size:15px;white-space:nowrap;">或 輸入剩餘藥物天數</button>
+        <button class="btn-text-link-strong" onclick="toggleCalendar()" id="calToggleBtn">或 輸入剩餘藥物天數</button>
         <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
       </div>
     </div>
@@ -646,7 +661,7 @@
     <div id="medCalcArea" style="display:none;margin-bottom:12px;">
       <div style="display:flex;align-items:center;gap:10px;margin:0 0 10px;">
         <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
-        <button class="btn-text-link" onclick="toggleCalendar()" style="font-size:15px;white-space:nowrap;">或 直接選擇日期</button>
+        <button class="btn-text-link-strong" onclick="toggleCalendar()">或 直接選擇日期</button>
         <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
       </div>
       <div class="card" style="padding:16px;">
@@ -785,6 +800,14 @@ async function initLiff() {
     const profile = await liff.getProfile();
     state.lineId = profile.userId;
 
+    // 偵測綁定連結 ?bind=token
+    const urlParams = new URLSearchParams(window.location.search);
+    const bindToken = urlParams.get("bind");
+    if (bindToken) {
+      await handleBindToken(bindToken);
+      return;
+    }
+
     // LIFF init 完成 → 立刻顯示全屏載入畫面
     showPage("pageLoading");
 
@@ -880,6 +903,79 @@ function _lockEntryBtns(lock) {
   if (bar) {
     if (lock) { bar.style.display = "flex"; bar.style.opacity = "1"; }
     else { bar.style.opacity = "0"; setTimeout(function() { bar.style.display = "none"; }, 300); }
+  }
+}
+
+// ===================================
+// 綁定連結處理
+// ===================================
+async function handleBindToken(bindToken) {
+  showPage("pageBind");
+  const el = document.getElementById("pageBindContent");
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "resolveBindToken",
+      bindToken: bindToken,
+      lineId: state.lineId
+    });
+    if (!data.success) {
+      el.innerHTML = `<div style="font-size:40px;margin-bottom:16px;">⚠️</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">連結已過期</div>
+        <div style="font-size:13px;color:var(--text-light);line-height:1.8;">${data.error || "請聯繫診所重新取得連結。"}</div>`;
+      return;
+    }
+    el.innerHTML = `
+      <div style="font-size:40px;margin-bottom:16px;">📋</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:16px;">確認保留此預約？</div>
+      <div style="text-align:left;background:var(--bg-2);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:14px;line-height:2;">
+        <div>▸ 日期：${data.date}（週${data.weekday}）</div>
+        <div>▸ 時段：${data.displayName}</div>
+      </div>
+      <div style="font-size:12px;color:var(--text-light);margin-bottom:16px;line-height:1.6;">確認後系統將發送預約通知給您。</div>
+      <div id="bindConfirmError" class="alert alert-error" style="display:none;margin-bottom:12px;"></div>
+      <button class="btn btn-primary" id="btnBindConfirm" onclick="submitBind('${bindToken}')">確認</button>
+      <button class="btn btn-outline" style="margin-top:8px;" onclick="liff.closeWindow()">取消</button>`;
+  } catch(e) {
+    el.innerHTML = `<div style="font-size:40px;margin-bottom:16px;">⚠️</div>
+      <div style="font-size:13px;color:var(--text-light);">系統連線異常，請稍後再試。</div>`;
+  }
+}
+
+async function submitBind(bindToken) {
+  const btn = document.getElementById("btnBindConfirm");
+  const errEl = document.getElementById("bindConfirmError");
+  btn.disabled = true; btn.textContent = "處理中...";
+  errEl.style.display = "none";
+  showOverlay("確認中...");
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "confirmBind",
+      bindToken: bindToken,
+      lineId: state.lineId
+    });
+    if (!data.success) {
+      if (data.expired) {
+        document.getElementById("pageBindContent").innerHTML = `
+          <div style="font-size:40px;margin-bottom:16px;">⚠️</div>
+          <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">連結已過期</div>
+          <div style="font-size:13px;color:var(--text-light);">請聯繫診所重新取得連結。</div>`;
+        return;
+      }
+      errEl.textContent = data.error || "確認失敗，請稍後再試。";
+      errEl.style.display = "block";
+      btn.disabled = false; btn.textContent = "確認";
+      return;
+    }
+    document.getElementById("pageBindContent").innerHTML = `
+      <div style="font-size:40px;margin-bottom:16px;">✅</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">預約已確認！</div>
+      <div style="font-size:13px;color:var(--text-light);line-height:1.8;">系統將發送預約確認通知給您。</div>`;
+  } catch(e) {
+    errEl.textContent = "系統連線異常，請稍後再試。";
+    errEl.style.display = "block";
+    btn.disabled = false; btn.textContent = "確認";
+  } finally {
+    hideOverlay();
   }
 }
 
@@ -1388,7 +1484,12 @@ function renderSlots() {
     }
   } else {
     const returnSlots = s.returnSlots || [];
-    const cards = RETURN_TIME_CARDS[sessionKey] || [];
+    // 郭玉柱醫師：複診從11號開始（6-10保留給現場），其他醫師從6號開始
+    const minFirst = state.doctor === "郭玉柱" ? 11 : 6;
+    const cards = (RETURN_TIME_CARDS[sessionKey] || []).map(function(card) {
+      if (card.minNum === 6) return Object.assign({}, card, { minNum: minFirst });
+      return card;
+    });
     function cardHasAvailable(card) {
       return returnSlots.some(function(slot) {
         return slot.number >= card.minNum && slot.number <= card.maxNum && slot.available;

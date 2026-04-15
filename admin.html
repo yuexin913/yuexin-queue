@@ -731,10 +731,14 @@
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">代掛完成</div>
       <div style="font-size:13px;color:var(--text-light);line-height:1.8;margin-bottom:16px;">病患無手機，請用 LINE 手動通知。</div>
       <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">複製 LINE 訊息</div>
-      <div style="display:flex;gap:6px;margin-bottom:16px;">
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
         <button class="btn" style="flex:1;background:var(--lagoon);color:#fff;font-size:13px;padding:10px;" onclick="copyLineMsgForAdd(false)">預約通知</button>
         <button class="btn" style="flex:1;background:var(--capri);color:#fff;font-size:13px;padding:10px;" onclick="copyLineMsgForAdd(true)">回診提醒</button>
       </div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">病患綁定連結（10 分鐘有效）</div>
+      <button class="btn" style="width:100%;background:var(--marigold);color:#fff;margin-bottom:8px;font-size:13px;" onclick="copyBindLink(false)">📋 複製綁定連結（複診）</button>
+      <button class="btn" style="width:100%;background:var(--orchid);color:#fff;margin-bottom:16px;font-size:13px;" onclick="copyBindLink(true)">📋 複製綁定連結（含初診關懷）</button>
+      <div id="bindLinkError" class="alert alert-error" style="display:none;margin-bottom:8px;"></div>
       <button class="btn" style="width:100%;background:var(--kiwi);color:#fff;" onclick="closeAdminAddResult()">關閉</button>
     </div>
 
@@ -938,7 +942,7 @@ const DEFAULT_DOCTOR_SCHEDULE = {
   6: { "早上": "粟寧",   "下午": "",       "晚上": ""        }
 };
 const API_URL = "https://script.google.com/macros/s/AKfycbxfbtWB6tyWUvFY1r_d26yxdm3Iz6zVALuZgUwLYyqIOHkJrn7TJJADkUE8VPkKOkZkqw/exec";
-let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, pendingForceAdd: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false, contactType: "", contactDoctor: "", contactDate: "", contactSession: "", pendingAdminAddParams: null, _matchCandidates: [], _selectedMatchIdx: -1 };
+let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, pendingForceAdd: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false, contactType: "", contactDoctor: "", contactDate: "", contactSession: "", pendingAdminAddParams: null, _matchCandidates: [], _selectedMatchIdx: -1, forcedBookingId: "" };
 let allBookings = [], activeSession = "";
 
 // 複診號碼 → 預計報到時段（對應 booking.html 和 GAS 的 RETURN_TIME_SLOT_CONFIG）
@@ -1936,6 +1940,7 @@ async function doAdminAddBooking(forceSlot) {
       if (data.lineIdFound) {
         showAdminAddResult("found");
       } else {
+        state.forcedBookingId = data.bookingId || "";
         showAdminAddResult("forced");
       }
     }
@@ -2044,6 +2049,51 @@ async function confirmMatchBooking(isManual) {
     }
   } catch(e) {
     showToast("代掛未完成，請稍後再試。");
+  } finally {
+    hideAdminOverlay();
+  }
+}
+
+async function copyBindLink(followUp) {
+  const errEl = document.getElementById("bindLinkError");
+  errEl.style.display = "none";
+  const bookingId = state.forcedBookingId;
+  if (!bookingId) { errEl.textContent = "找不到預約編號，請重新代掛。"; errEl.style.display = "block"; return; }
+  showAdminOverlay("產生連結中...");
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "generateBindToken",
+      lineId: state.lineId,
+      token: state.sessionToken,
+      bookingId: bookingId,
+      followUp: followUp
+    });
+    if (!data.success) throw new Error(data.error || "產生失敗");
+    const bindUrl = "https://yuexin913.github.io/yuexin-queue/booking.html?bind=" + data.bindToken;
+    const p = state.pendingForceAdd || {};
+    const dateStr = state.contactDate || dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1/$2/$3");
+    const sessionCfg = SESSION_CONFIG ? SESSION_CONFIG[activeSession] : null;
+    const displayName = sessionCfg ? sessionCfg.displayName : activeSession + "診";
+    // 日期格式：mm月dd日
+    const dParts = dateStr.split("/");
+    const dateDisplay = parseInt(dParts[1]) + "月" + parseInt(dParts[2]) + "日";
+    const msg = "【悅心診所 預約確認】\n"
+      + (p.name || "您") + " 您好，已為您預約 " + dateDisplay + " " + displayName + "！\n\n"
+      + "請點選以下連結確認您的預約資訊：\n"
+      + bindUrl + "\n\n"
+      + "請於 10 分鐘內點選。若您並未預約回診請忽略此訊息！";
+    navigator.clipboard.writeText(msg).then(function() {
+      showToast("✓ 已複製綁定連結");
+    }).catch(function() {
+      const ta = document.createElement("textarea");
+      ta.value = msg; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); document.body.removeChild(ta);
+      showToast("✓ 已複製綁定連結");
+    });
+  } catch(e) {
+    errEl.textContent = e.message || "產生連結失敗，請稍後再試。";
+    errEl.style.display = "block";
   } finally {
     hideAdminOverlay();
   }
