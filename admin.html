@@ -393,8 +393,12 @@
   .contact-name  { font-size: 24px; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 4px; }
   .contact-birth { font-size: 13px; font-weight: 200; color: var(--text-light); text-align: center; margin-bottom: 8px; letter-spacing: 1px; }
   .contact-timeslot { font-size: 13px; font-weight: 300; color: var(--marigold); text-align: center; margin-bottom: 8px; letter-spacing: 0.5px; }
-  .contact-phone { display: block; font-size: 32px; font-weight: 700; color: var(--marigold); text-align: center; text-decoration: none; letter-spacing: 3px; margin-bottom: 20px; }
+  .contact-phone { display: block; font-size: 22px; font-weight: 700; color: var(--marigold); text-align: center; text-decoration: none; letter-spacing: 2px; margin-bottom: 10px; cursor: default; }
   .contact-phone.no-phone { font-size: 16px; font-weight: 400; color: var(--text-light); letter-spacing: 0; cursor: default; }
+  .contact-phone-btns { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
+  .contact-phone-btns a { flex: 1; text-align: center; padding: 8px 0; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; }
+  .contact-phone-btns .btn-call { background: var(--marigold); color: #fff; }
+  .contact-phone-btns .btn-sms { background: var(--bg-3); color: var(--text); border: 1px solid var(--border); }
 
   .unspec-modal-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .unspec-modal-row:last-child { border-bottom: none; }
@@ -678,7 +682,11 @@
     <div class="contact-name" id="contactName"></div>
     <div class="contact-birth" id="contactBirth"></div>
     <div class="contact-timeslot" id="contactTimeSlot"></div>
-    <a class="contact-phone" id="contactPhone" href=""></a>
+    <a class="contact-phone" id="contactPhone" href="javascript:void(0)"></a>
+    <div class="contact-phone-btns" id="contactPhoneBtns" style="display:none;">
+      <a class="btn-call" id="btnCall" href="">📞 撥打</a>
+      <a class="btn-sms" id="btnSms" href="">💬 傳訊</a>
+    </div>
     <div id="contactNpSurvey" style="display:none;margin-top:12px;padding:10px 12px;border-left:3px solid var(--kiwi);background:var(--bg-2);"></div>
     <div id="contactError" class="alert alert-error" style="display:none"></div>
     <div id="btnToggleNotifiedWrap">
@@ -950,6 +958,7 @@ const DEFAULT_DOCTOR_SCHEDULE = {
 const API_URL = "https://script.google.com/macros/s/AKfycbxfbtWB6tyWUvFY1r_d26yxdm3Iz6zVALuZgUwLYyqIOHkJrn7TJJADkUE8VPkKOkZkqw/exec";
 let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, pendingForceAdd: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false, contactType: "", contactDoctor: "", contactDate: "", contactSession: "", pendingAdminAddParams: null, _matchCandidates: [], _selectedMatchIdx: -1, forcedBookingId: "", forcedBookingName: "" };
 let allBookings = [], activeSession = "";
+let _scheduleLoadId = 0; // 防止多次快速切換日期時，舊請求覆蓋新結果
 
 // 複診號碼 → 預計報到時段（對應 booking.html 和 GAS 的 RETURN_TIME_SLOT_CONFIG）
 const RETURN_SLOT_RANGES = [
@@ -1330,6 +1339,7 @@ function getTodayStr() { const n = new Date(); return n.getFullYear() + "/" + St
 function esc(str) { return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
 async function loadSchedule(preferredSession) {
+  const myLoadId = ++_scheduleLoadId; // 每次請求遞增，舊請求回傳時比對失敗就忽略
   showAdminOverlay("載入診表中...");
   // A2：醫師磚顯示載入動畫
   const doctorTextEl = document.getElementById("sessionDoctorText");
@@ -1358,9 +1368,11 @@ async function loadSchedule(preferredSession) {
   if (loadingBar) loadingBar.style.display = "none";
   try {
     const data = await xhrPost(API_URL, { action: "adminGetTodaySchedule", date: dateToYMD(state.viewDate), lineId: state.lineId });
+    if (myLoadId !== _scheduleLoadId) return; // 已有更新的請求，忽略此結果
     renderSchedule(data.bookings || [], preferredSession, data.openSessions || null);
     hideAdminOverlay();
   } catch(e) {
+    if (myLoadId !== _scheduleLoadId) return;
     hideAdminOverlay();
     if (loadingBar) loadingBar.style.display = "none";
     document.getElementById("scheduleContent").innerHTML =
@@ -2404,13 +2416,19 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
   tsEl.textContent = timeSlotLabel ? "預計報到 " + timeSlotLabel : "";
   tsEl.style.display = timeSlotLabel ? "block" : "none";
   const phoneEl = document.getElementById("contactPhone");
+  const phoneBtns = document.getElementById("contactPhoneBtns");
+  const btnCall = document.getElementById("btnCall");
+  const btnSms = document.getElementById("btnSms");
   phoneEl.textContent = phone || "（無電話）";
+  phoneEl.href = "javascript:void(0)";
   if (phone) {
-    phoneEl.href = "tel:" + phone;
     phoneEl.classList.remove("no-phone");
+    btnCall.href = "tel:" + phone;
+    btnSms.href = "sms:" + phone;
+    phoneBtns.style.display = "flex";
   } else {
-    phoneEl.href = "javascript:void(0)";
     phoneEl.classList.add("no-phone");
+    phoneBtns.style.display = "none";
   }
   // 只有 [人工預約] 或 [已人工通知]（無手機代掛）才顯示切換按鈕
   // [待通知] / [已通知] 的病患有 LINE ID，系統自動處理，不需要手動切換

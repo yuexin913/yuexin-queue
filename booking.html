@@ -248,6 +248,13 @@
     font-family: 'Noto Sans TC', sans-serif; cursor: pointer; padding: 0;
     text-decoration: underline; text-underline-offset: 2px;
   }
+  .btn-reselect {
+    background: none; border: 1.5px solid var(--green); color: var(--green);
+    font-size: 12px; font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
+    padding: 3px 10px; border-radius: 20px; font-weight: 600; white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-reselect:hover { background: var(--green); color: #fff; }
   .btn-text-link-strong {
     background: none; border: none; color: var(--green-dark); font-size: 15px;
     font-family: 'Noto Sans TC', sans-serif; cursor: pointer; padding: 0;
@@ -646,7 +653,7 @@
     <div id="selectedDateBar" style="display:none">
       <div class="selected-date-bar">
         <span id="selectedDateLabel"></span>
-        <button class="btn-text-link" onclick="reopenCalendar()">重新選擇</button>
+        <button class="btn-reselect" onclick="reopenCalendar()">重選日期</button>
       </div>
     </div>
     <!-- 餘藥天數切換列（複診才顯示，預設顯示「或 輸入剩餘藥物天數」） -->
@@ -1367,7 +1374,7 @@ function renderSessions() {
       </div>
       <div style="display:flex;align-items:center;gap:12px">
         <div class="doctor-info"><span class="session-select-doctor">${doctorLabel}</span>${avatarHtml1}</div>
-        <button class="btn-text-link" onclick="reopenSessionSelect()">重新選擇</button>
+        <button class="btn-reselect" onclick="reopenSessionSelect()">重選診次</button>
       </div>
     </div>`;
   } else {
@@ -1427,6 +1434,11 @@ function selectSession(sessionKey) {
   state.timeSlot = null;
   state.isUnspecified = false;
   state.sessionSelected = true;
+  // 選完診次後隱藏餘藥切換列，版面更簡潔
+  const medCalcToggleBar = document.getElementById("medCalcToggleBar");
+  if (medCalcToggleBar) medCalcToggleBar.style.display = "none";
+  const medCalcArea = document.getElementById("medCalcArea");
+  if (medCalcArea) medCalcArea.style.display = "none";
   renderSessions();
   renderSlots();
   // 平滑滾動到時段區
