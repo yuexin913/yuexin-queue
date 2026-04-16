@@ -278,7 +278,7 @@
 
   /* 初診橫幅 */
   .grid-np-banner {
-    grid-column: 1 / -1;
+    grid-column: span 3;
     border: none; padding: 8px 12px;
     display: flex; align-items: center; gap: 10px;
     height: calc((min(100vw, 480px) - 5px * 4) / 5);
@@ -1170,6 +1170,7 @@ async function initLiff() {
       }, 100);
     }, 300);
   } catch(e) {
+    if (e.isSessionExpired) return;
     document.getElementById("authTitle").textContent = "連線逾時";
     document.getElementById("authSub").innerHTML =
       "請稍後再試，或點下方重新載入。<br><br>" +
@@ -1266,6 +1267,7 @@ async function doLogout() {
 }
 
 function handleSessionExpired() {
+  hideAdminOverlay(); // 確保所有 loading 狀態都被清除
   state.sessionToken = "";
   document.getElementById("pageMain").style.display = "none";
   const pageLogin = document.getElementById("pageLogin");
@@ -1283,7 +1285,14 @@ function xhrParseResponse(text) {
   if (typeof text === "string" && text.trimStart().charAt(0) === "<") {
     throw new Error("SERVER_HTML"); // GAS 回傳 HTML 錯誤頁
   }
-  return JSON.parse(text);
+  const data = JSON.parse(text);
+  if (data && data.error === "session_expired") {
+    handleSessionExpired();
+    const err = new Error("session_expired");
+    err.isSessionExpired = true; // 標記：catch 區塊應靜默處理
+    throw err;
+  }
+  return data;
 }
 
 function xhrGet(url) {
@@ -1299,7 +1308,6 @@ function xhrGet(url) {
     xhr.onload = function() {
       try {
         const data = xhrParseResponse(xhr.responseText);
-        if (data && data.error === "session_expired") { handleSessionExpired(); return; }
         resolve(data);
       }
       catch(e) { reject(e); }
@@ -1325,7 +1333,6 @@ function xhrPost(url, payload) {
     xhr.onload = function() {
       try {
         const data = xhrParseResponse(xhr.responseText);
-        if (data && data.error === "session_expired") { handleSessionExpired(); return; }
         resolve(data);
       }
       catch(e) { reject(e); }
@@ -1372,6 +1379,7 @@ async function loadSchedule(preferredSession) {
     renderSchedule(data.bookings || [], preferredSession, data.openSessions || null);
     hideAdminOverlay();
   } catch(e) {
+    if (e.isSessionExpired) return;
     if (myLoadId !== _scheduleLoadId) return;
     hideAdminOverlay();
     if (loadingBar) loadingBar.style.display = "none";
@@ -1565,7 +1573,8 @@ function renderSessionContent(session, isClosed) {
     const slot = parseInt(b.slot, 10);
     if (slot >= 1 && slot <= 30) {
       const idx = slot - 1;
-      const rowStart = idx < 5 ? null : Math.floor((idx - 5) / 5) * 5 + 5;
+      // 新互鎖邏輯：slot 8-10 → rowStart 7, slot 13-15 → rowStart 12, ...
+      const rowStart = (idx >= 7 && (idx - 7) % 5 < 3) ? Math.floor((idx - 7) / 5) * 5 + 7 : null;
       if (rowStart !== null && npRowStarts.has(rowStart)) {
         conflictList.push(b);
         conflictNpRowStarts.add(rowStart); // 標記這個初診列有衝突
@@ -1600,7 +1609,7 @@ function renderSessionContent(session, isClosed) {
             conflictList.push({ name: existing.name, slot: existing.slot, checkInTime: existing.checkInTime, bookingId: existing.bookingId });
           }
           cells[rowStart] = { type: "conflict", num: rowStart + 1, isNpConflict: true };
-          for (let k = 1; k < 5; k++) {
+          for (let k = 1; k < 3; k++) {
             if (rowStart + k < 30) cells[rowStart + k] = { type: "np_skip" };
           }
         }
@@ -1611,9 +1620,9 @@ function renderSessionContent(session, isClosed) {
         return;
       }
 
-      // 初診塞入前：掃描 rowStart~rowStart+4，把所有已存在的複診推進 conflictList
+      // 初診塞入前：掃描 rowStart~rowStart+2，把所有已存在的複診推進 conflictList
       let hasRtConflict = false;
-      for (let k = 0; k < 5; k++) {
+      for (let k = 0; k < 3; k++) {
         const idx = rowStart + k;
         if (idx < 30 && cells[idx].type === "rt") {
           if (!conflictList.find(function(c) { return c.bookingId === cells[idx].bookingId; })) {
@@ -1651,8 +1660,8 @@ function renderSessionContent(session, isClosed) {
         npRowStart: rowStart,
         hasRtConflict: hasRtConflict  // 有複診佔位時，橫幅顯示 ⚠️
       };
-      // 把 rowStart+1 ~ rowStart+4 標記為 np_skip（渲染時略過）
-      for (let k = 1; k < 5; k++) {
+      // 把 rowStart+1 ~ rowStart+2 標記為 np_skip（渲染時略過，橫幅佔3格）
+      for (let k = 1; k < 3; k++) {
         if (rowStart + k < 30) cells[rowStart + k] = { type: "np_skip" };
       }
     }
@@ -1963,6 +1972,7 @@ async function doAdminAddBooking(forceSlot) {
       }
     }
   } catch(e) {
+    if (e.isSessionExpired) return;
     showErr(e.message || "新增失敗，請稍後再試。");
     loadSchedule(activeSession);
   } finally {
@@ -2066,6 +2076,7 @@ async function confirmMatchBooking(isManual) {
       showToast("代掛未完成，請稍後再試。");
     }
   } catch(e) {
+    if (e.isSessionExpired) return;
     showToast("代掛未完成，請稍後再試。");
   } finally {
     hideAdminOverlay();
@@ -2110,6 +2121,7 @@ async function copyBindLinkFromContact(followUp) {
       showToast("✓ 已複製綁定連結");
     });
   } catch(e) {
+    if (e.isSessionExpired) return;
     errEl.textContent = e.message || "產生連結失敗，請稍後再試。";
     errEl.style.display = "block";
   } finally {
@@ -2155,6 +2167,7 @@ async function copyBindLink(followUp) {
       showToast("✓ 已複製綁定連結");
     });
   } catch(e) {
+    if (e.isSessionExpired) return;
     errEl.textContent = e.message || "產生連結失敗，請稍後再試。";
     errEl.style.display = "block";
   } finally {
@@ -2213,6 +2226,7 @@ async function confirmForceAdd() {
     closeAdminAddResult();
     showAdminAddResult("forced");
   } catch(e) {
+    if (e.isSessionExpired) return;
     if (btn) { btn.disabled = false; btn.textContent = "⛔ 病患無手機：確認代掛。"; }
     alert(e.message || "代掛失敗，請稍後再試。");
   }
@@ -2528,6 +2542,7 @@ async function cycleContactMethod() {
       updateContactNameEmoji(next);
     }
   } catch(e) {
+    if (e.isSessionExpired) return;
     // 失敗時不更新
   } finally {
     hideAdminOverlay();
@@ -2570,6 +2585,7 @@ async function doToggleNotified() {
       alert("狀態更新未完成，請稍後再試。");
     }
   } catch(e) {
+    if (e.isSessionExpired) return;
     hideAdminOverlay();
     btn.disabled = false;
     btn.textContent = state.contactIsNotified ? "✓ 已發送回診提醒" : "未發送回診提醒";
@@ -2590,6 +2606,7 @@ async function toggleCheckin(bookingId, btn) {
       else { btn.classList.remove("done"); btn.classList.add("pending"); btn.textContent = "未看診"; }
     } else { btn.textContent = isDone ? "✓ 已看診" : "未看診"; }
   } catch(e) {
+    if (e.isSessionExpired) return;
     btn.textContent = isDone ? "✓ 已看診" : "未看診";
     const errTip = document.createElement("span");
     errTip.textContent = " ⚠️ 更新失敗";
@@ -2666,7 +2683,7 @@ async function loadSubstituteList() {
           style="font-size:11px;padding:2px 7px;border:1px solid var(--error);background:white;color:var(--error);cursor:pointer">取消</button>
       </div>`;
     }).join('') + `<div style="font-size:10px;color:var(--text-light);margin-top:5px">同一時段多次設定以最新一筆為準。</div>`;
-  } catch(e) { el.innerHTML = `<div style="font-size:12px;color:var(--error)">資料暫時無法讀取，請稍後再試。</div>`; }
+  } catch(e) { if (e.isSessionExpired) return; el.innerHTML = `<div style="font-size:12px;color:var(--error)">資料暫時無法讀取，請稍後再試。</div>`; }
 }
 
 async function cancelSubstitute(date, session, btn) {
@@ -2675,7 +2692,7 @@ async function cancelSubstitute(date, session, btn) {
     const data = await xhrPost(API_URL, { action: 'cancelSubstituteDoctor', date, session, lineId: state.lineId });
     if (data.success) loadSubstituteList();
     else { btn.disabled = false; btn.textContent = '取消'; }
-  } catch(e) { btn.disabled = false; btn.textContent = '取消'; }
+  } catch(e) { if (e.isSessionExpired) return; btn.disabled = false; btn.textContent = '取消'; }
 }
 
 async function doSubstitute() {
@@ -2707,7 +2724,7 @@ async function doSubstitute() {
         document.getElementById('subSession').value = '';
         document.getElementById('subDoctor').value = '';
         loadSubstituteList();
-      } catch(e) { errEl.textContent = e.message || '更新未完成，請稍後再試。'; errEl.style.display = 'block'; }
+      } catch(e) { if (e.isSessionExpired) return; errEl.textContent = e.message || '更新未完成，請稍後再試。'; errEl.style.display = 'block'; }
       document.getElementById('substituteOverlay').classList.remove('active');
       btn.disabled = false; btn.textContent = '確認更新';
     }
@@ -2744,7 +2761,7 @@ async function doClosed() {
         document.getElementById('closedReason').value = '';
         loadSubstituteList();
         loadSchedule(activeSession);
-      } catch(e) { errEl.textContent = e.message || '設定未完成，請稍後再試。'; errEl.style.display = 'block'; }
+      } catch(e) { if (e.isSessionExpired) return; errEl.textContent = e.message || '設定未完成，請稍後再試。'; errEl.style.display = 'block'; }
       document.getElementById('substituteOverlay').classList.remove('active');
       btn.disabled = false; btn.textContent = '確認停診';
     }
@@ -2778,7 +2795,7 @@ async function doQuery() {
   try {
     const data = await xhrPost(API_URL, { action: "adminQueryBookings", name, phone, birth, lineId: state.lineId });
     renderQueryResults(data.bookings || []);
-  } catch(e) { errEl.textContent = "查詢未完成，請稍後再試。"; errEl.style.display = "block"; }
+  } catch(e) { if (e.isSessionExpired) return; errEl.textContent = "查詢未完成，請稍後再試。"; errEl.style.display = "block"; }
   hideAdminOverlay();
   btn.disabled = false; btn.textContent = "查詢";
 }
@@ -2847,7 +2864,7 @@ async function doCancel() {
       }
       loadSchedule(activeSession);
     } else { hideAdminOverlay(); document.getElementById("cancelError").textContent = data.error || "取消未完成，請稍後再試。"; document.getElementById("cancelError").style.display = "block"; }
-  } catch(e) { hideAdminOverlay(); document.getElementById("cancelError").textContent = "取消未完成，請稍後再試。"; document.getElementById("cancelError").style.display = "block"; }
+  } catch(e) { if (e.isSessionExpired) return; hideAdminOverlay(); document.getElementById("cancelError").textContent = "取消未完成，請稍後再試。"; document.getElementById("cancelError").style.display = "block"; }
   btn.disabled = false; btn.textContent = "確定取消";
 }
 
@@ -2917,7 +2934,7 @@ async function doBroadcastPreview() {
         document.getElementById("btnBcSend").disabled = true;
       }
     } else { errEl.textContent = data.error || "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
-  } catch(e) { errEl.textContent = "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
+  } catch(e) { if (e.isSessionExpired) return; errEl.textContent = "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
   btn.disabled = false; btn.textContent = "預覽發送人數";
 }
 
@@ -2938,7 +2955,7 @@ async function doBroadcastSend() {
     const data = await xhrPost(API_URL, params);
     if (data.success) { sucEl.textContent = `✓ 已成功發送給 ${data.sentCount} 位病患`; sucEl.style.display = "block"; btn.style.display = "none"; document.getElementById("bcPreview").style.display = "none"; }
     else { errEl.textContent = data.error || "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
-  } catch(e) { errEl.textContent = "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
+  } catch(e) { if (e.isSessionExpired) return; errEl.textContent = "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
   document.getElementById("broadcastOverlay").classList.remove("active");
   btn.disabled = false; btn.textContent = "確認發送";
 }
@@ -2949,7 +2966,7 @@ async function checkSecurityCaution() {
     const data = await xhrPost(API_URL, { action: "getSecurityLog", lineId: state.lineId });
     const dot = document.getElementById("securityUnreadDot");
     if (dot) dot.style.display = data.hasUnread ? "block" : "none";
-  } catch(e) { /* 靜默失敗，不影響主流程 */ }
+  } catch(e) { if (e.isSessionExpired) return; /* 靜默失敗，不影響主流程 */ }
 }
 
 /* ── 系統異常通報 ── */
@@ -2978,7 +2995,7 @@ async function loadSecurity() {
         ${readInfo}
       </div>`;
     }).join("");
-  } catch(e) { el.innerHTML = `<div class="alert alert-error">記錄暫時無法載入，請稍後再試。</div>`; }
+  } catch(e) { if (e.isSessionExpired) return; el.innerHTML = `<div class="alert alert-error">記錄暫時無法載入，請稍後再試。</div>`; }
 }
 
 /* ── 標記全部已讀 ── */
@@ -2994,6 +3011,7 @@ async function doMarkSecurityRead() {
     // 重新載入顯示已讀狀態
     loadSecurity();
   } catch(e) {
+    if (e.isSessionExpired) return;
     btn.disabled = false; btn.textContent = "✓ 標記全部已讀";
   }
 }
@@ -3007,6 +3025,7 @@ async function openPreviewModal() {
     if (!data.success) throw new Error(data.error);
     renderPreview(data.days);
   } catch(e) {
+    if (e.isSessionExpired) return;
     document.getElementById("previewContent").innerHTML =
       '<div class="alert alert-error" style="margin-bottom:12px;">資料暫時無法載入，請稍後再試。</div>' +
       '<button class="btn" style="width:100%;background:var(--lagoon);color:#fff;" onclick="openPreviewModal()">重新載入</button>';
