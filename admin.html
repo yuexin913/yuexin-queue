@@ -635,15 +635,15 @@
       <button class="btn" style="background:var(--kiwi);color:#111;font-size:13px;padding:10px;" onclick="toggleUnspecForm()">＋ 新增不指定</button>
       <div id="unspecAddForm" style="display:none;margin-top:12px">
         <div class="form-group"><label class="form-label">姓名</label><input type="text" id="uAddName" placeholder="請輸入姓名"></div>
-        <div class="form-group"><label class="form-label">電話</label><input type="tel" id="uAddPhone" placeholder="09xxxxxxxx"></div>
+        <div class="form-group"><label class="form-label">電話</label><input type="tel" id="uAddPhone" placeholder="09xxxxxxxx" oninput="this.value=this.value.replace(/\D/g,'')"></div>
         <div class="form-group">
           <label class="form-label">生日（民國年）</label>
           <div style="display:flex;gap:6px;align-items:center">
-            <input type="tel" id="uAddBirthY" placeholder="年" style="width:70px" maxlength="3">
+            <input type="tel" id="uAddBirthY" placeholder="年" style="width:70px" maxlength="3" oninput="this.value=this.value.replace(/\D/g,'')">
             <span>/</span>
-            <input type="tel" id="uAddBirthM" placeholder="月" style="width:55px" maxlength="2">
+            <input type="tel" id="uAddBirthM" placeholder="月" style="width:55px" maxlength="2" oninput="this.value=this.value.replace(/\D/g,'')">
             <span>/</span>
-            <input type="tel" id="uAddBirthD" placeholder="日" style="width:55px" maxlength="2">
+            <input type="tel" id="uAddBirthD" placeholder="日" style="width:55px" maxlength="2" oninput="this.value=this.value.replace(/\D/g,'')">
           </div>
         </div>
         <div id="unspecAddError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
@@ -658,15 +658,15 @@
   <div class="modal">
     <div class="modal-title" id="adminAddTitle">代掛<button class="modal-close" onclick="closeModal('modalAdminAdd')">✕</button></div>
     <div class="form-group"><label class="form-label">姓名</label><input type="text" id="aAddName" placeholder="請輸入姓名"></div>
-    <div class="form-group"><label class="form-label">電話</label><input type="tel" id="aAddPhone" placeholder="09xxxxxxxx"></div>
+    <div class="form-group"><label class="form-label">電話</label><input type="tel" id="aAddPhone" placeholder="09xxxxxxxx" oninput="this.value=this.value.replace(/\D/g,'')"></div>
     <div class="form-group">
       <label class="form-label">生日（民國年）</label>
       <div style="display:flex;gap:6px;align-items:center">
-        <input type="tel" id="aAddBirthY" placeholder="年" style="width:70px" maxlength="3">
+        <input type="tel" id="aAddBirthY" placeholder="年" style="width:70px" maxlength="3" oninput="this.value=this.value.replace(/\D/g,'')">
         <span>/</span>
-        <input type="tel" id="aAddBirthM" placeholder="月" style="width:55px" maxlength="2">
+        <input type="tel" id="aAddBirthM" placeholder="月" style="width:55px" maxlength="2" oninput="this.value=this.value.replace(/\D/g,'')">
         <span>/</span>
-        <input type="tel" id="aAddBirthD" placeholder="日" style="width:55px" maxlength="2">
+        <input type="tel" id="aAddBirthD" placeholder="日" style="width:55px" maxlength="2" oninput="this.value=this.value.replace(/\D/g,'')">
       </div>
     </div>
     <div id="adminAddError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
@@ -864,15 +864,15 @@
   <div class="modal">
     <div class="modal-title">進階查詢<button class="modal-close" onclick="closeModal('modalQuery')">✕</button></div>
     <div class="form-group"><label class="form-label">姓名</label><input type="text" id="qName" placeholder="請輸入姓名"></div>
-    <div class="form-group"><label class="form-label">電話</label><input type="tel" id="qPhone" placeholder="09xxxxxxxx"></div>
+    <div class="form-group"><label class="form-label">電話</label><input type="tel" id="qPhone" placeholder="09xxxxxxxx" oninput="this.value=this.value.replace(/\D/g,'')"></div>
     <div class="form-group">
       <label class="form-label">生日（民國年）</label>
       <div style="display:flex;gap:6px;align-items:center">
-        <input type="tel" id="qBirthY" placeholder="年" style="width:70px" maxlength="3">
+        <input type="tel" id="qBirthY" placeholder="年" style="width:70px" maxlength="3" oninput="this.value=this.value.replace(/\D/g,'')">
         <span>/</span>
-        <input type="tel" id="qBirthM" placeholder="月" style="width:55px" maxlength="2">
+        <input type="tel" id="qBirthM" placeholder="月" style="width:55px" maxlength="2" oninput="this.value=this.value.replace(/\D/g,'')">
         <span>/</span>
-        <input type="tel" id="qBirthD" placeholder="日" style="width:55px" maxlength="2">
+        <input type="tel" id="qBirthD" placeholder="日" style="width:55px" maxlength="2" oninput="this.value=this.value.replace(/\D/g,'')">
       </div>
     </div>
     <div id="qError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
