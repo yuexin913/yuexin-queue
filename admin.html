@@ -2150,7 +2150,7 @@ async function copyBindLink(followUp) {
       + patientName + " 您好，已為您預約 " + dateDisplay + " " + displayName + "！\n\n"
       + "⬇️立刻點選連結確認並保留預約\n\n"
       + bindUrl + "\n\n"
-      + "請於「 1 小時內」確認。\n\n"
+      + "請於「 10 分鐘內」確認。\n\n"
       + "若您並未預約回診，請直接忽略此訊息！";
     navigator.clipboard.writeText(msg).then(function() {
       showToast("✓ 已複製綁定連結");
