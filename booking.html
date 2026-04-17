@@ -710,8 +710,7 @@
       <div class="card-title">確認預約資料</div>
       <div id="summaryContent"></div>
     </div>
-    <div class="alert alert-info">ℹ️ 提醒：預約完成後，確認通知將發送至此 LINE 帳號。建議使用本人帳號預約，以確保通知正確送達。</div>
-    <div class="alert alert-warn">✅ 送出後將立即收到 LINE 確認通知。</div>
+    <div class="alert alert-warn">ℹ️ 提醒：預約完成後，確認通知將發送至此 LINE 帳號。建議使用本人帳號預約，以確保通知正確送達。</div>
     <div id="errorPage3" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-primary" id="btnSubmit" onclick="submitBooking()">確認送出預約</button>
     <p style="font-size:12px;color:var(--text-light);text-align:left;margin-bottom:12px;line-height:1.6;">
@@ -1579,8 +1578,8 @@ async function goToConfirm() {
   try {
     const dateCode = state.date.replace(/\//g,'');
     const data = await xhrGet(`${API_URL}?action=checkLimit&lineId=${state.lineId}&date=${dateCode}`);
-    if (data.sameDayExceeded) return showError("errorPage2", "您當天已有預約。如需更改，請先取消原預約後再重新預約。若需加掛門診，請於門診時間來電：07-363-1313。");
-    if (data.sameWeekExceeded) return showError("errorPage2", "您本週預約已達上限（每週最多二次）。如需更改，請先取消其中一筆預約，再重新預約。若需加掛門診，請於門診時間來電：07-363-1313。");
+    if (data.sameDayExceeded) return showError("errorPage2", "您當日預約已達上限（每日最多二次）。如需更改，請先取消其中一筆預約，再重新預約。\n\n若有額外預約需求，請於門診時間聯繫診所協助。");
+    if (data.sameWeekExceeded) return showError("errorPage2", "您當週預約已達上限（每週最多三次）。如需更改，請先取消其中一筆預約，再重新預約。\n\n若有額外預約需求，請於門診時間聯繫診所協助。");
   } catch(e) {
     showError("errorPage2", e.message === "SERVER_HTML" ? "系統暫時無法使用，請稍後再試。" : "連線中斷，請確認網路後重試。");
     return;
@@ -1855,7 +1854,7 @@ function showPage(id) {
 
 function showError(id, msg) {
   const el = document.getElementById(id);
-  el.textContent = msg; el.style.display = "block";
+  el.innerHTML = msg.replace(/\n/g, "<br>"); el.style.display = "block";
   el.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 function hideError(id) { document.getElementById(id).style.display = "none"; }

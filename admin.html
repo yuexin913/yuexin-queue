@@ -441,7 +441,7 @@
     border: 1px solid var(--border);
     padding: 5px 4px;
     cursor: pointer;
-    min-height: 72px;
+    min-height: 90px;
     position: relative;
     background: var(--bg-2);
     transition: all 0.1s;
@@ -2311,7 +2311,7 @@ function buildLineMsg(type, isReminder, name, date, session, slot, doctor) {
       + "▸ 報到時間：" + npTimeDisplay + "前\n"
       + footer + "\n\n「注意事項」\n"
       + "1.報到時間非實際看診時間。\n"
-      + "2.初診需較長時間會談，看診順序由工作人員依現場情況安排。\n"
+      + "2.初診需較長時間會談，實際看診順序依當日到診狀況適當安排。\n"
       + "3.逾時報到視同取消預約，需重新排空號或改其他時段。";
   } else if (type === "不指定" || String(slot) === "不指定") {
     const timeRange = RETURN_SLOT_LABELS[session]
@@ -2329,7 +2329,7 @@ function buildLineMsg(type, isReminder, name, date, session, slot, doctor) {
       + "▸ 時段：" + displayName + "\n"
       + doctorLine
       + "▸ 報到時間：" + rangeDisplay + "\n"
-      + footer + "\n\n「注意事項」\n請於時間內報到，看診順序依現場狀況安排.";
+      + footer + "\n\n「注意事項」\n請於時間內至櫃檯報到。實際看診順序依當日到診狀況適當安排。";
   } else {
     // 複診
     const rtRange = getRtRange(slot);
@@ -2343,7 +2343,7 @@ function buildLineMsg(type, isReminder, name, date, session, slot, doctor) {
       + doctorLine
       + "▸ 號碼：" + parseInt(slot) + " 號\n"
       + (rtRange ? "▸ 報到時間：" + rtRange + "\n" : "")
-      + footer + "\n\n「注意事項」\n請於時間內報到。看診順序依據預約號碼及現場狀況安排。";
+      + footer + "\n\n「注意事項」\n請於時間內至櫃檯報到。實際看診順序依預約號碼及當日到診狀況適當安排。";
   }
 }
 
@@ -3041,6 +3041,7 @@ function renderPreview(days) {
   html += '<span><span style="color:var(--border);">●</span> 無預約</span>';
   html += '<span><span style="color:var(--error);font-weight:700;">停</span> 停診</span>';
   html += '</div>';
+  html += '<div style="font-size:10px;color:var(--text-light);margin-bottom:6px;">總人數：初診 / 複診 / 現場不指定人數</div>';
 
   html += '<div class="preview-cal">';
   // 週標題（移除週日）
@@ -3081,7 +3082,7 @@ function renderPreview(days) {
       } else {
         const isZero = sd.total === 0;
         const detail = sd.total > 0
-          ? `${sd.np}初/${sd.rt}複/${sd.unspec}現`
+          ? `${sd.np}/${sd.rt}/${sd.unspec}`
           : "";
         html += `<div class="preview-session-row">
           <span class="preview-session-label">${label}</span>
