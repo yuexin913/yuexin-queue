@@ -429,33 +429,32 @@
   /* ── 35天預覽 ── */
   .preview-cal {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 3px;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
     margin-bottom: 8px;
   }
   .preview-weekday {
-    text-align: center; font-size: 10px; font-weight: 700;
-    color: var(--text-light); padding: 2px 0;
+    text-align: center; font-size: 11px; font-weight: 700;
+    color: var(--text-light); padding: 3px 0;
   }
   .preview-day {
     border: 1px solid var(--border);
-    padding: 4px 3px;
+    padding: 5px 4px;
     cursor: pointer;
-    min-height: 64px;
+    min-height: 72px;
     position: relative;
     background: var(--bg-2);
     transition: all 0.1s;
   }
   .preview-day:active { transform: scale(0.96); opacity: 0.85; }
   .preview-day.preview-closed { background: var(--bg); cursor: default; }
-  .preview-day.preview-sunday { background: var(--bg); cursor: default; opacity: 0.4; }
   .preview-day.preview-empty-week { background: transparent; border-color: transparent; cursor: default; }
   .preview-date {
     font-size: 13px; font-weight: 700; color: var(--text);
-    line-height: 1; margin-bottom: 3px;
+    line-height: 1; margin-bottom: 4px;
   }
   .preview-session-row {
-    font-size: 9px; line-height: 1.6;
+    font-size: 10px; line-height: 1.7;
     display: flex; gap: 2px; align-items: baseline;
   }
   .preview-session-label {
@@ -466,10 +465,10 @@
   }
   .preview-session-count.zero { color: var(--border); font-weight: 200; }
   .preview-session-closed {
-    font-size: 8px; color: var(--error); font-weight: 700;
+    font-size: 9px; color: var(--error); font-weight: 700;
   }
   .preview-session-detail {
-    font-size: 8px; color: var(--text-light); font-weight: 200;
+    font-size: 9px; color: var(--text-light); font-weight: 200; line-height: 1.5;
   }
   .preview-legend {
     display: flex; gap: 10px; font-size: 10px; color: var(--text-light);
@@ -3030,12 +3029,13 @@ async function openPreviewModal() {
 
 function renderPreview(days) {
   const SESSION_LABELS = { "早上": "早", "下午": "午", "晚上": "晚" };
-  const WEEKDAY_LABELS = ["日","一","二","三","四","五","六"];
 
-  // 找第一天是星期幾，計算需要填入幾個空格讓日曆對齊
-  const firstDow = days[0].dow; // 0=日, 1=一...
+  // 找第一個非週日的天，計算週一為起點的前置空格
+  const firstDay = days.find(function(d) { return d.dow !== 0; });
+  // dow: 1=一,2=二...6=六，週一起點：前置空格 = dow-1
+  const firstDow = firstDay ? firstDay.dow - 1 : 0;
 
-  // 日曆標題列（日一二三四五六）
+  // 圖例
   let html = '<div class="preview-legend">';
   html += '<span><span style="color:var(--kiwi);font-weight:700;">●</span> 有預約</span>';
   html += '<span><span style="color:var(--border);">●</span> 無預約</span>';
@@ -3043,31 +3043,25 @@ function renderPreview(days) {
   html += '</div>';
 
   html += '<div class="preview-cal">';
-  // 週標題
-  ["日","一","二","三","四","五","六"].forEach(function(w) {
+  // 週標題（移除週日）
+  ["一","二","三","四","五","六"].forEach(function(w) {
     html += `<div class="preview-weekday">${w}</div>`;
   });
 
-  // 第一週前的空格（從週日對齊）
+  // 第一週前的空格（週一為起點）
   for (var pad = 0; pad < firstDow; pad++) {
     html += '<div class="preview-day preview-empty-week"></div>';
   }
 
   days.forEach(function(day) {
     const dateParts = day.date.split("/");
-    const dateLabel = parseInt(dateParts[1]) + "/" + parseInt(dateParts[2]);
-    const isSunday = day.dow === 0;
-
-    if (isSunday) {
-      html += `<div class="preview-day preview-sunday"><div class="preview-date" style="color:var(--text-light);">${parseInt(dateParts[2])}</div></div>`;
-      return;
-    }
+    // 跳過星期日
+    if (day.dow === 0) return;
 
     const sessions = day.sessions;
     const sessionKeys = ["早上", "下午", "晚上"].filter(function(s) { return sessions[s]; });
     const hasAny = sessionKeys.some(function(s) { return !sessions[s].isClosed; });
 
-    // 點擊跳轉到該日期時段
     const firstOpenSession = sessionKeys.find(function(s) { return !sessions[s].isClosed; }) || sessionKeys[0];
     const clickAttr = hasAny
       ? `onclick="previewJumpTo('${day.date}','${firstOpenSession}')"`
