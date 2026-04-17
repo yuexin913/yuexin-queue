@@ -278,7 +278,7 @@
 
   /* 初診橫幅 */
   .grid-np-banner {
-    grid-column: span 3;
+    grid-column: 3 / span 3;
     border: none; padding: 8px 12px;
     display: flex; align-items: center; gap: 10px;
     height: calc((min(100vw, 480px) - 5px * 4) / 5);
@@ -2106,11 +2106,6 @@ async function copyBindLinkFromContact(followUp) {
     const displayName = sessionDisplayMap[state.contactSession] || state.contactSession + "診";
     const dParts = dateStr.split("/");
     const dateDisplay = parseInt(dParts[1]) + "月" + parseInt(dParts[2]) + "日";
-    const msg = "【悅心診所 預約確認】\n"
-      + patientName + " 您好，已為您預約 " + dateDisplay + " " + displayName + "！\n\n"
-      + "請點選以下連結確認您的預約資訊：\n"
-      + bindUrl + "\n\n"
-      + "請於 10 分鐘內點選。若您並未預約回診請忽略此訊息！";
     navigator.clipboard.writeText(msg).then(function() {
       showToast("✓ 已複製綁定連結");
     }).catch(function() {
@@ -2154,9 +2149,10 @@ async function copyBindLink(followUp) {
     const dateDisplay = parseInt(dParts[1]) + "月" + parseInt(dParts[2]) + "日";
     const msg = "【悅心診所 預約確認】\n"
       + patientName + " 您好，已為您預約 " + dateDisplay + " " + displayName + "！\n\n"
-      + "請點選以下連結確認您的預約資訊：\n"
+      + "⬇️立刻點選連結確認並保留預約\n\n"
       + bindUrl + "\n\n"
-      + "請於 10 分鐘內點選。若您並未預約回診請忽略此訊息！";
+      + "請於「 1 小時內」確認。\n\n"
+      + "若您並未預約回診，請直接忽略此訊息！";
     navigator.clipboard.writeText(msg).then(function() {
       showToast("✓ 已複製綁定連結");
     }).catch(function() {
@@ -2334,7 +2330,7 @@ function buildLineMsg(type, isReminder, name, date, session, slot, doctor) {
       + "▸ 時段：" + displayName + "\n"
       + doctorLine
       + "▸ 報到時間：" + rangeDisplay + "\n"
-      + footer + "\n\n「注意事項」\n請於時間內報到，看診順序由工作人員依現場情況安排.";
+      + footer + "\n\n「注意事項」\n請於時間內報到，看診順序依現場狀況安排.";
   } else {
     // 複診
     const rtRange = getRtRange(slot);
@@ -2348,7 +2344,7 @@ function buildLineMsg(type, isReminder, name, date, session, slot, doctor) {
       + doctorLine
       + "▸ 號碼：" + parseInt(slot) + " 號\n"
       + (rtRange ? "▸ 報到時間：" + rtRange + "\n" : "")
-      + footer + "\n\n「注意事項」\n報到時段僅為預估，實際看診時間可能稍有延遲。";
+      + footer + "\n\n「注意事項」\n請於時間內報到。看診順序依據預約號碼及現場狀況安排。";
   }
 }
 
