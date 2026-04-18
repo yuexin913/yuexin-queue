@@ -2086,9 +2086,9 @@ function renderSessionContent(session, isClosed) {
 
       const npBirthDisplay = c.birth ? rocDate(c.birth) : "";
       html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="cursor:pointer;position:relative;">
-        <div style="position:absolute;top:7px;left:6px;font-size:20px;font-weight:700;color:#111111;">${esc(c.checkInTime)}前</div>
-        ${npBirthDisplay ? `<div style="position:absolute;top:50%;left:6px;right:90px;transform:translateY(-50%);font-size:12px;font-weight:400;color:#111111;opacity:0.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${npBirthDisplay}</div>` : ""}
-        <div style="position:absolute;bottom:6px;left:6px;right:90px;font-size:14px;font-weight:400;color:#111111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${isXinkuan ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(c.name)}</span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>` : esc(c.name)}</div>
+        <div style="position:absolute;top:7px;left:6px;font-size:20px;font-weight:700;color:#ffffff;">${esc(c.checkInTime)}前</div>
+        ${npBirthDisplay ? `<div style="position:absolute;top:50%;left:6px;right:90px;transform:translateY(-50%);font-size:12px;font-weight:400;color:#ffffff;opacity:0.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${npBirthDisplay}</div>` : ""}
+        <div style="position:absolute;bottom:6px;left:6px;right:90px;font-size:14px;font-weight:400;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${isXinkuan ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(c.name)}</span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>` : esc(c.name)}</div>
         <button id="btn-${esc(c.bookingId)}"
           onclick="event.stopPropagation(); toggleCheckin('${esc(c.bookingId)}',this)"
           style="position:absolute;top:7px;right:7px;background:#000;color:${btnTextColor};border:none;font-family:inherit;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;letter-spacing:0.5px;">${btnLabel}</button>
@@ -2109,9 +2109,9 @@ function renderSessionContent(session, isClosed) {
         : esc(c.name);
       const birthDisplay = c.birth ? rocDate(c.birth) : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
-        <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
-        ${birthDisplay ? `<span style="font-size:12px;font-weight:400;color:#111111;opacity:0.7;position:absolute;top:50%;left:6px;right:6px;transform:translateY(-50%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${birthDisplay}</span>` : ""}
-        <span style="font-size:14px;font-weight:400;color:#111111;position:absolute;bottom:5px;left:6px;right:${nameRight};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${nameHtml}</span>
+        <span class="cell-num" style="font-size:22px;font-weight:700;color:#ffffff;position:absolute;top:6px;left:6px;">${numDisplay}</span>
+        ${birthDisplay ? `<span style="font-size:12px;font-weight:400;color:#ffffff;opacity:0.7;position:absolute;top:50%;left:6px;right:6px;transform:translateY(-50%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${birthDisplay}</span>` : ""}
+        <span style="font-size:14px;font-weight:400;color:#ffffff;position:absolute;bottom:5px;left:6px;right:${nameRight};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${nameHtml}</span>
         ${cautionHtml}
       </div>`;
     } else if (c.type === "conflict") {
