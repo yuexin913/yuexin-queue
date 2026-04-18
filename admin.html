@@ -749,6 +749,55 @@
   }
   .m-grid-2 .m-btn-icon { width: auto; }
 
+  /* 立即行動外層:當兩個內部 wrapper 都隱藏時,整個 section 隱藏 */
+  #contactActionSection:has(#contactPhoneBtns[style*="none"]):has(#btnContactMethodWrap[style*="none"]) {
+    display: none;
+  }
+
+  /* 立即行動 3 格並排(撥打 / 傳訊 / 聯繫方式) */
+  .m-action-row {
+    display: flex;
+    gap: 6px;
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+  .m-action-pair {
+    flex: 2;
+    display: flex;
+    gap: 6px;
+    min-width: 0;
+  }
+  .m-action-pair .m-btn {
+    flex: 1;
+    margin-bottom: 0;
+  }
+  .m-action-method {
+    flex: 1;
+    min-width: 0;
+  }
+  /* 容器是 flex item,內部按鈕直接 width 100% 撐滿;不論 JS 設 display:block 還是 flex 都穩定 */
+  .m-action-method .m-btn {
+    width: 100%;
+    margin-bottom: 0;
+  }
+
+  /* Compact 版按鈕(3 並排時用) */
+  .m-btn-compact {
+    padding: 11px 8px;
+    font-size: 12.5px;
+    letter-spacing: 0.5px;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .m-btn-compact .m-btn-icon {
+    width: auto;
+    font-size: 13px;
+  }
+
   /* Toggle(通知狀態切換) */
   .m-toggle {
     display: flex;
@@ -1306,18 +1355,23 @@
       </div>
     </div>
 
-    <!-- 立即行動(撥打/傳訊) -->
-    <div class="m-section" id="contactPhoneBtns" style="display:none;">
+    <!-- 立即行動(撥打 / 傳訊 / 聯繫方式切換,三格並排) -->
+    <div class="m-section" id="contactActionSection">
       <div class="m-section-label">立即行動</div>
-      <div class="m-grid-2">
-        <a class="m-btn primary" id="btnCall" href="" style="text-decoration:none;">
-          <span class="m-btn-icon">📞</span>
-          撥打
-        </a>
-        <a class="m-btn" id="btnSms" href="" style="text-decoration:none;">
-          <span class="m-btn-icon">💬</span>
-          傳訊
-        </a>
+      <div class="m-action-row">
+        <div id="contactPhoneBtns" class="m-action-pair" style="display:none;">
+          <a class="m-btn m-btn-compact" id="btnCall" href="" style="text-decoration:none;">
+            <span class="m-btn-icon">📞</span>
+            撥打
+          </a>
+          <a class="m-btn m-btn-compact" id="btnSms" href="" style="text-decoration:none;">
+            <span class="m-btn-icon">💬</span>
+            傳訊
+          </a>
+        </div>
+        <div id="btnContactMethodWrap" class="m-action-method" style="display:none;">
+          <button class="m-btn m-btn-compact" id="btnContactMethod" onclick="cycleContactMethod()"></button>
+        </div>
       </div>
     </div>
 
@@ -1374,12 +1428,6 @@
         <span class="m-btn-arrow">›</span>
       </button>
       <div id="bindLinkContactError" class="alert alert-error" style="display:none;margin-top:6px;"></div>
-    </div>
-
-    <!-- 聯繫方式 -->
-    <div id="btnContactMethodWrap" class="m-section" style="display:none;">
-      <div class="m-section-label">聯繫方式</div>
-      <button class="m-btn" id="btnContactMethod" onclick="cycleContactMethod()"></button>
     </div>
 
     <!-- 取消預約(危險區) -->
