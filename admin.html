@@ -8,54 +8,96 @@
   <meta name="description" content="悅心診所管理員後台">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@200;300;400;700&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@200;400;700&display=swap');
-
-  /* ════════════════════════════════
-     PANTONE 2026 Tropic Tonalities
-  ════════════════════════════════ */
+  /* ════════════════════════════════════════════════════════
+     悅心診所 JOIN System Admin — 近黑白深色主題 (Theme E)
+     保留 Metro 硬邊、無圓角、無陰影的設計語言
+     ════════════════════════════════════════════════════════ */
   :root {
+    /* ── 原彩色變數（保留名稱與飽和色值,JS innerHTML 引用）── */
     --marigold:    #ff8601;
-    --lagoon:      #0096D6;
     --marigold-dk: #cc6b00;
+    --lagoon:      #0096D6;
     --capri:       #00B5E2;
     --kiwi:        #bacb00;
     --sunny:       #dbef76;
     --yellow:      #fee800;
     --pink:        #f93259;
     --orchid:      #b362a7;
+
+    /* ── 深色主題三層背景 ── */
+    --bg:          #0e0e0e;
+    --bg-2:        #141414;
+    --bg-3:        #1e1e1e;
+    --bg-4:        #232323;
+
+    /* ── 文字 ── */
+    --text:        #e8e8e8;
+    --text-light:  #8a8a8a;
+    --text-dim:    #555;
     --cloud:       #f0efeb;
-    --bg:          #1E1E24;
-    --bg-2:        #26262E;
-    --bg-3:        #2E2E38;
-    --text:        #F2EFE4;
-    --text-light:  #9090A0;
-    --border:      #3A3A48;
-    --empty-text:  #3A3A48;
-    --error:       #FF4444;
-    --success:     #8CC63F;
-    --orange:      #FF7A00;
-    --orange-dark: #CC6200;
-    --orange-light:#2A2010;
-    --green-light: #1A2410;
-    --cloud:       #F2EFE4;
-    --gap:         5px;
+
+    /* ── 邊框與空狀態 ── */
+    --border:      rgba(255,255,255,0.1);
+    --border-soft: rgba(255,255,255,0.06);
+    --border-hard: rgba(255,255,255,0.18);
+    --empty-text:  #2a2a2a;
+
+    /* ── 狀態色 ── */
+    --error:       #f93259;
+    --success:     #bacb00;
+    --orange:      #ff8601;
+    --orange-dark: #cc6b00;
+    --orange-light:#2a1d0e;
+    --green-light: #1a2410;
+
+    /* ── 半透明彩色底（功能 tile 用）── */
+    --marigold-bg:     rgba(255,134,1,0.08);
+    --marigold-bd:     rgba(255,134,1,0.28);
+    --marigold-bg-hov: rgba(255,134,1,0.14);
+    --lagoon-bg:       rgba(0,150,214,0.08);
+    --lagoon-bd:       rgba(0,150,214,0.28);
+    --lagoon-bg-hov:   rgba(0,150,214,0.14);
+    --capri-bg:        rgba(0,181,226,0.08);
+    --capri-bd:        rgba(0,181,226,0.28);
+    --kiwi-bg:         rgba(186,203,0,0.08);
+    --kiwi-bd:         rgba(186,203,0,0.28);
+    --sunny-bg:        rgba(219,239,118,0.08);
+    --sunny-bd:        rgba(219,239,118,0.25);
+    --yellow-bg:       rgba(254,232,0,0.07);
+    --yellow-bd:       rgba(254,232,0,0.22);
+    --yellow-bg-hov:   rgba(254,232,0,0.12);
+    --pink-bg:         rgba(249,50,89,0.08);
+    --pink-bd:         rgba(249,50,89,0.25);
+    --pink-bg-hov:     rgba(249,50,89,0.14);
+    --orchid-bg:       rgba(179,98,167,0.08);
+    --orchid-bd:       rgba(179,98,167,0.25);
+    --orchid-bg-hov:   rgba(179,98,167,0.14);
+
+    --gap:         3px;
     --grid-width:  min(100vw, 480px);
   }
 
   /* ── 全域重置 ── */
   * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; box-shadow: none !important; }
   html, body { background: var(--bg); overflow-x: hidden; }
-  body { font-family: "Segoe UI", "Noto Sans TC", sans-serif; color: var(--text); }
+  body {
+    font-family: "Noto Sans TC", "Segoe UI", sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-  /* ════════════════════════════════
+  /* ════════════════════════════════════════════════════════
      AUTH 頁
-  ════════════════════════════════ */
+     ════════════════════════════════════════════════════════ */
   #pageAuth {
     display: flex; flex-direction: column;
     min-height: 100vh; background: var(--bg);
   }
-  /* JOI-N 九宮格彩蛋 */
   .join-logo {
     display: flex;
     gap: 6px;
@@ -76,36 +118,37 @@
     opacity: 0;
     transition: opacity 0.25s ease;
   }
-  .join-cell.lit { opacity: 1; }
-  /* 文字區 */
+  .join-cell.lit { opacity: 1; background: var(--text); }
   .auth-text {
     flex: 1; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     padding: 32px 24px; text-align: center;
   }
-  .auth-title { font-size: 20px; font-weight: 700; color: var(--cloud); margin-bottom: 8px; letter-spacing: 2px; }
-  .auth-sub { font-size: 13px; color: var(--text-light); line-height: 1.6; }
+  .auth-title { font-size: 20px; font-weight: 300; color: var(--cloud); margin-bottom: 8px; letter-spacing: 3px; }
+  .auth-sub { font-size: 12px; color: var(--text-light); line-height: 1.6; font-weight: 200; letter-spacing: 1px; }
 
-  /* ════════════════════════════════
+  /* ════════════════════════════════════════════════════════
      METRO GRID 主版面
-  ════════════════════════════════ */
+     ════════════════════════════════════════════════════════ */
   #pageMain { display: none; }
 
   .metro-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    grid-auto-rows: calc((min(100vw, 480px) - 5px * 4) / 5);
+    grid-auto-rows: calc((min(100vw, 480px) - 3px * 4) / 5);
     gap: var(--gap);
-    background: #111111;
+    background: var(--bg);
+    padding: var(--gap);
     max-width: 480px;
     margin: 0 auto;
     align-items: start;
   }
 
-  /* 基本磚塊 */
+  /* ── 基本 tile ── */
   .tile {
-    background: var(--bg-2);
-    padding: 10px 12px;
+    background: var(--bg-3);
+    border: 1px solid var(--border-soft);
+    padding: 8px 10px;
     position: relative;
     overflow: hidden;
     cursor: default;
@@ -113,8 +156,9 @@
     flex-direction: column;
     justify-content: flex-start;
     min-width: 0;
-    height: calc((min(100vw, 480px) - 5px * 4) / 5);
-    max-height: calc((min(100vw, 480px) - 5px * 4) / 5);
+    height: calc((min(100vw, 480px) - 3px * 4) / 5);
+    max-height: calc((min(100vw, 480px) - 3px * 4) / 5);
+    transition: background 0.15s;
   }
   .tile:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
 
@@ -124,100 +168,144 @@
   .tile-4 { grid-column: span 4; }
   .tile-5 { grid-column: span 5; }
 
-  /* 磚塊顏色 */
-  .tile-marigold  { background: var(--marigold); }
-  .tile-capri     { background: var(--capri); }
-  .tile-kiwi      { background: var(--kiwi); }
-  .tile-yellow    { background: var(--yellow); }
-  .tile-pink      { background: var(--pink); }
-  .tile-orchid    { background: var(--orchid); }
-  .tile-dark      { background: var(--bg-3); }
-  .tile-empty     { background: var(--bg); cursor: default; pointer-events: none; }
+  /* ── 半透明彩色 tile(取代原本純色塊)── */
+  .tile-marigold  { background: var(--marigold-bg); border-color: var(--marigold-bd); }
+  .tile-marigold:hover { background: var(--marigold-bg-hov); }
+  .tile-capri     { background: var(--capri-bg);    border-color: var(--capri-bd); }
+  .tile-lagoon    { background: var(--lagoon-bg);   border-color: var(--lagoon-bd); }
+  .tile-lagoon:hover { background: var(--lagoon-bg-hov); }
+  .tile-kiwi      { background: var(--kiwi-bg);     border-color: var(--kiwi-bd); }
+  .tile-yellow    { background: var(--yellow-bg);   border-color: var(--yellow-bd); }
+  .tile-yellow:hover { background: var(--yellow-bg-hov); }
+  .tile-pink      { background: var(--pink-bg);     border-color: var(--pink-bd); }
+  .tile-pink:hover { background: var(--pink-bg-hov); }
+  .tile-orchid    { background: var(--orchid-bg);   border-color: var(--orchid-bd); }
+  .tile-orchid:hover { background: var(--orchid-bg-hov); }
+  .tile-sunny     { background: var(--sunny-bg);    border-color: var(--sunny-bd); }
+  .tile-dark      { background: var(--bg-3);        border-color: var(--border-soft); }
+  .tile-empty     { background: var(--bg); border-color: transparent; cursor: default; pointer-events: none; }
 
-  /* ════════════════════════════════
-     統一磚塊資訊格式
-     左上：title（大字粗體）
-     左下：subtitle（小字細體）
-     右上：note（黑底色標籤）
-     右下：caution（黑色小方塊，有待處理）
-  ════════════════════════════════ */
+  /* ── 統一磚塊資訊格式 ── */
   .tile-title {
-    font-size: 20px; font-weight: 700;
-    color: var(--text); line-height: 1.1;
+    font-size: 17px; font-weight: 300;
+    color: var(--text); line-height: 1.2;
     position: absolute; top: 10px; left: 12px; right: 12px;
+    letter-spacing: 0.5px;
   }
   .tile-subtitle {
     font-size: 11px; font-weight: 200;
     color: var(--text-light);
     position: absolute; bottom: 8px; left: 12px; right: 32px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    letter-spacing: 0.5px;
   }
   .tile-note {
-    font-size: 10px; font-weight: 700;
-    background: #000; color: inherit;
-    padding: 2px 6px; letter-spacing: 0.5px;
+    font-size: 10px; font-weight: 400;
+    background: var(--bg-4); color: var(--text-light);
+    padding: 2px 7px; letter-spacing: 1px;
     position: absolute; top: 8px; right: 8px;
     white-space: nowrap;
+    border: 1px solid var(--border-soft);
   }
   .tile-caution {
-    width: 12px; height: 12px;
-    background: #000;
+    width: 8px; height: 8px;
+    background: var(--marigold);
     position: absolute; bottom: 8px; right: 8px;
     flex-shrink: 0;
   }
 
-  /* 彩色磚塊上的文字顏色 */
-  .tile-marigold .tile-title,
-  .tile-capri .tile-title,
-  .tile-kiwi .tile-title,
-  .tile-pink .tile-title,
-  .tile-orchid .tile-title { color: #fff; }
-  .tile-yellow .tile-title { color: #1A1A1A; }
+  /* ── 半透明彩色 tile 上的文字顏色 ── */
+  .tile-marigold .tile-title { color: var(--marigold); }
+  .tile-capri    .tile-title { color: var(--capri); }
+  .tile-lagoon   .tile-title { color: var(--lagoon); }
+  .tile-kiwi     .tile-title { color: var(--kiwi); }
+  .tile-yellow   .tile-title { color: var(--yellow); }
+  .tile-pink     .tile-title { color: var(--pink); }
+  .tile-orchid   .tile-title { color: var(--orchid); }
+  .tile-sunny    .tile-title { color: var(--sunny); }
 
-  .tile-marigold .tile-subtitle,
-  .tile-capri .tile-subtitle,
-  .tile-kiwi .tile-subtitle,
-  .tile-pink .tile-subtitle,
-  .tile-orchid .tile-subtitle { color: rgba(255,255,255,0.7); }
-  .tile-yellow .tile-subtitle { color: rgba(0,0,0,0.5); }
+  .tile-marigold .tile-subtitle { color: rgba(255,134,1,0.55); }
+  .tile-capri    .tile-subtitle { color: rgba(0,181,226,0.55); }
+  .tile-lagoon   .tile-subtitle { color: rgba(0,150,214,0.55); }
+  .tile-kiwi     .tile-subtitle { color: rgba(186,203,0,0.55); }
+  .tile-yellow   .tile-subtitle { color: rgba(254,232,0,0.5); }
+  .tile-pink     .tile-subtitle { color: rgba(249,50,89,0.55); }
+  .tile-orchid   .tile-subtitle { color: rgba(179,98,167,0.6); }
+  .tile-sunny    .tile-subtitle { color: rgba(219,239,118,0.6); }
 
   .tile-marigold .tile-note,
   .tile-capri .tile-note,
+  .tile-lagoon .tile-note,
   .tile-kiwi .tile-note,
   .tile-yellow .tile-note,
   .tile-pink .tile-note,
-  .tile-orchid .tile-note { color: #fff; }
+  .tile-orchid .tile-note,
+  .tile-sunny .tile-note { color: var(--text); background: var(--bg-4); }
 
-  /* 舊 tile-label/tile-sub 別名（向後相容） */
-  .tile-label { font-size: 20px; font-weight: 700; color: var(--text); line-height: 1.1; }
-  .tile-sub   { font-size: 11px; font-weight: 200; color: var(--text-light); margin-top: 4px; }
-  .tile-marigold .tile-label, .tile-capri .tile-label, .tile-kiwi .tile-label,
-  .tile-yellow .tile-label, .tile-pink .tile-label, .tile-orchid .tile-label { color: #fff; }
-  .tile-yellow .tile-label { color: #1A1A1A; }
-  .tile-marigold .tile-sub, .tile-capri .tile-sub, .tile-kiwi .tile-sub,
-  .tile-yellow .tile-sub, .tile-pink .tile-sub, .tile-orchid .tile-sub { color: rgba(255,255,255,0.7); }
-  .tile-yellow .tile-sub { color: rgba(0,0,0,0.5); }
+  /* 舊 tile-label/tile-sub 別名(向後相容) */
+  .tile-label { font-size: 17px; font-weight: 300; color: var(--text); line-height: 1.2; letter-spacing: 0.5px; }
+  .tile-sub   { font-size: 11px; font-weight: 200; color: var(--text-light); margin-top: 4px; letter-spacing: 0.5px; }
+  .tile-marigold .tile-label { color: var(--marigold); }
+  .tile-capri    .tile-label { color: var(--capri); }
+  .tile-lagoon   .tile-label { color: var(--lagoon); }
+  .tile-kiwi     .tile-label { color: var(--kiwi); }
+  .tile-yellow   .tile-label { color: var(--yellow); }
+  .tile-pink     .tile-label { color: var(--pink); }
+  .tile-orchid   .tile-label { color: var(--orchid); }
+  .tile-sunny    .tile-label { color: var(--sunny); }
+  .tile-marigold .tile-sub { color: rgba(255,134,1,0.55); }
+  .tile-capri    .tile-sub { color: rgba(0,181,226,0.55); }
+  .tile-lagoon   .tile-sub { color: rgba(0,150,214,0.55); }
+  .tile-kiwi     .tile-sub { color: rgba(186,203,0,0.55); }
+  .tile-yellow   .tile-sub { color: rgba(254,232,0,0.5); }
+  .tile-pink     .tile-sub { color: rgba(249,50,89,0.55); }
+  .tile-orchid   .tile-sub { color: rgba(179,98,167,0.6); }
+  .tile-sunny    .tile-sub { color: rgba(219,239,118,0.6); }
 
-  /* ── 管理員名稱磚 ── */
-  .tile-header-admin { background: var(--marigold-dk); }
-  .tile-header-admin .tile-label { font-size: 15px; font-weight: 700; }
+  /* ── 管理員名稱磚(右下角) ── */
+  .tile-admin {
+    background: var(--bg-3);
+    border: 1px solid var(--border-soft);
+    cursor: pointer;
+  }
+  .tile-admin .tile-label { font-size: 14px; font-weight: 300; color: var(--text); }
+  .tile-admin .tile-sub { color: var(--text-light); }
+  .tile-header-admin { background: var(--bg-3); border: 1px solid var(--border-soft); }
+  .tile-header-admin .tile-label { font-size: 14px; font-weight: 300; color: var(--text); }
 
-  /* ── Row 2：日期導覽 ── */
-  .tile-nav { background: var(--capri); cursor: pointer; justify-content: center; align-items: center; }
-  .tile-nav-date { background: var(--capri); cursor: pointer; justify-content: center; align-items: center; }
-  .tile-nav-date input[type="date"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; border: none; background: transparent; z-index: 1; }
-  .tile-nav.disabled { background: #005f7a !important; cursor: not-allowed; }
-  .tile-nav.disabled .tile-title { color: rgba(0,0,0,0.35) !important; }
+  /* ── Row 1:日期導覽 ── */
+  .tile-nav {
+    background: var(--bg-3); border: 1px solid var(--border-soft);
+    cursor: pointer; justify-content: center; align-items: center;
+  }
+  .tile-nav:hover { background: var(--bg-4); }
+  .tile-nav-date {
+    background: var(--bg-3); border: 1px solid var(--border-soft);
+    cursor: pointer; justify-content: center; align-items: center;
+  }
+  .tile-nav-date input[type="date"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    width: 100%; height: 100%; border: none; background: transparent; z-index: 1;
+  }
+  .tile-nav.today-btn { background: var(--bg-3); border: 1px solid var(--border); }
+  .tile-nav.today-btn .tile-title { color: var(--text); font-weight: 400; }
+  .tile-nav.disabled { background: var(--bg-2) !important; cursor: not-allowed; border-color: var(--border-soft); }
+  .tile-nav.disabled .tile-title { color: var(--text-dim) !important; }
   .tile-nav.disabled:active { transform: none; }
 
-  /* ── Row 2：醫師＋時段 ── */
+  /* ── Row 2:醫師 + 時段 ── */
+  .tile-doctor {
+    background: var(--bg-3); border: 1px solid var(--border-soft);
+    cursor: pointer;
+  }
+  .tile-doctor .tile-title { font-size: 20px; font-weight: 200; color: var(--text); letter-spacing: 1px; }
   .doctor-substitute-note {
     position: absolute; top: 8px; right: 8px;
-    background: #000; color: var(--cloud);
-    font-size: 10px; font-weight: 700;
-    padding: 2px 6px; letter-spacing: 0.5px;
+    background: var(--bg-4); color: var(--marigold);
+    font-size: 10px; font-weight: 400;
+    padding: 2px 7px; letter-spacing: 1px;
+    border: 1px solid var(--marigold-bd);
   }
-  /* 醫師磚載入動畫 */
   @keyframes loadingDots {
     0%   { content: ""; }
     25%  { content: "."; }
@@ -228,15 +316,25 @@
     content: "";
     animation: loadingDots 1.2s steps(4) infinite;
   }
-  .tile-session { cursor: pointer; }
-  .tile-session.active { outline: 3px solid #fff; outline-offset: -3px; opacity: 1 !important; }
-  .tile-session:not(.active) { opacity: 0.55; }
+
+  .tile-session {
+    background: var(--bg-3); border: 1px solid var(--border-soft);
+    cursor: pointer;
+  }
+  .tile-session .tile-title { color: var(--text-light); font-weight: 300; }
+  .tile-session .count-text { font-size: 14px; font-weight: 200; color: var(--text-dim); margin-top: auto; letter-spacing: 0.5px; }
+  .tile-session.active {
+    background: var(--bg-4);
+    border-color: var(--border-hard);
+  }
+  .tile-session.active .tile-title { color: var(--text); font-weight: 400; }
+  .tile-session.active .count-text { color: var(--text-light); }
+  .tile-session:not(.active) { opacity: 0.7; }
 
   /* ── 30格診單 ── */
-  /* grid-cell 現在直接放在 .metro-grid 裡，不需要額外容器 */
   .grid-cell {
     background: var(--bg-2);
-    border: none;
+    border: 1px solid var(--border-soft);
     padding: 6px 6px 4px;
     display: flex;
     flex-direction: column;
@@ -245,189 +343,422 @@
     overflow: hidden;
     position: relative;
     min-width: 0;
+    transition: background 0.15s;
   }
   .grid-cell:not(.empty):active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
-  /* 所有有預約的格子統一綠色，靠黑點區分是否需要手動處理 */
-  .grid-cell.has-patient    { background: var(--kiwi); cursor: pointer; }
-  .grid-cell.admin-notified { background: var(--kiwi); cursor: pointer; }
-  .grid-cell.admin-pending  { background: var(--kiwi); cursor: pointer; }
-  .grid-cell.is-reserved    { background: var(--sunny); cursor: pointer; }
-  .grid-cell.empty { background: transparent; }
 
-  .cell-num { font-size: 22px; font-weight: 700; line-height: 1; align-self: flex-start; }
-  .grid-cell.has-patient .cell-num    { color: #111111; }
-  .grid-cell.admin-pending .cell-num  { color: #111111; }
-  .grid-cell.admin-notified .cell-num { color: #111111; }
+  /* 有病患格子 —— 深灰白字 */
+  .grid-cell.has-patient,
+  .grid-cell.admin-notified,
+  .grid-cell.admin-pending {
+    background: var(--bg-3);
+    border: 1px solid var(--border-hard);
+    cursor: pointer;
+  }
+  .grid-cell.has-patient:hover,
+  .grid-cell.admin-notified:hover,
+  .grid-cell.admin-pending:hover { background: var(--bg-4); }
+
+  /* 保留號 —— 微金色邊框 */
+  .grid-cell.is-reserved {
+    background: var(--bg-3);
+    border: 1px solid rgba(200,168,75,0.3);
+    cursor: pointer;
+  }
+  .grid-cell.is-reserved .cell-num { color: rgba(200,168,75,0.65); font-weight: 400; }
+  .grid-cell.is-reserved .cell-name { color: #6a6a6a; font-style: italic; font-weight: 300; }
+
+  .grid-cell.empty {
+    background: var(--bg-2);
+    border: 1px solid var(--border-soft);
+  }
+
+  /* 數字 */
+  .cell-num { font-size: 20px; font-weight: 200; line-height: 1; align-self: flex-start; letter-spacing: 0.5px; }
+  .grid-cell.has-patient .cell-num,
+  .grid-cell.admin-pending .cell-num,
+  .grid-cell.admin-notified .cell-num { color: var(--text); font-weight: 700; }
   .grid-cell.empty .cell-num { color: var(--empty-text); font-weight: 200; }
 
+  /* 生日(新顯示位置:中間) */
+  .cell-birth {
+    position: absolute; top: 50%; left: 7px; right: 7px;
+    transform: translateY(-50%);
+    font-size: 11px; color: var(--text-dim); font-weight: 200;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    letter-spacing: 0.3px;
+  }
+  .grid-cell.has-patient .cell-birth,
+  .grid-cell.admin-pending .cell-birth,
+  .grid-cell.admin-notified .cell-birth { color: var(--text-light); }
+
+  /* 姓名 */
   .cell-name {
-    font-size: 12px; font-weight: 700;
-    position: absolute; bottom: 5px; left: 6px; right: 20px;
+    font-size: 12px; font-weight: 300;
+    position: absolute; bottom: 5px; left: 6px; right: 16px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     text-align: left;
   }
-  .cell-caution {
-    width: 10px; height: 10px;
-    background: #000;
-    position: absolute; bottom: 7px; right: 6px;
-  }
-  /* 心寬轉介標記：姓名紅底線 + 紅色星號 */
-  .grid-cell.has-patient .cell-name    { color: #ffffff; }
-  .grid-cell.admin-pending .cell-name  { color: #ffffff; }
-  .grid-cell.admin-notified .cell-name { color: #ffffff; }
+  .grid-cell.has-patient .cell-name,
+  .grid-cell.admin-pending .cell-name,
+  .grid-cell.admin-notified .cell-name { color: #ccc; font-weight: 300; }
   .grid-cell.empty .cell-name { color: transparent; }
 
-  /* 初診橫幅 */
+  /* 待處理點 —— 橘色小方塊(Metro 硬邊) */
+  .cell-caution {
+    width: 8px; height: 8px;
+    background: var(--marigold);
+    position: absolute; bottom: 7px; right: 6px;
+  }
+  .grid-cell.admin-notified .cell-caution { display: none; }
+
+  /* ── 初診橫幅 ── */
   .grid-np-banner {
     grid-column: 3 / span 3;
-    border: none; padding: 8px 12px;
+    background: var(--bg-3);
+    border: 1px solid var(--border-hard);
+    padding: 8px 12px;
     display: flex; align-items: center; gap: 10px;
-    height: calc((min(100vw, 480px) - 5px * 4) / 5);
-    max-height: calc((min(100vw, 480px) - 5px * 4) / 5);
+    height: calc((min(100vw, 480px) - 3px * 4) / 5);
+    max-height: calc((min(100vw, 480px) - 3px * 4) / 5);
     overflow: hidden;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
   }
+  .grid-np-banner:hover { background: var(--bg-4); }
   .grid-np-banner:active { transform: scale(0.99); opacity: 0.9; transition: all 0.1s ease-out; }
-  /* 所有初診橫幅統一綠色 */
-  .grid-np-banner.has-patient    { background: var(--kiwi); }
-  .grid-np-banner.admin-notified { background: var(--kiwi); cursor: pointer; }
-  .grid-np-banner.admin-pending  { background: var(--kiwi); cursor: pointer; }
-  .checkin-mini { flex-shrink: 0; padding: 8px 16px; font-size: 14px; font-family: inherit; font-weight: 700; cursor: pointer; border: none; white-space: nowrap; }
+  .grid-np-banner.has-patient,
+  .grid-np-banner.admin-notified,
+  .grid-np-banner.admin-pending {
+    background: var(--bg-3);
+    border: 1px solid var(--border-hard);
+  }
+
+  .checkin-mini {
+    flex-shrink: 0; padding: 7px 14px;
+    font-size: 13px; font-family: inherit; font-weight: 400;
+    cursor: pointer; border: 1px solid var(--border);
+    background: var(--bg-4); color: var(--text-light);
+    white-space: nowrap; letter-spacing: 0.5px;
+  }
   .checkin-mini:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
-  .checkin-mini.pending { background: rgba(255,255,255,0.25); color: #fff; }
-  .checkin-mini.done    { background: rgba(0,0,0,0.2); color: #fff; }
+  .checkin-mini.pending {
+    background: var(--marigold-bg);
+    border: 1px solid var(--marigold-bd);
+    color: var(--marigold);
+  }
+  .checkin-mini.done {
+    background: var(--bg-2);
+    border: 1px solid var(--border-soft);
+    color: var(--text-dim);
+  }
 
   /* scheduleContent 容器 */
   #scheduleContent {
     grid-column: 1 / -1;
     background: var(--bg);
-  }
-  #scheduleContent > div[style*="grid"] {
-    gap: 3px;
-  }
-
-  /* Loading 狀態（span 5格）*/
-  #scheduleContent {
     padding: 8px;
     color: var(--text-light);
     font-size: 13px;
     font-weight: 200;
     text-align: center;
   }
-  .loading-bar-wrap { width: 100%; height: 3px; background: var(--bg-3); margin: 10px 0 4px; overflow: hidden; }
+  #scheduleContent > div[style*="grid"] { gap: 3px; }
+
+  /* Loading 狀態 */
+  .loading-bar-wrap { width: 100%; height: 2px; background: var(--bg-3); margin: 10px 0 4px; overflow: hidden; }
   .loading-bar { height: 100%; width: 40%; background: var(--marigold); animation: loadingSlide 1.2s ease-in-out infinite; }
   @keyframes loadingSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
-  /* Skeleton pulse */
-  @keyframes skeletonPulse { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.6; } }
+  @keyframes skeletonPulse { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.4; } }
   @keyframes spin { to { transform: rotate(360deg); } }
   .grid-cell.skeleton { background: var(--bg-3); animation: skeletonPulse 1.4s ease-in-out infinite; }
   .grid-cell.skeleton .cell-num { color: transparent; }
 
-  /* ── Row 10：現場排號＋心理治療 ── */
-  .tile-unspec { background: var(--bg-3); cursor: pointer; justify-content: center; align-items: center; }
-  .tile-unspec .tile-label { font-size: 13px; font-weight: 700; text-align: center; color: var(--text-light); }
-  .tile-unspec:hover { background: var(--marigold); }
-  .tile-unspec:hover .tile-label { color: #fff; }
+  /* ── 不指定 / 心理治療 / 預覽 ── */
+  .tile-unspec {
+    background: var(--marigold-bg);
+    border: 1px solid var(--marigold-bd);
+    cursor: pointer;
+    justify-content: flex-start; align-items: flex-start;
+  }
+  .tile-unspec .tile-label,
+  .tile-unspec .tile-title { font-size: 17px; font-weight: 300; color: var(--marigold); letter-spacing: 0.5px; }
+  .tile-unspec:hover { background: var(--marigold-bg-hov); }
   .tile-unspec:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
 
   /* ── 異常排班 ── */
   .conflict-tile {
     grid-column: 1 / -1;
     background: #2A1010;
-    border-left: 4px solid var(--error);
+    border: 1px solid var(--error);
+    border-left: 3px solid var(--error);
     padding: 10px 12px;
   }
-  .conflict-title { font-size: 12px; font-weight: 700; color: var(--error); margin-bottom: 6px; }
+  .conflict-title { font-size: 12px; font-weight: 700; color: var(--error); margin-bottom: 6px; letter-spacing: 0.5px; }
   .conflict-row { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px solid #3A1818; font-size: 12px; font-weight: 200; }
   .conflict-row:last-child { border-bottom: none; }
   .conflict-slot { font-weight: 700; color: var(--error); min-width: 32px; }
-  .conflict-name { font-weight: 400; flex: 1; }
+  .conflict-name { font-weight: 300; flex: 1; color: var(--text); }
 
-  /* ── Modal ── */
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+  /* ════════════════════════════════════════════════════════
+     Modal
+     ════════════════════════════════════════════════════════ */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center; justify-content: center; padding: 16px;
+  }
   #modalConfirmGo { z-index: 300; }
   #modalAdminAddResult { z-index: 250; }
   .modal-overlay.active { display: flex; }
-  .modal { background: var(--bg-2); padding: 24px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; }
-  .modal-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; border-left: 4px solid var(--marigold); padding-left: 10px; }
-  .modal-close { margin-left: auto; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-light); padding: 0 4px; }
+  .modal {
+    background: var(--bg-3);
+    border: 1px solid var(--border-soft);
+    padding: 24px; width: 100%; max-width: 480px;
+    max-height: 88vh; overflow-y: auto;
+  }
+  .modal-title {
+    font-size: 16px; font-weight: 400; color: var(--text);
+    margin-bottom: 18px;
+    display: flex; align-items: center; gap: 8px;
+    border-left: 3px solid var(--marigold);
+    padding-left: 10px;
+    letter-spacing: 1px;
+  }
+  .modal-close {
+    margin-left: auto; background: none; border: none;
+    font-size: 20px; cursor: pointer; color: var(--text-light);
+    padding: 0 4px; font-family: inherit;
+  }
+  .modal-close:hover { color: var(--text); }
 
   /* ── Form ── */
   .form-group { margin-bottom: 14px; }
-  .form-label { display: block; font-size: 11px; color: var(--text-light); margin-bottom: 5px; font-weight: 200; letter-spacing: 1px; text-transform: uppercase; }
-  input[type="text"], input[type="date"], input[type="tel"], select, textarea { width: 100%; min-width: 0; box-sizing: border-box; padding: 10px 12px; border: none; border-bottom: 2px solid var(--border); border-left: 4px solid var(--border); font-size: 14px; font-family: inherit; color: var(--text); background: var(--bg-3); transition: all 0.15s; outline: none; font-weight: 400; }
-  input:focus, select:focus, textarea:focus { border-color: var(--marigold); }
+  .form-label {
+    display: block; font-size: 10px; color: var(--text-light);
+    margin-bottom: 6px; font-weight: 400; letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  input[type="text"], input[type="date"], input[type="tel"], input[type="password"],
+  input[type="number"], select, textarea {
+    width: 100%; min-width: 0; box-sizing: border-box;
+    padding: 10px 12px; border: none;
+    border-bottom: 1.5px solid var(--border);
+    border-left: 3px solid var(--border);
+    font-size: 14px; font-family: inherit; color: var(--text);
+    background: var(--bg-2);
+    transition: all 0.15s; outline: none; font-weight: 400;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-left-color: var(--marigold);
+    border-bottom-color: var(--marigold);
+    background: var(--bg-4);
+  }
   textarea { resize: vertical; min-height: 70px; }
   .date-row { display: flex; gap: 8px; }
   .date-row .form-group { flex: 1; }
+  select option { background: var(--bg-3); color: var(--text); }
 
-  .btn { width: 100%; padding: 13px; border: none; font-size: 14px; font-family: inherit; font-weight: 400; cursor: pointer; letter-spacing: 1px; margin-bottom: 8px; }
+  /* ── 按鈕 ── */
+  .btn {
+    width: 100%; padding: 13px; border: none;
+    font-size: 14px; font-family: inherit; font-weight: 400;
+    cursor: pointer; letter-spacing: 1px; margin-bottom: 8px;
+    transition: background 0.15s, border-color 0.15s;
+  }
   .btn:active { transform: scale(0.98); opacity: 0.9; transition: all 0.1s ease-out; }
-  .btn-primary { background: var(--marigold); color: #fff; }
-  .btn-primary:hover { background: var(--marigold-dk); }
-  .btn-primary:disabled { background: #555; cursor: not-allowed; }
-  .btn-outline { background: transparent; color: var(--marigold); border: 2px solid var(--marigold); }
-  .btn-danger  { background: transparent; color: var(--error); border: 2px solid var(--error); }
-  .btn-danger:hover { background: var(--error); color: #fff; }
+
+  .btn-primary {
+    background: var(--marigold-bg);
+    border: 1px solid var(--marigold-bd);
+    color: var(--marigold);
+  }
+  .btn-primary:hover { background: var(--marigold-bg-hov); }
+  .btn-primary:disabled {
+    background: var(--bg-3); color: var(--text-dim);
+    border-color: var(--border-soft); cursor: not-allowed;
+  }
+  .btn-outline {
+    background: transparent; color: var(--marigold);
+    border: 1px solid var(--marigold-bd);
+  }
+  .btn-outline:hover { background: var(--marigold-bg); }
+  .btn-danger {
+    background: transparent; color: var(--error);
+    border: 1px solid rgba(249,50,89,0.35);
+  }
+  .btn-danger:hover { background: rgba(249,50,89,0.12); }
   .btn-sm { width: auto; padding: 7px 14px; font-size: 12px; margin-bottom: 0; }
-  .btn-notified-pending { background: var(--kiwi); color: #fff; }
-  .btn-notified-done    { background: var(--yellow); color: #1A1A1A; }
 
-  .alert { padding: 10px 12px; font-size: 13px; margin-bottom: 10px; line-height: 1.6; border-left: 4px solid; font-weight: 200; }
-  .alert-error   { background: #2A1010; color: var(--error); border-color: var(--error); }
-  .alert-success { background: var(--green-light); color: var(--success); border-color: var(--success); }
-  .alert-info    { background: var(--orange-light); color: var(--marigold); border-color: var(--marigold); }
+  /* ── 聯絡 Modal 內的通知狀態按鈕 ── */
+  .btn-notified-pending {
+    background: var(--marigold-bg);
+    border: 1px solid var(--marigold-bd);
+    color: var(--marigold);
+  }
+  .btn-notified-done {
+    background: var(--kiwi-bg);
+    border: 1px solid var(--kiwi-bd);
+    color: var(--kiwi);
+  }
 
-  .result-item { padding: 12px; border-left: 4px solid var(--border); margin-bottom: 8px; background: var(--bg-3); }
+  /* ── Alert ── */
+  .alert {
+    padding: 11px 13px; font-size: 13px; margin-bottom: 10px;
+    line-height: 1.7; border-left: 3px solid; font-weight: 300;
+  }
+  .alert-error   { background: rgba(249,50,89,0.08); color: var(--error); border-color: var(--error); }
+  .alert-success { background: var(--kiwi-bg); color: var(--kiwi); border-color: var(--kiwi); }
+  .alert-info    { background: var(--marigold-bg); color: var(--marigold); border-color: var(--marigold); }
+
+  /* ── 結果項目 ── */
+  .result-item {
+    padding: 12px; border: 1px solid var(--border-soft);
+    border-left: 3px solid var(--border); margin-bottom: 8px;
+    background: var(--bg-2);
+  }
   .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-  .result-date { font-size: 13px; font-weight: 400; }
-  .result-status { font-size: 11px; padding: 2px 7px; background: var(--kiwi); color: #fff; font-weight: 700; }
+  .result-date { font-size: 13px; font-weight: 400; color: var(--text); letter-spacing: 0.5px; }
+  .result-status {
+    font-size: 11px; padding: 2px 8px;
+    background: var(--kiwi-bg);
+    border: 1px solid var(--kiwi-bd);
+    color: var(--kiwi);
+    font-weight: 400; letter-spacing: 0.5px;
+  }
   .result-detail { font-size: 12px; font-weight: 200; color: var(--text-light); line-height: 1.8; }
 
-  .log-item { padding: 9px 11px; border-left: 4px solid var(--error); background: #2A1010; margin-bottom: 7px; font-size: 12px; line-height: 1.6; font-weight: 200; }
-  .log-time { color: var(--text-light); font-size: 10px; }
+  /* ── Log 項目 ── */
+  .log-item {
+    padding: 9px 11px; border-left: 3px solid var(--error);
+    background: rgba(249,50,89,0.06);
+    margin-bottom: 7px; font-size: 12px;
+    line-height: 1.6; font-weight: 300;
+  }
+  .log-time { color: var(--text-light); font-size: 10px; letter-spacing: 0.5px; }
   .log-event { color: var(--error); font-weight: 700; }
-  .divider { height: 2px; background: var(--border); margin: 12px 0; }
-  .preview-count { background: var(--orange-light); color: var(--marigold); padding: 9px 12px; font-size: 13px; font-weight: 700; margin-bottom: 10px; text-align: center; border-left: 4px solid var(--marigold); }
-  .loading { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; font-weight: 200; }
+
+  .divider { height: 1px; background: var(--border); margin: 12px 0; }
+  .preview-count {
+    background: var(--marigold-bg); color: var(--marigold);
+    padding: 10px 12px; font-size: 13px; font-weight: 400;
+    margin-bottom: 10px; text-align: center;
+    border-left: 3px solid var(--marigold);
+    letter-spacing: 0.5px;
+  }
+  .loading { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; font-weight: 200; letter-spacing: 1px; }
   .empty-state { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; font-weight: 200; }
 
-  .contact-name  { font-size: 24px; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 4px; }
-  .contact-birth { font-size: 13px; font-weight: 200; color: var(--text-light); text-align: center; margin-bottom: 8px; letter-spacing: 1px; }
-  .contact-timeslot { font-size: 13px; font-weight: 300; color: var(--marigold); text-align: center; margin-bottom: 8px; letter-spacing: 0.5px; }
-  .contact-phone { display: block; font-size: 22px; font-weight: 700; color: var(--marigold); text-align: center; text-decoration: none; letter-spacing: 2px; margin-bottom: 10px; cursor: default; }
-  .contact-phone.no-phone { font-size: 16px; font-weight: 400; color: var(--text-light); letter-spacing: 0; cursor: default; }
+  /* ── Contact 病患卡 ── */
+  .contact-name {
+    font-size: 24px; font-weight: 700; color: var(--text);
+    text-align: center; margin-bottom: 4px; letter-spacing: 1px;
+  }
+  .contact-birth {
+    font-size: 12px; font-weight: 200; color: var(--text-light);
+    text-align: center; margin-bottom: 8px; letter-spacing: 2px;
+  }
+  .contact-timeslot {
+    font-size: 13px; font-weight: 300; color: var(--marigold);
+    text-align: center; margin-bottom: 10px; letter-spacing: 1px;
+  }
+  .contact-phone {
+    display: block; font-size: 22px; font-weight: 700;
+    color: var(--marigold); text-align: center; text-decoration: none;
+    letter-spacing: 3px; margin-bottom: 10px; cursor: default;
+  }
+  .contact-phone.no-phone {
+    font-size: 15px; font-weight: 300; color: var(--text-light);
+    letter-spacing: 0; cursor: default;
+  }
   .contact-phone-btns { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
-  .contact-phone-btns a { flex: 1; text-align: center; padding: 8px 0; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; }
-  .contact-phone-btns .btn-call { background: var(--marigold); color: #fff; }
-  .contact-phone-btns .btn-sms { background: var(--bg-3); color: var(--text); border: 1px solid var(--border); }
+  .contact-phone-btns a {
+    flex: 1; text-align: center; padding: 10px 0;
+    font-size: 13px; font-weight: 400;
+    text-decoration: none; cursor: pointer;
+    letter-spacing: 1px;
+  }
+  .contact-phone-btns .btn-call {
+    background: var(--marigold-bg);
+    border: 1px solid var(--marigold-bd);
+    color: var(--marigold);
+  }
+  .contact-phone-btns .btn-sms {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
 
-  .unspec-modal-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  /* ── 不指定 Modal 內的 row ── */
+  .unspec-modal-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 0; border-bottom: 1px solid var(--border-soft);
+    font-size: 13px;
+  }
   .unspec-modal-row:last-child { border-bottom: none; }
-  .unspec-modal-num  { font-size: 11px; color: var(--text-light); width: 18px; text-align: center; flex-shrink: 0; }
+  .unspec-modal-num { font-size: 11px; color: var(--text-light); width: 18px; text-align: center; flex-shrink: 0; }
   .unspec-modal-main { flex: 1; min-width: 0; }
-  .unspec-modal-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .unspec-modal-info { font-size: 11px; color: var(--text-light); margin-top: 2px; }
-  /* 現場排號通知狀態標籤 */
-  .unspec-notify-pending  { font-size: 11px; font-weight: 700; color: var(--marigold); background: var(--orange-light); padding: 2px 7px; cursor: pointer; flex-shrink: 0; letter-spacing: 0.5px; }
-  .unspec-notify-done     { font-size: 11px; font-weight: 400; color: var(--text-light); background: var(--bg-3); padding: 2px 7px; cursor: pointer; flex-shrink: 0; }
-  .unspec-notify-auto     { font-size: 11px; font-weight: 200; color: var(--text-light); padding: 2px 4px; flex-shrink: 0; }
+  .unspec-modal-name { font-weight: 400; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: 0.5px; }
+  .unspec-modal-info { font-size: 11px; color: var(--text-light); margin-top: 2px; font-weight: 200; }
+  .unspec-notify-pending {
+    font-size: 11px; font-weight: 400; color: var(--marigold);
+    background: var(--marigold-bg);
+    border: 1px solid var(--marigold-bd);
+    padding: 3px 8px; cursor: pointer; flex-shrink: 0; letter-spacing: 0.5px;
+  }
+  .unspec-notify-done {
+    font-size: 11px; font-weight: 300; color: var(--text-light);
+    background: var(--bg-2);
+    border: 1px solid var(--border-soft);
+    padding: 3px 8px; cursor: pointer; flex-shrink: 0;
+  }
+  .unspec-notify-auto {
+    font-size: 11px; font-weight: 200; color: var(--text-light);
+    padding: 2px 4px; flex-shrink: 0;
+  }
 
-  /* 群發模式切換 */
-  .btn-mode { flex: 1; padding: 8px; border: none; font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+  /* ── 群發模式切換 ── */
+  .btn-mode {
+    flex: 1; padding: 9px; border: 1px solid var(--border-soft);
+    background: var(--bg-2); color: var(--text-light);
+    font-family: inherit; font-weight: 400; font-size: 13px;
+    cursor: pointer; letter-spacing: 1px;
+  }
   .btn-mode:active { transform: scale(0.97); }
+  .btn-mode.active {
+    background: var(--marigold-bg);
+    border: 1px solid var(--marigold-bd);
+    color: var(--marigold);
+  }
 
-  /* Loading Overlay */
-  .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 999; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+  /* ── Loading Overlay ── */
+  .loading-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.9);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 999;
+    flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  }
   .loading-overlay.active { display: flex; }
-  .loading-overlay-text { color: var(--cloud); font-size: 15px; font-weight: 200; letter-spacing: 1px; text-align: center; line-height: 1.8; }
-  .loading-overlay-bar { width: 200px; height: 3px; background: var(--bg-3); overflow: hidden; }
+  .loading-overlay-text { color: var(--cloud); font-size: 14px; font-weight: 200; letter-spacing: 2px; text-align: center; line-height: 1.8; }
+  .loading-overlay-bar { width: 200px; height: 2px; background: var(--bg-3); overflow: hidden; }
   .loading-overlay-bar-inner { height: 100%; width: 40%; background: var(--marigold); animation: loadingSlide 1.2s ease-in-out infinite; }
 
-  /* 代診排班 inline 按鈕 */
-  .sub-cancel-btn { font-size: 11px; padding: 3px 8px; border: 1px solid var(--error); background: transparent; color: var(--error); cursor: pointer; font-family: inherit; }
-  .sub-cancel-btn:hover { background: var(--error); color: #fff; }
+  /* ── 代診排班 inline 取消鈕 ── */
+  .sub-cancel-btn {
+    font-size: 11px; padding: 3px 9px;
+    border: 1px solid rgba(249,50,89,0.35);
+    background: transparent; color: var(--error);
+    cursor: pointer; font-family: inherit; letter-spacing: 0.5px;
+  }
+  .sub-cancel-btn:hover { background: rgba(249,50,89,0.12); }
 
-  /* ── 35天預覽 ── */
+  /* ── 35 天預覽 ── */
   .preview-cal {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -435,57 +766,56 @@
     margin-bottom: 8px;
   }
   .preview-weekday {
-    text-align: center; font-size: 11px; font-weight: 700;
-    color: var(--text-light); padding: 3px 0;
+    text-align: center; font-size: 11px; font-weight: 400;
+    color: var(--text-light); padding: 3px 0; letter-spacing: 1px;
   }
   .preview-day {
-    border: 1px solid var(--border);
-    padding: 5px 4px;
-    cursor: pointer;
-    min-height: 90px;
-    position: relative;
+    border: 1px solid var(--border-soft);
+    padding: 5px 4px; cursor: pointer;
+    min-height: 90px; position: relative;
     background: var(--bg-2);
-    transition: all 0.1s;
+    transition: background 0.15s;
   }
+  .preview-day:hover { background: var(--bg-3); }
   .preview-day:active { transform: scale(0.96); opacity: 0.85; }
   .preview-day.preview-closed { background: var(--bg); cursor: default; }
   .preview-day.preview-empty-week { background: transparent; border-color: transparent; cursor: default; }
   .preview-date {
-    font-size: 13px; font-weight: 700; color: var(--text);
-    line-height: 1; margin-bottom: 4px;
+    font-size: 13px; font-weight: 400; color: var(--text);
+    line-height: 1; margin-bottom: 4px; letter-spacing: 0.5px;
   }
   .preview-session-row {
     font-size: 10px; line-height: 1.7;
     display: flex; gap: 2px; align-items: baseline;
   }
-  .preview-session-label {
-    color: var(--text-light); font-weight: 400; flex-shrink: 0;
-  }
-  .preview-session-count {
-    font-weight: 700; color: var(--kiwi);
-  }
-  .preview-session-count.zero { color: var(--border); font-weight: 200; }
-  .preview-session-closed {
-    font-size: 9px; color: var(--error); font-weight: 700;
-  }
-  .preview-session-detail {
-    font-size: 9px; color: var(--text-light); font-weight: 200; line-height: 1.5;
-  }
+  .preview-session-label { color: var(--text-light); font-weight: 300; flex-shrink: 0; }
+  .preview-session-count { font-weight: 700; color: var(--kiwi); }
+  .preview-session-count.zero { color: var(--text-dim); font-weight: 200; }
+  .preview-session-closed { font-size: 9px; color: var(--error); font-weight: 700; }
+  .preview-session-detail { font-size: 9px; color: var(--text-light); font-weight: 200; line-height: 1.5; }
   .preview-legend {
     display: flex; gap: 10px; font-size: 10px; color: var(--text-light);
-    margin-bottom: 8px; flex-wrap: wrap;
+    margin-bottom: 8px; flex-wrap: wrap; letter-spacing: 0.3px;
   }
   .preview-legend span { display: flex; align-items: center; gap: 3px; }
 
   /* ── Toast 通知 ── */
   #toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(12px);
-    background: var(--kiwi); color: #111; font-size: 13px; font-weight: 700;
+    background: var(--bg-4);
+    border: 1px solid var(--kiwi-bd);
+    color: var(--kiwi); font-size: 13px; font-weight: 400;
     padding: 10px 20px; z-index: 1000; opacity: 0;
     transition: opacity 0.25s ease, transform 0.25s ease;
-    pointer-events: none; white-space: nowrap; letter-spacing: 0.5px;
+    pointer-events: none; white-space: nowrap; letter-spacing: 1px;
   }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── 衝突標記小紅點 ── */
+  #conflictBadge {
+    background: var(--error) !important;
+    color: #fff;
+  }
 </style>
 </head>
 <body>
@@ -550,38 +880,39 @@
 
   <!-- Row 1: 日期導覽 -->
   <div class="tile tile-1 tile-nav today-btn" onclick="goToToday()" style="position:relative;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">今日</div>
+    <div class="tile-title" style="font-size:16px;">今日</div>
   </div>
   <div class="tile tile-1 tile-nav today-btn" onclick="goToNextWorkday()" style="position:relative;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">明日</div>
+    <div class="tile-title" style="font-size:16px;">明日</div>
   </div>
   <div class="tile tile-1 tile-nav" id="btnPrev" onclick="changeDate(-1)" style="position:relative;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">＜</div>
+    <div class="tile-title" style="font-size:18px;color:var(--text-light);">＜</div>
   </div>
   <div class="tile tile-1 tile-nav-date" style="position:relative;" onclick="document.getElementById('dateNavInput').showPicker()">
-    <div class="tile-title" style="font-size:18px;color:#111111;pointer-events:none;" id="dateNavLabel"></div>
-    <div class="tile-subtitle" style="font-size:18px;font-weight:400;color:#ffffff;pointer-events:none;" id="dateNavSub"></div>
+    <div class="tile-title" style="font-size:16px;pointer-events:none;" id="dateNavLabel"></div>
+    <div class="tile-subtitle" style="font-size:14px;font-weight:300;color:var(--text-light);pointer-events:none;" id="dateNavSub"></div>
     <input type="date" class="date-nav-input" id="dateNavInput" onchange="onDatePick(event)">
   </div>
   <div class="tile tile-1 tile-nav" id="btnNext" onclick="changeDate(1)" style="position:relative;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">＞</div>
+    <div class="tile-title" style="font-size:18px;color:var(--text-light);">＞</div>
   </div>
 
   <!-- Row 2: 醫師資訊 + 時段磚 -->
-  <div class="tile tile-2" id="doctorTile" style="position:relative;background:var(--cloud);cursor:pointer;" onclick="loadSchedule(activeSession)" title="點擊重新整理">
-    <div class="tile-title" style="font-size:20px;color:#111111;" id="sessionDoctorText">—</div>
+  <div class="tile tile-2 tile-doctor" id="doctorTile" style="position:relative;" onclick="loadSchedule(activeSession)" title="點擊重新整理">
+    <div class="tile-title" style="font-size:20px;font-weight:200;" id="sessionDoctorText">—</div>
+    <div style="font-size:11px;color:var(--text-dim);margin-top:auto;font-weight:200;letter-spacing:1px;">主治醫師</div>
   </div>
-  <div class="tile tile-1 tile-session" id="session-早上" onclick="switchTab('早上')" style="position:relative;background:var(--lagoon);">
-    <div class="tile-title" style="font-size:18px;color:#111111;">早上診</div>
-    <div style="font-size:15px;font-weight:400;color:#ffffff;margin-top:auto;" id="count-早上">—</div>
+  <div class="tile tile-1 tile-session" id="session-早上" onclick="switchTab('早上')" style="position:relative;">
+    <div class="tile-title" style="font-size:16px;">早上診</div>
+    <div class="count-text" id="count-早上">—</div>
   </div>
-  <div class="tile tile-1 tile-session" id="session-下午" onclick="switchTab('下午')" style="position:relative;background:var(--lagoon);">
-    <div class="tile-title" style="font-size:18px;color:#111111;">下午診</div>
-    <div style="font-size:15px;font-weight:400;color:#ffffff;margin-top:auto;" id="count-下午">—</div>
+  <div class="tile tile-1 tile-session" id="session-下午" onclick="switchTab('下午')" style="position:relative;">
+    <div class="tile-title" style="font-size:16px;">下午診</div>
+    <div class="count-text" id="count-下午">—</div>
   </div>
-  <div class="tile tile-1 tile-session" id="session-晚上" onclick="switchTab('晚上')" style="position:relative;background:var(--lagoon);">
-    <div class="tile-title" style="font-size:18px;color:#111111;">晚上診</div>
-    <div style="font-size:15px;font-weight:400;color:#ffffff;margin-top:auto;" id="count-晚上">—</div>
+  <div class="tile tile-1 tile-session" id="session-晚上" onclick="switchTab('晚上')" style="position:relative;">
+    <div class="tile-title" style="font-size:16px;">晚上診</div>
+    <div class="count-text" id="count-晚上">—</div>
   </div>
 
   <!-- scheduleLoading 已移除，改用 skeleton 格 -->
@@ -589,39 +920,39 @@
   <div id="scheduleContent" style="display:contents;"></div>
 
   <!-- Row 9: 現場排號 + 心理治療 -->
-  <div class="tile tile-1" onclick="openUnspecModal()" style="position:relative;background:var(--sunny);cursor:pointer;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">不指定</div>
-    <div style="font-size:15px;font-weight:400;color:#111111;margin-top:auto;" id="unspecCount"></div>
-    <div id="unspecPendingDot" style="display:none;position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>
+  <div class="tile tile-1 tile-unspec" onclick="openUnspecModal()" style="position:relative;">
+    <div class="tile-title" style="font-size:17px;">不指定</div>
+    <div style="font-size:13px;font-weight:200;color:rgba(255,134,1,0.55);margin-top:auto;" id="unspecCount"></div>
+    <div id="unspecPendingDot" style="display:none;position:absolute;bottom:7px;right:7px;width:8px;height:8px;background:var(--marigold);"></div>
   </div>
-  <div class="tile tile-3" style="position:relative;background:#AEB6BB;">
-    <div class="tile-title" style="font-size:15px;color:#111111;">心理治療</div>
-    <div style="font-size:12px;font-weight:200;color:#ffffff;position:absolute;bottom:7px;left:10px;">目前尚無排程資料</div>
-    <div class="tile-note" style="background:#000;color:#AEB6BB;">建置中</div>
+  <div class="tile tile-3" style="position:relative;background:var(--bg-3);border:1px solid var(--border-soft);">
+    <div class="tile-title" style="font-size:14px;color:var(--text-dim);">心理治療</div>
+    <div style="font-size:11px;font-weight:200;color:var(--text-dim);position:absolute;bottom:7px;left:10px;letter-spacing:0.5px;">目前尚無排程資料</div>
+    <div class="tile-note" style="background:var(--bg-4);color:var(--text-dim);border:1px solid var(--border-soft);">建置中</div>
   </div>
-  <div class="tile tile-1" style="position:relative;background:var(--lagoon);cursor:pointer;" onclick="openPreviewModal()">
-    <div class="tile-title" style="font-size:18px;color:#111111;">預覽</div>
-    <div style="font-size:11px;font-weight:200;color:#ffffff;position:absolute;bottom:7px;left:10px;">35天總覽</div>
+  <div class="tile tile-1 tile-lagoon" style="position:relative;cursor:pointer;" onclick="openPreviewModal()">
+    <div class="tile-title" style="font-size:17px;">預覽</div>
+    <div style="font-size:11px;font-weight:200;color:rgba(0,150,214,0.55);position:absolute;bottom:7px;left:10px;letter-spacing:0.5px;">35天總覽</div>
   </div>
 
   <!-- Row 10: 工具＋管理員 -->
-  <div class="tile tile-1" onclick="openModal('modalQuery')" style="position:relative;background:var(--yellow);cursor:pointer;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">查詢</div>
+  <div class="tile tile-1 tile-yellow" onclick="openModal('modalQuery')" style="position:relative;cursor:pointer;">
+    <div class="tile-title" style="font-size:17px;">查詢</div>
   </div>
-  <div class="tile tile-1" onclick="openModal('modalSubstitute')" style="position:relative;background:var(--marigold);cursor:pointer;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">代診</div>
+  <div class="tile tile-1 tile-marigold" onclick="openModal('modalSubstitute')" style="position:relative;cursor:pointer;">
+    <div class="tile-title" style="font-size:17px;">代診</div>
   </div>
-  <div class="tile tile-1" onclick="openModal('modalBroadcast')" style="position:relative;background:var(--orchid);cursor:pointer;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">群發</div>
+  <div class="tile tile-1 tile-orchid" onclick="openModal('modalBroadcast')" style="position:relative;cursor:pointer;">
+    <div class="tile-title" style="font-size:17px;">群發</div>
   </div>
-  <div class="tile tile-1" id="securityTile" onclick="openModal('modalSecurity')" style="position:relative;background:var(--pink);cursor:pointer;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">系統</div>
-    <div id="securityUnreadDot" style="display:none;position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>
-    <div id="conflictBadge" style="display:none;position:absolute;top:6px;right:6px;min-width:18px;height:18px;background:#C0392B;color:#fff;border-radius:50%;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 3px;"></div>
+  <div class="tile tile-1 tile-pink" id="securityTile" onclick="openModal('modalSecurity')" style="position:relative;cursor:pointer;">
+    <div class="tile-title" style="font-size:17px;">系統</div>
+    <div id="securityUnreadDot" style="display:none;position:absolute;bottom:7px;right:7px;width:8px;height:8px;background:var(--pink);"></div>
+    <div id="conflictBadge" style="display:none;position:absolute;top:6px;right:6px;min-width:18px;height:18px;background:var(--error);color:#fff;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 3px;"></div>
   </div>
-  <div class="tile tile-1" style="position:relative;background:var(--cloud);cursor:pointer;" onclick="openLogoutModal()">
-    <div class="tile-title" style="font-size:15px;color:#111111;" id="adminBadge">...</div>
-    <div style="position:absolute;bottom:7px;left:10px;font-size:12px;font-weight:400;color:#111111;">管理員</div>
+  <div class="tile tile-1 tile-admin" style="position:relative;cursor:pointer;" onclick="openLogoutModal()">
+    <div class="tile-title" style="font-size:14px;" id="adminBadge">...</div>
+    <div style="position:absolute;bottom:7px;left:10px;font-size:11px;font-weight:200;color:var(--text-light);letter-spacing:1px;">管理員</div>
   </div>
 
 </div><!-- /metro-grid -->
@@ -808,8 +1139,8 @@
     <div class="modal-title">群發訊息<button class="modal-close" onclick="closeModal('modalBroadcast')">✕</button></div>
     <div class="alert alert-info">發送前請確認訊息內容，送出後無法收回。</div>
     <div style="display:flex;gap:4px;margin-bottom:14px;">
-      <button class="btn-mode active" id="bcModeRange" onclick="setBcMode('range')" style="flex:1;padding:8px;border:none;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;background:var(--marigold);color:white;">日期區間</button>
-      <button class="btn-mode" id="bcModeSingle" onclick="setBcMode('single')" style="flex:1;padding:8px;border:none;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;background:#F0F0F0;color:var(--text-light);">指定單診</button>
+      <button class="btn-mode active" id="bcModeRange" onclick="setBcMode('range')" style="flex:1;padding:9px;border:1px solid var(--marigold-bd);font-family:inherit;font-weight:400;font-size:13px;cursor:pointer;background:var(--marigold-bg);color:var(--marigold);letter-spacing:1px;">日期區間</button>
+      <button class="btn-mode" id="bcModeSingle" onclick="setBcMode('single')" style="flex:1;padding:9px;border:1px solid var(--border-soft);font-family:inherit;font-weight:400;font-size:13px;cursor:pointer;background:var(--bg-2);color:var(--text-light);letter-spacing:1px;">指定單診</button>
     </div>
     <div id="bcRangeFields">
       <div class="date-row">
@@ -904,9 +1235,9 @@
     <!-- Tab 切換 -->
     <div style="display:flex;gap:6px;margin-bottom:14px;">
       <button id="tabBtnSubstitute" onclick="switchSubTab('substitute')"
-        style="flex:1;padding:8px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:var(--marigold);color:white;">代診</button>
+        style="flex:1;padding:9px;font-size:13px;font-weight:400;border:1px solid var(--marigold-bd);cursor:pointer;background:var(--marigold-bg);color:var(--marigold);letter-spacing:1px;">代診</button>
       <button id="tabBtnClosed" onclick="switchSubTab('closed')"
-        style="flex:1;padding:8px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:#F0F0F0;color:var(--text-light);">停診</button>
+        style="flex:1;padding:9px;font-size:13px;font-weight:400;border:1px solid var(--border-soft);cursor:pointer;background:var(--bg-2);color:var(--text-light);letter-spacing:1px;">停診</button>
     </div>
     <!-- 代診 Tab -->
     <div id="tabSubstitute">
@@ -3238,9 +3569,9 @@ initLiff();
   <div class="loading-overlay-text" id="substituteOverlayText">發送代診通知中<br>請勿關閉頁面...</div>
 </div>
 <!-- Toast 通知 -->
-<div id="adminOverlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,0.5);z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:12px;">
-  <div style="width:32px;height:32px;border:3px solid #ddd;border-top-color:#111;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-  <div id="adminOverlayText" style="font-size:14px;font-weight:600;color:#111111;letter-spacing:0.5px;"></div>
+<div id="adminOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:12px;">
+  <div style="width:32px;height:32px;border:2px solid rgba(255,255,255,0.15);border-top-color:var(--marigold);animation:spin 0.8s linear infinite;"></div>
+  <div id="adminOverlayText" style="font-size:13px;font-weight:300;color:var(--cloud);letter-spacing:2px;"></div>
 </div>
 <div id="toast"></div>
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
