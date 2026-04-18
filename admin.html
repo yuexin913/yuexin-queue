@@ -6,56 +6,125 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
+  <meta name="version" content="5.0">
+  <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@200;300;400;500;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@200;400;700&display=swap');
-
-  /* ════════════════════════════════
-     PANTONE 2026 Tropic Tonalities
-  ════════════════════════════════ */
+  /* ════════════════════════════════════════════════════════
+     悅心診所 JOIN System Admin
+     ────────────────────────────────────────────────────────
+     Version:   v5.0 (2026-04)
+     Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent
+     Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
+     Icons:     Lucide SVG (stroke-based, 16px)
+     ────────────────────────────────────────────────────────
+     Roadmap:
+     · v5.0 目前 — UI 大改版(Terminal 風 modal、SVG icon)
+     · v6.0 預計 — 心理治療功能上線
+     · v7.0 預計 — 帳號系統與多醫師登入
+     ════════════════════════════════════════════════════════ */
   :root {
+    /* ── 原彩色變數（保留名稱與飽和色值,JS innerHTML 引用）── */
     --marigold:    #ff8601;
-    --lagoon:      #0096D6;
     --marigold-dk: #cc6b00;
+    --lagoon:      #0096D6;
     --capri:       #00B5E2;
     --kiwi:        #bacb00;
     --sunny:       #dbef76;
     --yellow:      #fee800;
     --pink:        #f93259;
     --orchid:      #b362a7;
+
+    /* ── 新增:Mist Green(預覽 tile 專用,變數名沿用 smoked-teal 以相容)── */
+    --smoked-teal: #8FB8A5;
+
+    /* ── 深色主題三層背景 ── */
+    --bg:          #0e0e0e;
+    --bg-2:        #141414;
+    --bg-3:        #1e1e1e;
+    --bg-4:        #232323;
+
+    /* ── 文字 ── */
+    --text:        #e8e8e8;
+    --text-light:  #8a8a8a;
+    --text-dim:    #555;
     --cloud:       #f0efeb;
-    --bg:          #1E1E24;
-    --bg-2:        #26262E;
-    --bg-3:        #2E2E38;
-    --text:        #F2EFE4;
-    --text-light:  #9090A0;
-    --border:      #3A3A48;
-    --empty-text:  #3A3A48;
-    --error:       #FF4444;
-    --success:     #8CC63F;
-    --orange:      #FF7A00;
-    --orange-dark: #CC6200;
-    --orange-light:#2A2010;
-    --green-light: #1A2410;
-    --cloud:       #F2EFE4;
-    --gap:         5px;
+
+    /* ── 邊框與空狀態(老花眼友善:加亮)── */
+    --border:      rgba(255,255,255,0.12);
+    --border-soft: rgba(255,255,255,0.1);
+    --border-hard: rgba(255,255,255,0.22);
+    --empty-text:  #6a6a6a;
+
+    /* ── 狀態色 ── */
+    --error:       #f93259;
+    --success:     #bacb00;
+    --orange:      #ff8601;
+    --orange-dark: #cc6b00;
+    --orange-light:#2a1d0e;
+    --green-light: #1a2410;
+
+    /* ── 半透明彩色底（功能 tile 用 — 加深版 0.14/0.45）── */
+    --marigold-bg:     rgba(255,134,1,0.14);
+    --marigold-bd:     rgba(255,134,1,0.45);
+    --marigold-bg-hov: rgba(255,134,1,0.22);
+    --lagoon-bg:       rgba(0,150,214,0.14);
+    --lagoon-bd:       rgba(0,150,214,0.45);
+    --lagoon-bg-hov:   rgba(0,150,214,0.22);
+    --capri-bg:        rgba(0,181,226,0.14);
+    --capri-bd:        rgba(0,181,226,0.45);
+    --capri-bg-hov:    rgba(0,181,226,0.22);
+    --kiwi-bg:         rgba(186,203,0,0.14);
+    --kiwi-bd:         rgba(186,203,0,0.45);
+    --kiwi-bg-hov:     rgba(186,203,0,0.22);
+    --sunny-bg:        rgba(219,239,118,0.14);
+    --sunny-bd:        rgba(219,239,118,0.4);
+    --yellow-bg:       rgba(254,232,0,0.12);
+    --yellow-bd:       rgba(254,232,0,0.4);
+    --yellow-bg-hov:   rgba(254,232,0,0.2);
+    --pink-bg:         rgba(249,50,89,0.14);
+    --pink-bd:         rgba(249,50,89,0.42);
+    --pink-bg-hov:     rgba(249,50,89,0.22);
+    --orchid-bg:       rgba(179,98,167,0.14);
+    --orchid-bd:       rgba(179,98,167,0.42);
+    --orchid-bg-hov:   rgba(179,98,167,0.22);
+
+    /* Mist Green 半透明(預覽 tile) */
+    --smoked-teal-bg:     rgba(143,184,165,0.18);
+    --smoked-teal-bd:     rgba(143,184,165,0.55);
+    --smoked-teal-bg-hov: rgba(143,184,165,0.28);
+
+    /* Modal 按鈕階層(邊框+底色雙重) */
+    --btn-mid-bg:       #1e1e1e;
+    --btn-mid-bd:       rgba(255,255,255,0.18);
+    --btn-secondary-bg: #141414;
+    --btn-secondary-bd: rgba(255,255,255,0.1);
+
+    --gap:         3px;
     --grid-width:  min(100vw, 480px);
   }
 
   /* ── 全域重置 ── */
   * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; box-shadow: none !important; }
   html, body { background: var(--bg); overflow-x: hidden; }
-  body { font-family: "Segoe UI", "Noto Sans TC", sans-serif; color: var(--text); }
+  body {
+    font-family: "Noto Sans TC", "Segoe UI", sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-  /* ════════════════════════════════
+  /* ════════════════════════════════════════════════════════
      AUTH 頁
-  ════════════════════════════════ */
+     ════════════════════════════════════════════════════════ */
   #pageAuth {
     display: flex; flex-direction: column;
     min-height: 100vh; background: var(--bg);
   }
-  /* JOI-N 九宮格彩蛋 */
   .join-logo {
     display: flex;
     gap: 6px;
@@ -76,36 +145,156 @@
     opacity: 0;
     transition: opacity 0.25s ease;
   }
-  .join-cell.lit { opacity: 1; }
-  /* 文字區 */
+  .join-cell.lit { opacity: 1; background: var(--text); }
   .auth-text {
     flex: 1; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     padding: 32px 24px; text-align: center;
   }
-  .auth-title { font-size: 20px; font-weight: 700; color: var(--cloud); margin-bottom: 8px; letter-spacing: 2px; }
-  .auth-sub { font-size: 13px; color: var(--text-light); line-height: 1.6; }
+  .auth-title {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 22px; font-weight: 500;
+    color: #fff;
+    margin-bottom: 4px;
+    letter-spacing: 4px;
+    line-height: 1.4;
+  }
+  .auth-subtitle-en {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 400;
+    color: var(--text-light);
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+  }
+  .auth-divider {
+    width: 48px; height: 1px;
+    background: var(--marigold);
+    margin: 0 auto 14px;
+    opacity: 0.7;
+  }
+  .auth-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-light);
+    line-height: 1.6;
+    font-weight: 300;
+    letter-spacing: 2px;
+  }
 
-  /* ════════════════════════════════
+  /* ── Login 頁面升級 ── */
+  .login-clinic {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 28px;
+    font-weight: 500;
+    color: #fff;
+    margin-bottom: 4px;
+    letter-spacing: 8px;
+    line-height: 1.3;
+  }
+  .login-clinic-en {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-light);
+    letter-spacing: 2.5px;
+    margin-bottom: 6px;
+  }
+  .login-divider {
+    width: 48px; height: 1px;
+    background: var(--marigold);
+    opacity: 0.7;
+    margin-bottom: 36px;
+  }
+  .login-field-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    text-transform: lowercase;
+    margin-bottom: 8px;
+  }
+  .login-input {
+    width: 100%;
+    padding: 12px 12px 12px 12px;
+    font-size: 16px;
+    font-family: inherit;
+    background: transparent;
+    color: var(--text);
+    outline: none;
+    border: none;
+    border-left: 3px solid transparent;
+    border-bottom: 1.5px solid var(--border);
+    margin-bottom: 18px;
+    transition: all 0.2s;
+  }
+  .login-input:focus {
+    border-left-color: var(--marigold);
+    border-bottom-color: var(--marigold);
+    background: rgba(255,134,1,0.03);
+  }
+  .login-error {
+    display: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--error);
+    margin-bottom: 16px;
+    line-height: 1.6;
+    letter-spacing: 1px;
+    padding: 8px 10px;
+    border-left: 2px solid var(--error);
+    background: rgba(249,50,89,0.06);
+  }
+  .login-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--marigold);
+    color: #111;
+    border: none;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 3px;
+    position: relative;
+    transition: background 0.15s;
+  }
+  .login-btn:hover:not(:disabled) { background: var(--marigold-dk); }
+  .login-btn::after {
+    content: "→";
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .login-btn:disabled::after { opacity: 0.5; }
+
+  /* ════════════════════════════════════════════════════════
      METRO GRID 主版面
-  ════════════════════════════════ */
+     ════════════════════════════════════════════════════════ */
   #pageMain { display: none; }
 
   .metro-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    grid-auto-rows: calc((min(100vw, 480px) - 5px * 4) / 5);
+    grid-auto-rows: calc((min(100vw, 480px) - 3px * 4) / 5);
     gap: var(--gap);
-    background: #111111;
+    background: var(--bg);
+    padding: var(--gap);
     max-width: 480px;
     margin: 0 auto;
     align-items: start;
   }
 
-  /* 基本磚塊 */
+  /* ── 基本 tile ── */
   .tile {
-    background: var(--bg-2);
-    padding: 10px 12px;
+    background: var(--bg-3);
+    border: 1px solid var(--border-soft);
+    padding: 8px 10px;
     position: relative;
     overflow: hidden;
     cursor: default;
@@ -113,8 +302,9 @@
     flex-direction: column;
     justify-content: flex-start;
     min-width: 0;
-    height: calc((min(100vw, 480px) - 5px * 4) / 5);
-    max-height: calc((min(100vw, 480px) - 5px * 4) / 5);
+    height: calc((min(100vw, 480px) - 3px * 4) / 5);
+    max-height: calc((min(100vw, 480px) - 3px * 4) / 5);
+    transition: background 0.15s;
   }
   .tile:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
 
@@ -124,100 +314,156 @@
   .tile-4 { grid-column: span 4; }
   .tile-5 { grid-column: span 5; }
 
-  /* 磚塊顏色 */
-  .tile-marigold  { background: var(--marigold); }
-  .tile-capri     { background: var(--capri); }
-  .tile-kiwi      { background: var(--kiwi); }
-  .tile-yellow    { background: var(--yellow); }
-  .tile-pink      { background: var(--pink); }
-  .tile-orchid    { background: var(--orchid); }
-  .tile-dark      { background: var(--bg-3); }
-  .tile-empty     { background: var(--bg); cursor: default; pointer-events: none; }
+  /* ── 半透明彩色 tile(取代原本純色塊)── */
+  .tile-marigold  { background: var(--marigold-bg); border-color: var(--marigold-bd); }
+  .tile-marigold:hover { background: var(--marigold-bg-hov); }
+  .tile-capri     { background: var(--capri-bg);    border-color: var(--capri-bd); }
+  .tile-lagoon    { background: var(--lagoon-bg);   border-color: var(--lagoon-bd); }
+  .tile-lagoon:hover { background: var(--lagoon-bg-hov); }
+  .tile-kiwi      { background: var(--kiwi-bg);     border-color: var(--kiwi-bd); }
+  .tile-yellow    { background: var(--yellow-bg);   border-color: var(--yellow-bd); }
+  .tile-yellow:hover { background: var(--yellow-bg-hov); }
+  .tile-pink      { background: var(--pink-bg);     border-color: var(--pink-bd); }
+  .tile-pink:hover { background: var(--pink-bg-hov); }
+  .tile-orchid    { background: var(--orchid-bg);   border-color: var(--orchid-bd); }
+  .tile-orchid:hover { background: var(--orchid-bg-hov); }
+  .tile-sunny     { background: var(--sunny-bg);    border-color: var(--sunny-bd); }
+  .tile-teal      { background: var(--smoked-teal-bg); border-color: var(--smoked-teal-bd); }
+  .tile-teal:hover { background: var(--smoked-teal-bg-hov); }
+  .tile-dark      { background: var(--bg-3);        border-color: var(--border-soft); }
+  .tile-empty     { background: var(--bg); border-color: transparent; cursor: default; pointer-events: none; }
 
-  /* ════════════════════════════════
-     統一磚塊資訊格式
-     左上：title（大字粗體）
-     左下：subtitle（小字細體）
-     右上：note（黑底色標籤）
-     右下：caution（黑色小方塊，有待處理）
-  ════════════════════════════════ */
+  /* ── 統一磚塊資訊格式 ── */
   .tile-title {
-    font-size: 20px; font-weight: 700;
-    color: var(--text); line-height: 1.1;
+    font-size: 18px; font-weight: 500;
+    color: var(--text); line-height: 1.2;
     position: absolute; top: 10px; left: 12px; right: 12px;
+    letter-spacing: 0.5px;
   }
   .tile-subtitle {
     font-size: 11px; font-weight: 200;
     color: var(--text-light);
     position: absolute; bottom: 8px; left: 12px; right: 32px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    letter-spacing: 0.5px;
   }
   .tile-note {
-    font-size: 10px; font-weight: 700;
-    background: #000; color: inherit;
-    padding: 2px 6px; letter-spacing: 0.5px;
+    font-size: 10px; font-weight: 400;
+    background: var(--bg-4); color: var(--text-light);
+    padding: 2px 7px; letter-spacing: 1px;
     position: absolute; top: 8px; right: 8px;
     white-space: nowrap;
+    border: 1px solid var(--border-soft);
   }
   .tile-caution {
-    width: 12px; height: 12px;
-    background: #000;
+    width: 8px; height: 8px;
+    background: var(--marigold);
     position: absolute; bottom: 8px; right: 8px;
     flex-shrink: 0;
   }
 
-  /* 彩色磚塊上的文字顏色 */
-  .tile-marigold .tile-title,
-  .tile-capri .tile-title,
-  .tile-kiwi .tile-title,
-  .tile-pink .tile-title,
-  .tile-orchid .tile-title { color: #fff; }
-  .tile-yellow .tile-title { color: #1A1A1A; }
+  /* ── 半透明彩色 tile 上的文字顏色 ── */
+  .tile-marigold .tile-title { color: var(--marigold); }
+  .tile-capri    .tile-title { color: var(--capri); }
+  .tile-lagoon   .tile-title { color: var(--lagoon); }
+  .tile-kiwi     .tile-title { color: var(--kiwi); }
+  .tile-yellow   .tile-title { color: var(--yellow); }
+  .tile-pink     .tile-title { color: var(--pink); }
+  .tile-orchid   .tile-title { color: var(--orchid); }
+  .tile-sunny    .tile-title { color: var(--sunny); }
+  .tile-teal     .tile-title { color: #A8D0BC; }
 
-  .tile-marigold .tile-subtitle,
-  .tile-capri .tile-subtitle,
-  .tile-kiwi .tile-subtitle,
-  .tile-pink .tile-subtitle,
-  .tile-orchid .tile-subtitle { color: rgba(255,255,255,0.7); }
-  .tile-yellow .tile-subtitle { color: rgba(0,0,0,0.5); }
+  .tile-marigold .tile-subtitle { color: rgba(255,134,1,0.65); }
+  .tile-capri    .tile-subtitle { color: rgba(0,181,226,0.65); }
+  .tile-lagoon   .tile-subtitle { color: rgba(0,150,214,0.65); }
+  .tile-kiwi     .tile-subtitle { color: rgba(186,203,0,0.75); }
+  .tile-yellow   .tile-subtitle { color: rgba(254,232,0,0.6); }
+  .tile-pink     .tile-subtitle { color: rgba(249,50,89,0.65); }
+  .tile-orchid   .tile-subtitle { color: rgba(179,98,167,0.7); }
+  .tile-sunny    .tile-subtitle { color: rgba(219,239,118,0.7); }
+  .tile-teal     .tile-subtitle { color: rgba(168,208,188,0.7); }
 
   .tile-marigold .tile-note,
   .tile-capri .tile-note,
+  .tile-lagoon .tile-note,
   .tile-kiwi .tile-note,
   .tile-yellow .tile-note,
   .tile-pink .tile-note,
-  .tile-orchid .tile-note { color: #fff; }
+  .tile-orchid .tile-note,
+  .tile-sunny .tile-note { color: var(--text); background: var(--bg-4); }
 
-  /* 舊 tile-label/tile-sub 別名（向後相容） */
-  .tile-label { font-size: 20px; font-weight: 700; color: var(--text); line-height: 1.1; }
-  .tile-sub   { font-size: 11px; font-weight: 200; color: var(--text-light); margin-top: 4px; }
-  .tile-marigold .tile-label, .tile-capri .tile-label, .tile-kiwi .tile-label,
-  .tile-yellow .tile-label, .tile-pink .tile-label, .tile-orchid .tile-label { color: #fff; }
-  .tile-yellow .tile-label { color: #1A1A1A; }
-  .tile-marigold .tile-sub, .tile-capri .tile-sub, .tile-kiwi .tile-sub,
-  .tile-yellow .tile-sub, .tile-pink .tile-sub, .tile-orchid .tile-sub { color: rgba(255,255,255,0.7); }
-  .tile-yellow .tile-sub { color: rgba(0,0,0,0.5); }
+  /* 舊 tile-label/tile-sub 別名(向後相容) */
+  .tile-label { font-size: 18px; font-weight: 500; color: var(--text); line-height: 1.2; letter-spacing: 0.5px; }
+  .tile-sub   { font-size: 11px; font-weight: 200; color: var(--text-light); margin-top: 4px; letter-spacing: 0.5px; }
+  .tile-marigold .tile-label { color: var(--marigold); }
+  .tile-capri    .tile-label { color: var(--capri); }
+  .tile-lagoon   .tile-label { color: var(--lagoon); }
+  .tile-kiwi     .tile-label { color: var(--kiwi); }
+  .tile-yellow   .tile-label { color: var(--yellow); }
+  .tile-pink     .tile-label { color: var(--pink); }
+  .tile-orchid   .tile-label { color: var(--orchid); }
+  .tile-sunny    .tile-label { color: var(--sunny); }
+  .tile-marigold .tile-sub { color: rgba(255,134,1,0.55); }
+  .tile-capri    .tile-sub { color: rgba(0,181,226,0.55); }
+  .tile-lagoon   .tile-sub { color: rgba(0,150,214,0.55); }
+  .tile-kiwi     .tile-sub { color: rgba(186,203,0,0.55); }
+  .tile-yellow   .tile-sub { color: rgba(254,232,0,0.5); }
+  .tile-pink     .tile-sub { color: rgba(249,50,89,0.55); }
+  .tile-orchid   .tile-sub { color: rgba(179,98,167,0.6); }
+  .tile-sunny    .tile-sub { color: rgba(219,239,118,0.6); }
 
-  /* ── 管理員名稱磚 ── */
-  .tile-header-admin { background: var(--marigold-dk); }
-  .tile-header-admin .tile-label { font-size: 15px; font-weight: 700; }
+  /* ── 管理員名稱磚(右下角) — Pearl 彩色底(功能性 tile)── */
+  .tile-admin {
+    background: rgba(188,184,168,0.12);
+    border: 1px solid rgba(188,184,168,0.4);
+    cursor: pointer;
+  }
+  .tile-admin:hover { background: rgba(188,184,168,0.2); }
+  .tile-admin .tile-label { font-size: 14px; font-weight: 500; color: #D8D4C0; }
+  .tile-admin .tile-sub { color: rgba(216,212,192,0.7); }
+  .tile-header-admin { background: rgba(188,184,168,0.12); border: 1px solid rgba(188,184,168,0.4); }
+  .tile-header-admin .tile-label { font-size: 14px; font-weight: 500; color: #D8D4C0; }
 
-  /* ── Row 2：日期導覽 ── */
-  .tile-nav { background: var(--capri); cursor: pointer; justify-content: center; align-items: center; }
-  .tile-nav-date { background: var(--capri); cursor: pointer; justify-content: center; align-items: center; }
-  .tile-nav-date input[type="date"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; border: none; background: transparent; z-index: 1; }
-  .tile-nav.disabled { background: #005f7a !important; cursor: not-allowed; }
-  .tile-nav.disabled .tile-title { color: rgba(0,0,0,0.35) !important; }
+  /* ── Row 1:日期導覽 ── */
+  .tile-nav {
+    background: var(--bg-3); border: 1px solid var(--border-soft);
+    cursor: pointer; justify-content: center; align-items: center;
+  }
+  .tile-nav:hover { background: var(--bg-4); }
+  .tile-nav-date {
+    background: var(--bg-3); border: 1px solid var(--border-soft);
+    cursor: pointer; justify-content: center; align-items: center;
+  }
+  .tile-nav-date input[type="date"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    width: 100%; height: 100%; border: none; background: transparent; z-index: 1;
+  }
+  .tile-nav.today-btn {
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--marigold);
+    padding-left: 14px;
+  }
+  .tile-nav.today-btn .tile-title { color: var(--text); font-weight: 500; }
+  .tile-nav.disabled { background: var(--bg-2) !important; cursor: not-allowed; border-color: var(--border-soft); }
+  .tile-nav.disabled .tile-title { color: var(--text-dim) !important; }
   .tile-nav.disabled:active { transform: none; }
 
-  /* ── Row 2：醫師＋時段 ── */
+  /* ── Row 2:醫師 + 時段 — 醫師用 Pearl 彩色底(功能性 tile)── */
+  .tile-doctor {
+    background: rgba(188,184,168,0.12);
+    border: 1px solid rgba(188,184,168,0.4);
+    cursor: pointer;
+  }
+  .tile-doctor:hover { background: rgba(188,184,168,0.2); }
+  .tile-doctor .tile-title { font-size: 20px; font-weight: 500; color: #D8D4C0; letter-spacing: 1px; }
   .doctor-substitute-note {
     position: absolute; top: 8px; right: 8px;
-    background: #000; color: var(--cloud);
-    font-size: 10px; font-weight: 700;
-    padding: 2px 6px; letter-spacing: 0.5px;
+    background: var(--bg-4); color: var(--marigold);
+    font-size: 10px; font-weight: 400;
+    padding: 2px 7px; letter-spacing: 1px;
+    border: 1px solid var(--marigold-bd);
   }
-  /* 醫師磚載入動畫 */
   @keyframes loadingDots {
     0%   { content: ""; }
     25%  { content: "."; }
@@ -228,15 +474,27 @@
     content: "";
     animation: loadingDots 1.2s steps(4) infinite;
   }
-  .tile-session { cursor: pointer; }
-  .tile-session.active { outline: 3px solid #fff; outline-offset: -3px; opacity: 1 !important; }
-  .tile-session:not(.active) { opacity: 0.55; }
+
+  .tile-session {
+    background: var(--bg-3); border: 1px solid var(--border-soft);
+    cursor: pointer;
+  }
+  .tile-session .tile-title { color: var(--text-light); font-weight: 400; }
+  .tile-session .count-text { font-size: 14px; font-weight: 300; color: var(--text-dim); margin-top: auto; letter-spacing: 0.5px; }
+  .tile-session.active {
+    background: var(--bg-4);
+    border: 1px solid var(--border-hard);
+    border-left: 3px solid var(--marigold);
+    padding-left: 15px;
+  }
+  .tile-session.active .tile-title { color: var(--text); font-weight: 500; }
+  .tile-session.active .count-text { color: var(--text); font-weight: 500; }
+  .tile-session:not(.active) { opacity: 0.7; }
 
   /* ── 30格診單 ── */
-  /* grid-cell 現在直接放在 .metro-grid 裡，不需要額外容器 */
   .grid-cell {
     background: var(--bg-2);
-    border: none;
+    border: 1px solid var(--border-soft);
     padding: 6px 6px 4px;
     display: flex;
     flex-direction: column;
@@ -245,189 +503,723 @@
     overflow: hidden;
     position: relative;
     min-width: 0;
+    transition: background 0.15s;
   }
   .grid-cell:not(.empty):active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
-  /* 所有有預約的格子統一綠色，靠黑點區分是否需要手動處理 */
-  .grid-cell.has-patient    { background: var(--kiwi); cursor: pointer; }
-  .grid-cell.admin-notified { background: var(--kiwi); cursor: pointer; }
-  .grid-cell.admin-pending  { background: var(--kiwi); cursor: pointer; }
-  .grid-cell.is-reserved    { background: var(--sunny); cursor: pointer; }
-  .grid-cell.empty { background: transparent; }
 
-  .cell-num { font-size: 22px; font-weight: 700; line-height: 1; align-self: flex-start; }
-  .grid-cell.has-patient .cell-num    { color: #111111; }
-  .grid-cell.admin-pending .cell-num  { color: #111111; }
-  .grid-cell.admin-notified .cell-num { color: #111111; }
-  .grid-cell.empty .cell-num { color: var(--empty-text); font-weight: 200; }
+  /* 有病患格子 —— 深灰白字(浮起效果) */
+  .grid-cell.has-patient,
+  .grid-cell.admin-notified,
+  .grid-cell.admin-pending {
+    background: #2a2a2a;
+    border: 1px solid rgba(255,255,255,0.3);
+    cursor: pointer;
+  }
+  .grid-cell.has-patient:hover,
+  .grid-cell.admin-notified:hover,
+  .grid-cell.admin-pending:hover { background: #333; }
 
+  /* 保留號 —— 微金色邊框 */
+  .grid-cell.is-reserved {
+    background: #2a2a2a;
+    border: 1px solid rgba(200,168,75,0.4);
+    cursor: pointer;
+  }
+  .grid-cell.is-reserved .cell-num { color: rgba(200,168,75,0.75); font-weight: 400; }
+  .grid-cell.is-reserved .cell-name { color: #8a8a8a; font-style: italic; font-weight: 400; }
+
+  .grid-cell.empty {
+    background: #0f0f0f;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  /* 數字 */
+  .cell-num { font-size: 22px; font-weight: 300; line-height: 1; align-self: flex-start; letter-spacing: 0.5px; color: #4a4a4a; }
+  .grid-cell.has-patient .cell-num,
+  .grid-cell.admin-pending .cell-num,
+  .grid-cell.admin-notified .cell-num { color: #ffffff; font-weight: 700; }
+  .grid-cell.empty .cell-num { color: #4a4a4a; font-weight: 300; }
+
+  /* 生日(中間) */
+  .cell-birth {
+    position: absolute; top: 50%; left: 7px; right: 7px;
+    transform: translateY(-50%);
+    font-size: 11px; color: var(--text-dim); font-weight: 300;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    letter-spacing: 0.3px;
+  }
+  .grid-cell.has-patient .cell-birth,
+  .grid-cell.admin-pending .cell-birth,
+  .grid-cell.admin-notified .cell-birth {
+    color: #d8d8d8;
+    font-weight: 400;
+    font-size: 11.5px;
+  }
+
+  /* 姓名 */
   .cell-name {
-    font-size: 12px; font-weight: 700;
-    position: absolute; bottom: 5px; left: 6px; right: 20px;
+    font-size: 12px; font-weight: 300;
+    position: absolute; bottom: 5px; left: 6px; right: 16px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     text-align: left;
   }
-  .cell-caution {
-    width: 10px; height: 10px;
-    background: #000;
-    position: absolute; bottom: 7px; right: 6px;
+  .grid-cell.has-patient .cell-name,
+  .grid-cell.admin-pending .cell-name,
+  .grid-cell.admin-notified .cell-name {
+    color: #ffffff;
+    font-weight: 500;
+    font-size: 13px;
   }
-  /* 心寬轉介標記：姓名紅底線 + 紅色星號 */
-  .grid-cell.has-patient .cell-name    { color: #ffffff; }
-  .grid-cell.admin-pending .cell-name  { color: #ffffff; }
-  .grid-cell.admin-notified .cell-name { color: #ffffff; }
   .grid-cell.empty .cell-name { color: transparent; }
 
-  /* 初診橫幅 */
+  /* 待處理點 —— 橘色小方塊(Metro 硬邊) */
+  .cell-caution {
+    width: 8px; height: 8px;
+    background: var(--marigold);
+    position: absolute; bottom: 7px; right: 6px;
+  }
+  .grid-cell.admin-notified .cell-caution { display: none; }
+
+  /* ── 初診橫幅 ── */
   .grid-np-banner {
     grid-column: 3 / span 3;
-    border: none; padding: 8px 12px;
+    background: var(--bg-3);
+    border: 1px solid var(--border-hard);
+    padding: 8px 12px;
     display: flex; align-items: center; gap: 10px;
-    height: calc((min(100vw, 480px) - 5px * 4) / 5);
-    max-height: calc((min(100vw, 480px) - 5px * 4) / 5);
+    height: calc((min(100vw, 480px) - 3px * 4) / 5);
+    max-height: calc((min(100vw, 480px) - 3px * 4) / 5);
     overflow: hidden;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
   }
+  .grid-np-banner:hover { background: var(--bg-4); }
   .grid-np-banner:active { transform: scale(0.99); opacity: 0.9; transition: all 0.1s ease-out; }
-  /* 所有初診橫幅統一綠色 */
-  .grid-np-banner.has-patient    { background: var(--kiwi); }
-  .grid-np-banner.admin-notified { background: var(--kiwi); cursor: pointer; }
-  .grid-np-banner.admin-pending  { background: var(--kiwi); cursor: pointer; }
-  .checkin-mini { flex-shrink: 0; padding: 8px 16px; font-size: 14px; font-family: inherit; font-weight: 700; cursor: pointer; border: none; white-space: nowrap; }
+  .grid-np-banner.has-patient,
+  .grid-np-banner.admin-notified,
+  .grid-np-banner.admin-pending {
+    background: var(--bg-3);
+    border: 1px solid var(--border-hard);
+  }
+
+  .checkin-mini {
+    flex-shrink: 0; padding: 7px 14px;
+    font-size: 13px; font-family: inherit; font-weight: 400;
+    cursor: pointer; border: 1px solid var(--border);
+    background: var(--bg-4); color: var(--text-light);
+    white-space: nowrap; letter-spacing: 0.5px;
+  }
   .checkin-mini:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
-  .checkin-mini.pending { background: rgba(255,255,255,0.25); color: #fff; }
-  .checkin-mini.done    { background: rgba(0,0,0,0.2); color: #fff; }
+  .checkin-mini.pending {
+    background: var(--marigold-bg);
+    border: 1px solid var(--marigold-bd);
+    color: var(--marigold);
+  }
+  .checkin-mini.done {
+    background: var(--bg-2);
+    border: 1px solid var(--border-soft);
+    color: var(--text-dim);
+  }
 
   /* scheduleContent 容器 */
   #scheduleContent {
     grid-column: 1 / -1;
     background: var(--bg);
-  }
-  #scheduleContent > div[style*="grid"] {
-    gap: 3px;
-  }
-
-  /* Loading 狀態（span 5格）*/
-  #scheduleContent {
     padding: 8px;
     color: var(--text-light);
     font-size: 13px;
     font-weight: 200;
     text-align: center;
   }
-  .loading-bar-wrap { width: 100%; height: 3px; background: var(--bg-3); margin: 10px 0 4px; overflow: hidden; }
+  #scheduleContent > div[style*="grid"] { gap: 3px; }
+
+  /* Loading 狀態 */
+  .loading-bar-wrap { width: 100%; height: 2px; background: var(--bg-3); margin: 10px 0 4px; overflow: hidden; }
   .loading-bar { height: 100%; width: 40%; background: var(--marigold); animation: loadingSlide 1.2s ease-in-out infinite; }
   @keyframes loadingSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
-  /* Skeleton pulse */
-  @keyframes skeletonPulse { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.6; } }
+  @keyframes skeletonPulse { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.4; } }
   @keyframes spin { to { transform: rotate(360deg); } }
   .grid-cell.skeleton { background: var(--bg-3); animation: skeletonPulse 1.4s ease-in-out infinite; }
   .grid-cell.skeleton .cell-num { color: transparent; }
 
-  /* ── Row 10：現場排號＋心理治療 ── */
-  .tile-unspec { background: var(--bg-3); cursor: pointer; justify-content: center; align-items: center; }
-  .tile-unspec .tile-label { font-size: 13px; font-weight: 700; text-align: center; color: var(--text-light); }
-  .tile-unspec:hover { background: var(--marigold); }
-  .tile-unspec:hover .tile-label { color: #fff; }
+  /* ── 不指定(Kiwi 綠)/ 心理治療(深灰)/ 預覽(Smoked Teal)── */
+  .tile-unspec {
+    background: var(--kiwi-bg);
+    border: 1px solid var(--kiwi-bd);
+    cursor: pointer;
+    justify-content: flex-start; align-items: flex-start;
+  }
+  .tile-unspec .tile-label,
+  .tile-unspec .tile-title { font-size: 18px; font-weight: 500; color: var(--kiwi); letter-spacing: 0.5px; }
+  .tile-unspec:hover { background: var(--kiwi-bg-hov); }
   .tile-unspec:active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
 
   /* ── 異常排班 ── */
   .conflict-tile {
     grid-column: 1 / -1;
     background: #2A1010;
-    border-left: 4px solid var(--error);
+    border: 1px solid var(--error);
+    border-left: 3px solid var(--error);
     padding: 10px 12px;
   }
-  .conflict-title { font-size: 12px; font-weight: 700; color: var(--error); margin-bottom: 6px; }
+  .conflict-title { font-size: 12px; font-weight: 700; color: var(--error); margin-bottom: 6px; letter-spacing: 0.5px; }
   .conflict-row { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px solid #3A1818; font-size: 12px; font-weight: 200; }
   .conflict-row:last-child { border-bottom: none; }
   .conflict-slot { font-weight: 700; color: var(--error); min-width: 32px; }
-  .conflict-name { font-weight: 400; flex: 1; }
+  .conflict-name { font-weight: 300; flex: 1; color: var(--text); }
 
-  /* ── Modal ── */
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+  /* ════════════════════════════════════════════════════════
+     Modal
+     ════════════════════════════════════════════════════════ */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center; justify-content: center; padding: 16px;
+  }
   #modalConfirmGo { z-index: 300; }
   #modalAdminAddResult { z-index: 250; }
   .modal-overlay.active { display: flex; }
-  .modal { background: var(--bg-2); padding: 24px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; }
-  .modal-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; border-left: 4px solid var(--marigold); padding-left: 10px; }
-  .modal-close { margin-left: auto; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-light); padding: 0 4px; }
+  .modal {
+    background: var(--bg-3);
+    border: 1px solid var(--border-soft);
+    padding: 24px; width: 100%; max-width: 480px;
+    max-height: 88vh; overflow-y: auto;
+    animation: modalSlideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes modalSlideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  /* 標題做成橫幅效果:用負 margin 向外擴展到 modal 邊緣,其他子元素不動 */
+  .modal-title {
+    background:
+      linear-gradient(180deg, rgba(255,134,1,0.08) 0%, transparent 100%),
+      var(--bg-4);
+    border-bottom: 1px solid var(--border-soft);
+    border-left: 3px solid var(--marigold);
+    padding: 14px 20px;
+    margin: -24px -24px 20px -24px;
+    font-size: 15px; font-weight: 500; color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+    letter-spacing: 2px;
+  }
+  .modal-close {
+    margin-left: auto; background: none; border: none;
+    font-size: 18px; cursor: pointer; color: var(--text-light);
+    padding: 0 4px; font-family: inherit;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  /* ════════════════════════════════════════════════
+     Modal v4 · Terminal × Editorial 融合風
+     ════════════════════════════════════════════════ */
+  /* Topbar(橘直條 + 右上小標 patient.info 樣式) */
+  .m-topbar {
+    display: flex;
+    align-items: center;
+    padding: 11px 16px;
+    background: #0a0a0a;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin: -24px -24px 0 -24px;
+    gap: 12px;
+  }
+  .m-stripe {
+    width: 3px; height: 14px;
+    background: var(--marigold);
+    flex-shrink: 0;
+  }
+  .m-topbar-main {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 2px;
+    flex-shrink: 0;
+  }
+  .m-topbar-title {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--text-light);
+    letter-spacing: 1.5px;
+  }
+  .m-topbar .modal-close {
+    margin-left: 10px;
+    background: none; border: none;
+    color: var(--text-dim); font-size: 18px;
+    cursor: pointer; font-family: inherit;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+  .m-topbar .modal-close:hover { color: var(--text); }
+
+  /* Key-value 資訊表(Terminal 對齊樣式) */
+  .m-datatable {
+    padding: 18px 0;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 13px;
+    line-height: 2;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin: 0 -2px;
+  }
+  .m-row {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+  .m-row-key {
+    color: var(--text-light);
+    width: 52px;
+    flex-shrink: 0;
+    letter-spacing: 1px;
+    font-weight: 400;
+  }
+  .m-row-value {
+    color: var(--text);
+    flex: 1;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+    font-weight: 400;
+    word-break: break-all;
+  }
+  .m-row-value.big {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: #fff;
+    letter-spacing: 3px;
+  }
+  .m-row-value.orange {
+    color: var(--marigold);
+    font-weight: 500;
+    font-size: 15px;
+  }
+  .m-row-value.kiwi {
+    color: var(--kiwi);
+  }
+  .m-row-value.dim {
+    color: var(--text-light);
+    font-size: 12px;
+  }
+
+  /* 分區 */
+  .m-section {
+    padding: 14px 0 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .m-section:last-of-type { border-bottom: none; padding-bottom: 0; }
+  .m-section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    font-weight: 400;
+  }
+  .m-section-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    margin-left: 6px;
+    opacity: 0.7;
+  }
+
+  /* 統一按鈕(滑過橘框) */
+  .m-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 14px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 400;
+    letter-spacing: 1px;
+    cursor: pointer;
+    margin-bottom: 6px;
+    text-align: left;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .m-btn:last-child { margin-bottom: 0; }
+  .m-btn:hover {
+    border-color: rgba(255,134,1,0.5);
+    color: var(--marigold);
+    background: rgba(255,134,1,0.05);
+  }
+  .m-btn-icon {
+    font-size: 14px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    width: 18px; text-align: center;
+    transition: color 0.15s;
+  }
+  .m-btn:hover .m-btn-icon { color: var(--marigold); }
+  .m-btn-arrow {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: #333;
+    transition: color 0.15s;
+  }
+  .m-btn:hover .m-btn-arrow { color: var(--marigold); }
+  .m-btn.primary {
+    border: 1px solid rgba(255,134,1,0.4);
+    background: rgba(255,134,1,0.08);
+    color: var(--marigold);
+  }
+  .m-btn.primary .m-btn-icon { color: var(--marigold); }
+  .m-btn.primary:hover {
+    background: rgba(255,134,1,0.16);
+    border-color: rgba(255,134,1,0.7);
+  }
+
+  .m-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .m-grid-2 .m-btn {
+    margin-bottom: 0;
+    justify-content: center;
+  }
+  .m-grid-2 .m-btn-icon { width: auto; }
+
+  /* 立即行動外層:當兩個內部 wrapper 都隱藏時,整個 section 隱藏 */
+  #contactActionSection:has(#contactPhoneBtns[style*="none"]):has(#btnContactMethodWrap[style*="none"]) {
+    display: none;
+  }
+
+  /* 立即行動 3 格並排(撥打 / 傳訊 / 聯繫方式) */
+  .m-action-row {
+    display: flex;
+    gap: 6px;
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+  .m-action-pair {
+    flex: 2;
+    display: flex;
+    gap: 6px;
+    min-width: 0;
+  }
+  .m-action-pair .m-btn {
+    flex: 1;
+    margin-bottom: 0;
+  }
+  .m-action-method {
+    flex: 1;
+    min-width: 0;
+  }
+  /* 容器是 flex item,內部按鈕直接 width 100% 撐滿;不論 JS 設 display:block 還是 flex 都穩定 */
+  .m-action-method .m-btn {
+    width: 100%;
+    margin-bottom: 0;
+  }
+
+  /* Compact 版按鈕(3 並排時用) */
+  .m-btn-compact {
+    padding: 11px 8px;
+    font-size: 12.5px;
+    letter-spacing: 0.5px;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .m-btn-compact .m-btn-icon {
+    width: auto;
+    font-size: 13px;
+  }
+
+  /* Toggle(通知狀態切換) */
+  .m-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 14px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .m-toggle:hover { border-color: rgba(255,134,1,0.5); }
+  .m-toggle-label {
+    font-size: 13.5px;
+    color: var(--text);
+    letter-spacing: 1px;
+  }
+  .m-toggle-state {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 3px 9px;
+    color: var(--marigold);
+    background: rgba(255,134,1,0.1);
+    border: 1px solid rgba(255,134,1,0.3);
+    text-transform: uppercase;
+  }
+  .m-toggle-state.done {
+    color: var(--kiwi);
+    background: rgba(186,203,0,0.1);
+    border-color: rgba(186,203,0,0.3);
+  }
+
+  /* 危險區塊(取消預約獨立) */
+  .m-danger-section {
+    margin: 14px -24px -24px -24px;
+    padding: 14px 22px 20px;
+    background: #080808;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+  .m-danger-btn {
+    display: block; width: 100%;
+    padding: 11px;
+    background: transparent;
+    border: 1px solid rgba(249,50,89,0.3);
+    color: var(--error);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 400;
+    letter-spacing: 3px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .m-danger-btn:hover {
+    background: rgba(249,50,89,0.1);
+    border-color: rgba(249,50,89,0.6);
+  }
 
   /* ── Form ── */
   .form-group { margin-bottom: 14px; }
-  .form-label { display: block; font-size: 11px; color: var(--text-light); margin-bottom: 5px; font-weight: 200; letter-spacing: 1px; text-transform: uppercase; }
-  input[type="text"], input[type="date"], input[type="tel"], select, textarea { width: 100%; min-width: 0; box-sizing: border-box; padding: 10px 12px; border: none; border-bottom: 2px solid var(--border); border-left: 4px solid var(--border); font-size: 14px; font-family: inherit; color: var(--text); background: var(--bg-3); transition: all 0.15s; outline: none; font-weight: 400; }
-  input:focus, select:focus, textarea:focus { border-color: var(--marigold); }
+  .form-label {
+    display: block; font-size: 10px; color: var(--text-light);
+    margin-bottom: 6px; font-weight: 400; letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  input[type="text"], input[type="date"], input[type="tel"], input[type="password"],
+  input[type="number"], select, textarea {
+    width: 100%; min-width: 0; box-sizing: border-box;
+    padding: 10px 12px; border: none;
+    border-bottom: 1.5px solid var(--border);
+    border-left: 3px solid transparent;
+    font-size: 14px; font-family: inherit; color: var(--text);
+    background: var(--bg-2);
+    transition: all 0.2s; outline: none; font-weight: 400;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-left-color: var(--marigold);
+    border-bottom-color: var(--marigold);
+    background: var(--bg-4);
+  }
   textarea { resize: vertical; min-height: 70px; }
   .date-row { display: flex; gap: 8px; }
   .date-row .form-group { flex: 1; }
+  select option { background: var(--bg-3); color: var(--text); }
 
-  .btn { width: 100%; padding: 13px; border: none; font-size: 14px; font-family: inherit; font-weight: 400; cursor: pointer; letter-spacing: 1px; margin-bottom: 8px; }
+  /* ── 按鈕 ── */
+  .btn {
+    width: 100%; padding: 13px; border: none;
+    font-size: 14px; font-family: inherit; font-weight: 400;
+    cursor: pointer; letter-spacing: 1px; margin-bottom: 8px;
+    transition: background 0.15s, border-color 0.15s;
+  }
   .btn:active { transform: scale(0.98); opacity: 0.9; transition: all 0.1s ease-out; }
-  .btn-primary { background: var(--marigold); color: #fff; }
+
+  .btn-primary {
+    background: var(--marigold);
+    border: none;
+    color: #111;
+    font-weight: 700;
+    letter-spacing: 2px;
+  }
   .btn-primary:hover { background: var(--marigold-dk); }
-  .btn-primary:disabled { background: #555; cursor: not-allowed; }
-  .btn-outline { background: transparent; color: var(--marigold); border: 2px solid var(--marigold); }
-  .btn-danger  { background: transparent; color: var(--error); border: 2px solid var(--error); }
-  .btn-danger:hover { background: var(--error); color: #fff; }
+  .btn-primary:disabled {
+    background: var(--bg-3); color: var(--text-dim);
+    border: 1px solid var(--border-soft); cursor: not-allowed;
+    font-weight: 400;
+  }
+  .btn-outline {
+    background: transparent; color: var(--marigold);
+    border: 1px solid var(--marigold-bd);
+  }
+  .btn-outline:hover { background: var(--marigold-bg); }
+  .btn-danger {
+    background: transparent; color: var(--error);
+    border: 1px solid rgba(249,50,89,0.35);
+  }
+  .btn-danger:hover { background: rgba(249,50,89,0.12); }
   .btn-sm { width: auto; padding: 7px 14px; font-size: 12px; margin-bottom: 0; }
-  .btn-notified-pending { background: var(--kiwi); color: #fff; }
-  .btn-notified-done    { background: var(--yellow); color: #1A1A1A; }
 
-  .alert { padding: 10px 12px; font-size: 13px; margin-bottom: 10px; line-height: 1.6; border-left: 4px solid; font-weight: 200; }
-  .alert-error   { background: #2A1010; color: var(--error); border-color: var(--error); }
-  .alert-success { background: var(--green-light); color: var(--success); border-color: var(--success); }
-  .alert-info    { background: var(--orange-light); color: var(--marigold); border-color: var(--marigold); }
+  /* ── 聯絡 Modal 內的通知狀態按鈕 ── */
+  .btn-notified-pending {
+    background: var(--marigold-bg);
+    border: 1px solid var(--marigold-bd);
+    color: var(--marigold);
+  }
+  .btn-notified-done {
+    background: var(--kiwi-bg);
+    border: 1px solid var(--kiwi-bd);
+    color: var(--kiwi);
+  }
 
-  .result-item { padding: 12px; border-left: 4px solid var(--border); margin-bottom: 8px; background: var(--bg-3); }
+  /* ── Alert ── */
+  .alert {
+    padding: 11px 13px; font-size: 13px; margin-bottom: 10px;
+    line-height: 1.7; border-left: 3px solid; font-weight: 300;
+  }
+  .alert-error   { background: rgba(249,50,89,0.08); color: var(--error); border-color: var(--error); }
+  .alert-success { background: var(--kiwi-bg); color: var(--kiwi); border-color: var(--kiwi); }
+  .alert-info    { background: var(--marigold-bg); color: var(--marigold); border-color: var(--marigold); }
+
+  /* ── 結果項目 ── */
+  .result-item {
+    padding: 12px; border: 1px solid var(--border-soft);
+    border-left: 3px solid var(--border); margin-bottom: 8px;
+    background: var(--bg-2);
+  }
   .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-  .result-date { font-size: 13px; font-weight: 400; }
-  .result-status { font-size: 11px; padding: 2px 7px; background: var(--kiwi); color: #fff; font-weight: 700; }
+  .result-date { font-size: 13px; font-weight: 400; color: var(--text); letter-spacing: 0.5px; }
+  .result-status {
+    font-size: 11px; padding: 2px 8px;
+    background: var(--kiwi-bg);
+    border: 1px solid var(--kiwi-bd);
+    color: var(--kiwi);
+    font-weight: 400; letter-spacing: 0.5px;
+  }
   .result-detail { font-size: 12px; font-weight: 200; color: var(--text-light); line-height: 1.8; }
 
-  .log-item { padding: 9px 11px; border-left: 4px solid var(--error); background: #2A1010; margin-bottom: 7px; font-size: 12px; line-height: 1.6; font-weight: 200; }
-  .log-time { color: var(--text-light); font-size: 10px; }
+  /* ── Log 項目 ── */
+  .log-item {
+    padding: 9px 11px; border-left: 3px solid var(--error);
+    background: rgba(249,50,89,0.06);
+    margin-bottom: 7px; font-size: 12px;
+    line-height: 1.6; font-weight: 300;
+  }
+  .log-time { color: var(--text-light); font-size: 10px; letter-spacing: 0.5px; }
   .log-event { color: var(--error); font-weight: 700; }
-  .divider { height: 2px; background: var(--border); margin: 12px 0; }
-  .preview-count { background: var(--orange-light); color: var(--marigold); padding: 9px 12px; font-size: 13px; font-weight: 700; margin-bottom: 10px; text-align: center; border-left: 4px solid var(--marigold); }
-  .loading { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; font-weight: 200; }
+
+  .divider { height: 1px; background: var(--border); margin: 12px 0; }
+  .preview-count {
+    background: var(--marigold-bg); color: var(--marigold);
+    padding: 10px 12px; font-size: 13px; font-weight: 400;
+    margin-bottom: 10px; text-align: center;
+    border-left: 3px solid var(--marigold);
+    letter-spacing: 0.5px;
+  }
+  .loading { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; font-weight: 200; letter-spacing: 1px; }
   .empty-state { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; font-weight: 200; }
 
-  .contact-name  { font-size: 24px; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 4px; }
-  .contact-birth { font-size: 13px; font-weight: 200; color: var(--text-light); text-align: center; margin-bottom: 8px; letter-spacing: 1px; }
-  .contact-timeslot { font-size: 13px; font-weight: 300; color: var(--marigold); text-align: center; margin-bottom: 8px; letter-spacing: 0.5px; }
-  .contact-phone { display: block; font-size: 22px; font-weight: 700; color: var(--marigold); text-align: center; text-decoration: none; letter-spacing: 2px; margin-bottom: 10px; cursor: default; }
-  .contact-phone.no-phone { font-size: 16px; font-weight: 400; color: var(--text-light); letter-spacing: 0; cursor: default; }
+  /* ── Contact v4 · 舊樣式中和(id 和 class 保留給 JS,但視覺由 .m-row-value 控制) ── */
+  .contact-name, .contact-birth, .contact-timeslot, .contact-phone {
+    /* 作為 .m-row-value 內文字節點,不做額外樣式干擾 */
+    display: inline;
+  }
+  .contact-phone { text-decoration: none; cursor: default; }
+  .contact-phone.no-phone {
+    color: var(--text-light) !important;
+    font-weight: 400 !important;
+    font-size: 13px !important;
+    letter-spacing: 1px !important;
+    font-family: 'Noto Sans TC', sans-serif !important;
+  }
+  /* 舊 .contact-phone-btns 不再使用(已由 .m-grid-2 取代),留空以相容 */
   .contact-phone-btns { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
-  .contact-phone-btns a { flex: 1; text-align: center; padding: 8px 0; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; }
-  .contact-phone-btns .btn-call { background: var(--marigold); color: #fff; }
-  .contact-phone-btns .btn-sms { background: var(--bg-3); color: var(--text); border: 1px solid var(--border); }
+  .contact-phone-btns a {
+    flex: 1; text-align: center; padding: 10px 0;
+    font-size: 13px; font-weight: 400;
+    text-decoration: none; cursor: pointer;
+    letter-spacing: 1px;
+  }
+  .contact-phone-btns .btn-call {
+    background: var(--marigold-bg);
+    border: 1px solid var(--marigold-bd);
+    color: var(--marigold);
+  }
+  .contact-phone-btns .btn-sms {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
 
-  .unspec-modal-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  /* ── 不指定 Modal 內的 row ── */
+  .unspec-modal-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 0; border-bottom: 1px solid var(--border-soft);
+    font-size: 13px;
+  }
   .unspec-modal-row:last-child { border-bottom: none; }
-  .unspec-modal-num  { font-size: 11px; color: var(--text-light); width: 18px; text-align: center; flex-shrink: 0; }
+  .unspec-modal-num { font-size: 11px; color: var(--text-light); width: 18px; text-align: center; flex-shrink: 0; }
   .unspec-modal-main { flex: 1; min-width: 0; }
-  .unspec-modal-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .unspec-modal-info { font-size: 11px; color: var(--text-light); margin-top: 2px; }
-  /* 現場排號通知狀態標籤 */
-  .unspec-notify-pending  { font-size: 11px; font-weight: 700; color: var(--marigold); background: var(--orange-light); padding: 2px 7px; cursor: pointer; flex-shrink: 0; letter-spacing: 0.5px; }
-  .unspec-notify-done     { font-size: 11px; font-weight: 400; color: var(--text-light); background: var(--bg-3); padding: 2px 7px; cursor: pointer; flex-shrink: 0; }
-  .unspec-notify-auto     { font-size: 11px; font-weight: 200; color: var(--text-light); padding: 2px 4px; flex-shrink: 0; }
+  .unspec-modal-name { font-weight: 400; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: 0.5px; }
+  .unspec-modal-info { font-size: 11px; color: var(--text-light); margin-top: 2px; font-weight: 200; }
+  .unspec-notify-pending {
+    font-size: 11px; font-weight: 400; color: var(--marigold);
+    background: var(--marigold-bg);
+    border: 1px solid var(--marigold-bd);
+    padding: 3px 8px; cursor: pointer; flex-shrink: 0; letter-spacing: 0.5px;
+  }
+  .unspec-notify-done {
+    font-size: 11px; font-weight: 300; color: var(--text-light);
+    background: var(--bg-2);
+    border: 1px solid var(--border-soft);
+    padding: 3px 8px; cursor: pointer; flex-shrink: 0;
+  }
+  .unspec-notify-auto {
+    font-size: 10px; font-weight: 300; color: var(--text-dim);
+    padding: 2px 4px; flex-shrink: 0;
+    letter-spacing: 1px; font-style: italic;
+  }
 
-  /* 群發模式切換 */
-  .btn-mode { flex: 1; padding: 8px; border: none; font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+  /* ── 群發模式切換 ── */
+  .btn-mode {
+    flex: 1; padding: 9px; border: 1px solid var(--border-soft);
+    background: var(--bg-2); color: var(--text-light);
+    font-family: inherit; font-weight: 400; font-size: 13px;
+    cursor: pointer; letter-spacing: 1px;
+  }
   .btn-mode:active { transform: scale(0.97); }
+  .btn-mode.active {
+    background: var(--marigold-bg);
+    border: 1px solid var(--marigold-bd);
+    color: var(--marigold);
+  }
 
-  /* Loading Overlay */
-  .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 999; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+  /* ── Loading Overlay ── */
+  .loading-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.9);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 999;
+    flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  }
   .loading-overlay.active { display: flex; }
-  .loading-overlay-text { color: var(--cloud); font-size: 15px; font-weight: 200; letter-spacing: 1px; text-align: center; line-height: 1.8; }
-  .loading-overlay-bar { width: 200px; height: 3px; background: var(--bg-3); overflow: hidden; }
+  .loading-overlay-text { color: var(--cloud); font-size: 14px; font-weight: 200; letter-spacing: 2px; text-align: center; line-height: 1.8; }
+  .loading-overlay-bar { width: 200px; height: 2px; background: var(--bg-3); overflow: hidden; }
   .loading-overlay-bar-inner { height: 100%; width: 40%; background: var(--marigold); animation: loadingSlide 1.2s ease-in-out infinite; }
 
-  /* 代診排班 inline 按鈕 */
-  .sub-cancel-btn { font-size: 11px; padding: 3px 8px; border: 1px solid var(--error); background: transparent; color: var(--error); cursor: pointer; font-family: inherit; }
-  .sub-cancel-btn:hover { background: var(--error); color: #fff; }
+  /* ── 代診排班 inline 取消鈕 ── */
+  .sub-cancel-btn {
+    font-size: 11px; padding: 3px 9px;
+    border: 1px solid rgba(249,50,89,0.35);
+    background: transparent; color: var(--error);
+    cursor: pointer; font-family: inherit; letter-spacing: 0.5px;
+  }
+  .sub-cancel-btn:hover { background: rgba(249,50,89,0.12); }
 
-  /* ── 35天預覽 ── */
+  /* ── 35 天預覽 ── */
   .preview-cal {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -435,57 +1227,66 @@
     margin-bottom: 8px;
   }
   .preview-weekday {
-    text-align: center; font-size: 11px; font-weight: 700;
-    color: var(--text-light); padding: 3px 0;
+    text-align: center; font-size: 11px; font-weight: 400;
+    color: var(--text-light); padding: 3px 0; letter-spacing: 1px;
   }
   .preview-day {
-    border: 1px solid var(--border);
-    padding: 5px 4px;
-    cursor: pointer;
-    min-height: 90px;
-    position: relative;
+    border: 1px solid var(--border-soft);
+    padding: 5px 4px; cursor: pointer;
+    min-height: 90px; position: relative;
     background: var(--bg-2);
-    transition: all 0.1s;
+    transition: background 0.15s;
   }
+  .preview-day:hover { background: var(--bg-3); }
   .preview-day:active { transform: scale(0.96); opacity: 0.85; }
   .preview-day.preview-closed { background: var(--bg); cursor: default; }
   .preview-day.preview-empty-week { background: transparent; border-color: transparent; cursor: default; }
   .preview-date {
-    font-size: 13px; font-weight: 700; color: var(--text);
-    line-height: 1; margin-bottom: 4px;
+    font-size: 13px; font-weight: 400; color: var(--text);
+    line-height: 1; margin-bottom: 4px; letter-spacing: 0.5px;
   }
   .preview-session-row {
     font-size: 10px; line-height: 1.7;
     display: flex; gap: 2px; align-items: baseline;
   }
-  .preview-session-label {
-    color: var(--text-light); font-weight: 400; flex-shrink: 0;
-  }
-  .preview-session-count {
-    font-weight: 700; color: var(--kiwi);
-  }
-  .preview-session-count.zero { color: var(--border); font-weight: 200; }
-  .preview-session-closed {
-    font-size: 9px; color: var(--error); font-weight: 700;
-  }
-  .preview-session-detail {
-    font-size: 9px; color: var(--text-light); font-weight: 200; line-height: 1.5;
-  }
+  .preview-session-label { color: var(--text-light); font-weight: 300; flex-shrink: 0; }
+  .preview-session-count { font-weight: 700; color: var(--kiwi); }
+  .preview-session-count.zero { color: var(--text-dim); font-weight: 200; }
+  .preview-session-closed { font-size: 9px; color: var(--error); font-weight: 700; }
+  .preview-session-detail { font-size: 9px; color: var(--text-light); font-weight: 200; line-height: 1.5; }
   .preview-legend {
     display: flex; gap: 10px; font-size: 10px; color: var(--text-light);
-    margin-bottom: 8px; flex-wrap: wrap;
+    margin-bottom: 8px; flex-wrap: wrap; letter-spacing: 0.3px;
   }
   .preview-legend span { display: flex; align-items: center; gap: 3px; }
 
   /* ── Toast 通知 ── */
   #toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(12px);
-    background: var(--kiwi); color: #111; font-size: 13px; font-weight: 700;
+    background: var(--bg-4);
+    border: 1px solid var(--kiwi-bd);
+    color: var(--kiwi); font-size: 13px; font-weight: 400;
     padding: 10px 20px; z-index: 1000; opacity: 0;
     transition: opacity 0.25s ease, transform 0.25s ease;
-    pointer-events: none; white-space: nowrap; letter-spacing: 0.5px;
+    pointer-events: none; white-space: nowrap; letter-spacing: 1px;
   }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── 衝突標記小紅點 ── */
+  #conflictBadge {
+    background: var(--error) !important;
+    color: #fff;
+  }
+
+
+  /* Lucide SVG icon — 統一樣式 */
+  .icon {
+    display: inline-block;
+    vertical-align: -0.125em;
+    flex-shrink: 0;
+    stroke: currentColor;
+    fill: none;
+  }
 </style>
 </head>
 <body>
@@ -519,26 +1320,25 @@
         <div class="join-cell" id="jn6"></div><div class="join-cell" id="jn7"></div><div class="join-cell" id="jn8"></div>
       </div>
     </div>
-    <div class="auth-title" id="authTitle">悅心診所線上服務</div>
-    <div class="auth-sub" id="authSub">請稍候...</div>
+    <div class="auth-title" id="authTitle">悅心診所</div>
+    <div class="auth-subtitle-en">Yuexin Psychiatric Clinic</div>
+    <div class="auth-divider"></div>
+    <div class="auth-sub" id="authSub">正在驗證身份 · verifying identity</div>
   </div>
 </div>
 
 <!-- Login -->
 <div id="pageLogin" style="display:none;position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px;z-index:100;">
   <div style="width:100%;max-width:320px;">
-    <div style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:1px;">悅心診所</div>
-    <div style="font-size:13px;font-weight:400;color:var(--text-light);margin-bottom:32px;letter-spacing:2px;text-transform:uppercase;">JOIN System</div>
-    <div style="font-size:13px;font-weight:700;color:var(--text-light);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;">密碼</div>
-    <input type="password" id="loginPassword"
-      style="width:100%;padding:12px;font-size:16px;font-family:inherit;border:none;border-bottom:2px solid var(--marigold);background:transparent;color:var(--text);outline:none;margin-bottom:16px;"
+    <div class="login-clinic">悅心診所</div>
+    <div class="login-clinic-en">JOIN System</div>
+    <div class="login-divider"></div>
+    <div class="login-field-label">password</div>
+    <input type="password" id="loginPassword" class="login-input"
       placeholder="請輸入管理密碼"
       onkeydown="if(event.key==='Enter')doLogin()">
-    <div id="loginError" style="display:none;font-size:13px;color:var(--error);margin-bottom:16px;line-height:1.5;"></div>
-    <button onclick="doLogin()" id="btnLogin"
-      style="width:100%;padding:14px;background:var(--marigold);color:white;border:none;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:1px;">
-      登入
-    </button>
+    <div id="loginError" class="login-error"></div>
+    <button onclick="doLogin()" id="btnLogin" class="login-btn">登入</button>
   </div>
 </div>
 
@@ -550,78 +1350,79 @@
 
   <!-- Row 1: 日期導覽 -->
   <div class="tile tile-1 tile-nav today-btn" onclick="goToToday()" style="position:relative;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">今日</div>
+    <div class="tile-title" style="font-size:16px;">今日</div>
   </div>
   <div class="tile tile-1 tile-nav today-btn" onclick="goToNextWorkday()" style="position:relative;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">明日</div>
+    <div class="tile-title" style="font-size:16px;">明日</div>
   </div>
   <div class="tile tile-1 tile-nav" id="btnPrev" onclick="changeDate(-1)" style="position:relative;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">＜</div>
+    <div class="tile-title" style="font-size:18px;color:var(--text-light);">＜</div>
   </div>
   <div class="tile tile-1 tile-nav-date" style="position:relative;" onclick="document.getElementById('dateNavInput').showPicker()">
-    <div class="tile-title" style="font-size:18px;color:#111111;pointer-events:none;" id="dateNavLabel"></div>
-    <div class="tile-subtitle" style="font-size:18px;font-weight:400;color:#ffffff;pointer-events:none;" id="dateNavSub"></div>
+    <div class="tile-title" style="font-size:16px;pointer-events:none;" id="dateNavLabel"></div>
+    <div class="tile-subtitle" style="font-size:14px;font-weight:300;color:var(--text-light);pointer-events:none;" id="dateNavSub"></div>
     <input type="date" class="date-nav-input" id="dateNavInput" onchange="onDatePick(event)">
   </div>
   <div class="tile tile-1 tile-nav" id="btnNext" onclick="changeDate(1)" style="position:relative;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">＞</div>
+    <div class="tile-title" style="font-size:18px;color:var(--text-light);">＞</div>
   </div>
 
   <!-- Row 2: 醫師資訊 + 時段磚 -->
-  <div class="tile tile-2" id="doctorTile" style="position:relative;background:var(--cloud);cursor:pointer;" onclick="loadSchedule(activeSession)" title="點擊重新整理">
-    <div class="tile-title" style="font-size:20px;color:#111111;" id="sessionDoctorText">—</div>
+  <div class="tile tile-2 tile-doctor" id="doctorTile" style="position:relative;" onclick="loadSchedule(activeSession)" title="點擊重新整理">
+    <div class="tile-title" style="font-size:20px;font-weight:200;" id="sessionDoctorText">—</div>
+    <div style="font-size:11px;color:rgba(216,212,192,0.7);margin-top:auto;font-weight:300;letter-spacing:1.5px;">主治醫師</div>
   </div>
-  <div class="tile tile-1 tile-session" id="session-早上" onclick="switchTab('早上')" style="position:relative;background:var(--lagoon);">
-    <div class="tile-title" style="font-size:18px;color:#111111;">早上診</div>
-    <div style="font-size:15px;font-weight:400;color:#ffffff;margin-top:auto;" id="count-早上">—</div>
+  <div class="tile tile-1 tile-session" id="session-早上" onclick="switchTab('早上')" style="position:relative;">
+    <div class="tile-title" style="font-size:16px;">早上診</div>
+    <div class="count-text" id="count-早上">—</div>
   </div>
-  <div class="tile tile-1 tile-session" id="session-下午" onclick="switchTab('下午')" style="position:relative;background:var(--lagoon);">
-    <div class="tile-title" style="font-size:18px;color:#111111;">下午診</div>
-    <div style="font-size:15px;font-weight:400;color:#ffffff;margin-top:auto;" id="count-下午">—</div>
+  <div class="tile tile-1 tile-session" id="session-下午" onclick="switchTab('下午')" style="position:relative;">
+    <div class="tile-title" style="font-size:16px;">下午診</div>
+    <div class="count-text" id="count-下午">—</div>
   </div>
-  <div class="tile tile-1 tile-session" id="session-晚上" onclick="switchTab('晚上')" style="position:relative;background:var(--lagoon);">
-    <div class="tile-title" style="font-size:18px;color:#111111;">晚上診</div>
-    <div style="font-size:15px;font-weight:400;color:#ffffff;margin-top:auto;" id="count-晚上">—</div>
+  <div class="tile tile-1 tile-session" id="session-晚上" onclick="switchTab('晚上')" style="position:relative;">
+    <div class="tile-title" style="font-size:16px;">晚上診</div>
+    <div class="count-text" id="count-晚上">—</div>
   </div>
 
   <!-- scheduleLoading 已移除，改用 skeleton 格 -->
   <!-- Row 4-9: 30格診單（JS 動態輸出到這裡）-->
   <div id="scheduleContent" style="display:contents;"></div>
 
-  <!-- Row 9: 現場排號 + 心理治療 -->
-  <div class="tile tile-1" onclick="openUnspecModal()" style="position:relative;background:var(--sunny);cursor:pointer;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">不指定</div>
-    <div style="font-size:15px;font-weight:400;color:#111111;margin-top:auto;" id="unspecCount"></div>
-    <div id="unspecPendingDot" style="display:none;position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>
+  <!-- Row 9: 現場排號 + 心理治療 + 預覽 -->
+  <div class="tile tile-2 tile-unspec" onclick="openUnspecModal()" style="position:relative;">
+    <div class="tile-title" style="font-size:18px;">不指定</div>
+    <div style="font-size:12px;font-weight:300;color:rgba(186,203,0,0.75);margin-top:auto;letter-spacing:0.5px;" id="unspecCount"></div>
+    <div id="unspecPendingDot" style="display:none;position:absolute;bottom:7px;right:7px;width:8px;height:8px;background:var(--marigold);"></div>
   </div>
-  <div class="tile tile-3" style="position:relative;background:#AEB6BB;">
-    <div class="tile-title" style="font-size:15px;color:#111111;">心理治療</div>
-    <div style="font-size:12px;font-weight:200;color:#ffffff;position:absolute;bottom:7px;left:10px;">目前尚無排程資料</div>
-    <div class="tile-note" style="background:#000;color:#AEB6BB;">建置中</div>
+  <div class="tile tile-2" style="position:relative;background:var(--bg-3);border:1px solid var(--border-soft);">
+    <div class="tile-title" style="font-size:15px;color:var(--text-dim);font-weight:400;">心理治療</div>
+    <div style="font-size:11px;font-weight:300;color:var(--text-dim);position:absolute;bottom:7px;left:10px;letter-spacing:0.5px;">目前尚無排程資料</div>
+    <div class="tile-note" style="background:var(--bg-4);color:var(--text-dim);border:1px solid var(--border-soft);">建置中</div>
   </div>
-  <div class="tile tile-1" style="position:relative;background:var(--lagoon);cursor:pointer;" onclick="openPreviewModal()">
-    <div class="tile-title" style="font-size:18px;color:#111111;">預覽</div>
-    <div style="font-size:11px;font-weight:200;color:#ffffff;position:absolute;bottom:7px;left:10px;">35天總覽</div>
+  <div class="tile tile-1 tile-teal" style="position:relative;cursor:pointer;" onclick="openPreviewModal()">
+    <div class="tile-title" style="font-size:18px;">預覽</div>
+    <div style="font-size:11px;font-weight:300;color:rgba(168,208,188,0.7);position:absolute;bottom:7px;left:10px;letter-spacing:0.5px;">35天總覽</div>
   </div>
 
   <!-- Row 10: 工具＋管理員 -->
-  <div class="tile tile-1" onclick="openModal('modalQuery')" style="position:relative;background:var(--yellow);cursor:pointer;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">查詢</div>
+  <div class="tile tile-1 tile-capri" onclick="openModal('modalQuery')" style="position:relative;cursor:pointer;">
+    <div class="tile-title" style="font-size:18px;">查詢</div>
   </div>
-  <div class="tile tile-1" onclick="openModal('modalSubstitute')" style="position:relative;background:var(--marigold);cursor:pointer;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">代診</div>
+  <div class="tile tile-1 tile-yellow" onclick="openModal('modalSubstitute')" style="position:relative;cursor:pointer;">
+    <div class="tile-title" style="font-size:18px;">代診</div>
   </div>
-  <div class="tile tile-1" onclick="openModal('modalBroadcast')" style="position:relative;background:var(--orchid);cursor:pointer;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">群發</div>
+  <div class="tile tile-1 tile-orchid" onclick="openModal('modalBroadcast')" style="position:relative;cursor:pointer;">
+    <div class="tile-title" style="font-size:18px;">群發</div>
   </div>
-  <div class="tile tile-1" id="securityTile" onclick="openModal('modalSecurity')" style="position:relative;background:var(--pink);cursor:pointer;">
-    <div class="tile-title" style="font-size:18px;color:#111111;">系統</div>
-    <div id="securityUnreadDot" style="display:none;position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>
-    <div id="conflictBadge" style="display:none;position:absolute;top:6px;right:6px;min-width:18px;height:18px;background:#C0392B;color:#fff;border-radius:50%;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 3px;"></div>
+  <div class="tile tile-1 tile-pink" id="securityTile" onclick="openModal('modalSecurity')" style="position:relative;cursor:pointer;">
+    <div class="tile-title" style="font-size:18px;">系統</div>
+    <div id="securityUnreadDot" style="display:none;position:absolute;bottom:7px;right:7px;width:8px;height:8px;background:var(--pink);"></div>
+    <div id="conflictBadge" style="display:none;position:absolute;top:6px;right:6px;min-width:18px;height:18px;background:var(--error);color:#fff;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 3px;"></div>
   </div>
-  <div class="tile tile-1" style="position:relative;background:var(--cloud);cursor:pointer;" onclick="openLogoutModal()">
-    <div class="tile-title" style="font-size:15px;color:#111111;" id="adminBadge">...</div>
-    <div style="position:absolute;bottom:7px;left:10px;font-size:12px;font-weight:400;color:#111111;">管理員</div>
+  <div class="tile tile-1 tile-admin" style="position:relative;cursor:pointer;" onclick="openLogoutModal()">
+    <div class="tile-title" style="font-size:14px;font-weight:400;" id="adminBadge">...</div>
+    <div style="position:absolute;bottom:7px;left:10px;font-size:11px;font-weight:300;color:rgba(216,212,192,0.7);letter-spacing:1.5px;">管理員</div>
   </div>
 
 </div><!-- /metro-grid -->
@@ -630,10 +1431,10 @@
 <!-- Modal: 現場排號名單 -->
 <div class="modal-overlay" id="modalUnspecified">
   <div class="modal">
-    <div class="modal-title">不指定時段名單<button class="modal-close" onclick="closeModal('modalUnspecified')">✕</button></div>
+    <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">不指定名單</div><div class="m-topbar-title">unspec.list</div><button class="modal-close" onclick="closeModal('modalUnspecified')">✕</button></div>
     <div id="unspecContent"><div class="loading">載入中...</div></div>
     <div style="margin-top:12px">
-      <button class="btn" style="background:var(--kiwi);color:#111;font-size:13px;padding:10px;" onclick="toggleUnspecForm()">＋ 新增不指定</button>
+      <button class="btn" style="background:var(--btn-mid-bg);color:var(--text);border:1px solid var(--btn-mid-bd);font-size:13px;padding:10px;" onclick="toggleUnspecForm()">＋ 新增不指定</button>
       <div id="unspecAddForm" style="display:none;margin-top:12px">
         <div class="form-group"><label class="form-label">姓名</label><input type="text" id="uAddName" placeholder="請輸入姓名"></div>
         <div class="form-group"><label class="form-label">電話</label><input type="tel" id="uAddPhone" placeholder="09xxxxxxxx" oninput="this.value=this.value.replace(/\D/g,'')"></div>
@@ -648,7 +1449,7 @@
           </div>
         </div>
         <div id="unspecAddError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
-        <button class="btn" style="background:var(--marigold);color:#fff;font-size:13px;padding:10px;width:100%" onclick="doAdminAddBooking('不指定')">確認新增不指定</button>
+        <button class="btn" style="background:var(--marigold);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%" onclick="doAdminAddBooking('不指定')">確認新增不指定</button>
       </div>
     </div>
   </div>
@@ -671,30 +1472,77 @@
       </div>
     </div>
     <div id="adminAddError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
-    <button class="btn" style="background:var(--marigold);color:#fff;font-size:13px;padding:10px;width:100%;margin-top:4px" id="btnAdminAdd" onclick="doAdminAddBooking(null)">確認代掛</button>
-    <button class="btn" style="background:var(--bg-3);color:var(--text);font-size:13px;padding:10px;width:100%;margin-top:8px;" onclick="doQuickReserve()">⚡ 快速保留（免填資料）</button>
+    <button class="btn" style="background:var(--marigold);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%;margin-top:4px" id="btnAdminAdd" onclick="doAdminAddBooking(null)">確認代掛</button>
+    <button class="btn" style="background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);font-size:13px;padding:10px;width:100%;margin-top:8px;" onclick="doQuickReserve()">⚡ 快速保留（免填資料）</button>
   </div>
 </div>
 
 <!-- Modal: 聯絡病患 -->
 <div class="modal-overlay" id="modalContact">
   <div class="modal">
-    <div class="modal-title">聯絡病患<button class="modal-close" onclick="closeModal('modalContact')">✕</button></div>
-    <div class="contact-name" id="contactName"></div>
-    <div class="contact-birth" id="contactBirth"></div>
-    <div class="contact-timeslot" id="contactTimeSlot"></div>
-    <a class="contact-phone" id="contactPhone" href="javascript:void(0)"></a>
-    <div class="contact-phone-btns" id="contactPhoneBtns" style="display:none;">
-      <a class="btn-call" id="btnCall" href="">📞 撥打</a>
-      <a class="btn-sms" id="btnSms" href="">💬 傳訊</a>
+    <!-- Topbar(橘直條 + patient.info)-->
+    <div class="m-topbar">
+      <div class="m-stripe"></div>
+      <div class="m-topbar-main">病患資訊</div>
+      <div class="m-topbar-title">patient.info</div>
+      <button class="modal-close" onclick="closeModal('modalContact')">✕</button>
     </div>
+
+    <!-- 病患資訊表(中文 label + mono 資料) -->
+    <div class="m-datatable">
+      <div class="m-row">
+        <span class="m-row-key">姓名</span>
+        <span class="m-row-value big contact-name" id="contactName"></span>
+      </div>
+      <div class="m-row">
+        <span class="m-row-key">生日</span>
+        <span class="m-row-value contact-birth" id="contactBirth"></span>
+      </div>
+      <div class="m-row">
+        <span class="m-row-key">時段</span>
+        <span class="m-row-value contact-timeslot" id="contactTimeSlot"></span>
+      </div>
+      <div class="m-row">
+        <span class="m-row-key">電話</span>
+        <a class="m-row-value orange contact-phone" id="contactPhone" href="javascript:void(0)"></a>
+      </div>
+    </div>
+
+    <!-- 立即行動(撥打 / 傳訊 / 聯繫方式切換,三格並排) -->
+    <div class="m-section" id="contactActionSection">
+      <div class="m-section-label">立即行動</div>
+      <div class="m-action-row">
+        <div id="contactPhoneBtns" class="m-action-pair" style="display:none;">
+          <a class="m-btn m-btn-compact" id="btnCall" href="" style="text-decoration:none;">
+            <span class="m-btn-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+            撥打
+          </a>
+          <a class="m-btn m-btn-compact" id="btnSms" href="" style="text-decoration:none;">
+            <span class="m-btn-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span>
+            傳訊
+          </a>
+        </div>
+        <div id="btnContactMethodWrap" class="m-action-method" style="display:none;">
+          <button class="m-btn m-btn-compact" id="btnContactMethod" onclick="cycleContactMethod()"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 初診問卷資料區(如有) -->
     <div id="contactNpSurvey" style="display:none;margin-top:12px;padding:10px 12px;border-left:3px solid var(--kiwi);background:var(--bg-2);"></div>
+
+    <!-- 錯誤訊息 -->
     <div id="contactError" class="alert alert-error" style="display:none"></div>
-    <div id="btnToggleNotifiedWrap">
-      <button class="btn" id="btnToggleNotified" onclick="doToggleNotified()"></button>
+
+    <!-- 通知狀態 -->
+    <div class="m-section" id="btnToggleNotifiedWrap">
+      <div class="m-section-label">通知狀態</div>
+      <button class="m-toggle" id="btnToggleNotified" onclick="doToggleNotified()"></button>
     </div>
-    <div id="btnFillPatientWrap" style="display:none;margin-top:8px;">
-      <div style="font-size:11px;font-weight:700;color:var(--marigold);letter-spacing:1px;margin-bottom:6px;">⚡ 保留號 — 填入病患資料</div>
+
+    <!-- 保留號填入資料區 -->
+    <div id="btnFillPatientWrap" class="m-section" style="display:none;">
+      <div class="m-section-label">保留號 · 填入病患資料</div>
       <div class="form-group" style="margin-bottom:6px;"><input type="text" id="fillName" placeholder="姓名" style="padding:8px;font-size:13px;"></div>
       <div class="form-group" style="margin-bottom:6px;"><input type="tel" id="fillPhone" placeholder="電話 09xxxxxxxx" style="padding:8px;font-size:13px;" oninput="this.value=this.value.replace(/\D/g,'')"></div>
       <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">
@@ -705,28 +1553,40 @@
         <input type="tel" id="fillBirthD" placeholder="日" style="width:55px;padding:8px;font-size:13px;" maxlength="2" oninput="this.value=this.value.replace(/\D/g,'')">
       </div>
       <div id="fillPatientError" class="alert alert-error" style="display:none;margin-bottom:6px;"></div>
-      <button class="btn" style="width:100%;background:var(--marigold);color:#fff;font-size:13px;" onclick="doFillPatient()">確認填入</button>
+      <button class="btn" style="width:100%;background:var(--marigold);color:#111;font-weight:700;font-size:13px;" onclick="doFillPatient()">確認填入</button>
     </div>
-    <div id="btnCancelBookingWrap" style="display:none;margin-top:8px;">
-      <button class="btn btn-danger" style="width:100%;"
-        onclick="confirmCancel(state.contactBookingId, document.getElementById('contactName').textContent, document.getElementById('contactTimeSlot').textContent, 'modalContact')">取消此預約</button>
+
+    <!-- 複製 LINE 訊息 -->
+    <div id="btnCopyMsgWrap" class="m-section" style="display:none;">
+      <div class="m-section-label">複製 LINE 訊息</div>
+      <button class="m-btn" onclick="copyLineMsg(false)">
+        預約通知
+        <span class="m-btn-arrow">›</span>
+      </button>
+      <button class="m-btn" onclick="copyLineMsg(true)">
+        回診提醒
+        <span class="m-btn-arrow">›</span>
+      </button>
     </div>
-    <div id="btnCopyMsgWrap" style="display:none;margin-top:8px;">
-      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">複製 LINE 訊息</div>
-      <div style="display:flex;gap:6px;">
-        <button class="btn" style="flex:1;background:var(--lagoon);color:#fff;font-size:13px;padding:10px;" onclick="copyLineMsg(false)">預約通知</button>
-        <button class="btn" style="flex:1;background:var(--capri);color:#fff;font-size:13px;padding:10px;" onclick="copyLineMsg(true)">回診提醒</button>
-      </div>
-    </div>
-    <div id="btnBindLinkWrap" style="display:none;margin-top:8px;">
-      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">病患綁定連結（10 分鐘有效）</div>
-      <button class="btn" style="width:100%;background:var(--marigold);color:#fff;margin-bottom:6px;font-size:13px;" onclick="copyBindLinkFromContact(false)">📋 複製綁定連結（複診）</button>
-      <button class="btn" style="width:100%;background:var(--orchid);color:#fff;font-size:13px;" onclick="copyBindLinkFromContact(true)">📋 複製綁定連結（含初診關懷）</button>
+
+    <!-- 綁定連結 -->
+    <div id="btnBindLinkWrap" class="m-section" style="display:none;">
+      <div class="m-section-label">綁定連結<span class="m-section-hint">· 10 分鐘有效</span></div>
+      <button class="m-btn" onclick="copyBindLinkFromContact(false)">
+        複診
+        <span class="m-btn-arrow">›</span>
+      </button>
+      <button class="m-btn" onclick="copyBindLinkFromContact(true)">
+        含初診關懷
+        <span class="m-btn-arrow">›</span>
+      </button>
       <div id="bindLinkContactError" class="alert alert-error" style="display:none;margin-top:6px;"></div>
     </div>
-    <div id="btnContactMethodWrap" style="display:none;margin-top:8px;">
-      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">聯繫方式</div>
-      <button class="btn" id="btnContactMethod" style="width:100%;font-size:13px;padding:10px;" onclick="cycleContactMethod()"></button>
+
+    <!-- 取消預約(危險區) -->
+    <div id="btnCancelBookingWrap" class="m-danger-section" style="display:none;">
+      <button class="m-danger-btn"
+        onclick="confirmCancel(state.contactBookingId, document.getElementById('contactName').textContent, document.getElementById('contactTimeSlot').textContent, 'modalContact')">取消此預約</button>
     </div>
   </div>
 </div>
@@ -734,14 +1594,14 @@
 <!-- Modal: 代掛結果 -->
 <div class="modal-overlay" id="modalAdminAddResult">
   <div class="modal">
-    <div class="modal-title">代掛結果<button class="modal-close" onclick="closeAdminAddResult()">✕</button></div>
+    <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">代掛結果</div><div class="m-topbar-title">admin.result</div><button class="modal-close" onclick="closeAdminAddResult()">✕</button></div>
 
     <!-- 找到 LINE ID -->
     <div id="adminAddResultFound" style="display:none;padding:8px 0;">
       <div style="font-size:22px;margin-bottom:12px;">✅</div>
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">代掛完成</div>
       <div style="font-size:13px;color:var(--text-light);line-height:1.8;">已自動發送預約確認給病患。<br>前一天系統將自動發送提醒。</div>
-      <button class="btn" style="width:100%;margin-top:20px;background:var(--kiwi);color:#fff;" onclick="closeAdminAddResult()">關閉</button>
+      <button class="btn" style="width:100%;margin-top:20px;background:var(--marigold);color:#111;font-weight:700;" onclick="closeAdminAddResult()">關閉</button>
     </div>
 
     <!-- 找不到 LINE ID -->
@@ -750,8 +1610,8 @@
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">找不到此病患的 LINE 帳號紀錄</div>
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px;">無法自動發送通知給病患。</div>
       <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">請選擇後續處理方式：</div>
-      <button class="btn" style="width:100%;background:var(--kiwi);color:#fff;margin-bottom:8px;" onclick="closeAdminAddResult()">請病患用 LINE 完成初次預約<div style="font-size:11px;font-weight:400;margin-top:2px;">開啟本院 LINE → 圖文選單 → 線上預約</div></button>
-      <button class="btn" style="width:100%;background:var(--bg-3);color:var(--text);" onclick="confirmForceAdd()">⛔ 病患無手機：確認代掛。</button>
+      <button class="btn" style="width:100%;background:var(--marigold);color:#111;font-weight:700;margin-bottom:8px;" onclick="closeAdminAddResult()">請病患用 LINE 完成初次預約<div style="font-size:11px;font-weight:400;margin-top:2px;">開啟本院 LINE → 圖文選單 → 線上預約</div></button>
+      <button class="btn" style="width:100%;background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);" onclick="confirmForceAdd()">⛔ 病患無手機：確認代掛。</button>
     </div>
 
     <!-- 強制代掛確認 -->
@@ -761,14 +1621,14 @@
       <div style="font-size:13px;color:var(--text-light);line-height:1.8;margin-bottom:16px;">病患無手機，請用 LINE 手動通知。</div>
       <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">複製 LINE 訊息</div>
       <div style="display:flex;gap:6px;margin-bottom:12px;">
-        <button class="btn" style="flex:1;background:var(--lagoon);color:#fff;font-size:13px;padding:10px;" onclick="copyLineMsgForAdd(false)">預約通知</button>
-        <button class="btn" style="flex:1;background:var(--capri);color:#fff;font-size:13px;padding:10px;" onclick="copyLineMsgForAdd(true)">回診提醒</button>
+        <button class="btn" style="flex:1;background:var(--btn-mid-bg);color:var(--text);border:1px solid var(--btn-mid-bd);font-size:13px;padding:10px;" onclick="copyLineMsgForAdd(false)">預約通知</button>
+        <button class="btn" style="flex:1;background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);font-size:13px;padding:10px;" onclick="copyLineMsgForAdd(true)">回診提醒</button>
       </div>
       <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">病患綁定連結（10 分鐘有效）</div>
-      <button class="btn" style="width:100%;background:var(--marigold);color:#fff;margin-bottom:8px;font-size:13px;" onclick="copyBindLink(false)">📋 複製綁定連結（複診）</button>
-      <button class="btn" style="width:100%;background:var(--orchid);color:#fff;margin-bottom:16px;font-size:13px;" onclick="copyBindLink(true)">📋 複製綁定連結（含初診關懷）</button>
+      <button class="btn" style="width:100%;background:var(--btn-mid-bg);color:var(--text);border:1px solid var(--btn-mid-bd);margin-bottom:8px;font-size:13px;" onclick="copyBindLink(false)"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 複製綁定連結（複診）</button>
+      <button class="btn" style="width:100%;background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);margin-bottom:16px;font-size:13px;" onclick="copyBindLink(true)"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 複製綁定連結（含初診關懷）</button>
       <div id="bindLinkError" class="alert alert-error" style="display:none;margin-bottom:8px;"></div>
-      <button class="btn" style="width:100%;background:var(--kiwi);color:#fff;" onclick="closeAdminAddResult()">關閉</button>
+      <button class="btn" style="width:100%;background:var(--marigold);color:#111;font-weight:700;" onclick="closeAdminAddResult()">關閉</button>
     </div>
 
     <!-- 找到1筆或多筆：確認/選擇病患 -->
@@ -779,9 +1639,9 @@
       <input type="text" id="adminAddMatchGoInput" placeholder="輸入 go" autocomplete="off" maxlength="3"
         style="width:100%;padding:10px;border:1px solid var(--border);background:var(--bg-2);color:var(--text);font-size:14px;margin-bottom:8px;"
         oninput="document.getElementById('btnAdminAddMatchConfirm').disabled = this.value.toLowerCase() !== 'go';">
-      <button class="btn" id="btnAdminAddMatchConfirm" style="width:100%;background:var(--kiwi);color:#fff;margin-bottom:8px;" onclick="confirmMatchBooking(false)" disabled>確定發送通知</button>
-      <button class="btn" style="width:100%;background:var(--bg-3);color:var(--text);margin-bottom:8px;" onclick="confirmMatchBooking(true)">⛔ 人工通知（不發 LINE）</button>
-      <button class="btn" style="width:100%;background:var(--bg-3);color:var(--text);" onclick="closeAdminAddResult()">取消</button>
+      <button class="btn" id="btnAdminAddMatchConfirm" style="width:100%;background:var(--marigold);color:#111;font-weight:700;margin-bottom:8px;" onclick="confirmMatchBooking(false)" disabled>確定發送通知</button>
+      <button class="btn" style="width:100%;background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);margin-bottom:8px;" onclick="confirmMatchBooking(true)">⛔ 人工通知（不發 LINE）</button>
+      <button class="btn" style="width:100%;background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);" onclick="closeAdminAddResult()">取消</button>
     </div>
   </div>
 </div>
@@ -789,7 +1649,7 @@
 <!-- Modal: 二次確認（輸入 go） -->
 <div class="modal-overlay" id="modalConfirmGo">
   <div class="modal">
-    <div class="modal-title">操作確認<button class="modal-close" onclick="closeModal('modalConfirmGo')">✕</button></div>
+    <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">操作確認</div><div class="m-topbar-title">confirm.dialog</div><button class="modal-close" onclick="closeModal('modalConfirmGo')">✕</button></div>
     <div id="confirmGoMessage" style="font-size:14px;color:var(--text);line-height:1.8;margin-bottom:16px;"></div>
     <div class="form-group">
       <label class="form-label">請輸入 <strong>go</strong> 確認</label>
@@ -798,18 +1658,18 @@
     </div>
     <div id="confirmGoError" class="alert alert-error" style="display:none;margin-bottom:8px;"></div>
     <button class="btn btn-primary" id="btnConfirmGoSubmit" onclick="submitConfirmGo()" disabled style="width:100%;margin-bottom:8px;">確認</button>
-    <button class="btn" style="width:100%;background:var(--bg-3);color:var(--text);" onclick="closeModal('modalConfirmGo')">取消</button>
+    <button class="btn" style="width:100%;background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);" onclick="closeModal('modalConfirmGo')">取消</button>
   </div>
 </div>
 
 <!-- Modal: 群發訊息 -->
 <div class="modal-overlay" id="modalBroadcast">
   <div class="modal">
-    <div class="modal-title">群發訊息<button class="modal-close" onclick="closeModal('modalBroadcast')">✕</button></div>
+    <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">群發訊息</div><div class="m-topbar-title">broadcast.msg</div><button class="modal-close" onclick="closeModal('modalBroadcast')">✕</button></div>
     <div class="alert alert-info">發送前請確認訊息內容，送出後無法收回。</div>
     <div style="display:flex;gap:4px;margin-bottom:14px;">
-      <button class="btn-mode active" id="bcModeRange" onclick="setBcMode('range')" style="flex:1;padding:8px;border:none;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;background:var(--marigold);color:white;">日期區間</button>
-      <button class="btn-mode" id="bcModeSingle" onclick="setBcMode('single')" style="flex:1;padding:8px;border:none;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;background:#F0F0F0;color:var(--text-light);">指定單診</button>
+      <button class="btn-mode active" id="bcModeRange" onclick="setBcMode('range')" style="flex:1;padding:9px;border:1px solid var(--marigold-bd);font-family:inherit;font-weight:400;font-size:13px;cursor:pointer;background:var(--marigold-bg);color:var(--marigold);letter-spacing:1px;">日期區間</button>
+      <button class="btn-mode" id="bcModeSingle" onclick="setBcMode('single')" style="flex:1;padding:9px;border:1px solid var(--border-soft);font-family:inherit;font-weight:400;font-size:13px;cursor:pointer;background:var(--bg-2);color:var(--text-light);letter-spacing:1px;">指定單診</button>
     </div>
     <div id="bcRangeFields">
       <div class="date-row">
@@ -847,14 +1707,41 @@
 <!-- Modal: 系統異常通報 -->
 <div class="modal-overlay" id="modalSecurity">
   <div class="modal">
-    <div class="modal-title">系統異常通報<button class="modal-close" onclick="closeModal('modalSecurity')">✕</button></div>
+    <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">系統異常</div><div class="m-topbar-title">security.log</div><button class="modal-close" onclick="closeModal('modalSecurity')">✕</button></div>
     <div id="conflictWarning" style="display:none;margin-bottom:14px;padding:10px 12px;background:#2A1010;border-left:3px solid #C0392B;border-radius:4px;">
       <div style="font-size:13px;font-weight:700;color:#E74C3C;margin-bottom:8px;">⚠️ 重複預約：請人工確認。</div>
       <div id="conflictWarningList" style="font-size:13px;color:var(--text);line-height:2;"></div>
     </div>
     <div id="securityContent"><div class="loading">載入中...</div></div>
     <div style="margin-top:12px">
-      <button class="btn" id="btnMarkRead" style="background:var(--marigold);color:#fff;font-size:13px;padding:10px;width:100%" onclick="doMarkSecurityRead()">✓ 標記全部已讀</button>
+      <button class="btn" id="btnMarkRead" style="background:var(--marigold);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%" onclick="doMarkSecurityRead()">✓ 標記全部已讀</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: 登出(原本 JS 有呼叫但 HTML 缺失,本輪補上) -->
+<div class="modal-overlay" id="modalLogout">
+  <div class="modal">
+    <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">登出</div><div class="m-topbar-title">logout.auth</div><button class="modal-close" onclick="closeModal('modalLogout')">✕</button></div>
+    <div class="m-datatable">
+      <div class="m-row">
+        <span class="m-row-key">管理員</span>
+        <span class="m-row-value big" id="logoutAdminName"></span>
+      </div>
+      <div class="m-row">
+        <span class="m-row-key">登入</span>
+        <span class="m-row-value dim" id="logoutLoginTime"></span>
+      </div>
+    </div>
+    <div class="m-section">
+      <div class="m-section-label">動作</div>
+      <button class="m-btn" onclick="closeModal('modalLogout')">
+        <span class="m-btn-icon">←</span>
+        取消
+      </button>
+    </div>
+    <div class="m-danger-section">
+      <button class="m-danger-btn" onclick="doLogout()">確認登出</button>
     </div>
   </div>
 </div>
@@ -862,7 +1749,7 @@
 <!-- Modal: 取消確認 -->
 <div class="modal-overlay" id="modalCancelConfirm">
   <div class="modal">
-    <div class="modal-title">取消預約<button class="modal-close" onclick="closeModal('modalCancelConfirm')">✕</button></div>
+    <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">取消預約</div><div class="m-topbar-title">cancel.confirm</div><button class="modal-close" onclick="closeModal('modalCancelConfirm')">✕</button></div>
     <p style="font-size:14px;color:var(--text);margin-bottom:14px;line-height:1.7;font-weight:400;" id="cancelConfirmText">輸入 <strong>go</strong> 確認取消此預約並發送通知給病患</p>
     <div class="form-group">
       <input type="text" id="cancelGoInput" placeholder="輸入 go" autocomplete="off" maxlength="2"
@@ -871,14 +1758,14 @@
     </div>
     <div id="cancelError" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-danger" id="btnConfirmCancel" onclick="doCancel()" disabled>確定取消</button>
-    <button class="btn" style="background:var(--bg-3);color:var(--text);" onclick="closeModal('modalCancelConfirm')">放棄取消</button>
+    <button class="btn" style="background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);" onclick="closeModal('modalCancelConfirm')">放棄取消</button>
   </div>
 </div>
 
 <!-- Modal: 進階查詢 -->
 <div class="modal-overlay" id="modalQuery">
   <div class="modal">
-    <div class="modal-title">進階查詢<button class="modal-close" onclick="closeModal('modalQuery')">✕</button></div>
+    <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">進階查詢</div><div class="m-topbar-title">search.query</div><button class="modal-close" onclick="closeModal('modalQuery')">✕</button></div>
     <div class="form-group"><label class="form-label">姓名</label><input type="text" id="qName" placeholder="請輸入姓名"></div>
     <div class="form-group"><label class="form-label">電話</label><input type="tel" id="qPhone" placeholder="09xxxxxxxx" oninput="this.value=this.value.replace(/\D/g,'')"></div>
     <div class="form-group">
@@ -900,13 +1787,13 @@
 <!-- Modal: 代診／停診 -->
 <div class="modal-overlay" id="modalSubstitute">
   <div class="modal">
-    <div class="modal-title">門診異動<button class="modal-close" onclick="closeModal('modalSubstitute')">✕</button></div>
+    <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">門診異動</div><div class="m-topbar-title">schedule.edit</div><button class="modal-close" onclick="closeModal('modalSubstitute')">✕</button></div>
     <!-- Tab 切換 -->
     <div style="display:flex;gap:6px;margin-bottom:14px;">
       <button id="tabBtnSubstitute" onclick="switchSubTab('substitute')"
-        style="flex:1;padding:8px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:var(--marigold);color:white;">代診</button>
+        style="flex:1;padding:9px;font-size:13px;font-weight:400;border:1px solid var(--marigold-bd);cursor:pointer;background:var(--marigold-bg);color:var(--marigold);letter-spacing:1px;">代診</button>
       <button id="tabBtnClosed" onclick="switchSubTab('closed')"
-        style="flex:1;padding:8px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:#F0F0F0;color:var(--text-light);">停診</button>
+        style="flex:1;padding:9px;font-size:13px;font-weight:400;border:1px solid var(--border-soft);cursor:pointer;background:var(--bg-2);color:var(--text-light);letter-spacing:1px;">停診</button>
     </div>
     <!-- 代診 Tab -->
     <div id="tabSubstitute">
@@ -923,7 +1810,7 @@
       <div class="form-group"><label class="form-label">代診醫師</label><input type="text" id="subDoctor" placeholder="請輸入代診醫師姓名"></div>
       <div id="subError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
       <div id="subSuccess" class="alert alert-success" style="display:none;margin-bottom:8px"></div>
-      <button class="btn" style="background:var(--marigold);color:#fff;font-size:13px;padding:10px;width:100%;margin-bottom:14px;" id="btnSub" onclick="doSubstitute()">確認更新</button>
+      <button class="btn" style="background:var(--marigold);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%;margin-bottom:14px;" id="btnSub" onclick="doSubstitute()">確認更新</button>
       <div style="font-size:12px;font-weight:700;color:var(--text-light);margin-bottom:6px;">已設定的異動</div>
       <div id="subList"><div class="loading">載入中...</div></div>
     </div>
@@ -949,9 +1836,11 @@
 
 <!-- Modal: 35天預覽 -->
 <div class="modal-overlay" id="modalPreview">
-  <div class="modal" style="max-height:88vh;overflow-y:auto;padding:16px;">
-    <div class="modal-title" style="margin-bottom:12px;">
-      35 天預約總覽
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="m-topbar">
+      <div class="m-stripe"></div>
+      <div class="m-topbar-main">35 天預覽</div>
+      <div class="m-topbar-title">preview.35d</div>
       <button class="modal-close" onclick="closeModal('modalPreview')">✕</button>
     </div>
     <div id="previewContent"><div class="loading">載入中...</div></div>
@@ -1707,9 +2596,9 @@ function renderSessionContent(session, isClosed) {
 
       const npBirthDisplay = c.birth ? rocDate(c.birth) : "";
       html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="cursor:pointer;position:relative;">
-        <div style="position:absolute;top:7px;left:6px;font-size:20px;font-weight:700;color:#111111;">${esc(c.checkInTime)}前</div>
-        ${npBirthDisplay ? `<div style="position:absolute;top:50%;left:6px;right:90px;transform:translateY(-50%);font-size:12px;font-weight:400;color:#111111;opacity:0.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${npBirthDisplay}</div>` : ""}
-        <div style="position:absolute;bottom:6px;left:6px;right:90px;font-size:14px;font-weight:400;color:#111111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${isXinkuan ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(c.name)}</span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>` : esc(c.name)}</div>
+        <div style="position:absolute;top:7px;left:6px;font-size:20px;font-weight:700;color:#ffffff;">${esc(c.checkInTime)}前</div>
+        ${npBirthDisplay ? `<div style="position:absolute;top:50%;left:6px;right:90px;transform:translateY(-50%);font-size:12px;font-weight:400;color:#ffffff;opacity:0.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${npBirthDisplay}</div>` : ""}
+        <div style="position:absolute;bottom:6px;left:6px;right:90px;font-size:14px;font-weight:400;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${isXinkuan ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(c.name)}</span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>` : esc(c.name)}</div>
         <button id="btn-${esc(c.bookingId)}"
           onclick="event.stopPropagation(); toggleCheckin('${esc(c.bookingId)}',this)"
           style="position:absolute;top:7px;right:7px;background:#000;color:${btnTextColor};border:none;font-family:inherit;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;letter-spacing:0.5px;">${btnLabel}</button>
@@ -1730,9 +2619,9 @@ function renderSessionContent(session, isClosed) {
         : esc(c.name);
       const birthDisplay = c.birth ? rocDate(c.birth) : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
-        <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
-        ${birthDisplay ? `<span style="font-size:12px;font-weight:400;color:#111111;opacity:0.7;position:absolute;top:50%;left:6px;right:6px;transform:translateY(-50%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${birthDisplay}</span>` : ""}
-        <span style="font-size:14px;font-weight:400;color:#111111;position:absolute;bottom:5px;left:6px;right:${nameRight};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${nameHtml}</span>
+        <span class="cell-num" style="font-size:22px;font-weight:700;color:#ffffff;position:absolute;top:6px;left:6px;">${numDisplay}</span>
+        ${birthDisplay ? `<span style="font-size:12px;font-weight:400;color:#ffffff;opacity:0.7;position:absolute;top:50%;left:6px;right:6px;transform:translateY(-50%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${birthDisplay}</span>` : ""}
+        <span style="font-size:14px;font-weight:400;color:#ffffff;position:absolute;bottom:5px;left:6px;right:${nameRight};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${nameHtml}</span>
         ${cautionHtml}
       </div>`;
     } else if (c.type === "conflict") {
@@ -1840,7 +2729,7 @@ function renderUnspecList() {
         onclick="openUnspecContactCard('${esc(b.bookingId)}')">✓ 已通知</span>`;
     } else {
       // [待通知] / [已通知]：系統自動處理，不顯示標籤
-      notifyTag = `<span class="unspec-notify-auto">系統</span>`;
+      notifyTag = `<span class="unspec-notify-auto">自動通知</span>`;
     }
 
     const xinkuanDot = b.source === "心寬轉介"
@@ -2620,14 +3509,15 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
 
 const CONTACT_METHOD_CYCLE = ["", "電話通知", "簡訊通知"];
 const CONTACT_METHOD_LABELS = { "": "💚 LINE", "電話通知": "📞 電話通知", "簡訊通知": "💬 簡訊通知" };
-const CONTACT_METHOD_COLORS = { "": "var(--kiwi)", "電話通知": "#E67E22", "簡訊通知": "var(--capri)" };
+const CONTACT_METHOD_COLORS = { "": "var(--kiwi)", "電話通知": "var(--yellow)", "簡訊通知": "var(--capri)" };
 
 function updateContactMethodBtn(method) {
   const btn = document.getElementById("btnContactMethod");
   if (!btn) return;
   btn.textContent = CONTACT_METHOD_LABELS[method] || "💚 LINE";
   btn.style.background = CONTACT_METHOD_COLORS[method] || "var(--kiwi)";
-  btn.style.color = "#fff";
+  btn.style.color = "#111";
+  btn.style.fontWeight = "600";
   btn.dataset.method = method;
 }
 
@@ -2913,7 +3803,7 @@ async function doQuery() {
 
 function renderQueryResults(bookings) {
   const el = document.getElementById("queryResults");
-  if (bookings.length === 0) { el.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-light);font-size:13px">🔍 查無預約紀錄</div>`; return; }
+  if (bookings.length === 0) { el.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-light);font-size:13px"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> 查無預約紀錄</div>`; return; }
   let html = `<div class="divider"></div>`;
   bookings.forEach(function(b) {
     const slotDisplay = b.type === "初診" ? b.checkInTime + "前" : b.slot === "不指定" ? "不指定" : b.slot + "號";
@@ -3238,9 +4128,9 @@ initLiff();
   <div class="loading-overlay-text" id="substituteOverlayText">發送代診通知中<br>請勿關閉頁面...</div>
 </div>
 <!-- Toast 通知 -->
-<div id="adminOverlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,0.5);z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:12px;">
-  <div style="width:32px;height:32px;border:3px solid #ddd;border-top-color:#111;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-  <div id="adminOverlayText" style="font-size:14px;font-weight:600;color:#111111;letter-spacing:0.5px;"></div>
+<div id="adminOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
+  <div style="width:28px;height:28px;border:1.5px solid rgba(255,255,255,0.12);border-top-color:var(--marigold);animation:spin 0.8s linear infinite;"></div>
+  <div id="adminOverlayText" style="font-family:'JetBrains Mono', monospace;font-size:11.5px;font-weight:400;color:var(--cloud);letter-spacing:3px;"></div>
 </div>
 <div id="toast"></div>
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
