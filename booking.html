@@ -576,6 +576,74 @@
     animation: fadeIn 0.4s 0.7s both;
   }
 
+  /* ══════════════════════════════════════════════
+     統一狀態圖示系統 v5.0
+     ──────────────────────────────────────────────
+     .status-icon 是 .success-icon 的延伸,共用動畫,
+     支援四種語義:success / info / warning / error
+     ══════════════════════════════════════════════ */
+  .status-icon {
+    width: 72px; height: 72px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px;
+    animation: successPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  .status-icon svg {
+    width: 38px; height: 38px;
+    stroke-width: 2.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    animation: fadeIn 0.4s 0.3s both;
+  }
+  /* 成功(綠) */
+  .status-icon.status-success {
+    background: var(--sage-light);
+    box-shadow: 0 4px 20px rgba(122,171,90,0.25);
+  }
+  .status-icon.status-success svg { stroke: var(--sage-dark); }
+  /* 資訊 / 待確認(sage 深綠) */
+  .status-icon.status-info {
+    background: var(--sage-light);
+    box-shadow: 0 4px 20px rgba(122,171,90,0.2);
+  }
+  .status-icon.status-info svg { stroke: var(--sage-dark); }
+  /* 警告 / 過期(琥珀黃) */
+  .status-icon.status-warning {
+    background: #fdf0d4;
+    box-shadow: 0 4px 20px rgba(214,158,46,0.2);
+  }
+  .status-icon.status-warning svg { stroke: #c2860a; }
+  /* 錯誤 / 禁止(深紅) */
+  .status-icon.status-error {
+    background: #fde8e8;
+    box-shadow: 0 4px 20px rgba(197,48,48,0.15);
+  }
+  .status-icon.status-error svg { stroke: #c53030; }
+
+  /* 狀態頁通用標題 / 內文(共用動畫) */
+  .status-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 22px; font-weight: 600;
+    text-align: center; margin-bottom: 10px;
+    letter-spacing: 2px;
+    animation: fadeIn 0.4s 0.5s both;
+  }
+  .status-title.status-success-text { color: var(--sage-deep); }
+  .status-title.status-info-text    { color: var(--ink); }
+  .status-title.status-warning-text { color: #9c6b0a; }
+  .status-title.status-error-text   { color: #9b2c2c; }
+  .status-sub {
+    text-align: center; font-size: 14px;
+    color: var(--ink-light); line-height: 1.7; margin-bottom: 24px;
+    animation: fadeIn 0.4s 0.7s both;
+  }
+  .status-container {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px 24px;
+  }
+
   /* ── 預約列表 ── */
   .booking-item {
     border: 1.5px solid rgba(122,171,90,0.2); border-radius: 14px;
@@ -731,14 +799,19 @@
     </div>
   </div>
 
-  <!-- 載入錯誤頁（黑名單） -->
+  <!-- 載入錯誤頁(黑名單) -->
   <div class="page" id="pageLoadError">
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;padding:0 24px;text-align:center;">
-      <div style="font-size:40px;"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>️</div>
-      <div style="font-size:15px;color:var(--ink);line-height:1.8;">
-        很抱歉，線上預約功能暫時無法使用。<br>
-        若需協助，請傳訊息至官方LINE，<br>
-        或於門診時間來電：<strong>07-363-1313</strong>
+    <div class="status-container" style="min-height:60vh;">
+      <div class="status-icon status-error">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="m4.9 4.9 14.2 14.2"/>
+        </svg>
+      </div>
+      <div class="status-title status-error-text">無法使用線上預約</div>
+      <div class="status-sub" style="max-width:340px;">
+        若需協助,請傳訊息至官方 LINE,<br>
+        或於門診時間來電:<strong style="color:var(--sage-dark)">07-363-1313</strong>
       </div>
     </div>
   </div>
@@ -1114,10 +1187,21 @@ async function initLiff() {
       const el = document.getElementById("pageBindContent");
       if (el) {
         const isTimeout = e.message === "LIFF_TIMEOUT";
-        el.innerHTML = `<div style="font-size:40px;margin-bottom:16px;">⚠️</div>
-          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;">${isTimeout ? "連線逾時" : "連線異常"}</div>
-          <div style="font-size:13px;color:var(--text-light);margin-bottom:16px;line-height:1.8;">請確認網路連線後再試一次。</div>
-          <button class="btn btn-primary" onclick="location.reload()">重新載入</button>`;
+        el.innerHTML = `
+          <div class="status-container">
+            <div class="status-icon status-warning">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                <line x1="12" y1="20" x2="12.01" y2="20"/>
+                <line x1="2" y1="2" x2="22" y2="22"/>
+              </svg>
+            </div>
+            <div class="status-title status-warning-text">${isTimeout ? "連線逾時" : "連線異常"}</div>
+            <div class="status-sub">請確認網路連線後再試一次。</div>
+            <button class="btn btn-primary" style="max-width:200px;" onclick="location.reload()">重新載入</button>
+          </div>`;
       }
       return;
     }
@@ -1213,26 +1297,54 @@ async function handleBindToken(bindToken) {
       lineId: state.lineId
     });
     if (!data.success) {
-      el.innerHTML = `<div style="font-size:40px;margin-bottom:16px;">⚠️</div>
-        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">已超過有效時間，確認未完成。</div>
-        <div style="font-size:13px;color:var(--text-light);line-height:1.8;">請聯繫診所重新取得確認連結。</div>`;
+      el.innerHTML = `
+        <div class="status-container">
+          <div class="status-icon status-warning">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="status-title status-warning-text">已超過有效時間</div>
+          <div class="status-sub">確認未完成。<br>請聯繫診所重新取得確認連結。</div>
+        </div>`;
       return;
     }
     el.innerHTML = `
-      <div style="font-size:40px;margin-bottom:16px;"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></div>
-      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:16px;">確認保留此預約？</div>
+      <div class="status-container">
+        <div class="status-icon status-info">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+            <path d="M9 14l2 2 4-4"/>
+          </svg>
+        </div>
+        <div class="status-title status-info-text">確認保留此預約?</div>
+      </div>
       <div style="text-align:left;background:var(--bg-2);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:14px;line-height:2;">
-        <div>▸ 日期：${data.date}（週${data.weekday}）</div>
+        <div>▸ 日期：${data.date}(週${data.weekday})</div>
         <div>▸ 時段：${data.displayName}</div>
       </div>
-      <div style="font-size:12px;color:var(--text-light);margin-bottom:16px;line-height:1.6;">確認後系統將發送預約通知給您。</div>
+      <div style="font-size:12px;color:var(--text-light);margin-bottom:16px;line-height:1.6;text-align:center;">確認後系統將發送預約通知給您。</div>
       <div id="bindConfirmError" class="alert alert-error" style="display:none;margin-bottom:12px;"></div>
       <button class="btn btn-primary" id="btnBindConfirm" onclick="submitBind('${bindToken}')">確認</button>
-      <div style="font-size:12px;color:var(--text-light);margin-top:12px;">放棄預約請直接退出或關閉。</div>`;
+      <div style="font-size:12px;color:var(--text-light);margin-top:12px;text-align:center;">放棄預約請直接退出或關閉。</div>`;
   } catch(e) {
-    el.innerHTML = `<div style="font-size:40px;margin-bottom:16px;">⚠️</div>
-      <div style="font-size:13px;color:var(--text-light);margin-bottom:16px;">連線異常，請再試一次。</div>
-      <button class="btn btn-primary" onclick="handleBindToken('${bindToken}')">重試</button>`;
+    el.innerHTML = `
+      <div class="status-container">
+        <div class="status-icon status-warning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+            <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+            <line x1="12" y1="20" x2="12.01" y2="20"/>
+            <line x1="2" y1="2" x2="22" y2="22"/>
+          </svg>
+        </div>
+        <div class="status-title status-warning-text">連線異常</div>
+        <div class="status-sub">請確認網路後再試一次。</div>
+        <button class="btn btn-primary" style="max-width:200px;" onclick="handleBindToken('${bindToken}')">重試</button>
+      </div>`;
   }
 }
 
@@ -1251,9 +1363,16 @@ async function submitBind(bindToken) {
     if (!data.success) {
       if (data.expired) {
         document.getElementById("pageBindContent").innerHTML = `
-          <div style="font-size:40px;margin-bottom:16px;">⚠️</div>
-          <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">已超過有效時間，確認未完成。</div>
-          <div style="font-size:13px;color:var(--text-light);">請聯繫診所重新取得確認連結。</div>`;
+          <div class="status-container">
+            <div class="status-icon status-warning">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <div class="status-title status-warning-text">已超過有效時間</div>
+            <div class="status-sub">確認未完成。<br>請聯繫診所重新取得確認連結。</div>
+          </div>`;
         return;
       }
       errEl.textContent = data.error || "確認失敗，請稍後再試。";
@@ -1262,9 +1381,15 @@ async function submitBind(bindToken) {
       return;
     }
     document.getElementById("pageBindContent").innerHTML = `
-      <div style="font-size:40px;margin-bottom:16px;">✅</div>
-      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">預約已確認！</div>
-      <div style="font-size:13px;color:var(--text-light);line-height:1.8;">系統將發送預約確認通知給您。</div>`;
+      <div class="status-container">
+        <div class="status-icon status-success">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="stroke-dasharray:40;stroke-dashoffset:40;animation:drawCheck 0.5s 0.3s cubic-bezier(0.22,1,0.36,1) forwards;">
+            <polyline points="4 12 10 18 20 6"></polyline>
+          </svg>
+        </div>
+        <div class="status-title status-success-text">預約已確認!</div>
+        <div class="status-sub">系統將發送預約確認通知給您。</div>
+      </div>`;
   } catch(e) {
     errEl.textContent = "系統連線異常，請稍後再試。";
     errEl.style.display = "block";
