@@ -1709,8 +1709,10 @@ function renderSessionContent(session, isClosed) {
       const nameHtml = isXinkuan
         ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(c.name)}</span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>`
         : esc(c.name);
+      const birthDisplay = c.birth ? rocDate(c.birth) : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
+        ${birthDisplay ? `<span style="font-size:9px;font-weight:400;color:#111111;opacity:0.7;position:absolute;top:50%;left:6px;right:6px;transform:translateY(-50%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${birthDisplay}</span>` : ""}
         <span style="font-size:12px;font-weight:400;color:#111111;position:absolute;bottom:5px;left:6px;right:${nameRight};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${nameHtml}</span>
         ${cautionHtml}
       </div>`;
