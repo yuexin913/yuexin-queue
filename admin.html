@@ -581,6 +581,235 @@
   }
   .modal-close:hover { color: var(--text); }
 
+  /* ════════════════════════════════════════════════
+     Modal v4 · Terminal × Editorial 融合風
+     ════════════════════════════════════════════════ */
+  /* Topbar(橘直條 + 右上小標 patient.info 樣式) */
+  .m-topbar {
+    display: flex;
+    align-items: center;
+    padding: 11px 16px;
+    background: #0a0a0a;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin: -24px -24px 0 -24px;
+  }
+  .m-stripe {
+    width: 3px; height: 12px;
+    background: var(--marigold);
+    margin-right: 10px;
+  }
+  .m-topbar-title {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--text-light);
+    letter-spacing: 1.5px;
+  }
+  .m-topbar .modal-close {
+    margin-left: 10px;
+    background: none; border: none;
+    color: var(--text-dim); font-size: 18px;
+    cursor: pointer; font-family: inherit;
+    padding: 0 4px;
+  }
+  .m-topbar .modal-close:hover { color: var(--text); }
+
+  /* Key-value 資訊表(Terminal 對齊樣式) */
+  .m-datatable {
+    padding: 18px 0;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 13px;
+    line-height: 2;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin: 0 -2px;
+  }
+  .m-row {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+  .m-row-key {
+    color: var(--text-light);
+    width: 52px;
+    flex-shrink: 0;
+    letter-spacing: 1px;
+    font-weight: 400;
+  }
+  .m-row-value {
+    color: var(--text);
+    flex: 1;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+    font-weight: 400;
+    word-break: break-all;
+  }
+  .m-row-value.big {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: #fff;
+    letter-spacing: 3px;
+  }
+  .m-row-value.orange {
+    color: var(--marigold);
+    font-weight: 500;
+    font-size: 15px;
+  }
+  .m-row-value.kiwi {
+    color: var(--kiwi);
+  }
+  .m-row-value.dim {
+    color: var(--text-light);
+    font-size: 12px;
+  }
+
+  /* 分區 */
+  .m-section {
+    padding: 14px 0 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .m-section:last-of-type { border-bottom: none; padding-bottom: 0; }
+  .m-section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    font-weight: 400;
+  }
+  .m-section-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    margin-left: 6px;
+    opacity: 0.7;
+  }
+
+  /* 統一按鈕(滑過橘框) */
+  .m-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 14px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 400;
+    letter-spacing: 1px;
+    cursor: pointer;
+    margin-bottom: 6px;
+    text-align: left;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .m-btn:last-child { margin-bottom: 0; }
+  .m-btn:hover {
+    border-color: rgba(255,134,1,0.5);
+    color: var(--marigold);
+    background: rgba(255,134,1,0.05);
+  }
+  .m-btn-icon {
+    font-size: 14px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    width: 18px; text-align: center;
+    transition: color 0.15s;
+  }
+  .m-btn:hover .m-btn-icon { color: var(--marigold); }
+  .m-btn-arrow {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: #333;
+    transition: color 0.15s;
+  }
+  .m-btn:hover .m-btn-arrow { color: var(--marigold); }
+  .m-btn.primary {
+    border: 1px solid rgba(255,134,1,0.4);
+    background: rgba(255,134,1,0.08);
+    color: var(--marigold);
+  }
+  .m-btn.primary .m-btn-icon { color: var(--marigold); }
+  .m-btn.primary:hover {
+    background: rgba(255,134,1,0.16);
+    border-color: rgba(255,134,1,0.7);
+  }
+
+  .m-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .m-grid-2 .m-btn {
+    margin-bottom: 0;
+    justify-content: center;
+  }
+  .m-grid-2 .m-btn-icon { width: auto; }
+
+  /* Toggle(通知狀態切換) */
+  .m-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 14px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .m-toggle:hover { border-color: rgba(255,134,1,0.5); }
+  .m-toggle-label {
+    font-size: 13.5px;
+    color: var(--text);
+    letter-spacing: 1px;
+  }
+  .m-toggle-state {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 3px 9px;
+    color: var(--marigold);
+    background: rgba(255,134,1,0.1);
+    border: 1px solid rgba(255,134,1,0.3);
+    text-transform: uppercase;
+  }
+  .m-toggle-state.done {
+    color: var(--kiwi);
+    background: rgba(186,203,0,0.1);
+    border-color: rgba(186,203,0,0.3);
+  }
+
+  /* 危險區塊(取消預約獨立) */
+  .m-danger-section {
+    margin: 14px -24px -24px -24px;
+    padding: 14px 22px 20px;
+    background: #080808;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+  .m-danger-btn {
+    display: block; width: 100%;
+    padding: 11px;
+    background: transparent;
+    border: 1px solid rgba(249,50,89,0.3);
+    color: var(--error);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 400;
+    letter-spacing: 3px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .m-danger-btn:hover {
+    background: rgba(249,50,89,0.1);
+    border-color: rgba(249,50,89,0.6);
+  }
+
   /* ── Form ── */
   .form-group { margin-bottom: 14px; }
   .form-label {
@@ -701,28 +930,20 @@
   .loading { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; font-weight: 200; letter-spacing: 1px; }
   .empty-state { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; font-weight: 200; }
 
-  /* ── Contact 病患卡 ── */
-  .contact-name {
-    font-size: 24px; font-weight: 700; color: var(--text);
-    text-align: center; margin-bottom: 4px; letter-spacing: 1px;
+  /* ── Contact v4 · 舊樣式中和(id 和 class 保留給 JS,但視覺由 .m-row-value 控制) ── */
+  .contact-name, .contact-birth, .contact-timeslot, .contact-phone {
+    /* 作為 .m-row-value 內文字節點,不做額外樣式干擾 */
+    display: inline;
   }
-  .contact-birth {
-    font-size: 12px; font-weight: 200; color: var(--text-light);
-    text-align: center; margin-bottom: 8px; letter-spacing: 2px;
-  }
-  .contact-timeslot {
-    font-size: 13px; font-weight: 300; color: var(--marigold);
-    text-align: center; margin-bottom: 10px; letter-spacing: 1px;
-  }
-  .contact-phone {
-    display: block; font-size: 22px; font-weight: 700;
-    color: var(--marigold); text-align: center; text-decoration: none;
-    letter-spacing: 3px; margin-bottom: 10px; cursor: default;
-  }
+  .contact-phone { text-decoration: none; cursor: default; }
   .contact-phone.no-phone {
-    font-size: 15px; font-weight: 300; color: var(--text-light);
-    letter-spacing: 0; cursor: default;
+    color: var(--text-light) !important;
+    font-weight: 400 !important;
+    font-size: 13px !important;
+    letter-spacing: 1px !important;
+    font-family: 'Noto Sans TC', sans-serif !important;
   }
+  /* 舊 .contact-phone-btns 不再使用(已由 .m-grid-2 取代),留空以相容 */
   .contact-phone-btns { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
   .contact-phone-btns a {
     flex: 1; text-align: center; padding: 10px 0;
@@ -1058,22 +1279,63 @@
 <!-- Modal: 聯絡病患 -->
 <div class="modal-overlay" id="modalContact">
   <div class="modal">
-    <div class="modal-title">聯絡病患<button class="modal-close" onclick="closeModal('modalContact')">✕</button></div>
-    <div class="contact-name" id="contactName"></div>
-    <div class="contact-birth" id="contactBirth"></div>
-    <div class="contact-timeslot" id="contactTimeSlot"></div>
-    <a class="contact-phone" id="contactPhone" href="javascript:void(0)"></a>
-    <div class="contact-phone-btns" id="contactPhoneBtns" style="display:none;">
-      <a class="btn-call" id="btnCall" href="">📞 撥打</a>
-      <a class="btn-sms" id="btnSms" href="">💬 傳訊</a>
+    <!-- Topbar(橘直條 + patient.info)-->
+    <div class="m-topbar">
+      <div class="m-stripe"></div>
+      <div class="m-topbar-title">patient.info</div>
+      <button class="modal-close" onclick="closeModal('modalContact')">✕</button>
     </div>
+
+    <!-- 病患資訊表(中文 label + mono 資料) -->
+    <div class="m-datatable">
+      <div class="m-row">
+        <span class="m-row-key">姓名</span>
+        <span class="m-row-value big contact-name" id="contactName"></span>
+      </div>
+      <div class="m-row">
+        <span class="m-row-key">生日</span>
+        <span class="m-row-value contact-birth" id="contactBirth"></span>
+      </div>
+      <div class="m-row">
+        <span class="m-row-key">時段</span>
+        <span class="m-row-value contact-timeslot" id="contactTimeSlot"></span>
+      </div>
+      <div class="m-row">
+        <span class="m-row-key">電話</span>
+        <a class="m-row-value orange contact-phone" id="contactPhone" href="javascript:void(0)"></a>
+      </div>
+    </div>
+
+    <!-- 立即行動(撥打/傳訊) -->
+    <div class="m-section" id="contactPhoneBtns" style="display:none;">
+      <div class="m-section-label">立即行動</div>
+      <div class="m-grid-2">
+        <a class="m-btn primary" id="btnCall" href="" style="text-decoration:none;">
+          <span class="m-btn-icon">📞</span>
+          撥打
+        </a>
+        <a class="m-btn" id="btnSms" href="" style="text-decoration:none;">
+          <span class="m-btn-icon">💬</span>
+          傳訊
+        </a>
+      </div>
+    </div>
+
+    <!-- 初診問卷資料區(如有) -->
     <div id="contactNpSurvey" style="display:none;margin-top:12px;padding:10px 12px;border-left:3px solid var(--kiwi);background:var(--bg-2);"></div>
+
+    <!-- 錯誤訊息 -->
     <div id="contactError" class="alert alert-error" style="display:none"></div>
-    <div id="btnToggleNotifiedWrap">
-      <button class="btn" id="btnToggleNotified" onclick="doToggleNotified()"></button>
+
+    <!-- 通知狀態 -->
+    <div class="m-section" id="btnToggleNotifiedWrap">
+      <div class="m-section-label">通知狀態</div>
+      <button class="m-toggle" id="btnToggleNotified" onclick="doToggleNotified()"></button>
     </div>
-    <div id="btnFillPatientWrap" style="display:none;margin-top:8px;">
-      <div style="font-size:11px;font-weight:700;color:var(--marigold);letter-spacing:1px;margin-bottom:6px;">⚡ 保留號 — 填入病患資料</div>
+
+    <!-- 保留號填入資料區 -->
+    <div id="btnFillPatientWrap" class="m-section" style="display:none;">
+      <div class="m-section-label">保留號 · 填入病患資料</div>
       <div class="form-group" style="margin-bottom:6px;"><input type="text" id="fillName" placeholder="姓名" style="padding:8px;font-size:13px;"></div>
       <div class="form-group" style="margin-bottom:6px;"><input type="tel" id="fillPhone" placeholder="電話 09xxxxxxxx" style="padding:8px;font-size:13px;" oninput="this.value=this.value.replace(/\D/g,'')"></div>
       <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">
@@ -1086,26 +1348,44 @@
       <div id="fillPatientError" class="alert alert-error" style="display:none;margin-bottom:6px;"></div>
       <button class="btn" style="width:100%;background:var(--marigold);color:#111;font-weight:700;font-size:13px;" onclick="doFillPatient()">確認填入</button>
     </div>
-    <div id="btnCancelBookingWrap" style="display:none;margin-top:8px;">
-      <button class="btn btn-danger" style="width:100%;"
-        onclick="confirmCancel(state.contactBookingId, document.getElementById('contactName').textContent, document.getElementById('contactTimeSlot').textContent, 'modalContact')">取消此預約</button>
+
+    <!-- 複製 LINE 訊息 -->
+    <div id="btnCopyMsgWrap" class="m-section" style="display:none;">
+      <div class="m-section-label">複製 LINE 訊息</div>
+      <button class="m-btn" onclick="copyLineMsg(false)">
+        預約通知
+        <span class="m-btn-arrow">›</span>
+      </button>
+      <button class="m-btn" onclick="copyLineMsg(true)">
+        回診提醒
+        <span class="m-btn-arrow">›</span>
+      </button>
     </div>
-    <div id="btnCopyMsgWrap" style="display:none;margin-top:8px;">
-      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">複製 LINE 訊息</div>
-      <div style="display:flex;gap:6px;">
-        <button class="btn" style="flex:1;background:var(--btn-mid-bg);color:var(--text);border:1px solid var(--btn-mid-bd);font-size:13px;padding:10px;" onclick="copyLineMsg(false)">預約通知</button>
-        <button class="btn" style="flex:1;background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);font-size:13px;padding:10px;" onclick="copyLineMsg(true)">回診提醒</button>
-      </div>
-    </div>
-    <div id="btnBindLinkWrap" style="display:none;margin-top:8px;">
-      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">病患綁定連結（10 分鐘有效）</div>
-      <button class="btn" style="width:100%;background:var(--btn-mid-bg);color:var(--text);border:1px solid var(--btn-mid-bd);margin-bottom:6px;font-size:13px;" onclick="copyBindLinkFromContact(false)">📋 複製綁定連結（複診）</button>
-      <button class="btn" style="width:100%;background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);font-size:13px;" onclick="copyBindLinkFromContact(true)">📋 複製綁定連結（含初診關懷）</button>
+
+    <!-- 綁定連結 -->
+    <div id="btnBindLinkWrap" class="m-section" style="display:none;">
+      <div class="m-section-label">綁定連結<span class="m-section-hint">· 10 分鐘有效</span></div>
+      <button class="m-btn" onclick="copyBindLinkFromContact(false)">
+        複診
+        <span class="m-btn-arrow">›</span>
+      </button>
+      <button class="m-btn" onclick="copyBindLinkFromContact(true)">
+        含初診關懷
+        <span class="m-btn-arrow">›</span>
+      </button>
       <div id="bindLinkContactError" class="alert alert-error" style="display:none;margin-top:6px;"></div>
     </div>
-    <div id="btnContactMethodWrap" style="display:none;margin-top:8px;">
-      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">聯繫方式</div>
-      <button class="btn" id="btnContactMethod" style="width:100%;font-size:13px;padding:10px;" onclick="cycleContactMethod()"></button>
+
+    <!-- 聯繫方式 -->
+    <div id="btnContactMethodWrap" class="m-section" style="display:none;">
+      <div class="m-section-label">聯繫方式</div>
+      <button class="m-btn" id="btnContactMethod" onclick="cycleContactMethod()"></button>
+    </div>
+
+    <!-- 取消預約(危險區) -->
+    <div id="btnCancelBookingWrap" class="m-danger-section" style="display:none;">
+      <button class="m-danger-btn"
+        onclick="confirmCancel(state.contactBookingId, document.getElementById('contactName').textContent, document.getElementById('contactTimeSlot').textContent, 'modalContact')">取消此預約</button>
     </div>
   </div>
 </div>
