@@ -411,13 +411,17 @@
   .cell-birth {
     position: absolute; top: 50%; left: 7px; right: 7px;
     transform: translateY(-50%);
-    font-size: 11px; color: var(--text-dim); font-weight: 200;
+    font-size: 11px; color: var(--text-dim); font-weight: 300;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     letter-spacing: 0.3px;
   }
   .grid-cell.has-patient .cell-birth,
   .grid-cell.admin-pending .cell-birth,
-  .grid-cell.admin-notified .cell-birth { color: var(--text-light); }
+  .grid-cell.admin-notified .cell-birth {
+    color: #b8b8b8;
+    font-weight: 400;
+    font-size: 11.5px;
+  }
 
   /* 姓名 */
   .cell-name {
@@ -428,7 +432,11 @@
   }
   .grid-cell.has-patient .cell-name,
   .grid-cell.admin-pending .cell-name,
-  .grid-cell.admin-notified .cell-name { color: #ccc; font-weight: 300; }
+  .grid-cell.admin-notified .cell-name {
+    color: #f0f0f0;
+    font-weight: 500;
+    font-size: 13px;
+  }
   .grid-cell.empty .cell-name { color: transparent; }
 
   /* 待處理點 —— 橘色小方塊(Metro 硬邊) */
