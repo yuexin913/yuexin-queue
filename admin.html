@@ -10,7 +10,7 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@200;300;400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@200;300;400;500;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin — 近黑白深色主題 (Theme E)
@@ -140,8 +140,127 @@
     align-items: center; justify-content: center;
     padding: 32px 24px; text-align: center;
   }
-  .auth-title { font-size: 20px; font-weight: 300; color: var(--cloud); margin-bottom: 8px; letter-spacing: 3px; }
-  .auth-sub { font-size: 12px; color: var(--text-light); line-height: 1.6; font-weight: 200; letter-spacing: 1px; }
+  .auth-title {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 22px; font-weight: 500;
+    color: #fff;
+    margin-bottom: 4px;
+    letter-spacing: 4px;
+    line-height: 1.4;
+  }
+  .auth-subtitle-en {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 400;
+    color: var(--text-light);
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+  }
+  .auth-divider {
+    width: 48px; height: 1px;
+    background: var(--marigold);
+    margin: 0 auto 14px;
+    opacity: 0.7;
+  }
+  .auth-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-light);
+    line-height: 1.6;
+    font-weight: 300;
+    letter-spacing: 2px;
+  }
+
+  /* ── Login 頁面升級 ── */
+  .login-clinic {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 28px;
+    font-weight: 500;
+    color: #fff;
+    margin-bottom: 4px;
+    letter-spacing: 8px;
+    line-height: 1.3;
+  }
+  .login-clinic-en {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-light);
+    letter-spacing: 2.5px;
+    margin-bottom: 6px;
+  }
+  .login-divider {
+    width: 48px; height: 1px;
+    background: var(--marigold);
+    opacity: 0.7;
+    margin-bottom: 36px;
+  }
+  .login-field-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    text-transform: lowercase;
+    margin-bottom: 8px;
+  }
+  .login-input {
+    width: 100%;
+    padding: 12px 12px 12px 12px;
+    font-size: 16px;
+    font-family: inherit;
+    background: transparent;
+    color: var(--text);
+    outline: none;
+    border: none;
+    border-left: 3px solid transparent;
+    border-bottom: 1.5px solid var(--border);
+    margin-bottom: 18px;
+    transition: all 0.2s;
+  }
+  .login-input:focus {
+    border-left-color: var(--marigold);
+    border-bottom-color: var(--marigold);
+    background: rgba(255,134,1,0.03);
+  }
+  .login-error {
+    display: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--error);
+    margin-bottom: 16px;
+    line-height: 1.6;
+    letter-spacing: 1px;
+    padding: 8px 10px;
+    border-left: 2px solid var(--error);
+    background: rgba(249,50,89,0.06);
+  }
+  .login-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--marigold);
+    color: #111;
+    border: none;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 3px;
+    position: relative;
+    transition: background 0.15s;
+  }
+  .login-btn:hover:not(:disabled) { background: var(--marigold-dk); }
+  .login-btn::after {
+    content: "→";
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .login-btn:disabled::after { opacity: 0.5; }
 
   /* ════════════════════════════════════════════════════════
      METRO GRID 主版面
@@ -282,16 +401,17 @@
   .tile-orchid   .tile-sub { color: rgba(179,98,167,0.6); }
   .tile-sunny    .tile-sub { color: rgba(219,239,118,0.6); }
 
-  /* ── 管理員名稱磚(右下角) — Pearl 邊框 ── */
+  /* ── 管理員名稱磚(右下角) — Pearl 彩色底(功能性 tile)── */
   .tile-admin {
-    background: var(--bg-3);
+    background: rgba(188,184,168,0.12);
     border: 1px solid rgba(188,184,168,0.4);
     cursor: pointer;
   }
-  .tile-admin .tile-label { font-size: 14px; font-weight: 400; color: #D8D4C0; }
-  .tile-admin .tile-sub { color: rgba(188,184,168,0.65); }
-  .tile-header-admin { background: var(--bg-3); border: 1px solid rgba(188,184,168,0.4); }
-  .tile-header-admin .tile-label { font-size: 14px; font-weight: 400; color: #D8D4C0; }
+  .tile-admin:hover { background: rgba(188,184,168,0.2); }
+  .tile-admin .tile-label { font-size: 14px; font-weight: 500; color: #D8D4C0; }
+  .tile-admin .tile-sub { color: rgba(216,212,192,0.7); }
+  .tile-header-admin { background: rgba(188,184,168,0.12); border: 1px solid rgba(188,184,168,0.4); }
+  .tile-header-admin .tile-label { font-size: 14px; font-weight: 500; color: #D8D4C0; }
 
   /* ── Row 1:日期導覽 ── */
   .tile-nav {
@@ -318,12 +438,14 @@
   .tile-nav.disabled .tile-title { color: var(--text-dim) !important; }
   .tile-nav.disabled:active { transform: none; }
 
-  /* ── Row 2:醫師 + 時段 — 醫師用 Pearl 邊框 ── */
+  /* ── Row 2:醫師 + 時段 — 醫師用 Pearl 彩色底(功能性 tile)── */
   .tile-doctor {
-    background: var(--bg-3); border: 1px solid rgba(188,184,168,0.4);
+    background: rgba(188,184,168,0.12);
+    border: 1px solid rgba(188,184,168,0.4);
     cursor: pointer;
   }
-  .tile-doctor .tile-title { font-size: 20px; font-weight: 400; color: #D8D4C0; letter-spacing: 1px; }
+  .tile-doctor:hover { background: rgba(188,184,168,0.2); }
+  .tile-doctor .tile-title { font-size: 20px; font-weight: 500; color: #D8D4C0; letter-spacing: 1px; }
   .doctor-substitute-note {
     position: absolute; top: 8px; right: 8px;
     background: var(--bg-4); color: var(--marigold);
@@ -1044,8 +1166,9 @@
     padding: 3px 8px; cursor: pointer; flex-shrink: 0;
   }
   .unspec-notify-auto {
-    font-size: 11px; font-weight: 200; color: var(--text-light);
+    font-size: 10px; font-weight: 300; color: var(--text-dim);
     padding: 2px 4px; flex-shrink: 0;
+    letter-spacing: 1px; font-style: italic;
   }
 
   /* ── 群發模式切換 ── */
@@ -1176,26 +1299,25 @@
         <div class="join-cell" id="jn6"></div><div class="join-cell" id="jn7"></div><div class="join-cell" id="jn8"></div>
       </div>
     </div>
-    <div class="auth-title" id="authTitle">悅心診所線上服務</div>
-    <div class="auth-sub" id="authSub">請稍候...</div>
+    <div class="auth-title" id="authTitle">悅心診所</div>
+    <div class="auth-subtitle-en">Yuexin Psychiatric Clinic</div>
+    <div class="auth-divider"></div>
+    <div class="auth-sub" id="authSub">正在驗證身份 · verifying identity</div>
   </div>
 </div>
 
 <!-- Login -->
 <div id="pageLogin" style="display:none;position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px;z-index:100;">
   <div style="width:100%;max-width:320px;">
-    <div style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:1px;">悅心診所</div>
-    <div style="font-size:13px;font-weight:400;color:var(--text-light);margin-bottom:32px;letter-spacing:2px;text-transform:uppercase;">JOIN System</div>
-    <div style="font-size:13px;font-weight:700;color:var(--text-light);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;">密碼</div>
-    <input type="password" id="loginPassword"
-      style="width:100%;padding:12px;font-size:16px;font-family:inherit;border:none;border-bottom:2px solid var(--marigold);background:transparent;color:var(--text);outline:none;margin-bottom:16px;"
+    <div class="login-clinic">悅心診所</div>
+    <div class="login-clinic-en">Yuexin Psychiatric Clinic</div>
+    <div class="login-divider"></div>
+    <div class="login-field-label">password</div>
+    <input type="password" id="loginPassword" class="login-input"
       placeholder="請輸入管理密碼"
       onkeydown="if(event.key==='Enter')doLogin()">
-    <div id="loginError" style="display:none;font-size:13px;color:var(--error);margin-bottom:16px;line-height:1.5;"></div>
-    <button onclick="doLogin()" id="btnLogin"
-      style="width:100%;padding:14px;background:var(--marigold);color:#111;border:none;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:2px;">
-      登入
-    </button>
+    <div id="loginError" class="login-error"></div>
+    <button onclick="doLogin()" id="btnLogin" class="login-btn">登入</button>
   </div>
 </div>
 
@@ -1227,7 +1349,7 @@
   <!-- Row 2: 醫師資訊 + 時段磚 -->
   <div class="tile tile-2 tile-doctor" id="doctorTile" style="position:relative;" onclick="loadSchedule(activeSession)" title="點擊重新整理">
     <div class="tile-title" style="font-size:20px;font-weight:200;" id="sessionDoctorText">—</div>
-    <div style="font-size:11px;color:rgba(188,184,168,0.65);margin-top:auto;font-weight:300;letter-spacing:1.5px;">主治醫師</div>
+    <div style="font-size:11px;color:rgba(216,212,192,0.7);margin-top:auto;font-weight:300;letter-spacing:1.5px;">主治醫師</div>
   </div>
   <div class="tile tile-1 tile-session" id="session-早上" onclick="switchTab('早上')" style="position:relative;">
     <div class="tile-title" style="font-size:16px;">早上診</div>
@@ -1279,7 +1401,7 @@
   </div>
   <div class="tile tile-1 tile-admin" style="position:relative;cursor:pointer;" onclick="openLogoutModal()">
     <div class="tile-title" style="font-size:14px;font-weight:400;" id="adminBadge">...</div>
-    <div style="position:absolute;bottom:7px;left:10px;font-size:11px;font-weight:300;color:rgba(188,184,168,0.65);letter-spacing:1.5px;">管理員</div>
+    <div style="position:absolute;bottom:7px;left:10px;font-size:11px;font-weight:300;color:rgba(216,212,192,0.7);letter-spacing:1.5px;">管理員</div>
   </div>
 
 </div><!-- /metro-grid -->
@@ -1572,6 +1694,33 @@
     <div id="securityContent"><div class="loading">載入中...</div></div>
     <div style="margin-top:12px">
       <button class="btn" id="btnMarkRead" style="background:var(--marigold);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%" onclick="doMarkSecurityRead()">✓ 標記全部已讀</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: 登出(原本 JS 有呼叫但 HTML 缺失,本輪補上) -->
+<div class="modal-overlay" id="modalLogout">
+  <div class="modal">
+    <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">登出</div><div class="m-topbar-title">logout.auth</div><button class="modal-close" onclick="closeModal('modalLogout')">✕</button></div>
+    <div class="m-datatable">
+      <div class="m-row">
+        <span class="m-row-key">管理員</span>
+        <span class="m-row-value big" id="logoutAdminName"></span>
+      </div>
+      <div class="m-row">
+        <span class="m-row-key">登入</span>
+        <span class="m-row-value dim" id="logoutLoginTime"></span>
+      </div>
+    </div>
+    <div class="m-section">
+      <div class="m-section-label">動作</div>
+      <button class="m-btn" onclick="closeModal('modalLogout')">
+        <span class="m-btn-icon">←</span>
+        取消
+      </button>
+    </div>
+    <div class="m-danger-section">
+      <button class="m-danger-btn" onclick="doLogout()">確認登出</button>
     </div>
   </div>
 </div>
@@ -2559,7 +2708,7 @@ function renderUnspecList() {
         onclick="openUnspecContactCard('${esc(b.bookingId)}')">✓ 已通知</span>`;
     } else {
       // [待通知] / [已通知]：系統自動處理，不顯示標籤
-      notifyTag = `<span class="unspec-notify-auto">系統</span>`;
+      notifyTag = `<span class="unspec-notify-auto">自動通知</span>`;
     }
 
     const xinkuanDot = b.source === "心寬轉介"
@@ -3957,9 +4106,9 @@ initLiff();
   <div class="loading-overlay-text" id="substituteOverlayText">發送代診通知中<br>請勿關閉頁面...</div>
 </div>
 <!-- Toast 通知 -->
-<div id="adminOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:12px;">
-  <div style="width:32px;height:32px;border:2px solid rgba(255,255,255,0.15);border-top-color:var(--marigold);animation:spin 0.8s linear infinite;"></div>
-  <div id="adminOverlayText" style="font-size:13px;font-weight:300;color:var(--cloud);letter-spacing:2px;"></div>
+<div id="adminOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
+  <div style="width:28px;height:28px;border:1.5px solid rgba(255,255,255,0.12);border-top-color:var(--marigold);animation:spin 0.8s linear infinite;"></div>
+  <div id="adminOverlayText" style="font-family:'JetBrains Mono', monospace;font-size:11.5px;font-weight:400;color:var(--cloud);letter-spacing:3px;"></div>
 </div>
 <div id="toast"></div>
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
