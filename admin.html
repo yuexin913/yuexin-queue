@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" href="assets/doctors/yuexinlogo.png" type="image/png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>悅心診所 Admin Portal</title>
+<title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -528,7 +528,7 @@
 <div id="pageLogin" style="display:none;position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px;z-index:100;">
   <div style="width:100%;max-width:320px;">
     <div style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:1px;">悅心診所</div>
-    <div style="font-size:13px;font-weight:400;color:var(--text-light);margin-bottom:32px;letter-spacing:2px;text-transform:uppercase;">Admin Portal</div>
+    <div style="font-size:13px;font-weight:400;color:var(--text-light);margin-bottom:32px;letter-spacing:2px;text-transform:uppercase;">JOIN System</div>
     <div style="font-size:13px;font-weight:700;color:var(--text-light);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;">密碼</div>
     <input type="password" id="loginPassword"
       style="width:100%;padding:12px;font-size:16px;font-family:inherit;border:none;border-bottom:2px solid var(--marigold);background:transparent;color:var(--text);outline:none;margin-bottom:16px;"
@@ -2576,7 +2576,8 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
   const fillPatientWrap = document.getElementById("btnFillPatientWrap");
   const fillPatientErr = document.getElementById("fillPatientError");
   if (fillPatientErr) fillPatientErr.style.display = "none";
-  if (name === "保留號") {
+  const isReservedContact = name === "保留號";
+  if (isReservedContact) {
     fillPatientWrap.style.display = "block";
     document.getElementById("fillName").value = "";
     document.getElementById("fillPhone").value = "";
@@ -2587,28 +2588,33 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
     fillPatientWrap.style.display = "none";
   }
 
-  // 複製訊息按鈕：只有管理員代掛才顯示
-  const copyWrap = document.getElementById("btnCopyMsgWrap");
-  copyWrap.style.display = "block";
+  // 保留號時隱藏無意義的按鈕
+  document.getElementById("contactPhoneBtns").style.display = isReservedContact ? "none" : (phone ? "flex" : "none");
+  document.getElementById("btnToggleNotifiedWrap").style.display = isReservedContact ? "none" : "";
+  document.getElementById("btnCopyMsgWrap").style.display = isReservedContact ? "none" : "block";
+  document.getElementById("btnBindLinkWrap").style.display = isReservedContact ? "none" : (notifyStatus === "[人工預約]" ? "block" : "none");
+  document.getElementById("btnContactMethodWrap").style.display = isReservedContact ? "none" : (isAdminBooking ? "block" : "none");
 
-  // 綁定連結按鈕：人工預約（尚未綁定 LINE ID）才顯示
-  const bindLinkWrap = document.getElementById("btnBindLinkWrap");
-  const bindLinkErr = document.getElementById("bindLinkContactError");
-  if (bindLinkErr) bindLinkErr.style.display = "none";
-  bindLinkWrap.style.display = (notifyStatus === "[人工預約]") ? "block" : "none";
+  // 複製訊息按鈕：只有管理員代掛才顯示（非保留號由上方統一處理）
+  if (!isReservedContact) {
+    document.getElementById("btnCopyMsgWrap").style.display = "block";
 
-  // 聯繫方式按鈕：只有管理員代掛才顯示
-  const methodWrap = document.getElementById("btnContactMethodWrap");
-  if (isAdminBooking) {
-    methodWrap.style.display = "block";
-    // 讀取目前 N 欄值（從 allBookings 取得）
-    const bk = allBookings.find(function(b) { return b.bookingId === bookingId; });
-    const rawMethod = (bk && bk.note) ? bk.note : "";
-    // 只接受合法值，其他一律當作 LINE（空白）
-    const currentMethod = CONTACT_METHOD_CYCLE.indexOf(rawMethod) !== -1 ? rawMethod : "";
-    updateContactMethodBtn(currentMethod);
-  } else {
-    methodWrap.style.display = "none";
+    // 綁定連結按鈕：人工預約（尚未綁定 LINE ID）才顯示
+    const bindLinkErr = document.getElementById("bindLinkContactError");
+    if (bindLinkErr) bindLinkErr.style.display = "none";
+    document.getElementById("btnBindLinkWrap").style.display = (notifyStatus === "[人工預約]") ? "block" : "none";
+
+    // 聯繫方式按鈕
+    const methodWrap = document.getElementById("btnContactMethodWrap");
+    if (isAdminBooking) {
+      methodWrap.style.display = "block";
+      const bk = allBookings.find(function(b) { return b.bookingId === bookingId; });
+      const rawMethod = (bk && bk.note) ? bk.note : "";
+      const currentMethod = CONTACT_METHOD_CYCLE.indexOf(rawMethod) !== -1 ? rawMethod : "";
+      updateContactMethodBtn(currentMethod);
+    } else {
+      methodWrap.style.display = "none";
+    }
   }
 }
 
