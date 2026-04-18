@@ -251,6 +251,7 @@
   .grid-cell.has-patient    { background: var(--kiwi); cursor: pointer; }
   .grid-cell.admin-notified { background: var(--kiwi); cursor: pointer; }
   .grid-cell.admin-pending  { background: var(--kiwi); cursor: pointer; }
+  .grid-cell.is-reserved    { background: var(--sunny); cursor: pointer; }
   .grid-cell.empty { background: transparent; }
 
   .cell-num { font-size: 22px; font-weight: 700; line-height: 1; align-self: flex-start; }
@@ -671,6 +672,7 @@
     </div>
     <div id="adminAddError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
     <button class="btn" style="background:var(--marigold);color:#fff;font-size:13px;padding:10px;width:100%;margin-top:4px" id="btnAdminAdd" onclick="doAdminAddBooking(null)">確認代掛</button>
+    <button class="btn" style="background:var(--bg-3);color:var(--text);font-size:13px;padding:10px;width:100%;margin-top:8px;" onclick="doQuickReserve()">⚡ 快速保留（免填資料）</button>
   </div>
 </div>
 
@@ -690,6 +692,20 @@
     <div id="contactError" class="alert alert-error" style="display:none"></div>
     <div id="btnToggleNotifiedWrap">
       <button class="btn" id="btnToggleNotified" onclick="doToggleNotified()"></button>
+    </div>
+    <div id="btnFillPatientWrap" style="display:none;margin-top:8px;">
+      <div style="font-size:11px;font-weight:700;color:var(--marigold);letter-spacing:1px;margin-bottom:6px;">⚡ 保留號 — 填入病患資料</div>
+      <div class="form-group" style="margin-bottom:6px;"><input type="text" id="fillName" placeholder="姓名" style="padding:8px;font-size:13px;"></div>
+      <div class="form-group" style="margin-bottom:6px;"><input type="tel" id="fillPhone" placeholder="電話 09xxxxxxxx" style="padding:8px;font-size:13px;" oninput="this.value=this.value.replace(/\D/g,'')"></div>
+      <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">
+        <input type="tel" id="fillBirthY" placeholder="民國年" style="width:70px;padding:8px;font-size:13px;" maxlength="3" oninput="this.value=this.value.replace(/\D/g,'')">
+        <span style="color:var(--text-light);">/</span>
+        <input type="tel" id="fillBirthM" placeholder="月" style="width:55px;padding:8px;font-size:13px;" maxlength="2" oninput="this.value=this.value.replace(/\D/g,'')">
+        <span style="color:var(--text-light);">/</span>
+        <input type="tel" id="fillBirthD" placeholder="日" style="width:55px;padding:8px;font-size:13px;" maxlength="2" oninput="this.value=this.value.replace(/\D/g,'')">
+      </div>
+      <div id="fillPatientError" class="alert alert-error" style="display:none;margin-bottom:6px;"></div>
+      <button class="btn" style="width:100%;background:var(--marigold);color:#fff;font-size:13px;" onclick="doFillPatient()">確認填入</button>
     </div>
     <div id="btnCancelBookingWrap" style="display:none;margin-top:8px;">
       <button class="btn btn-danger" style="width:100%;"
@@ -1689,8 +1705,10 @@ function renderSessionContent(session, isClosed) {
         ? `<div style="position:absolute;bottom:6px;right:7px;font-size:14px;line-height:1;">⚠️</div>` : "";
       const isXinkuan = c.source === "心寬轉介";
 
+      const npBirthDisplay = c.birth ? rocDate(c.birth) : "";
       html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="cursor:pointer;position:relative;">
         <div style="position:absolute;top:7px;left:6px;font-size:20px;font-weight:700;color:#111111;">${esc(c.checkInTime)}前</div>
+        ${npBirthDisplay ? `<div style="position:absolute;top:50%;left:6px;right:90px;transform:translateY(-50%);font-size:10px;font-weight:400;color:#111111;opacity:0.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${npBirthDisplay}</div>` : ""}
         <div style="position:absolute;bottom:6px;left:6px;right:90px;font-size:12px;font-weight:400;color:#111111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${isXinkuan ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(c.name)}</span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>` : esc(c.name)}</div>
         <button id="btn-${esc(c.bookingId)}"
           onclick="event.stopPropagation(); toggleCheckin('${esc(c.bookingId)}',this)"
@@ -1699,7 +1717,8 @@ function renderSessionContent(session, isClosed) {
       </div>`;
     } else if (c.type === "rt") {
       const isNotified = c.isAdminBooking && c.notifyStatus === "[已人工通知]";
-      const cellClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
+      const isReserved = c.name === "保留號";
+      const cellClass = isReserved ? "is-reserved" : (c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient");
       const numDisplay = `${c.num}`;
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" data-type="複診" data-status="${esc(c.status||'')}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const cautionHtml = (c.isAdminBooking && (c.notifyStatus === "[人工預約]")) ? `<div class="cell-caution"></div>` : "";
@@ -1712,7 +1731,7 @@ function renderSessionContent(session, isClosed) {
       const birthDisplay = c.birth ? rocDate(c.birth) : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#111111;position:absolute;top:6px;left:6px;">${numDisplay}</span>
-        ${birthDisplay ? `<span style="font-size:9px;font-weight:400;color:#111111;opacity:0.7;position:absolute;top:50%;left:6px;right:6px;transform:translateY(-50%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${birthDisplay}</span>` : ""}
+        ${birthDisplay ? `<span style="font-size:10px;font-weight:400;color:#111111;opacity:0.7;position:absolute;top:50%;left:6px;right:6px;transform:translateY(-50%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${birthDisplay}</span>` : ""}
         <span style="font-size:12px;font-weight:400;color:#111111;position:absolute;bottom:5px;left:6px;right:${nameRight};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${nameHtml}</span>
         ${cautionHtml}
       </div>`;
@@ -2195,6 +2214,75 @@ function closeAdminAddResult() {
   if (forceBtn) { forceBtn.disabled = false; forceBtn.textContent = "⛔ 病患無手機：確認代掛。"; }
 }
 
+async function doQuickReserve() {
+  const slot = adminAddSlot;
+  if (!slot) { alert("請先點選要保留的號碼格子。"); return; }
+  showAdminOverlay("快速保留中...");
+  try {
+    const dateStr = dateToYMD(state.viewDate);
+    const data = await xhrPost(API_URL, {
+      action: "quickReserve",
+      lineId: state.lineId,
+      token: state.sessionToken,
+      date: dateStr,
+      session: activeSession,
+      timeSlot: String(slot)
+    });
+    if (!data.success) throw new Error(data.error);
+    closeModal("modalAdminAdd");
+    showToast("✓ 已快速保留 " + slot + " 號");
+    loadSchedule(activeSession);
+  } catch(e) {
+    if (e.isSessionExpired) return;
+    document.getElementById("adminAddError").textContent = e.message || "保留失敗，請稍後再試。";
+    document.getElementById("adminAddError").style.display = "block";
+  } finally {
+    hideAdminOverlay();
+  }
+}
+
+async function doFillPatient() {
+  const errEl = document.getElementById("fillPatientError");
+  errEl.style.display = "none";
+  const name = document.getElementById("fillName").value.trim();
+  const phone = document.getElementById("fillPhone").value.trim();
+  const y = document.getElementById("fillBirthY").value.trim();
+  const m = document.getElementById("fillBirthM").value.trim();
+  const d = document.getElementById("fillBirthD").value.trim();
+
+  if (!name || !phone || !y || !m || !d) {
+    errEl.textContent = "請填寫所有欄位。";
+    errEl.style.display = "block";
+    return;
+  }
+
+  const adYear = parseInt(y) + 1911;
+  const birth = adYear + "-" + m.padStart(2,"0") + "-" + d.padStart(2,"0");
+
+  showAdminOverlay("更新中...");
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "adminUpdateBookingPatient",
+      lineId: state.lineId,
+      token: state.sessionToken,
+      bookingId: state.contactBookingId,
+      name: name,
+      phone: phone,
+      birth: birth
+    });
+    if (!data.success) throw new Error(data.error);
+    closeModal("modalContact");
+    showToast("✓ 病患資料已填入");
+    loadSchedule(activeSession);
+  } catch(e) {
+    if (e.isSessionExpired) return;
+    errEl.textContent = e.message || "更新失敗，請稍後再試。";
+    errEl.style.display = "block";
+  } finally {
+    hideAdminOverlay();
+  }
+}
+
 async function confirmForceAdd() {
   // 病患無手機：使用暫存資料重新呼叫 adminAddBooking，帶 forceAdd: true
   const btn = document.querySelector("#adminAddResultNotFound button:last-child");
@@ -2401,11 +2489,10 @@ function copyLineMsgForAdd(isReminder) {
 }
 
 function rocDate(birthStr) {
-  // GAS 已回傳民國年格式如 "79/05/20"，直接格式化顯示
   if (!birthStr) return "";
   const parts = birthStr.toString().split("/");
   if (parts.length === 3) {
-    return "民國 " + parts[0] + " 年 " + parts[1] + " 月 " + parts[2] + " 日";
+    return parts[0] + "/" + parts[1] + "/" + parts[2];
   }
   return birthStr;
 }
@@ -2484,6 +2571,21 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
   }
 
   document.getElementById("modalContact").classList.add("active");
+
+  // 填入病患資料：只有保留號才顯示
+  const fillPatientWrap = document.getElementById("btnFillPatientWrap");
+  const fillPatientErr = document.getElementById("fillPatientError");
+  if (fillPatientErr) fillPatientErr.style.display = "none";
+  if (name === "保留號") {
+    fillPatientWrap.style.display = "block";
+    document.getElementById("fillName").value = "";
+    document.getElementById("fillPhone").value = "";
+    document.getElementById("fillBirthY").value = "";
+    document.getElementById("fillBirthM").value = "";
+    document.getElementById("fillBirthD").value = "";
+  } else {
+    fillPatientWrap.style.display = "none";
+  }
 
   // 複製訊息按鈕：只有管理員代掛才顯示
   const copyWrap = document.getElementById("btnCopyMsgWrap");
