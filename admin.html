@@ -374,40 +374,40 @@
   }
   .grid-cell:not(.empty):active { transform: scale(0.96); opacity: 0.9; transition: all 0.1s ease-out; }
 
-  /* 有病患格子 —— 深灰白字 */
+  /* 有病患格子 —— 深灰白字(浮起效果) */
   .grid-cell.has-patient,
   .grid-cell.admin-notified,
   .grid-cell.admin-pending {
-    background: var(--bg-3);
-    border: 1px solid var(--border-hard);
+    background: #2a2a2a;
+    border: 1px solid rgba(255,255,255,0.3);
     cursor: pointer;
   }
   .grid-cell.has-patient:hover,
   .grid-cell.admin-notified:hover,
-  .grid-cell.admin-pending:hover { background: var(--bg-4); }
+  .grid-cell.admin-pending:hover { background: #333; }
 
   /* 保留號 —— 微金色邊框 */
   .grid-cell.is-reserved {
-    background: var(--bg-3);
-    border: 1px solid rgba(200,168,75,0.3);
+    background: #2a2a2a;
+    border: 1px solid rgba(200,168,75,0.4);
     cursor: pointer;
   }
-  .grid-cell.is-reserved .cell-num { color: rgba(200,168,75,0.65); font-weight: 400; }
-  .grid-cell.is-reserved .cell-name { color: #6a6a6a; font-style: italic; font-weight: 300; }
+  .grid-cell.is-reserved .cell-num { color: rgba(200,168,75,0.75); font-weight: 400; }
+  .grid-cell.is-reserved .cell-name { color: #8a8a8a; font-style: italic; font-weight: 400; }
 
   .grid-cell.empty {
-    background: var(--bg-2);
-    border: 1px solid var(--border-soft);
+    background: #0f0f0f;
+    border: 1px solid rgba(255,255,255,0.05);
   }
 
   /* 數字 */
-  .cell-num { font-size: 22px; font-weight: 300; line-height: 1; align-self: flex-start; letter-spacing: 0.5px; color: var(--empty-text); }
+  .cell-num { font-size: 22px; font-weight: 300; line-height: 1; align-self: flex-start; letter-spacing: 0.5px; color: #4a4a4a; }
   .grid-cell.has-patient .cell-num,
   .grid-cell.admin-pending .cell-num,
-  .grid-cell.admin-notified .cell-num { color: var(--text); font-weight: 700; }
-  .grid-cell.empty .cell-num { color: var(--empty-text); font-weight: 300; }
+  .grid-cell.admin-notified .cell-num { color: #ffffff; font-weight: 700; }
+  .grid-cell.empty .cell-num { color: #4a4a4a; font-weight: 300; }
 
-  /* 生日(新顯示位置:中間) */
+  /* 生日(中間) */
   .cell-birth {
     position: absolute; top: 50%; left: 7px; right: 7px;
     transform: translateY(-50%);
@@ -418,7 +418,7 @@
   .grid-cell.has-patient .cell-birth,
   .grid-cell.admin-pending .cell-birth,
   .grid-cell.admin-notified .cell-birth {
-    color: #b8b8b8;
+    color: #d8d8d8;
     font-weight: 400;
     font-size: 11.5px;
   }
@@ -433,8 +433,8 @@
   .grid-cell.has-patient .cell-name,
   .grid-cell.admin-pending .cell-name,
   .grid-cell.admin-notified .cell-name {
-    color: #f0f0f0;
-    font-weight: 500;
+    color: #ffffff;
+    font-weight: 600;
     font-size: 13px;
   }
   .grid-cell.empty .cell-name { color: transparent; }
@@ -948,7 +948,7 @@
   <!-- Row 2: 醫師資訊 + 時段磚 -->
   <div class="tile tile-2 tile-doctor" id="doctorTile" style="position:relative;" onclick="loadSchedule(activeSession)" title="點擊重新整理">
     <div class="tile-title" style="font-size:20px;font-weight:200;" id="sessionDoctorText">—</div>
-    <div style="font-size:11px;color:var(--text-dim);margin-top:auto;font-weight:200;letter-spacing:1px;">主治醫師</div>
+    <div style="font-size:11px;color:#9a9a9a;margin-top:auto;font-weight:300;letter-spacing:1.5px;">主治醫師</div>
   </div>
   <div class="tile tile-1 tile-session" id="session-早上" onclick="switchTab('早上')" style="position:relative;">
     <div class="tile-title" style="font-size:16px;">早上診</div>
@@ -1000,7 +1000,7 @@
   </div>
   <div class="tile tile-1 tile-admin" style="position:relative;cursor:pointer;" onclick="openLogoutModal()">
     <div class="tile-title" style="font-size:14px;font-weight:400;" id="adminBadge">...</div>
-    <div style="position:absolute;bottom:7px;left:10px;font-size:11px;font-weight:300;color:var(--text-light);letter-spacing:1px;">管理員</div>
+    <div style="position:absolute;bottom:7px;left:10px;font-size:11px;font-weight:300;color:#9a9a9a;letter-spacing:1.5px;">管理員</div>
   </div>
 
 </div><!-- /metro-grid -->
