@@ -110,6 +110,41 @@
 
   /* ── 全域重置 ── */
   * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; box-shadow: none !important; }
+
+  /* ══════════════════════════════════════════════
+     觸控裝置全域修正(iOS/Android 長按 bug)
+     禁用:tap highlight 藍光、長按選取、文字選取、系統選單
+     套用於所有可點按元素
+     ══════════════════════════════════════════════ */
+  button,
+  [onclick],
+  .tile,
+  .cell,
+  .session-tab,
+  .nav-btn,
+  .date-nav-btn,
+  .m-tab,
+  .m-btn,
+  .m-btn-primary,
+  .m-btn-secondary,
+  .m-btn-danger,
+  .m-row-hover,
+  .modal-close,
+  .btn,
+  .btn-sm,
+  .pv-day,
+  .pv-nav,
+  .contact-action,
+  .logout-tile {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+  }
+
   html, body { background: var(--bg); overflow-x: hidden; }
   body {
     font-family: "Noto Sans TC", "Segoe UI", sans-serif;
