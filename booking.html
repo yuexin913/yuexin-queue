@@ -918,6 +918,11 @@
     <div class="card" style="margin-top:16px;text-align:center;">
       <div id="pageBindContent">
         <div class="loading"><div class="spinner"></div>查詢中...</div>
+        <div id="pageBindSlowHint" style="display:none;margin-top:20px;padding:14px 16px;background:rgba(255,200,0,0.12);border-left:3px solid #d4a017;font-size:13px;color:var(--ink);line-height:1.7;text-align:left;">
+          載入時間較長,建議:<br>
+          1. 稍待幾秒再試試<br>
+          2. 若持續無反應,請關閉此頁,回到 LINE 重新點選連結
+        </div>
       </div>
     </div>
   </div>
@@ -1171,29 +1176,64 @@ let state = {
 // 初始化 LIFF
 // ===================================
 async function initLiff() {
-  // 預先偵測是否為綁定連結（LIFF init 前就能判斷）
+  // 預先偵測是否為綁定連結(LIFF init 前就能判斷)
   const urlParams = new URLSearchParams(window.location.search);
   const bindToken = urlParams.get("bind");
 
-  // 若是綁定連結，先顯示 pageBind loading 畫面
+  // 若是綁定連結,先顯示 pageBind loading 畫面
   if (bindToken) {
     showPage("pageBind");
+    // 8 秒後若還沒好,顯示 fallback 提示(不中斷流程,只是告訴使用者怎麼辦)
+    var slowHintTimer = setTimeout(function() {
+      var hint = document.getElementById("pageBindSlowHint");
+      if (hint) hint.style.display = "block";
+    }, 8000);
+    // 存起來讓成功或錯誤路徑都能清掉
+    window._bindSlowHintTimer = slowHintTimer;
   }
 
-  try {
-    // LIFF init 加上 timeout（15秒）
+  // LIFF 初始化函式,封裝成可重試的版本
+  async function tryInitLiff() {
     await Promise.race([
       liff.init({ liffId: LIFF_ID }),
       new Promise(function(_, reject) {
-        setTimeout(function() { reject(new Error("LIFF_TIMEOUT")); }, 15000);
+        setTimeout(function() { reject(new Error("LIFF_TIMEOUT")); }, 12000);
       })
     ]);
+    // 重點:等 liff.ready 才算真的 SDK 可用(避免首次授權 race condition)
+    if (liff.ready) {
+      await Promise.race([
+        liff.ready,
+        new Promise(function(_, reject) {
+          setTimeout(function() { reject(new Error("LIFF_READY_TIMEOUT")); }, 10000);
+        })
+      ]);
+    }
+  }
+
+  try {
+    // 首次嘗試 LIFF init
+    try {
+      await tryInitLiff();
+    } catch (firstErr) {
+      // 綁定連結情境下,首次失敗自動重試一次(第二次通常會成功,使用者察覺不到)
+      if (bindToken && (firstErr.message === "LIFF_TIMEOUT" || firstErr.message === "LIFF_READY_TIMEOUT")) {
+        console.warn("[LIFF] 首次初始化失敗,自動重試", firstErr.message);
+        await new Promise(function(r) { setTimeout(r, 500); }); // 稍等 500ms
+        await tryInitLiff();
+      } else {
+        throw firstErr;
+      }
+    }
+
     if (!liff.isLoggedIn()) { liff.login(); return; }
     const profile = await liff.getProfile();
     state.lineId = profile.userId;
 
     // 偵測綁定連結 ?bind=token
     if (bindToken) {
+      // 清掉 slow hint timer(成功不需要提示)
+      if (window._bindSlowHintTimer) clearTimeout(window._bindSlowHintTimer);
       await handleBindToken(bindToken);
       return;
     }
@@ -1201,7 +1241,7 @@ async function initLiff() {
     // LIFF init 完成 → 立刻顯示全屏載入畫面
     showPage("pageLoading");
 
-    // 黑名單驗證 + 公告載入 並行執行，不互相等待
+    // 黑名單驗證 + 公告載入 並行執行,不互相等待
     const [blResult] = await Promise.all([
       xhrGet(`${API_URL}?action=checkBlacklist&lineId=${state.lineId}`).catch(() => ({})),
       xhrGet(`${API_URL}?action=getUpcomingAnnouncements`).then(function(r) {
@@ -1217,11 +1257,13 @@ async function initLiff() {
 
     showPage("pageEntry");
   } catch(e) {
-    // 綁定連結情境：顯示重試畫面
+    // 清掉 slow hint timer(錯誤也不需要提示,直接進錯誤畫面)
+    if (window._bindSlowHintTimer) clearTimeout(window._bindSlowHintTimer);
+    // 綁定連結情境:顯示重試畫面
     if (bindToken) {
       const el = document.getElementById("pageBindContent");
       if (el) {
-        const isTimeout = e.message === "LIFF_TIMEOUT";
+        const isTimeout = e.message === "LIFF_TIMEOUT" || e.message === "LIFF_READY_TIMEOUT";
         el.innerHTML = `
           <div class="status-container">
             <div class="status-icon status-warning">
@@ -1234,13 +1276,13 @@ async function initLiff() {
               </svg>
             </div>
             <div class="status-title status-warning-text">${isTimeout ? "連線逾時" : "連線異常"}</div>
-            <div class="status-sub">請確認網路連線後再試一次。</div>
+            <div class="status-sub" style="max-width:320px;">請關閉此頁,回到 LINE 重新點選連結。</div>
             <button class="btn btn-primary" style="max-width:200px;" onclick="location.reload()">重新載入</button>
           </div>`;
       }
       return;
     }
-    // 一般預約情境：顯示請使用 LINE 開啟
+    // 一般預約情境:顯示請使用 LINE 開啟
     document.querySelector(".container").innerHTML = `
       <div class="card" style="text-align:center;padding:40px 20px">
         <div style="font-size:40px;margin-bottom:16px"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg></div>
