@@ -15,7 +15,7 @@
   <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
   /* ==========================================================
@@ -664,6 +664,16 @@
   }
   .modal-btn-cancel { background: #f0f0f0; color: var(--ink); }
   .modal-btn-confirm { background: var(--error); color: white; }
+
+
+  /* Lucide SVG icon — 統一樣式 */
+  .icon {
+    display: inline-block;
+    vertical-align: -0.125em;
+    flex-shrink: 0;
+    stroke: currentColor;
+    fill: none;
+  }
 </style>
 </head>
 <body>
@@ -705,7 +715,7 @@
   <!-- 載入錯誤頁（黑名單） -->
   <div class="page" id="pageLoadError">
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;padding:0 24px;text-align:center;">
-      <div style="font-size:40px;">🛠️</div>
+      <div style="font-size:40px;"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>️</div>
       <div style="font-size:15px;color:var(--ink);line-height:1.8;">
         很抱歉，線上預約功能暫時無法使用。<br>
         若需協助，請傳訊息至官方LINE，<br>
@@ -720,7 +730,7 @@
 
     <!-- 門診公告 -->
     <div class="announcement-box" id="announcementBox">
-      <div class="announcement-title">🔔 門診公告</div>
+      <div class="announcement-title"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg> 門診公告</div>
       <div id="announcementList"></div>
       <div class="announcement-toggle" id="announcementToggle" style="display:none;" onclick="toggleAnnouncements()"></div>
     </div>
@@ -733,7 +743,7 @@
       <div class="card-title">請選擇服務</div>
       <div class="entry-options">
         <div class="entry-btn" onclick="startBooking('複診')">
-          <div class="entry-icon">🔄</div>
+          <div class="entry-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg></div>
           <div class="entry-text">
             <div class="entry-title">複診預約</div>
             <div class="entry-desc">過去曾於本院看診過。</div>
@@ -741,7 +751,7 @@
           <div class="entry-arrow">›</div>
         </div>
         <div class="entry-btn" onclick="startBooking('初診')">
-          <div class="entry-icon">🌱</div>
+          <div class="entry-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg></div>
           <div class="entry-text">
             <div class="entry-title">初診預約</div>
             <div class="entry-desc">首次來診，未在本院看診過。非楠梓心寬診所轉介。</div>
@@ -749,7 +759,7 @@
           <div class="entry-arrow">›</div>
         </div>
         <div class="entry-btn" onclick="startQuery()">
-          <div class="entry-icon">🔍</div>
+          <div class="entry-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
           <div class="entry-text">
             <div class="entry-title">查詢／取消預約</div>
             <div class="entry-desc">查看或取消已預約的門診。</div>
@@ -757,7 +767,7 @@
           <div class="entry-arrow">›</div>
         </div>
         <div class="entry-btn" onclick="startXinkuanBooking()">
-          <div class="entry-icon">🏥</div>
+          <div class="entry-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v4"/><path d="M14 14h-4"/><path d="M14 18h-4"/><path d="M14 8h-4"/><path d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h2"/><path d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/></svg></div>
           <div class="entry-text">
             <div class="entry-title">楠梓心寬診所轉介</div>
             <div class="entry-desc">過去於楠梓心寬診所就醫，未來需改於本院就醫。</div>
@@ -765,7 +775,7 @@
           <div class="entry-arrow">›</div>
         </div>
         <div class="entry-btn" style="opacity:0.45;pointer-events:none;cursor:not-allowed;">
-          <div class="entry-icon">🛋️</div>
+          <div class="entry-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"/><path d="M2 11v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H6v-2a2 2 0 0 0-4 0Z"/><path d="M4 18v2"/><path d="M20 18v2"/></svg>️</div>
           <div class="entry-text">
             <div class="entry-title">心理治療預約</div>
             <div class="entry-desc">尚未開放</div>
@@ -916,7 +926,7 @@
     <div id="sessionContainer"></div>
     <!-- 時段選擇 -->
     <div id="slotsContainer"></div>
-    <div id="nhiReminder" class="alert alert-warn" style="display:none;margin-top:24px">💡 <strong>重要提醒：</strong>為確保用藥安全及避免浪費資源，健保看診開藥（領藥）原則上僅能提前 1 天。若不確定您的健保回診日期，敬請提前聯繫診所確認。</div>
+    <div id="nhiReminder" class="alert alert-warn" style="display:none;margin-top:24px"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> <strong>重要提醒：</strong>為確保用藥安全及避免浪費資源，健保看診開藥（領藥）原則上僅能提前 1 天。若不確定您的健保回診日期，敬請提前聯繫診所確認。</div>
     <div id="errorPage2" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-primary" onclick="goToConfirm()">下一步：確認預約 →</button>
     <button class="btn btn-outline" onclick="showPage('pageInfo')">← 修改基本資料</button>
@@ -933,7 +943,7 @@
     </div>
     <div class="confirm-card">
       <div class="confirm-card-header">
-        <div class="confirm-card-header-icon">📋</div>
+        <div class="confirm-card-header-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></div>
         <div class="confirm-card-header-title">確認預約資料</div>
       </div>
       <div class="confirm-card-body">
@@ -1097,7 +1107,7 @@ async function initLiff() {
     // 一般預約情境：顯示請使用 LINE 開啟
     document.querySelector(".container").innerHTML = `
       <div class="card" style="text-align:center;padding:40px 20px">
-        <div style="font-size:40px;margin-bottom:16px">📱</div>
+        <div style="font-size:40px;margin-bottom:16px"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg></div>
         <div style="font-family:'Noto Serif TC',serif;font-size:17px;color:var(--green-dark);margin-bottom:12px">請使用 LINE 開啟</div>
         <div style="font-size:13px;color:var(--text-light);line-height:1.8">本預約系統需透過 LINE 開啟使用。<br>請在 LINE 中點選連結進入。</div>
       </div>`;
@@ -1192,7 +1202,7 @@ async function handleBindToken(bindToken) {
       return;
     }
     el.innerHTML = `
-      <div style="font-size:40px;margin-bottom:16px;">📋</div>
+      <div style="font-size:40px;margin-bottom:16px;"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></div>
       <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:16px;">確認保留此預約？</div>
       <div style="text-align:left;background:var(--bg-2);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:14px;line-height:2;">
         <div>▸ 日期：${data.date}（週${data.weekday}）</div>
@@ -2042,7 +2052,7 @@ function renderBookingPage() {
         <div class="booking-date">${esc(b.date)} ${displayName}</div>
         <div class="booking-status ${statusCls}">${esc(b.status)}</div>
       </div>
-      ${b.name ? `<div class="booking-detail" style="font-weight:700;color:var(--text);">👤 ${esc(b.name)}</div>` : ""}
+      ${b.name ? `<div class="booking-detail" style="font-weight:700;color:var(--text);"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ${esc(b.name)}</div>` : ""}
       <div class="booking-detail">
         ${slotLine}${checkInLine}醫師：${esc(b.doctor || "-")}
       </div>
