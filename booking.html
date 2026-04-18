@@ -967,7 +967,7 @@ async function handleBindToken(bindToken) {
       <div style="font-size:12px;color:var(--text-light);margin-bottom:16px;line-height:1.6;">確認後系統將發送預約通知給您。</div>
       <div id="bindConfirmError" class="alert alert-error" style="display:none;margin-bottom:12px;"></div>
       <button class="btn btn-primary" id="btnBindConfirm" onclick="submitBind('${bindToken}')">確認</button>
-      <button class="btn btn-outline" style="margin-top:8px;" onclick="if(liff.isInClient()){liff.closeWindow();}else{window.close();}">取消</button>`;
+      <div style="font-size:12px;color:var(--text-light);margin-top:12px;">放棄預約請直接退出或關閉。</div>`;
   } catch(e) {
     el.innerHTML = `<div style="font-size:40px;margin-bottom:16px;">⚠️</div>
       <div style="font-size:13px;color:var(--text-light);margin-bottom:16px;">連線異常，請再試一次。</div>
