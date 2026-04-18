@@ -17,13 +17,14 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.0 (2026-04)
+     Version:   v5.1 (2026-04-18)
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
      ────────────────────────────────────────────────────────
      Roadmap:
-     · v5.0 目前 — UI 大改版(Terminal 風 modal、SVG icon)
+     · v5.0 - UI 大改版(Terminal 風 modal、SVG icon)
+     · v5.1 目前 - 狀態畫面統一 + 紅級 emoji 清除 + 觸控修正
      · v6.0 預計 — 心理治療功能上線
      · v7.0 預計 — 帳號系統與多醫師登入
      ════════════════════════════════════════════════════════ */
@@ -1563,7 +1564,7 @@
     </div>
     <div id="adminAddError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
     <button class="btn" style="background:var(--marigold);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%;margin-top:4px" id="btnAdminAdd" onclick="doAdminAddBooking(null)">確認代掛</button>
-    <button class="btn" style="background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);font-size:13px;padding:10px;width:100%;margin-top:8px;" onclick="doQuickReserve()">⚡ 快速保留（免填資料）</button>
+    <button class="btn" style="background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);font-size:13px;padding:10px;width:100%;margin-top:8px;" onclick="doQuickReserve()"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--yellow);vertical-align:-2px;margin-right:6px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>快速保留(免填資料)</button>
   </div>
 </div>
 
