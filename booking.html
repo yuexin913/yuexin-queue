@@ -802,15 +802,28 @@ let state = {
 // 初始化 LIFF
 // ===================================
 async function initLiff() {
+  // 預先偵測是否為綁定連結（LIFF init 前就能判斷）
+  const urlParams = new URLSearchParams(window.location.search);
+  const bindToken = urlParams.get("bind");
+
+  // 若是綁定連結，先顯示 pageBind loading 畫面
+  if (bindToken) {
+    showPage("pageBind");
+  }
+
   try {
-    await liff.init({ liffId: LIFF_ID });
+    // LIFF init 加上 timeout（15秒）
+    await Promise.race([
+      liff.init({ liffId: LIFF_ID }),
+      new Promise(function(_, reject) {
+        setTimeout(function() { reject(new Error("LIFF_TIMEOUT")); }, 15000);
+      })
+    ]);
     if (!liff.isLoggedIn()) { liff.login(); return; }
     const profile = await liff.getProfile();
     state.lineId = profile.userId;
 
     // 偵測綁定連結 ?bind=token
-    const urlParams = new URLSearchParams(window.location.search);
-    const bindToken = urlParams.get("bind");
     if (bindToken) {
       await handleBindToken(bindToken);
       return;
@@ -835,7 +848,19 @@ async function initLiff() {
 
     showPage("pageEntry");
   } catch(e) {
-    // LIFF載入失敗：顯示提示，不允許繼續操作
+    // 綁定連結情境：顯示重試畫面
+    if (bindToken) {
+      const el = document.getElementById("pageBindContent");
+      if (el) {
+        const isTimeout = e.message === "LIFF_TIMEOUT";
+        el.innerHTML = `<div style="font-size:40px;margin-bottom:16px;">⚠️</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;">${isTimeout ? "連線逾時" : "連線異常"}</div>
+          <div style="font-size:13px;color:var(--text-light);margin-bottom:16px;line-height:1.8;">請確認網路連線後再試一次。</div>
+          <button class="btn btn-primary" onclick="location.reload()">重新載入</button>`;
+      }
+      return;
+    }
+    // 一般預約情境：顯示請使用 LINE 開啟
     document.querySelector(".container").innerHTML = `
       <div class="card" style="text-align:center;padding:40px 20px">
         <div style="font-size:40px;margin-bottom:16px">📱</div>
@@ -942,7 +967,7 @@ async function handleBindToken(bindToken) {
       <div style="font-size:12px;color:var(--text-light);margin-bottom:16px;line-height:1.6;">確認後系統將發送預約通知給您。</div>
       <div id="bindConfirmError" class="alert alert-error" style="display:none;margin-bottom:12px;"></div>
       <button class="btn btn-primary" id="btnBindConfirm" onclick="submitBind('${bindToken}')">確認</button>
-      <button class="btn btn-outline" style="margin-top:8px;" onclick="liff.closeWindow()">取消</button>`;
+      <button class="btn btn-outline" style="margin-top:8px;" onclick="if(liff.isInClient()){liff.closeWindow();}else{window.close();}">取消</button>`;
   } catch(e) {
     el.innerHTML = `<div style="font-size:40px;margin-bottom:16px;">⚠️</div>
       <div style="font-size:13px;color:var(--text-light);margin-bottom:16px;">連線異常，請再試一次。</div>
