@@ -13,375 +13,268 @@
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
   <meta property="og:type" content="website">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
-  /* ==========================================================
-     悅心診所 線上預約系統 — 自然綠系 UI
-     色階三層:sage（主）/ sage-dark（深）/ sage-deep（最深）
-     ========================================================== */
-  :root {
-    /* 新色階 */
-    --sage:        #7AAB5A;
-    --sage-dark:   #4e7a35;
-    --sage-deep:   #3a5c28;
-    --sage-light:  #eef5e6;
-    --sage-mist:   #f4f9ef;
-    --ink:         #1e2d1f;
-    --ink-mid:     #4a5e4b;
-    --ink-light:   #8fa08f;
-    --cream:       #fdfcf8;
-    --parchment:   #f8f6f0;
-    --gold:        #c8a84b;
-    --gold-light:  #fdf6e3;
-    --warn-border: #e8d090;
-    --error:       #c0392b;
-    --shadow-sm:   0 1px 4px rgba(74,110,52,0.08);
-    --shadow-md:   0 4px 20px rgba(74,110,52,0.12);
-    --shadow-lg:   0 8px 40px rgba(74,110,52,0.16);
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500&display=swap');
 
-    /* 舊變數別名（保留相容，JS 內 innerHTML 使用這些變數） */
-    --green:       #7AAB5A;
-    --green-light: #eef5e6;
-    --green-dark:  #4e7a35;
-    --text:        #1e2d1f;
-    --text-light:  #8fa08f;
-    --border:      #d4e4c8;
-    --bg:          #f8f6f0;
-    --white:       #fdfcf8;
-    --shadow:      0 4px 20px rgba(74,110,52,0.12);
+  :root {
+    --green: #7AAB5A;
+    --green-light: #EEF4E8;
+    --green-dark: #5a8a3a;
+    --text: #2d3a2e;
+    --text-light: #6b7c6d;
+    --border: #d4e4c8;
+    --bg: #f8faf6;
+    --white: #ffffff;
+    --error: #c0392b;
+    --shadow: 0 2px 16px rgba(122,171,90,0.10);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Noto Sans TC', sans-serif;
-    background: var(--parchment);
-    color: var(--ink);
+    background: var(--bg);
+    color: var(--text);
     min-height: 100vh;
-    padding-bottom: 60px;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    padding-bottom: 40px;
   }
 
-  /* ── HEADER ── */
   .header {
-    background: var(--cream);
-    border-bottom: 1px solid rgba(122,171,90,0.15);
-    padding: 14px 20px 12px;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
     text-align: center;
     position: sticky; top: 0; z-index: 10;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow);
   }
   .header h1 {
     font-family: 'Noto Serif TC', serif;
-    font-size: 18px; font-weight: 600;
-    color: var(--sage-deep);
-    letter-spacing: 3px;
+    font-size: 18px; font-weight: 500;
+    color: var(--green-dark); letter-spacing: 2px;
   }
-  .header p,
-  .header-sub {
-    font-size: 11px; color: var(--ink-light);
-    letter-spacing: 1.5px; margin-top: 2px;
-    text-transform: uppercase;
-  }
-  .beta-badge {
-    display: inline-block;
-    font-size: 10px; font-weight: 700;
-    color: #fff; background: #D4522A;
-    padding: 1px 9px; border-radius: 20px;
-    letter-spacing: 1.5px; margin-top: 4px;
-  }
+  .header p { font-size: 12px; color: var(--text-light); margin-top: 2px; }
 
-  .container { max-width: 480px; margin: 0 auto; padding: 24px 16px; }
+  .container { max-width: 480px; margin: 0 auto; padding: 20px 16px; }
 
-  /* ── STEPS 步驟條 ── */
   .steps {
-    display: flex; align-items: center;
-    justify-content: center; gap: 0;
-    margin-bottom: 28px;
+    display: flex; justify-content: center; gap: 0;
+    margin-bottom: 24px;
   }
   .step {
-    display: flex; flex-direction: column;
-    align-items: center; gap: 5px;
-    font-size: 10px; color: var(--ink-light);
-    letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-light);
   }
   .step-num {
-    width: 28px; height: 28px; border-radius: 50%;
-    background: #e8ede6; color: var(--ink-light);
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--border); color: var(--text-light);
     display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 500;
-    transition: all 0.3s;
+    font-size: 11px; font-weight: 500; transition: all 0.3s;
   }
-  .step.done .step-num {
-    background: var(--sage-dark); color: white;
-    box-shadow: 0 2px 8px rgba(78,122,53,0.3);
-  }
-  .step.done .step-num::after {
-    content: '✓'; font-size: 12px; font-weight: 700;
-  }
-  .step.done .step-num span { display: none; }
-  .step.active .step-num {
-    background: var(--sage); color: white;
-    box-shadow: 0 2px 12px rgba(122,171,90,0.4);
-    transform: scale(1.1);
-  }
-  .step.active { color: var(--sage-dark); font-weight: 500; }
-  .step-line {
-    width: 32px; height: 1.5px;
-    background: linear-gradient(90deg, var(--sage-dark), var(--sage-light));
-    margin: 0 2px; margin-bottom: 22px; opacity: 0.5;
-  }
+  .step.active .step-num { background: var(--green); color: white; }
+  .step.active { color: var(--green-dark); font-weight: 500; }
+  .step.done .step-num { background: var(--green-dark); color: white; }
+  .step-line { width: 24px; height: 1px; background: var(--border); margin: 0 4px; }
 
-  /* ── CARD ── */
   .card {
-    background: var(--cream);
-    border-radius: 20px;
-    padding: 24px 20px;
-    box-shadow: var(--shadow-md);
-    margin-bottom: 16px;
-    border: 1px solid rgba(122,171,90,0.12);
-    animation: slideUp 0.4s cubic-bezier(0.22,1,0.36,1) both;
-  }
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    background: var(--white); border-radius: 16px;
+    padding: 24px 20px; box-shadow: var(--shadow); margin-bottom: 16px;
   }
   .card-title {
     font-family: 'Noto Serif TC', serif;
-    font-size: 16px; font-weight: 600; color: var(--sage-deep);
-    margin-bottom: 18px;
-    display: flex; align-items: center; gap: 10px;
-    letter-spacing: 0.5px;
+    font-size: 16px; font-weight: 500; color: var(--green-dark);
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
   }
   .card-title::before {
     content: ''; width: 3px; height: 16px;
-    background: var(--sage); border-radius: 2px;
+    background: var(--green); border-radius: 2px;
   }
 
-  /* ── FORM ── */
-  .form-group { margin-bottom: 18px; }
+  .form-group { margin-bottom: 16px; }
   label {
-    display: block; font-size: 12px;
-    color: var(--ink-light); margin-bottom: 7px; font-weight: 500;
-    letter-spacing: 0.3px;
+    display: block; font-size: 13px;
+    color: var(--text-light); margin-bottom: 6px; font-weight: 500;
   }
   label .required { color: var(--error); margin-left: 2px; }
 
-  input[type="text"], input[type="tel"], input[type="date"], input[type="number"] {
+  input[type="text"], input[type="tel"], input[type="date"] {
     width: 100%; padding: 12px 14px;
-    border: 1.5px solid rgba(122,171,90,0.25); border-radius: 10px;
+    border: 1.5px solid var(--border); border-radius: 10px;
     font-size: 16px; font-family: 'Noto Sans TC', sans-serif;
-    color: var(--ink); background: var(--cream);
-    transition: border-color 0.2s, box-shadow 0.2s; outline: none; appearance: none;
+    color: var(--text); background: var(--white);
+    transition: border-color 0.2s; outline: none; appearance: none;
   }
-  input:focus {
-    border-color: var(--sage);
-    box-shadow: 0 0 0 3px rgba(122,171,90,0.12);
-  }
+  input:focus { border-color: var(--green); }
 
-  /* ── 入口 ENTRY BUTTONS ── */
+  /* 入口三選項 */
   .entry-options { display: flex; flex-direction: column; gap: 12px; }
   .entry-btn {
     display: flex; align-items: center; gap: 16px;
-    padding: 18px 18px;
-    border: 1.5px solid rgba(122,171,90,0.2);
-    border-radius: 16px; background: var(--cream);
+    padding: 20px 18px;
+    border: 1.5px solid var(--border);
+    border-radius: 14px; background: var(--white);
     cursor: pointer; transition: all 0.2s;
     text-align: left;
   }
-  .entry-btn:hover {
-    border-color: var(--sage);
-    background: var(--sage-mist);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-  }
+  .entry-btn:hover { border-color: var(--green); background: var(--green-light); transform: translateY(-1px); box-shadow: var(--shadow); }
+  /* 樂觀載入：驗證期間 disable 所有入口按鈕 */
   .entry-btn-disabled { opacity: 0.45; pointer-events: none; cursor: not-allowed; }
   .entry-icon { font-size: 28px; flex-shrink: 0; }
-  .entry-text .entry-title { font-size: 16px; font-weight: 500; color: var(--ink); }
-  .entry-text .entry-desc {
-    font-size: 12px; color: var(--ink-light); margin-top: 3px;
-    line-height: 1.5;
-  }
-  .entry-arrow { margin-left: auto; color: rgba(122,171,90,0.4); font-size: 18px; }
+  .entry-text .entry-title { font-size: 17px; font-weight: 500; color: var(--text); }
+  .entry-text .entry-desc { font-size: 12px; color: var(--text-light); margin-top: 3px; }
+  .entry-arrow { margin-left: auto; color: var(--border); font-size: 18px; }
 
-  /* ── 日曆 ── */
-  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  /* 日曆 */
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .cal-nav {
-    width: 32px; height: 32px; border: 1.5px solid rgba(122,171,90,0.25);
-    border-radius: 10px; background: var(--cream); cursor: pointer;
+    width: 32px; height: 32px; border: 1.5px solid var(--border);
+    border-radius: 8px; background: var(--white); cursor: pointer;
     font-size: 14px; display: flex; align-items: center; justify-content: center;
-    color: var(--ink-mid); transition: all 0.2s;
+    color: var(--text-light); transition: all 0.2s;
   }
-  .cal-nav:hover { border-color: var(--sage); color: var(--sage-dark); background: var(--sage-mist); }
-  .cal-title { font-size: 15px; font-weight: 500; color: var(--ink); letter-spacing: 1px; }
+  .cal-nav:hover { border-color: var(--green); color: var(--green-dark); }
+  .cal-title { font-size: 15px; font-weight: 500; color: var(--text); }
   .cal-weekdays {
     display: grid; grid-template-columns: repeat(7, 1fr);
-    text-align: center; font-size: 11px; color: var(--ink-light); margin-bottom: 8px;
-    letter-spacing: 0.5px;
+    text-align: center; font-size: 11px; color: var(--text-light); margin-bottom: 8px;
   }
   .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
   .cal-day {
     aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-    font-size: 13px; border-radius: 10px; cursor: pointer; transition: all 0.2s;
+    font-size: 13px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
     border: 1.5px solid transparent;
   }
-  .cal-day:hover:not(.disabled):not(.empty) {
-    background: var(--sage-mist); border-color: var(--sage);
-  }
-  .cal-day.selected {
-    background: var(--sage); color: white; font-weight: 500;
-    box-shadow: 0 2px 8px rgba(122,171,90,0.35);
-  }
+  .cal-day:hover:not(.disabled):not(.empty) { background: var(--green-light); border-color: var(--green); }
+  .cal-day.selected { background: var(--green); color: white; font-weight: 500; }
   .cal-day.disabled { color: #ccc; cursor: not-allowed; }
-  .cal-day.today { font-weight: 600; color: var(--sage-dark); }
+  .cal-day.today { font-weight: 600; color: var(--green-dark); }
   .cal-day.empty { cursor: default; }
 
-  /* ── 時段 session ── */
+  /* 時段 */
   .session-block { margin-bottom: 16px; }
   .session-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 14px; background: var(--sage-mist);
-    border-radius: 10px 10px 0 0; border: 1.5px solid rgba(122,171,90,0.2); border-bottom: none;
+    padding: 10px 12px; background: var(--green-light);
+    border-radius: 10px 10px 0 0; border: 1.5px solid var(--border); border-bottom: none;
   }
-  .session-name { font-size: 14px; font-weight: 500; color: var(--sage-dark); }
-  .session-info { font-size: 11px; color: var(--ink-light); }
-  .session-doctor { font-size: 14px; color: var(--sage-dark); font-weight: 500; }
+  .session-name { font-size: 14px; font-weight: 500; color: var(--green-dark); }
+  .session-info { font-size: 11px; color: var(--text-light); }
+  .session-doctor { font-size: 14px; color: var(--green-dark); font-weight: 500; }
 
-  /* 初診時間格（5欄） */
+  /* 初診時間格（5欄排列） */
   .slots-grid {
     display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
-    padding: 12px; border: 1.5px solid rgba(122,171,90,0.2);
-    border-radius: 0 0 10px 10px; background: var(--cream);
+    padding: 12px; border: 1.5px solid var(--border);
+    border-radius: 0 0 10px 10px; background: var(--white);
   }
   .slot-btn {
-    padding: 10px 4px; border: 1.5px solid rgba(122,171,90,0.25);
-    border-radius: 8px; background: var(--cream);
+    padding: 10px 4px; border: 1.5px solid var(--border);
+    border-radius: 8px; background: var(--white);
     font-size: 14px; font-family: 'Noto Sans TC', sans-serif;
-    color: var(--ink); cursor: pointer; text-align: center; transition: all 0.2s;
+    color: var(--text); cursor: pointer; text-align: center; transition: all 0.2s;
     font-weight: 500;
   }
-  .slot-btn:hover:not(.unavailable) { border-color: var(--sage); background: var(--sage-mist); }
-  .slot-btn.selected {
-    background: linear-gradient(135deg, var(--sage) 0%, var(--sage-dark) 100%);
-    border-color: var(--sage-dark); color: white; font-weight: 600;
-    box-shadow: 0 2px 8px rgba(122,171,90,0.3);
-  }
-  .slot-btn.unavailable { background: #f5f5f5; color: #ccc; cursor: not-allowed; border-color: #e8e8e8; }
+  .slot-btn:hover:not(.unavailable) { border-color: var(--green); background: var(--green-light); }
+  .slot-btn.selected { background: var(--green); border-color: var(--green); color: white; font-weight: 600; }
+  .slot-btn.unavailable { background: #f5f5f5; color: #ccc; cursor: not-allowed; }
 
   /* 複診時段卡片 */
   .time-cards {
     display: flex; flex-direction: column; gap: 8px;
-    padding: 12px; border: 1.5px solid rgba(122,171,90,0.2);
-    border-radius: 0 0 10px 10px; background: var(--cream);
+    padding: 12px; border: 1.5px solid var(--border);
+    border-radius: 0 0 10px 10px; background: var(--white);
   }
   .time-card {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 16px; border: 1.5px solid rgba(122,171,90,0.25);
-    border-radius: 10px; background: var(--cream);
+    padding: 14px 16px; border: 1.5px solid var(--border);
+    border-radius: 8px; background: var(--white);
     cursor: pointer; transition: all 0.2s; text-align: left;
   }
-  .time-card:hover:not(.time-card-disabled) { border-color: var(--sage); background: var(--sage-mist); }
-  .time-card.selected {
-    background: linear-gradient(135deg, var(--sage) 0%, var(--sage-dark) 100%);
-    border-color: var(--sage-dark);
-    box-shadow: 0 2px 10px rgba(122,171,90,0.3);
-  }
+  .time-card:hover:not(.time-card-disabled) { border-color: var(--green); background: var(--green-light); }
+  .time-card.selected { background: var(--green); border-color: var(--green); }
   .time-card.selected .time-card-title { color: white; }
-  .time-card.selected .time-card-label { color: rgba(255,255,255,0.85); }
-  .time-card.selected .time-card-badge { background: rgba(255,255,255,0.22); color: white; }
-  .time-card-disabled { background: #f5f5f5; cursor: not-allowed; border-color: #e8e8e8; }
+  .time-card.selected .time-card-label { color: rgba(255,255,255,0.8); }
+  .time-card.selected .time-card-badge { background: rgba(255,255,255,0.25); color: white; }
+  .time-card-disabled { background: #f5f5f5; cursor: not-allowed; border-color: var(--border); }
   .time-card-disabled .time-card-title { color: #ccc; }
   .time-card-disabled .time-card-label { color: #ccc; }
   .time-card-disabled .time-card-badge { background: #eee; color: #bbb; }
   .time-card-left { flex: 1; }
-  .time-card-title { font-size: 17px; font-weight: 600; color: var(--sage-dark); letter-spacing: 0.5px; }
-  .time-card-label { font-size: 12px; color: var(--ink-light); margin-top: 3px; }
+  .time-card-title { font-size: 17px; font-weight: 600; color: var(--green-dark); letter-spacing: 0.5px; }
+  .time-card-label { font-size: 12px; color: var(--text-light); margin-top: 3px; }
   .time-card-badge {
-    font-size: 11px; font-weight: 500; padding: 3px 9px;
-    background: var(--sage-light); color: var(--sage-dark);
+    font-size: 11px; font-weight: 500; padding: 3px 8px;
+    background: var(--green-light); color: var(--green-dark);
     border-radius: 20px; white-space: nowrap; margin-left: 12px;
   }
-  .time-card-unspecified { border-style: dashed; }
-  .time-card-unspecified .time-card-title { font-size: 15px; font-weight: 500; color: var(--ink-light); }
+  /* 不指定卡片 */
+  .time-card-unspecified {
+    border-style: dashed;
+  }
+  .time-card-unspecified .time-card-title { font-size: 15px; font-weight: 500; color: var(--text-light); }
   .time-card-unspecified.selected .time-card-title { color: white; }
-  .time-card-unspecified:hover:not(.time-card-disabled) .time-card-title { color: var(--sage-dark); }
+  .time-card-unspecified:hover:not(.time-card-disabled) .time-card-title { color: var(--green-dark); }
 
-  /* ── 單選（初診來源） ── */
+  /* 已選日期摘要列 */
   .radio-option {
     display: block;
-    padding: 13px 16px;
-    border: 1.5px solid rgba(122,171,90,0.25);
-    border-radius: 10px;
+    padding: 12px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
     cursor: pointer;
     font-size: 15px;
-    color: var(--ink);
-    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    color: var(--text);
+    transition: border-color 0.15s, background 0.15s;
     user-select: none;
   }
   .radio-option:hover {
-    border-color: var(--sage);
-    background: var(--sage-mist);
+    border-color: var(--green);
+    background: #f0f7f0;
   }
   .radio-option.selected {
-    border-color: var(--sage-dark);
-    background: linear-gradient(135deg, var(--sage) 0%, var(--sage-dark) 100%);
+    border-color: var(--green);
+    background: var(--green);
     color: white;
     font-weight: 600;
-    box-shadow: 0 2px 8px rgba(122,171,90,0.3);
   }
 
-  /* ── 已選日期摘要 ── */
   .selected-date-bar {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 11px 16px; background: var(--sage-mist);
-    border: 1.5px solid rgba(122,171,90,0.25); border-radius: 12px;
-    margin-bottom: 12px; font-size: 15px; font-weight: 500; color: var(--sage-dark);
+    padding: 10px 14px; background: var(--green-light);
+    border: 1.5px solid var(--border); border-radius: 10px;
+    margin-bottom: 12px; font-size: 15px; font-weight: 500; color: var(--green-dark);
   }
   .btn-text-link {
-    background: none; border: none; color: var(--sage); font-size: 13px;
+    background: none; border: none; color: var(--green); font-size: 13px;
     font-family: 'Noto Sans TC', sans-serif; cursor: pointer; padding: 0;
     text-decoration: underline; text-underline-offset: 2px;
   }
   .btn-reselect {
-    background: none; border: 1.5px solid var(--sage); color: var(--sage-dark);
+    background: none; border: 1.5px solid var(--green); color: var(--green);
     font-size: 12px; font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
-    padding: 4px 12px; border-radius: 20px; font-weight: 600; white-space: nowrap;
+    padding: 3px 10px; border-radius: 20px; font-weight: 600; white-space: nowrap;
     transition: background 0.15s, color 0.15s;
   }
-  .btn-reselect:hover { background: var(--sage); color: #fff; }
+  .btn-reselect:hover { background: var(--green); color: #fff; }
   .btn-text-link-strong {
-    background: none; border: none; color: var(--sage-dark); font-size: 14px;
+    background: none; border: none; color: var(--green-dark); font-size: 15px;
     font-family: 'Noto Sans TC', sans-serif; cursor: pointer; padding: 0;
     text-decoration: underline; text-underline-offset: 3px;
-    font-weight: 700; white-space: nowrap; letter-spacing: 0.3px;
+    font-weight: 700; white-space: nowrap; letter-spacing: 0.5px;
   }
 
-  /* ── 診次選擇 ── */
+  /* 診次選擇按鈕 */
   .session-select-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
   .session-select-btn {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 16px; border: 1.5px solid rgba(122,171,90,0.25); border-radius: 12px;
-    background: var(--cream); cursor: pointer; transition: all 0.2s; text-align: left;
+    padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 10px;
+    background: var(--white); cursor: pointer; transition: all 0.2s; text-align: left;
   }
-  .session-select-btn:hover:not(.session-select-disabled) {
-    border-color: var(--sage); background: var(--sage-mist);
-  }
-  .session-select-btn.session-select-active {
-    border-color: var(--sage-dark);
-    background: var(--sage-mist);
-    box-shadow: inset 0 0 0 1px var(--sage);
-  }
+  .session-select-btn:hover:not(.session-select-disabled) { border-color: var(--green); background: var(--green-light); }
+  .session-select-btn.session-select-active { border-color: var(--green); background: var(--green-light); }
   .session-select-btn.session-select-disabled { background: #f5f5f5; cursor: not-allowed; opacity: 0.5; }
-  .session-select-name { font-size: 15px; font-weight: 500; color: var(--sage-dark); }
-  .session-select-time { font-size: 12px; color: var(--ink-light); margin-top: 3px; }
-  .session-select-doctor { font-size: 16px; font-weight: 500; color: var(--sage-dark); white-space: nowrap; }
+  .session-select-name { font-size: 15px; font-weight: 500; color: var(--green-dark); }
+  .session-select-time { font-size: 12px; color: var(--text-light); margin-top: 3px; }
+  .session-select-doctor { font-size: 16px; font-weight: 500; color: var(--green-dark); white-space: nowrap; }
   .doctor-avatar {
     width: 36px; height: 36px;
     border-radius: 50%;
@@ -396,219 +289,107 @@
   }
 
   .fully-booked {
-    text-align: center; padding: 18px; color: var(--ink-light); font-size: 13px;
-    border: 1.5px solid rgba(122,171,90,0.2); border-radius: 0 0 10px 10px; background: #fafafa;
+    text-align: center; padding: 16px; color: var(--text-light); font-size: 13px;
+    border: 1.5px solid var(--border); border-radius: 0 0 10px 10px; background: #fafafa;
   }
 
-  /* ── 按鈕 ── */
   .btn {
-    width: 100%; padding: 16px; border: none; border-radius: 14px;
+    width: 100%; padding: 16px; border: none; border-radius: 12px;
     font-size: 16px; font-family: 'Noto Sans TC', sans-serif;
     font-weight: 500; cursor: pointer; transition: all 0.2s;
-    letter-spacing: 1.5px; margin-bottom: 10px;
-    position: relative; overflow: hidden;
+    letter-spacing: 1px; margin-bottom: 10px;
   }
-  .btn-primary {
-    background: linear-gradient(135deg, var(--sage) 0%, var(--sage-dark) 100%);
-    color: white;
-    box-shadow: 0 4px 18px rgba(122,171,90,0.32);
-  }
-  .btn-primary::after {
-    content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
-    pointer-events: none;
-  }
-  .btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 24px rgba(122,171,90,0.42);
-  }
-  .btn-primary:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 10px rgba(122,171,90,0.25);
-  }
-  .btn-primary:disabled {
-    background: #ccc; cursor: not-allowed; box-shadow: none;
-  }
-  .btn-primary:disabled::after { display: none; }
-
-  .btn-outline {
-    background: transparent;
-    color: var(--sage-dark);
-    border: 1.5px solid rgba(122,171,90,0.35);
-  }
-  .btn-outline:hover {
-    background: var(--sage-mist);
-    border-color: var(--sage);
-  }
-  .btn-danger {
-    background: var(--cream); color: var(--error); border: 1.5px solid var(--error);
-  }
+  .btn-primary { background: var(--green); color: white; }
+  .btn-primary:hover { background: var(--green-dark); }
+  .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+  .btn-outline { background: white; color: var(--green-dark); border: 1.5px solid var(--green); }
+  .btn-danger { background: white; color: var(--error); border: 1.5px solid var(--error); }
   .btn-danger:hover { background: #fdf0ef; }
-
   .pill-btn {
-    padding: 7px 16px; border: 1.5px solid var(--sage); border-radius: 20px;
-    background: var(--cream); color: var(--sage-dark); font-family: inherit; font-size: 14px;
+    padding: 6px 16px; border: 1.5px solid var(--green); border-radius: 20px;
+    background: white; color: var(--green-dark); font-family: inherit; font-size: 14px;
     font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s;
   }
-  .pill-btn:hover, .pill-btn.active {
-    background: var(--sage); color: white;
-  }
+  .pill-btn:hover, .pill-btn.active { background: var(--green); color: white; }
 
-  /* ── 警示 ── */
   .alert {
-    padding: 13px 16px; border-radius: 12px;
-    font-size: 14px; margin-bottom: 16px; line-height: 1.7;
+    padding: 12px 14px; border-radius: 10px;
+    font-size: 15px; margin-bottom: 16px; line-height: 1.6;
   }
   .alert-error { background: #fdf0ef; color: var(--error); border: 1px solid #f5c6c2; }
-  .alert-info { background: var(--sage-mist); color: var(--sage-dark); border: 1px solid rgba(122,171,90,0.25); }
-  .alert-warn { background: var(--gold-light); color: #7a6020; border: 1px solid var(--warn-border); }
+  .alert-info { background: var(--green-light); color: var(--green-dark); border: 1px solid var(--border); }
+  .alert-warn { background: #fef9e7; color: #856404; border: 1px solid #ffeaa7; }
 
-  /* ── Summary rows（confirm 頁與通用） ── */
   .summary-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid rgba(122,171,90,0.1);
-    font-size: 14px;
-    animation: fadeIn 0.3s ease both;
+    display: flex; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px;
   }
   .summary-row:last-child { border-bottom: none; }
-  .summary-row:nth-child(1) { animation-delay: 0.05s; }
-  .summary-row:nth-child(2) { animation-delay: 0.10s; }
-  .summary-row:nth-child(3) { animation-delay: 0.15s; }
-  .summary-row:nth-child(4) { animation-delay: 0.20s; }
-  .summary-row:nth-child(5) { animation-delay: 0.25s; }
-  .summary-row:nth-child(6) { animation-delay: 0.30s; }
-  .summary-row:nth-child(7) { animation-delay: 0.35s; }
-  .summary-row:nth-child(8) { animation-delay: 0.40s; }
-  .summary-label {
-    font-size: 12px; color: var(--ink-light);
-    font-weight: 400; letter-spacing: 0.3px;
-  }
-  .summary-value {
-    font-size: 14px; font-weight: 500;
-    color: var(--ink); text-align: right;
-  }
-  .summary-value.highlight {
-    color: var(--sage-dark); font-weight: 600;
-  }
+  .summary-label { color: var(--text-light); }
+  .summary-value { font-weight: 500; color: var(--text); }
 
-  /* ── Confirm 卡片（專用：深綠漸層 header） ── */
-  .confirm-card {
-    background: var(--cream);
-    border-radius: 20px;
-    box-shadow: var(--shadow-md);
-    overflow: hidden;
-    margin-bottom: 16px;
-    border: 1px solid rgba(122,171,90,0.12);
-    animation: slideUp 0.4s cubic-bezier(0.22,1,0.36,1) both;
-  }
-  .confirm-card-header {
-    background: linear-gradient(135deg, var(--sage-deep) 0%, var(--sage-dark) 100%);
-    padding: 18px 22px;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .confirm-card-header-icon { font-size: 20px; opacity: 0.95; }
-  .confirm-card-header-title {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 15px; font-weight: 600;
-    color: rgba(255,255,255,0.95);
-    letter-spacing: 1px;
-  }
-  .confirm-card-body { padding: 8px 22px; }
-
-  /* ── 成功頁 ── */
   .success-icon {
-    width: 72px; height: 72px; border-radius: 50%;
-    background: var(--sage-light);
+    width: 64px; height: 64px; border-radius: 50%;
+    background: var(--green-light);
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 18px;
-    box-shadow: 0 4px 20px rgba(122,171,90,0.25);
-    animation: successPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
-  }
-  @keyframes successPop {
-    from { opacity: 0; transform: scale(0.5); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-  .success-icon svg {
-    width: 38px; height: 38px;
-    stroke: var(--sage-dark);
-    stroke-width: 3.5;
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-dasharray: 40;
-    stroke-dashoffset: 40;
-    animation: drawCheck 0.5s 0.3s cubic-bezier(0.22,1,0.36,1) forwards;
-  }
-  @keyframes drawCheck {
-    to { stroke-dashoffset: 0; }
+    font-size: 28px; margin: 0 auto 16px;
   }
   .success-title {
     font-family: 'Noto Serif TC', serif;
-    font-size: 22px; font-weight: 600; color: var(--sage-deep);
-    text-align: center; margin-bottom: 10px;
-    letter-spacing: 2px;
-    animation: fadeIn 0.4s 0.5s both;
+    font-size: 20px; font-weight: 500; color: var(--green-dark);
+    text-align: center; margin-bottom: 8px;
   }
   .success-sub {
-    text-align: center; font-size: 14px;
-    color: var(--ink-light); line-height: 1.7; margin-bottom: 24px;
-    animation: fadeIn 0.4s 0.7s both;
+    text-align: center; font-size: 15px;
+    color: var(--text-light); line-height: 1.6; margin-bottom: 24px;
   }
 
-  /* ── 預約列表 ── */
+  /* 預約列表 */
   .booking-item {
-    border: 1.5px solid rgba(122,171,90,0.2); border-radius: 14px;
-    padding: 14px 16px; margin-bottom: 10px; background: var(--cream);
-    transition: box-shadow 0.2s;
+    border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 10px; background: var(--white);
   }
-  .booking-item:hover { box-shadow: var(--shadow-sm); }
   .booking-item-header {
     display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
   }
-  .booking-date { font-size: 15px; font-weight: 500; color: var(--ink); }
+  .booking-date { font-size: 15px; font-weight: 500; color: var(--text); }
   .booking-status {
-    font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 500;
-    letter-spacing: 0.3px;
+    font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 500;
   }
-  .status-pending { background: var(--gold-light); color: #856404; }
-  .status-confirmed { background: var(--sage-light); color: var(--sage-dark); }
+  .status-pending { background: #fef9e7; color: #856404; }
+  .status-confirmed { background: var(--green-light); color: var(--green-dark); }
   .status-cancelled { background: #f5f5f5; color: #999; }
-  .booking-detail { font-size: 13px; color: var(--ink-light); line-height: 1.8; }
+  .booking-detail { font-size: 13px; color: var(--text-light); line-height: 1.8; }
   .booking-cancel {
-    margin-top: 10px; padding: 9px; width: 100%;
-    border: 1px solid var(--error); border-radius: 10px;
-    background: var(--cream); color: var(--error); font-size: 13px;
+    margin-top: 10px; padding: 8px; width: 100%;
+    border: 1px solid var(--error); border-radius: 8px;
+    background: white; color: var(--error); font-size: 13px;
     font-family: 'Noto Sans TC', sans-serif; cursor: pointer; transition: all 0.2s;
   }
   .booking-cancel:hover { background: #fdf0ef; }
 
-  /* ── 載入 ── */
   .loading {
     display: flex; align-items: center; justify-content: center;
-    padding: 40px; color: var(--ink-light); font-size: 14px; gap: 10px;
+    padding: 40px; color: var(--text-light); font-size: 14px; gap: 10px;
   }
   .spinner {
-    width: 20px; height: 20px; border: 2px solid rgba(122,171,90,0.2);
-    border-top-color: var(--sage); border-radius: 50%;
+    width: 20px; height: 20px; border: 2px solid var(--border);
+    border-top-color: var(--green); border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .no-clinic {
-    text-align: center; padding: 20px; color: var(--ink-light);
-    font-size: 13px; background: #fafafa; border-radius: 12px;
-    border: 1.5px solid rgba(122,171,90,0.2);
+    text-align: center; padding: 20px; color: var(--text-light);
+    font-size: 13px; background: #fafafa; border-radius: 10px; border: 1.5px solid var(--border);
   }
 
   .page { display: none; }
   .page.active { display: block; }
 
-  /* ── 門診公告（金色警示） ── */
+  /* ── 門診公告 ── */
   .announcement-box {
-    background: var(--gold-light);
-    border: 1.5px solid var(--warn-border);
+    background: #FEF3E2; border: 1.5px solid #F5A623;
     border-radius: 12px; padding: 12px 14px;
     margin: 8px 0 4px; display: none;
   }
@@ -633,47 +414,31 @@
     background: #2980B9; padding: 1px 6px; border-radius: 3px;
     flex-shrink: 0;
   }
-  .announcement-text { color: var(--ink); }
-  .announcement-reason { color: var(--ink-light); font-size: 12px; }
+  .announcement-text { color: var(--text); }
+  .announcement-reason { color: var(--text-light); font-size: 12px; }
   .announcement-toggle {
     font-size: 12px; color: #B7660A; text-align: center;
     padding-top: 6px; cursor: pointer; font-weight: 600;
   }
 
-  /* ── 自訂 Modal ── */
+  /* 自訂確認視窗 */
   .modal-overlay {
     display: none; position: fixed; inset: 0;
     background: rgba(0,0,0,0.5); z-index: 1000;
     align-items: center; justify-content: center;
-    backdrop-filter: blur(2px);
   }
   .modal-overlay.active { display: flex; }
   .modal-box {
-    background: var(--cream); border-radius: 18px;
+    background: white; border-radius: 16px;
     padding: 28px 24px; width: 280px; text-align: center;
-    box-shadow: var(--shadow-lg);
-    animation: slideUp 0.3s cubic-bezier(0.22,1,0.36,1) both;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
   }
-  .modal-title { font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 10px; }
-  .modal-msg { font-size: 14px; color: var(--ink-light); margin-bottom: 24px; line-height: 1.5; }
+  .modal-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+  .modal-msg { font-size: 14px; color: var(--text-light); margin-bottom: 24px; line-height: 1.5; }
   .modal-btns { display: flex; gap: 10px; }
-  .modal-btn {
-    flex: 1; padding: 12px; border-radius: 10px; border: none;
-    font-size: 14px; cursor: pointer; font-weight: 500;
-    font-family: 'Noto Sans TC', sans-serif;
-  }
-  .modal-btn-cancel { background: #f0f0f0; color: var(--ink); }
+  .modal-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 14px; cursor: pointer; font-weight: 500; }
+  .modal-btn-cancel { background: #f0f0f0; color: var(--text); }
   .modal-btn-confirm { background: var(--error); color: white; }
-
-
-  /* Lucide SVG icon — 統一樣式 */
-  .icon {
-    display: inline-block;
-    vertical-align: -0.125em;
-    flex-shrink: 0;
-    stroke: currentColor;
-    fill: none;
-  }
 </style>
 </head>
 <body>
@@ -693,7 +458,7 @@
 <div class="header">
   <h1>悅心診所</h1>
   <p id="headerSub">線上預約系統</p>
-  <span class="beta-badge">先行體驗版</span>
+  <span style="font-size:10px;color:#D4522A;font-weight:700;letter-spacing:0;">先行體驗版</span>
 </div>
 
 <!-- 全螢幕等待遮罩 -->
@@ -707,7 +472,7 @@
   <!-- 載入頁 -->
   <div class="page active" id="pageLoading">
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:20px;">
-      <div style="font-size:18px;font-weight:600;color:var(--sage-deep);letter-spacing:1px;">載入中請稍後</div>
+      <div style="font-size:18px;font-weight:600;color:var(--green-dark);letter-spacing:1px;">載入中請稍後</div>
       <div class="spinner"></div>
     </div>
   </div>
@@ -715,8 +480,8 @@
   <!-- 載入錯誤頁（黑名單） -->
   <div class="page" id="pageLoadError">
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;padding:0 24px;text-align:center;">
-      <div style="font-size:40px;"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>️</div>
-      <div style="font-size:15px;color:var(--ink);line-height:1.8;">
+      <div style="font-size:40px;">🛠️</div>
+      <div style="font-size:15px;color:var(--text);line-height:1.8;">
         很抱歉，線上預約功能暫時無法使用。<br>
         若需協助，請傳訊息至官方LINE，<br>
         或於門診時間來電：<strong>07-363-1313</strong>
@@ -726,24 +491,24 @@
 
   <!-- 入口頁 -->
   <div class="page" id="pageEntry">
-    <div style="background:#D4522A;color:white;text-align:center;font-size:13px;font-weight:700;padding:6px;letter-spacing:1px;margin-bottom:8px;border-radius:8px;">系統測試中｜操作問題請截圖回傳</div>
+    <div style="background:#D4522A;color:white;text-align:center;font-size:13px;font-weight:700;padding:6px;letter-spacing:1px;margin-bottom:8px;">系統測試中｜操作問題請截圖回傳</div>
 
-    <!-- 門診公告 -->
+    <!-- 門診公告（有停診/代診時才顯示） -->
     <div class="announcement-box" id="announcementBox">
-      <div class="announcement-title"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg> 門診公告</div>
+      <div class="announcement-title">🔔 門診公告</div>
       <div id="announcementList"></div>
       <div class="announcement-toggle" id="announcementToggle" style="display:none;" onclick="toggleAnnouncements()"></div>
     </div>
-    <!-- 樂觀載入預留區 -->
+    <!-- 樂觀載入預留區：目前未啟用，_lockEntryBtns(true) 時才顯示 -->
     <div id="entryVerifyingBar" style="display:none;align-items:center;justify-content:center;gap:8px;padding:10px 0 4px;opacity:1;transition:opacity 0.3s ease;">
       <div class="spinner" style="width:14px;height:14px;border-width:2px;"></div>
-      <span style="font-size:12px;color:var(--ink-light);">確認中...</span>
+      <span style="font-size:12px;color:var(--text-light);">確認中...</span>
     </div>
     <div class="card" style="margin-top:4px">
       <div class="card-title">請選擇服務</div>
       <div class="entry-options">
         <div class="entry-btn" onclick="startBooking('複診')">
-          <div class="entry-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg></div>
+          <div class="entry-icon">🔄</div>
           <div class="entry-text">
             <div class="entry-title">複診預約</div>
             <div class="entry-desc">過去曾於本院看診過。</div>
@@ -751,7 +516,7 @@
           <div class="entry-arrow">›</div>
         </div>
         <div class="entry-btn" onclick="startBooking('初診')">
-          <div class="entry-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg></div>
+          <div class="entry-icon">🌱</div>
           <div class="entry-text">
             <div class="entry-title">初診預約</div>
             <div class="entry-desc">首次來診，未在本院看診過。非楠梓心寬診所轉介。</div>
@@ -759,7 +524,7 @@
           <div class="entry-arrow">›</div>
         </div>
         <div class="entry-btn" onclick="startQuery()">
-          <div class="entry-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
+          <div class="entry-icon">🔍</div>
           <div class="entry-text">
             <div class="entry-title">查詢／取消預約</div>
             <div class="entry-desc">查看或取消已預約的門診。</div>
@@ -767,7 +532,7 @@
           <div class="entry-arrow">›</div>
         </div>
         <div class="entry-btn" onclick="startXinkuanBooking()">
-          <div class="entry-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v4"/><path d="M14 14h-4"/><path d="M14 18h-4"/><path d="M14 8h-4"/><path d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h2"/><path d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/></svg></div>
+          <div class="entry-icon">🏥</div>
           <div class="entry-text">
             <div class="entry-title">楠梓心寬診所轉介</div>
             <div class="entry-desc">過去於楠梓心寬診所就醫，未來需改於本院就醫。</div>
@@ -775,7 +540,7 @@
           <div class="entry-arrow">›</div>
         </div>
         <div class="entry-btn" style="opacity:0.45;pointer-events:none;cursor:not-allowed;">
-          <div class="entry-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"/><path d="M2 11v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H6v-2a2 2 0 0 0-4 0Z"/><path d="M4 18v2"/><path d="M20 18v2"/></svg>️</div>
+          <div class="entry-icon">🛋️</div>
           <div class="entry-text">
             <div class="entry-title">心理治療預約</div>
             <div class="entry-desc">尚未開放</div>
@@ -802,7 +567,7 @@
     <div class="card" style="margin-top:8px">
       <div class="card-title">初診預約</div>
       <div class="form-group">
-        <label style="font-size:15px;font-weight:700;color:var(--ink);">請問您是如何得知悅心診所的呢？</label>
+        <label style="font-size:15px;font-weight:700">請問您是如何得知悅心診所的呢？</label>
         <div id="sourceOptionsWrap">
           <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px" id="sourceOptions">
             <label class="radio-option" onclick="selectSource(this,'親友推薦')"><input type="radio" name="source" value="親友推薦" style="display:none"> 親友推薦</label>
@@ -813,7 +578,7 @@
             <label class="radio-option" onclick="selectSource(this,'其他')"><input type="radio" name="source" value="其他" style="display:none"> 其他</label>
           </div>
           <div style="margin-top:20px;text-align:center;">
-            <a href="#" id="btnSourceSkip" style="font-size:15px;color:var(--ink-light);text-decoration:underline;" onclick="event.preventDefault();toggleSourceOptions()">略過</a>
+            <a href="#" id="btnSourceSkip" style="font-size:15px;color:#999;text-decoration:underline;" onclick="event.preventDefault();toggleSourceOptions()">略過</a>
           </div>
         </div>
       </div>
@@ -827,11 +592,11 @@
   <!-- 預約：基本資料 -->
   <div class="page" id="pageInfo">
     <div class="steps" id="stepsBar">
-      <div class="step active" id="step1"><div class="step-num"><span>1</span></div><span>基本資料</span></div>
+      <div class="step active" id="step1"><div class="step-num">1</div><span>基本資料</span></div>
       <div class="step-line"></div>
-      <div class="step" id="step2"><div class="step-num"><span>2</span></div><span>選擇日期</span></div>
+      <div class="step" id="step2"><div class="step-num">2</div><span>選擇看診日期</span></div>
       <div class="step-line"></div>
-      <div class="step" id="step3"><div class="step-num"><span>3</span></div><span>確認送出</span></div>
+      <div class="step" id="step3"><div class="step-num">3</div><span>確認送出</span></div>
     </div>
     <div class="card">
       <div class="card-title">基本資料</div>
@@ -853,7 +618,7 @@
           <input type="tel" id="inputBirthD" placeholder="日" style="width:60px" maxlength="2" inputmode="numeric">
           <span>日</span>
         </div>
-        <div style="font-size:12px;color:var(--ink-light);margin-top:4px">請輸入民國年，例如：113年5月1日</div>
+        <div style="font-size:12px;color:#999;margin-top:4px">請輸入民國年，例如：113年5月1日</div>
       </div>
     </div>
     <div id="errorPage1" class="alert alert-error" style="display:none"></div>
@@ -864,13 +629,13 @@
   <!-- 預約：選擇時段 -->
   <div class="page" id="pageTime">
     <div class="steps">
-      <div class="step done"><div class="step-num"><span>1</span></div><span>基本資料</span></div>
+      <div class="step done"><div class="step-num">1</div><span>基本資料</span></div>
       <div class="step-line"></div>
-      <div class="step active"><div class="step-num"><span>2</span></div><span>選擇日期</span></div>
+      <div class="step active"><div class="step-num">2</div><span>選擇看診日期</span></div>
       <div class="step-line"></div>
-      <div class="step"><div class="step-num"><span>3</span></div><span>確認送出</span></div>
+      <div class="step"><div class="step-num">3</div><span>確認送出</span></div>
     </div>
-    <!-- 月曆區 -->
+    <!-- 月曆區：預設展開 -->
     <div id="calendarArea" class="card">
       <div class="card-title">選擇日期</div>
       <div class="cal-header">
@@ -883,31 +648,31 @@
       </div>
       <div class="cal-days" id="calDays"></div>
     </div>
-    <!-- 已選日期摘要 -->
+    <!-- 已選日期摘要（收起月曆後顯示） -->
     <div id="selectedDateBar" style="display:none">
       <div class="selected-date-bar">
         <span id="selectedDateLabel"></span>
         <button class="btn-reselect" onclick="reopenCalendar()">重選日期</button>
       </div>
     </div>
-    <!-- 餘藥天數切換列 -->
+    <!-- 餘藥天數切換列（複診才顯示，預設顯示「或 輸入剩餘藥物天數」） -->
     <div id="medCalcToggleBar" style="display:none;margin-bottom:4px;">
       <div style="display:flex;align-items:center;gap:10px;margin:10px 0;">
-        <div style="flex:1;height:1px;background:rgba(122,171,90,0.25);"></div>
+        <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
         <button class="btn-text-link-strong" onclick="toggleCalendar()" id="calToggleBtn">或 輸入剩餘藥物天數</button>
-        <div style="flex:1;height:1px;background:rgba(122,171,90,0.25);"></div>
+        <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
       </div>
     </div>
-    <!-- 餘藥天數區塊 -->
+    <!-- 餘藥天數區塊（預設隱藏） -->
     <div id="medCalcArea" style="display:none;margin-bottom:12px;">
       <div style="display:flex;align-items:center;gap:10px;margin:0 0 10px;">
-        <div style="flex:1;height:1px;background:rgba(122,171,90,0.25);"></div>
+        <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
         <button class="btn-text-link-strong" onclick="toggleCalendar()">或 直接選擇日期</button>
-        <div style="flex:1;height:1px;background:rgba(122,171,90,0.25);"></div>
+        <div style="flex:1;height:1px;background:var(--border-color,#ddd);"></div>
       </div>
-      <div class="card" style="padding:18px;">
+      <div class="card" style="padding:16px;">
         <div class="card-title" style="margin-bottom:12px;">依據餘藥天數</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           <button class="pill-btn" onclick="setMedDays(7)">7 天</button>
           <button class="pill-btn" onclick="setMedDays(14)">14 天</button>
           <button class="pill-btn" onclick="setMedDays(21)">21 天</button>
@@ -916,17 +681,17 @@
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
           <input type="number" id="medDaysInput" inputmode="numeric" min="1" max="35"
             placeholder="輸入天數（1–35）"
-            style="flex:2;min-width:0;padding:10px 12px;font-size:13px;">
-          <button class="btn btn-primary" style="white-space:nowrap;padding:10px 14px;flex:1;margin:0;letter-spacing:0.5px;font-size:14px;" onclick="calculateMedDate()">計算回診日</button>
+            style="flex:2;min-width:0;padding:10px 12px;font-size:13px;font-family:inherit;border:1px solid var(--border-color, #ddd);background:transparent;color:inherit;outline:none;">
+          <button class="btn btn-primary" style="white-space:nowrap;padding:10px 14px;flex:1;" onclick="calculateMedDate()">計算回診日</button>
         </div>
         <div id="medCalcError" class="alert alert-error" style="display:none;margin-bottom:0;"></div>
       </div>
     </div>
-    <!-- 診次選擇 -->
+    <!-- 診次選擇（選完日期後顯示） -->
     <div id="sessionContainer"></div>
-    <!-- 時段選擇 -->
+    <!-- 時段/號碼選擇（選完診次後展開） -->
     <div id="slotsContainer"></div>
-    <div id="nhiReminder" class="alert alert-warn" style="display:none;margin-top:24px"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> <strong>重要提醒：</strong>為確保用藥安全及避免浪費資源，健保看診開藥（領藥）原則上僅能提前 1 天。若不確定您的健保回診日期，敬請提前聯繫診所確認。</div>
+    <div id="nhiReminder" class="alert alert-warn" style="display:none;margin-top:24px">💡 <strong>重要提醒：</strong>為確保用藥安全及避免浪費資源，健保看診開藥（領藥）原則上僅能提前 1 天。若不確定您的健保回診日期，敬請提前聯繫診所確認。</div>
     <div id="errorPage2" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-primary" onclick="goToConfirm()">下一步：確認預約 →</button>
     <button class="btn btn-outline" onclick="showPage('pageInfo')">← 修改基本資料</button>
@@ -935,44 +700,35 @@
   <!-- 預約：確認送出 -->
   <div class="page" id="pageConfirm">
     <div class="steps">
-      <div class="step done"><div class="step-num"><span>1</span></div><span>基本資料</span></div>
+      <div class="step done"><div class="step-num">1</div><span>基本資料</span></div>
       <div class="step-line"></div>
-      <div class="step done"><div class="step-num"><span>2</span></div><span>選擇日期</span></div>
+      <div class="step done"><div class="step-num">2</div><span>選擇看診日期</span></div>
       <div class="step-line"></div>
-      <div class="step active"><div class="step-num"><span>3</span></div><span>確認送出</span></div>
+      <div class="step active"><div class="step-num">3</div><span>確認送出</span></div>
     </div>
-    <div class="confirm-card">
-      <div class="confirm-card-header">
-        <div class="confirm-card-header-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></div>
-        <div class="confirm-card-header-title">確認預約資料</div>
-      </div>
-      <div class="confirm-card-body">
-        <div id="summaryContent"></div>
-      </div>
+    <div class="card">
+      <div class="card-title">確認預約資料</div>
+      <div id="summaryContent"></div>
     </div>
     <div class="alert alert-warn">ℹ️ 提醒：預約完成後，確認通知將發送至此 LINE 帳號。建議使用本人帳號預約，以確保通知正確送達。</div>
     <div id="errorPage3" class="alert alert-error" style="display:none"></div>
     <button class="btn btn-primary" id="btnSubmit" onclick="submitBooking()">確認送出預約</button>
-    <p style="font-size:11px;color:var(--ink-light);text-align:left;margin-bottom:12px;line-height:1.8;padding:0 4px;">
+    <p style="font-size:12px;color:var(--text-light);text-align:left;margin-bottom:12px;line-height:1.6;">
       送出預約即表示：<br>
-      <span style="color:var(--sage-dark);font-weight:500;">1.</span> 本人已年滿18歲，或已取得法定代理人同意使用本線上預約系統。<br>
-      <span style="color:var(--sage-dark);font-weight:500;">2.</span> 同意悅心診所蒐集並保存您的資料，用於預約門診及回診提醒。
+      1. 本人已年滿18歲，或已取得法定代理人同意使用本線上預約系統。<br>
+      2. 同意悅心診所蒐集並保存您的資料，用於預約門診及回診提醒。
     </p>
     <button class="btn btn-outline" onclick="state.session=null;state.timeSlot=null;state.isUnspecified=false;renderSessions();renderSlots();showPage('pageTime')">← 修改預約日期</button>
   </div>
 
   <!-- 預約成功 -->
   <div class="page" id="pageSuccess">
-    <div class="card" style="text-align:center;padding:36px 20px">
-      <div class="success-icon">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <polyline points="4 12 10 18 20 6"></polyline>
-        </svg>
-      </div>
-      <div class="success-title">預約完成</div>
-      <div id="successSlotInfo" style="display:none;margin:14px 0 6px">
-        <div style="font-size:12px;color:var(--ink-light);margin-bottom:4px;letter-spacing:1px;">您的號碼</div>
-        <div id="successSlotNumber" style="font-size:38px;font-weight:700;color:var(--sage-dark);letter-spacing:3px;font-family:'Noto Serif TC',serif;"></div>
+    <div class="card" style="text-align:center;padding:32px 20px">
+      <div class="success-icon">✅</div>
+      <div class="success-title">預約完成！</div>
+      <div id="successSlotInfo" style="display:none;margin:12px 0 4px">
+        <div style="font-size:13px;color:var(--text-light);margin-bottom:4px">您的號碼</div>
+        <div id="successSlotNumber" style="font-size:36px;font-weight:700;color:var(--green-dark);letter-spacing:2px"></div>
       </div>
       <div class="success-sub">請查看 LINE 通知確認。</div>
       <div id="newPatientNotice"></div>
@@ -1001,9 +757,9 @@
       <div class="card-title">我的預約</div>
       <div id="bookingList"></div>
       <div id="bookingPagination" style="display:none;margin-top:12px;align-items:center;justify-content:space-between;gap:8px;">
-        <button class="btn btn-outline" id="btnPrevPage" onclick="changePage(-1)" style="flex:1;padding:8px;font-size:13px;margin:0;letter-spacing:0.5px;">← 上一頁</button>
-        <div id="pageIndicator" style="font-size:13px;color:var(--ink-light);white-space:nowrap;"></div>
-        <button class="btn btn-outline" id="btnNextPage" onclick="changePage(1)" style="flex:1;padding:8px;font-size:13px;margin:0;letter-spacing:0.5px;">下一頁 →</button>
+        <button class="btn btn-outline" id="btnPrevPage" onclick="changePage(-1)" style="flex:1;padding:8px;font-size:13px;">← 上一頁</button>
+        <div id="pageIndicator" style="font-size:13px;color:var(--text-light);white-space:nowrap;"></div>
+        <button class="btn btn-outline" id="btnNextPage" onclick="changePage(1)" style="flex:1;padding:8px;font-size:13px;">下一頁 →</button>
       </div>
     </div>
     <div id="cancelError" class="alert alert-error" style="display:none"></div>
@@ -1107,7 +863,7 @@ async function initLiff() {
     // 一般預約情境：顯示請使用 LINE 開啟
     document.querySelector(".container").innerHTML = `
       <div class="card" style="text-align:center;padding:40px 20px">
-        <div style="font-size:40px;margin-bottom:16px"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg></div>
+        <div style="font-size:40px;margin-bottom:16px">📱</div>
         <div style="font-family:'Noto Serif TC',serif;font-size:17px;color:var(--green-dark);margin-bottom:12px">請使用 LINE 開啟</div>
         <div style="font-size:13px;color:var(--text-light);line-height:1.8">本預約系統需透過 LINE 開啟使用。<br>請在 LINE 中點選連結進入。</div>
       </div>`;
@@ -1202,7 +958,7 @@ async function handleBindToken(bindToken) {
       return;
     }
     el.innerHTML = `
-      <div style="font-size:40px;margin-bottom:16px;"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></div>
+      <div style="font-size:40px;margin-bottom:16px;">📋</div>
       <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:16px;">確認保留此預約？</div>
       <div style="text-align:left;background:var(--bg-2);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:14px;line-height:2;">
         <div>▸ 日期：${data.date}（週${data.weekday}）</div>
@@ -2052,7 +1808,7 @@ function renderBookingPage() {
         <div class="booking-date">${esc(b.date)} ${displayName}</div>
         <div class="booking-status ${statusCls}">${esc(b.status)}</div>
       </div>
-      ${b.name ? `<div class="booking-detail" style="font-weight:700;color:var(--text);"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ${esc(b.name)}</div>` : ""}
+      ${b.name ? `<div class="booking-detail" style="font-weight:700;color:var(--text);">👤 ${esc(b.name)}</div>` : ""}
       <div class="booking-detail">
         ${slotLine}${checkInLine}醫師：${esc(b.doctor || "-")}
       </div>
