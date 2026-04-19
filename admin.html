@@ -212,6 +212,35 @@
     font-weight: 300;
     letter-spacing: 2px;
   }
+  /* 兩行結構:上方中文主訊息(含點點動畫)+ 下方英文靜態副標 */
+  .auth-sub-zh {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 12px;
+    color: var(--text-light);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .auth-sub-zh::after {
+    content: ".";
+    display: inline-block;
+    width: 1.2em;          /* 固定寬度避免行抖動 */
+    text-align: left;
+    animation: authDots 1.2s steps(4) infinite;
+  }
+  .auth-sub-en {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-light);
+    opacity: 0.55;
+    font-weight: 300;
+    letter-spacing: 2px;
+  }
+  @keyframes authDots {
+    0%   { content: "."; }
+    25%  { content: ".."; }
+    50%  { content: "..."; }
+    75%  { content: ".."; }
+  }
 
   /* ══════════════════════════════════════════════
      錯誤狀態圖示(非白名單 / 連線逾時)
@@ -509,8 +538,6 @@
   .tile-nav.today-btn {
     background: var(--bg-3);
     border: 1px solid var(--border);
-    border-left: 3px solid var(--marigold);
-    padding-left: 14px;
   }
   .tile-nav.today-btn .tile-title { color: var(--text); font-weight: 500; }
   .tile-nav.disabled { background: var(--bg-2) !important; cursor: not-allowed; border-color: var(--border-soft); }
@@ -1392,7 +1419,10 @@
     <div class="auth-title" id="authTitle">悅心診所</div>
     <div class="auth-subtitle-en">Yuexin Psychiatric Clinic</div>
     <div class="auth-divider"></div>
-    <div class="auth-sub" id="authSub">正在驗證身份 · verifying identity</div>
+    <div class="auth-sub" id="authSub">
+      <div class="auth-sub-zh">正在驗證身份</div>
+      <div class="auth-sub-en">Verifying identity</div>
+    </div>
   </div>
 </div>
 

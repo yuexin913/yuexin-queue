@@ -253,7 +253,14 @@
     box-shadow: var(--shadow-sm);
   }
   .entry-btn-disabled { opacity: 0.45; pointer-events: none; cursor: not-allowed; }
-  .entry-icon { font-size: 28px; flex-shrink: 0; }
+  .entry-icon {
+    flex-shrink: 0;
+    width: 20px; height: 20px;
+    color: var(--sage-dark);
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* 覆蓋 inline 的 SVG width/height="16" —— 只影響 entry-icon 內的 SVG */
+  .entry-icon svg { width: 20px !important; height: 20px !important; stroke-width: 2; }
   .entry-text .entry-title { font-size: 16px; font-weight: 500; color: var(--ink); }
   .entry-text .entry-desc {
     font-size: 12px; color: var(--ink-light); margin-top: 3px;
@@ -899,7 +906,7 @@
           <div class="entry-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v4"/><path d="M14 14h-4"/><path d="M14 18h-4"/><path d="M14 8h-4"/><path d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h2"/><path d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/></svg></div>
           <div class="entry-text">
             <div class="entry-title">楠梓心寬診所轉介</div>
-            <div class="entry-desc">過去於楠梓心寬診所就醫，未來需改於本院就醫。</div>
+            <div class="entry-desc">過去於楠梓心寬診所看診，未來改本院看診。</div>
           </div>
           <div class="entry-arrow">›</div>
         </div>
