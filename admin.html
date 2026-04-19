@@ -17,14 +17,18 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.1 (2026-04-18)
+     Version:   v5.2 (2026-04-19)
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
      ────────────────────────────────────────────────────────
      Roadmap:
      · v5.0 - UI 大改版(Terminal 風 modal、SVG icon)
-     · v5.1 目前 - 狀態畫面統一 + 紅級 emoji 清除 + 觸控修正
+     · v5.1 - 狀態畫面統一 + 紅級 emoji 清除 + 觸控修正
+     · v5.1.1 - 安全修補(esc() XSS + ⚡ SVG)
+     · v5.1.2 - 死碼清理
+     · v5.2 目前 - overlay 配對保護補齊(toggleCheckin + 查詢加 finally)
+                   + 搭配 backend v4.33 大重構
      · v6.0 預計 — 心理治療功能上線
      · v7.0 預計 — 帳號系統與多醫師登入
      ════════════════════════════════════════════════════════ */
@@ -115,27 +119,19 @@
   /* ══════════════════════════════════════════════
      觸控裝置全域修正(iOS/Android 長按 bug)
      禁用:tap highlight 藍光、長按選取、文字選取、系統選單
-     套用於所有可點按元素
+     套用於所有可點按元素(僅保留 admin.html 實際存在的 class)
      ══════════════════════════════════════════════ */
   button,
   [onclick],
   .tile,
   .cell,
-  .session-tab,
   .nav-btn,
-  .date-nav-btn,
   .m-tab,
   .m-btn,
-  .m-btn-primary,
-  .m-btn-secondary,
   .m-btn-danger,
-  .m-row-hover,
   .modal-close,
   .btn,
   .btn-sm,
-  .pv-day,
-  .pv-nav,
-  .contact-action,
   .logout-tile {
     -webkit-tap-highlight-color: transparent;
     -webkit-user-select: none;
@@ -1205,24 +1201,6 @@
     font-size: 13px !important;
     letter-spacing: 1px !important;
     font-family: 'Noto Sans TC', sans-serif !important;
-  }
-  /* 舊 .contact-phone-btns 不再使用(已由 .m-grid-2 取代),留空以相容 */
-  .contact-phone-btns { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
-  .contact-phone-btns a {
-    flex: 1; text-align: center; padding: 10px 0;
-    font-size: 13px; font-weight: 400;
-    text-decoration: none; cursor: pointer;
-    letter-spacing: 1px;
-  }
-  .contact-phone-btns .btn-call {
-    background: var(--marigold-bg);
-    border: 1px solid var(--marigold-bd);
-    color: var(--marigold);
-  }
-  .contact-phone-btns .btn-sms {
-    background: var(--bg-2);
-    border: 1px solid var(--border);
-    color: var(--text);
   }
 
   /* ── 不指定 Modal 內的 row ── */
@@ -2344,7 +2322,7 @@ function xhrPost(url, payload) {
   });
 }
 function getTodayStr() { const n = new Date(); return n.getFullYear() + "/" + String(n.getMonth()+1).padStart(2,"0") + "/" + String(n.getDate()).padStart(2,"0"); }
-function esc(str) { return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function esc(str) { return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
 
 async function loadSchedule(preferredSession) {
   const myLoadId = ++_scheduleLoadId; // 每次請求遞增，舊請求回傳時比對失敗就忽略
@@ -3711,9 +3689,10 @@ async function toggleCheckin(bookingId, btn) {
     errTip.style.cssText = "font-size:11px;color:var(--error);margin-left:4px;";
     btn.parentNode.appendChild(errTip);
     setTimeout(function() { if (errTip.parentNode) errTip.parentNode.removeChild(errTip); }, 4000);
+  } finally {
+    hideAdminOverlay();
+    btn.disabled = false;
   }
-  hideAdminOverlay();
-  btn.disabled = false;
 }
 
 /* ── Modal 開關 ── */
@@ -3894,8 +3873,10 @@ async function doQuery() {
     const data = await xhrPost(API_URL, { action: "adminQueryBookings", name, phone, birth, lineId: state.lineId });
     renderQueryResults(data.bookings || []);
   } catch(e) { if (e.isSessionExpired) return; errEl.textContent = "查詢未完成，請稍後再試。"; errEl.style.display = "block"; }
-  hideAdminOverlay();
-  btn.disabled = false; btn.textContent = "查詢";
+  finally {
+    hideAdminOverlay();
+    btn.disabled = false; btn.textContent = "查詢";
+  }
 }
 
 function renderQueryResults(bookings) {
