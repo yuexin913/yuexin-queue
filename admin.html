@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.2 (2026-04-19)
+     Version:   v5.3 (2026-04-20)
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -27,8 +27,12 @@
      · v5.1 - 狀態畫面統一 + 紅級 emoji 清除 + 觸控修正
      · v5.1.1 - 安全修補(esc() XSS + ⚡ SVG)
      · v5.1.2 - 死碼清理
-     · v5.2 目前 - overlay 配對保護補齊(toggleCheckin + 查詢加 finally)
-                   + 搭配 backend v4.33 大重構
+     · v5.2 - overlay 配對保護補齊(toggleCheckin + 查詢加 finally)
+               + 搭配 backend v4.33 大重構
+     · v5.2.1 - (backend only, frontend 無異動)
+     · v5.2.2 - UI 小調整(登入動畫分行、今日/明日左邊條移除)
+     · v5.3 目前 - 櫃檯 keyin 小抄(35 天預覽內嵌 [今日][明日])
+                   搭配 backend v4.35(無異動,沿用既有 adminGetTodaySchedule)
      · v6.0 預計 — 心理治療功能上線
      · v7.0 預計 — 帳號系統與多醫師登入
      ════════════════════════════════════════════════════════ */
@@ -849,6 +853,95 @@
     flex-shrink: 0;
   }
   .m-topbar .modal-close:hover { color: var(--text); }
+
+  /* ══════════════════════════════════════════════
+     小抄功能(35 天預覽 topbar 內嵌 [今日][明日])
+     用途:櫃檯下診前手動 keyin 隔天預約到醫聖
+     ══════════════════════════════════════════════ */
+  .m-topbar-cheat {
+    display: flex;
+    gap: 6px;
+    margin-left: 4px;
+    flex-shrink: 0;
+  }
+  .m-topbar-cheat .cheat-btn {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--marigold);
+    background: transparent;
+    border: 1px solid var(--marigold);
+    padding: 3px 8px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .m-topbar-cheat .cheat-btn:hover,
+  .m-topbar-cheat .cheat-btn:active {
+    background: var(--marigold-bg);
+    color: #fff;
+  }
+
+  /* 小抄 modal 堆疊在 35 天預覽之上(modalPreview = 200) */
+  #modalCheatSheet { z-index: 250; }
+
+  .cheat-session-group { margin-bottom: 14px; }
+  .cheat-session-group:last-child { margin-bottom: 0; }
+  .cheat-session-header {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-light);
+    letter-spacing: 2px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-soft);
+    margin-bottom: 6px;
+  }
+  .cheat-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 84px 34px;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 4px;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 13px;
+  }
+  .cheat-row:last-child { border-bottom: none; }
+  .cheat-slot {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-light);
+  }
+  .cheat-name {
+    color: var(--text);
+    font-weight: 500;
+    cursor: pointer;
+    padding: 2px 0;
+    transition: color 0.15s ease;
+  }
+  .cheat-name:hover,
+  .cheat-name:active { color: var(--marigold); }
+  .cheat-birth {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-light);
+  }
+  .cheat-type {
+    font-size: 10px;
+    text-align: center;
+    padding: 2px 0;
+    letter-spacing: 1px;
+  }
+  .cheat-type.np { color: var(--marigold); border: 1px solid var(--marigold-bd); }
+  .cheat-type.rt { color: var(--text-light); border: 1px solid var(--border); }
+  .cheat-type.un { color: var(--kiwi); border: 1px solid var(--kiwi-bd); }
+  .cheat-empty {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--empty-text);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 2px;
+  }
 
   /* Key-value 資訊表(Terminal 對齊樣式) */
   .m-datatable {
@@ -1939,10 +2032,27 @@
     <div class="m-topbar">
       <div class="m-stripe"></div>
       <div class="m-topbar-main">35 天預覽</div>
+      <div class="m-topbar-cheat">
+        <button class="cheat-btn" onclick="openCheatSheet('today')">今日</button>
+        <button class="cheat-btn" onclick="openCheatSheet('tomorrow')">明日</button>
+      </div>
       <div class="m-topbar-title">preview.35d</div>
       <button class="modal-close" onclick="closeModal('modalPreview')">✕</button>
     </div>
     <div id="previewContent"><div class="loading">載入中...</div></div>
+  </div>
+</div>
+
+<!-- Modal: 櫃檯 keyin 小抄(疊在 35 天預覽之上) -->
+<div class="modal-overlay" id="modalCheatSheet">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="m-topbar">
+      <div class="m-stripe"></div>
+      <div class="m-topbar-main" id="cheatSheetTitle">小抄</div>
+      <div class="m-topbar-title">keyin.sheet</div>
+      <button class="modal-close" onclick="closeModal('modalCheatSheet')">✕</button>
+    </div>
+    <div id="cheatSheetContent"><div class="loading">載入中...</div></div>
   </div>
 </div>
 
@@ -4222,6 +4332,109 @@ function previewJumpTo(dateStr, session) {
   closeModal("modalPreview");
   updateDateNav();
   loadSchedule(session);
+}
+
+/* ══════════════════════════════════════════════
+   小抄(櫃檯下診前手動 keyin 到醫聖系統用)
+   沿用既有 adminGetTodaySchedule API,backend 無異動
+   ══════════════════════════════════════════════ */
+async function openCheatSheet(when) {
+  const target = new Date();
+  if (when === "tomorrow") target.setDate(target.getDate() + 1);
+  const dateYMD = dateToYMD(target); // "yyyyMMdd"
+  const dateDisplay = dateYMD.slice(0,4) + "/" + dateYMD.slice(4,6) + "/" + dateYMD.slice(6,8);
+  const weekday = ["日","一","二","三","四","五","六"][target.getDay()];
+  const label = (when === "today" ? "今日" : "明日") + " " + dateDisplay + " (" + weekday + ")";
+
+  document.getElementById("cheatSheetTitle").textContent = label;
+  document.getElementById("cheatSheetContent").innerHTML = '<div class="loading">載入中...</div>';
+  document.getElementById("modalCheatSheet").classList.add("active");
+
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "adminGetTodaySchedule",
+      date: dateYMD,
+      lineId: state.lineId
+    });
+    if (data && data.success === false && data.error) throw new Error(data.error);
+    renderCheatSheet(data.bookings || []);
+  } catch(e) {
+    if (e.isSessionExpired) return;
+    document.getElementById("cheatSheetContent").innerHTML =
+      '<div class="alert alert-error" style="margin:12px;">資料暫時無法載入,請稍後再試。</div>';
+  }
+}
+
+function renderCheatSheet(bookings) {
+  if (!bookings.length) {
+    document.getElementById("cheatSheetContent").innerHTML =
+      '<div class="cheat-empty">無預約</div>';
+    return;
+  }
+  const SESSION_LABELS = { "早上": "早診", "下午": "午診", "晚上": "晚診" };
+  const groups = { "早上": [], "下午": [], "晚上": [] };
+  bookings.forEach(function(b) {
+    if (groups[b.session]) groups[b.session].push(b);
+  });
+  // 後端已排序:初診 → 複診(號碼小到大)→ 不指定,沿用
+
+  let html = '<div style="padding:8px 16px 16px 16px;">';
+  ["早上","下午","晚上"].forEach(function(s) {
+    if (!groups[s].length) return;
+    html += '<div class="cheat-session-group">';
+    html += '<div class="cheat-session-header">' + SESSION_LABELS[s] + ' · ' + groups[s].length + '</div>';
+    groups[s].forEach(function(b) {
+      let typeClass, typeLabel;
+      if (b.type === "初診") { typeClass = "np"; typeLabel = "初"; }
+      else if (b.slot === "不指定") { typeClass = "un"; typeLabel = "不"; }
+      else { typeClass = "rt"; typeLabel = "複"; }
+      const slotDisplay = b.slot === "不指定" ? "—" : b.slot;
+      const nameRaw = b.name || "";
+      const nameEsc = esc(nameRaw);
+      const birthEsc = esc(b.birth || "—");
+      // 傳給 copyCheatName 的姓名走 data-attribute,避免 onclick inline 字串逸出風險
+      html += '<div class="cheat-row">';
+      html += '<div class="cheat-slot">' + esc(slotDisplay) + '</div>';
+      html += '<div class="cheat-name" data-name="' + nameEsc + '" onclick="copyCheatName(this)">' + nameEsc + '</div>';
+      html += '<div class="cheat-birth">' + birthEsc + '</div>';
+      html += '<div class="cheat-type ' + typeClass + '">' + typeLabel + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  document.getElementById("cheatSheetContent").innerHTML = html;
+}
+
+function copyCheatName(el) {
+  const name = el.getAttribute("data-name") || "";
+  if (!name) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(name).then(function() {
+      showToast("已複製:" + name);
+    }).catch(function() {
+      copyCheatNameFallback(name);
+    });
+  } else {
+    copyCheatNameFallback(name);
+  }
+}
+
+function copyCheatNameFallback(name) {
+  // 舊版 LIFF / 非 HTTPS 環境 fallback
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = name;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    showToast(ok ? ("已複製:" + name) : "複製失敗");
+  } catch(e) {
+    showToast("複製失敗");
+  }
 }
 
 initLiff();
