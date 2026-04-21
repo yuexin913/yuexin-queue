@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.0">
+  <meta name="version" content="5.3.1">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.3 (2026-04-20)
+     Version:   v5.3.1 (2026-04-21)
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -31,8 +31,10 @@
                + 搭配 backend v4.33 大重構
      · v5.2.1 - (backend only, frontend 無異動)
      · v5.2.2 - UI 小調整(登入動畫分行、今日/明日左邊條移除)
-     · v5.3 目前 - 櫃檯 keyin 小抄(35 天預覽內嵌 [今日][明日])
-                   搭配 backend v4.35(無異動,沿用既有 adminGetTodaySchedule)
+     · v5.3 - 櫃檯 keyin 小抄(35 天預覽內嵌 [今日][明日])
+               搭配 backend v4.35(無異動,沿用既有 adminGetTodaySchedule)
+     · v5.3.1 目前 - Session 持久化(sessionStorage),減少反覆登入
+                     切 App 後回到 LINE 不需再登,只要分頁沒被殺就維持
      · v6.0 預計 — 心理治療功能上線
      · v7.0 預計 — 帳號系統與多醫師登入
      ════════════════════════════════════════════════════════ */
@@ -2073,6 +2075,47 @@ let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendin
 let allBookings = [], activeSession = "";
 let _scheduleLoadId = 0; // 防止多次快速切換日期時，舊請求覆蓋新結果
 
+// ══════════════════════════════════════════════════════════
+// v5.3.1 Session 持久化 helper
+// 存 sessionStorage(分頁關閉就清掉,比 localStorage 安全)
+// 切到 LINE 聊天、切別的 App 再回來,只要分頁還在就不用重登
+// ══════════════════════════════════════════════════════════
+const SESSION_STORAGE_KEY = "yuexinAdminSession_v1";
+
+function saveSessionToStorage() {
+  try {
+    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+      lineId: state.lineId,
+      sessionToken: state.sessionToken,
+      adminName: state.adminName,
+      loginTime: state.loginTime,
+      savedAt: Date.now()
+    }));
+  } catch (e) { /* sessionStorage 失敗不影響既有流程 */ }
+}
+
+function loadSessionFromStorage() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    // 基本防呆:必要欄位都要在
+    if (!saved.lineId || !saved.sessionToken || !saved.adminName) return null;
+    // 本地也加一層保護:存超過 12 小時視為過期(backend TTL 也是 12 小時)
+    if (saved.savedAt && (Date.now() - saved.savedAt) > 12 * 60 * 60 * 1000) {
+      clearSessionFromStorage();
+      return null;
+    }
+    return saved;
+  } catch (e) {
+    return null;
+  }
+}
+
+function clearSessionFromStorage() {
+  try { sessionStorage.removeItem(SESSION_STORAGE_KEY); } catch (e) {}
+}
+
 // 複診號碼 → 預計報到時段（對應 booking.html 和 GAS 的 RETURN_TIME_SLOT_CONFIG）
 const RETURN_SLOT_RANGES = [
   { min: 1,  max: 5,  label: null },          // 保留給現場/代掛，不顯示時段
@@ -2269,6 +2312,28 @@ async function initLiff() {
     }
     // check.error === "需要密碼" 表示白名單，才播動畫
 
+    // v5.3.1:白名單通過後,先看 sessionStorage 有沒有可用的 session
+    // 有的話直接恢復登入狀態,跳過密碼頁(token 若已過期,第一個 API 呼叫會被踢回登入)
+    const savedSession = loadSessionFromStorage();
+    if (savedSession && savedSession.lineId === state.lineId) {
+      state.sessionToken = savedSession.sessionToken;
+      state.adminName = savedSession.adminName;
+      state.loginTime = savedSession.loginTime;
+      // 播個短動畫讓使用者知道正在恢復
+      authAnimStart();
+      await new Promise(function(resolve) { setTimeout(resolve, 600); });
+      authAnimStop();
+      // 直接進主頁,不顯示密碼頁
+      const pageAuth = document.getElementById("pageAuth");
+      pageAuth.style.transition = "opacity 0.3s ease";
+      pageAuth.style.opacity = "0";
+      setTimeout(function() {
+        pageAuth.style.display = "none";
+        enterMainPage();
+      }, 300);
+      return;
+    }
+
     // 第二關：白名單通過，播 JOI-N 動畫後顯示密碼頁
     authAnimStart();
     await new Promise(function(resolve) { setTimeout(resolve, 2400); }); // 動畫播放 2.4 秒（48格 × 50ms，完整一圈）
@@ -2321,6 +2386,8 @@ async function doLogin() {
       state.sessionToken = data.token;
       state.adminName = data.name;
       state.loginTime = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+      // v5.3.1:session 持久化到 sessionStorage,分頁重新整理 / 切 App 回來不用再登
+      saveSessionToStorage();
       document.getElementById("loginPassword").value = "";
       enterMainPage();
     } else if (data.error === "locked") {
@@ -2374,6 +2441,8 @@ async function doLogout() {
   state.sessionToken = "";
   state.adminName = "";
   state.loginTime = "";
+  // v5.3.1:清除 sessionStorage,下次進來要重新登入
+  clearSessionFromStorage();
   closeModal("modalLogout");
   document.getElementById("pageMain").style.display = "none";
   const pageLogin = document.getElementById("pageLogin");
@@ -2388,6 +2457,8 @@ async function doLogout() {
 function handleSessionExpired() {
   hideAdminOverlay(); // 確保所有 loading 狀態都被清除
   state.sessionToken = "";
+  // v5.3.1:backend 說 session 死了 → 清 sessionStorage,避免下次進來用失效 token
+  clearSessionFromStorage();
   document.getElementById("pageMain").style.display = "none";
   const pageLogin = document.getElementById("pageLogin");
   pageLogin.style.display = "flex";

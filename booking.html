@@ -10,7 +10,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.0">
+  <meta name="version" content="5.4.1">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -23,7 +23,7 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.2 (2026-04-19)
+     Version:   v5.4.1 (2026-04-21)
      Theme:     Sage 自然綠系 · Cream 背景 · 人文溫潤
      Typography: Noto Sans TC (主) + Noto Serif TC (診所名)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -33,7 +33,10 @@
      · v5.1 - 狀態畫面統一 + 觸控修正 + LIFF 健壯性
      · v5.1.1 - 與 admin v5.1.1 版本同步(booking 無改動)
      · v5.1.2 - 死碼清理
-     · v5.2 目前 - 與 admin v5.2 / backend v4.33 版本同步(booking 無改動)
+     · v5.2 - 與 admin v5.2 / backend v4.33 版本同步(booking 無改動)
+     · v5.2.2 - UI 小調整(首頁 icon 放大上色、心寬轉介說明微調)
+     · v5.4 - 複診預約家庭友善預填清單(getMyPatientList/removeMyPatient)
+     · v5.4.1 目前 - Gemini 審查修補:刪除成功後重載清單(消除列位移誤刪風險)
      · v6.0 預計 — 心理治療預約上線
      · v7.0 預計 — 帳號系統與病患個人資料管理
      ========================================================== */
@@ -529,6 +532,143 @@
   .alert-info { background: var(--sage-mist); color: var(--sage-dark); border: 1px solid rgba(122,171,90,0.25); }
   .alert-warn { background: var(--gold-light); color: #7a6020; border: 1px solid var(--warn-border); }
 
+  /* ══════════════════════════════════════════════
+     v5.4 複診預約家庭友善預填清單
+     ══════════════════════════════════════════════ */
+  .patient-list-section {
+    margin-bottom: 18px;
+    animation: fadeIn 0.25s ease both;
+  }
+  .patient-list-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 15px; font-weight: 500; color: var(--ink);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px;
+    letter-spacing: 0.3px;
+  }
+  .patient-list-title::before {
+    content: ''; width: 4px; height: 14px;
+    background: var(--sage); border-radius: 2px;
+  }
+  .patient-list-cards {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .patient-card {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1.5px solid rgba(122,171,90,0.2);
+    border-radius: 12px;
+    background: var(--cream);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s;
+  }
+  .patient-card-main {
+    flex: 1; min-width: 0;
+    cursor: pointer;
+  }
+  .patient-card-name {
+    font-size: 15px; font-weight: 500; color: var(--ink);
+    margin-bottom: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .patient-card-meta {
+    font-size: 12px; color: var(--ink-light);
+    letter-spacing: 0.3px;
+  }
+  /* 按壓「卡片主區」(帶入) */
+  .patient-card.active {
+    background: var(--sage-mist);
+    border-color: var(--sage);
+    box-shadow: 0 2px 8px rgba(122,171,90,0.25);
+  }
+  .patient-card.active .patient-card-name { color: var(--sage-deep); }
+  .patient-card.active .patient-card-meta { color: var(--sage-dark); }
+  /* 其他卡片半透明 + disable(刪除中) */
+  .patient-card.dim { opacity: 0.45; pointer-events: none; }
+  /* 被刪除中的卡片 */
+  .patient-card.deleting {
+    background: #f5f5f0;
+    opacity: 0.7;
+  }
+
+  .patient-card-del {
+    flex-shrink: 0;
+    padding: 5px 12px;
+    border: 1.5px solid rgba(122,171,90,0.25);
+    border-radius: 14px;
+    background: var(--cream);
+    color: var(--ink-light);
+    font-size: 12px;
+    font-family: 'Noto Sans TC', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .patient-card-del:active {
+    color: var(--error);
+    border-color: var(--error);
+    background: #fdf0ef;
+  }
+  .patient-card-del:disabled {
+    opacity: 0.4; cursor: not-allowed;
+  }
+  /* 刪除中旋轉圖示 */
+  .patient-card-del .del-spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid rgba(122,171,90,0.3);
+    border-top-color: var(--sage-dark);
+    border-radius: 50%;
+    animation: plSpin 0.8s linear infinite;
+    vertical-align: middle;
+  }
+  @keyframes plSpin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Skeleton 載入狀態 */
+  .patient-skeleton {
+    height: 56px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #ededed 0%, #f5f5f5 50%, #ededed 100%);
+    background-size: 200% 100%;
+    animation: plPulse 1.4s ease-in-out infinite;
+    border: 1.5px solid rgba(122,171,90,0.12);
+  }
+  @keyframes plPulse {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* 「或直接輸入 ⌄」 */
+  .patient-list-manual {
+    font-size: 13px;
+    color: var(--ink-light);
+    margin-top: 12px;
+    padding-left: 2px;
+    user-select: none;
+  }
+
+  /* Toast(刪除失敗用) */
+  .pl-toast {
+    position: fixed;
+    left: 50%; bottom: 28px;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: #fff;
+    font-size: 14px;
+    padding: 10px 18px;
+    border-radius: 22px;
+    box-shadow: var(--shadow-md);
+    z-index: 9999;
+    animation: plToastIn 0.2s ease both;
+    pointer-events: none;
+  }
+  @keyframes plToastIn {
+    from { opacity: 0; transform: translate(-50%, 8px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+  }
+
   /* ── Summary rows（confirm 頁與通用） ── */
   .summary-row {
     display: flex; justify-content: space-between; align-items: center;
@@ -974,6 +1114,16 @@
       <div class="step-line"></div>
       <div class="step" id="step3"><div class="step-num"><span>3</span></div><span>確認送出</span></div>
     </div>
+
+    <!-- v5.4:家庭友善預填清單(只在複診流程顯示,由 loadPatientList 控制 display) -->
+    <div class="patient-list-section" id="patientListSection" style="display:none;">
+      <div class="patient-list-title">點選帶入之前預約資料</div>
+      <div class="patient-list-cards" id="patientListCards">
+        <!-- skeleton / 真實卡片由 JS 動態插入 -->
+      </div>
+      <div class="patient-list-manual">或直接輸入 ⌄</div>
+    </div>
+
     <div class="card">
       <div class="card-title">基本資料</div>
       <div class="form-group">
@@ -1505,6 +1655,222 @@ function parseBirthROC(y, m, d) {
   return adYear + "-" + mm + "-" + dd;
 }
 
+// ══════════════════════════════════════════════
+// v5.4 家庭友善預填清單
+// ══════════════════════════════════════════════
+let patientListLoaded = false;  // 返回不重載旗標
+let patientListDeleting = false;  // 刪除中全域鎖
+
+// 西元 "1993-02-02" → {y:"82", m:"2", d:"2"},給預填用
+// 也接受原本就是民國 "82/02/02" 的格式(向後相容)
+function parseBirthForPrefill(birthStr) {
+  if (!birthStr) return null;
+  const s = birthStr.toString().trim();
+  // 西元 yyyy-MM-dd 或 yyyy/MM/dd
+  let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (m) {
+    const rocY = parseInt(m[1], 10) - 1911;
+    return { y: String(rocY), m: String(parseInt(m[2], 10)), d: String(parseInt(m[3], 10)) };
+  }
+  // 民國 yy/MM/dd(保險處理)
+  m = s.match(/^(\d{1,3})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (m) {
+    return { y: String(parseInt(m[1], 10)), m: String(parseInt(m[2], 10)), d: String(parseInt(m[3], 10)) };
+  }
+  return null;
+}
+
+// 西元 "1993-02-02" → 民國顯示 "82/02/02",給卡片顯示用
+function formatBirthROCDisplay(birthStr) {
+  if (!birthStr) return "";
+  const s = birthStr.toString().trim();
+  let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (m) {
+    const rocY = parseInt(m[1], 10) - 1911;
+    const mm = String(parseInt(m[2], 10)).padStart(2, "0");
+    const dd = String(parseInt(m[3], 10)).padStart(2, "0");
+    return rocY + "/" + mm + "/" + dd;
+  }
+  // 已經是民國或未知格式,原樣顯示
+  return s;
+}
+
+// 進入 pageInfo 時觸發(只對複診流程)
+async function loadPatientList() {
+  // 只對複診流程顯示
+  if (state.type !== "複診") {
+    document.getElementById("patientListSection").style.display = "none";
+    return;
+  }
+  // 沒有 lineId 不載入(應該不會發生,LIFF 保證)
+  if (!state.lineId) {
+    document.getElementById("patientListSection").style.display = "none";
+    return;
+  }
+  // 返回不重載
+  if (patientListLoaded) return;
+  patientListLoaded = true;
+
+  const section = document.getElementById("patientListSection");
+  const cardsEl = document.getElementById("patientListCards");
+
+  // 立即顯示 skeleton
+  section.style.display = "block";
+  cardsEl.innerHTML =
+    '<div class="patient-skeleton"></div>' +
+    '<div class="patient-skeleton"></div>' +
+    '<div class="patient-skeleton"></div>';
+
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "getMyPatientList",
+      lineId: state.lineId
+    });
+    if (!data.success || !data.patients || data.patients.length === 0) {
+      // 靜默降級:0 筆或失敗一律隱藏
+      section.style.display = "none";
+      cardsEl.innerHTML = "";
+      return;
+    }
+    renderPatientList(data.patients);
+  } catch (e) {
+    // 靜默降級
+    section.style.display = "none";
+    cardsEl.innerHTML = "";
+  }
+}
+
+function renderPatientList(patients) {
+  const cardsEl = document.getElementById("patientListCards");
+  cardsEl.innerHTML = "";
+  patients.forEach(function(p) {
+    const card = document.createElement("div");
+    card.className = "patient-card";
+    card.dataset.rowIndex = p.rowIndex;
+
+    const main = document.createElement("div");
+    main.className = "patient-card-main";
+    const nameEl = document.createElement("div");
+    nameEl.className = "patient-card-name";
+    nameEl.textContent = p.name || "";
+    const metaEl = document.createElement("div");
+    metaEl.className = "patient-card-meta";
+    metaEl.textContent = formatBirthROCDisplay(p.birth) + " · " + (p.phone || "");
+    main.appendChild(nameEl);
+    main.appendChild(metaEl);
+    main.addEventListener("click", function() {
+      selectPatient(p, card);
+    });
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "patient-card-del";
+    delBtn.type = "button";
+    delBtn.textContent = "刪除";
+    delBtn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      removePatient(p.rowIndex, card, delBtn);
+    });
+
+    card.appendChild(main);
+    card.appendChild(delBtn);
+    cardsEl.appendChild(card);
+  });
+}
+
+function selectPatient(p, cardEl) {
+  // 視覺:該卡 active,其他卡取消 active
+  document.querySelectorAll("#patientListCards .patient-card").forEach(function(c) {
+    c.classList.remove("active");
+  });
+  cardEl.classList.add("active");
+
+  // 預填表單
+  const nameInput = document.getElementById("inputName");
+  const phoneInput = document.getElementById("inputPhone");
+  if (nameInput) nameInput.value = p.name || "";
+  if (phoneInput) phoneInput.value = p.phone || "";
+
+  const parsed = parseBirthForPrefill(p.birth);
+  document.getElementById("inputBirthY").value = parsed ? parsed.y : "";
+  document.getElementById("inputBirthM").value = parsed ? parsed.m : "";
+  document.getElementById("inputBirthD").value = parsed ? parsed.d : "";
+
+  // 清掉錯誤提示
+  const err = document.getElementById("errorPage1");
+  if (err) err.style.display = "none";
+}
+
+async function removePatient(rowIndex, cardEl, delBtn) {
+  if (patientListDeleting) return;
+  patientListDeleting = true;
+
+  // 進入刪除中視覺狀態
+  cardEl.classList.add("deleting");
+  delBtn.disabled = true;
+  delBtn.innerHTML = '<span class="del-spinner"></span>';
+
+  // 其他卡片 dim + 所有刪除鈕 disable + 下一步 disable
+  const allCards = document.querySelectorAll("#patientListCards .patient-card");
+  allCards.forEach(function(c) {
+    if (c !== cardEl) c.classList.add("dim");
+  });
+  const allDelBtns = document.querySelectorAll("#patientListCards .patient-card-del");
+  allDelBtns.forEach(function(b) { b.disabled = true; });
+  const nextBtns = document.querySelectorAll('#pageInfo .btn-primary');
+  nextBtns.forEach(function(b) { b.disabled = true; });
+
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "removeMyPatient",
+      lineId: state.lineId,
+      rowIndex: rowIndex
+    });
+    if (!data.success) throw new Error(data.error || "fail");
+
+    // v5.4.1:成功後重新載入清單,讓 rowIndex 同步到試算表刪除後的狀態
+    // (避免列位移導致後續刪除對應到錯誤的列)
+    // 若重載失敗 loadPatientList 會靜默降級隱藏整區,使用者仍可手動輸入,符合 v5.4 哲學
+    patientListLoaded = false;
+    await loadPatientList();
+    // 下一步按鈕恢復(loadPatientList 只管清單 UI,不管表單按鈕)
+    nextBtns.forEach(function(b) { b.disabled = false; });
+  } catch (e) {
+    // 失敗 → 恢復該卡片 + toast
+    cardEl.classList.remove("deleting");
+    document.querySelectorAll("#patientListCards .patient-card.dim").forEach(function(c) {
+      c.classList.remove("dim");
+    });
+    allDelBtns.forEach(function(b) { b.disabled = false; b.textContent = "刪除"; });
+    nextBtns.forEach(function(b) { b.disabled = false; });
+    showPlToast("刪除失敗,請再試");
+  } finally {
+    patientListDeleting = false;
+  }
+}
+
+function showPlToast(msg) {
+  const old = document.getElementById("plToast");
+  if (old) old.remove();
+  const t = document.createElement("div");
+  t.id = "plToast";
+  t.className = "pl-toast";
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function() {
+    if (t && t.parentNode) t.remove();
+  }, 2500);
+}
+
+// 重置:從首頁或其他流程重新開始時清掉旗標
+function resetPatientList() {
+  patientListLoaded = false;
+  patientListDeleting = false;
+  const section = document.getElementById("patientListSection");
+  if (section) section.style.display = "none";
+  const cardsEl = document.getElementById("patientListCards");
+  if (cardsEl) cardsEl.innerHTML = "";
+}
+
 // ===================================
 // 入口
 // ===================================
@@ -1533,6 +1899,8 @@ function goToEntry() {
   state.isUnspecified = false; state.slotsData = null; state.sessionSelected = false;
   state.bookingId = null;
   isSubmitting = false;
+  // v5.4:重置家庭友善預填清單(回首頁後下次進複診會重新載入)
+  resetPatientList();
   showPage("pageEntry");
 }
 
@@ -1554,11 +1922,16 @@ function startBooking(type) {
   var skipBtn = document.getElementById("btnSourceSkip");
   if (skipBtn) skipBtn.textContent = "略過";
   document.getElementById("headerSub").textContent = type + "預約";
-  // 初診先問來源，複診直接填資料
+  // 初診先問來源,複診直接填資料
   if (type === "初診") {
+    // 初診不顯示清單(確保不受前次複診殘留影響)
+    resetPatientList();
     showPage("pageSource");
   } else {
+    // 複診:進入 pageInfo,載入家庭友善預填清單(v5.4)
+    resetPatientList();
     showPage("pageInfo");
+    loadPatientList();
   }
 }
 
@@ -1572,7 +1945,10 @@ function startXinkuanBooking() {
     if (el) el.value = "";
   });
   document.getElementById("headerSub").textContent = "楠梓心寬轉介預約";
+  // 心寬轉介也走複診流程,載入家庭友善預填清單(v5.4)
+  resetPatientList();
   showPage("pageInfo");
+  loadPatientList();
 }
 
 // 醫師照片對應
