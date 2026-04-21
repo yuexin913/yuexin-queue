@@ -110,9 +110,7 @@
 
   body {
     font-family: 'Noto Sans TC', sans-serif;
-    background-color: var(--parchment);
-    background-image:
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' seed='3'/><feColorMatrix values='0 0 0 0 0.3  0 0 0 0 0.28  0 0 0 0 0.22  0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    background: var(--parchment);
     color: var(--ink);
     min-height: 100vh;
     padding-bottom: 60px;
@@ -925,26 +923,28 @@
   /* ── 自訂 Modal ── */
   .modal-overlay {
     display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5); z-index: 1000;
+    background: rgba(43,43,40,0.32); z-index: 1000;
     align-items: center; justify-content: center;
-    backdrop-filter: blur(2px);
+    backdrop-filter: blur(3px);
   }
   .modal-overlay.active { display: flex; }
   .modal-box {
-    background: var(--cream); border-radius: 18px;
+    background: var(--cream); border-radius: 6px;
     padding: 28px 24px; width: 280px; text-align: center;
-    box-shadow: var(--shadow-lg);
-    animation: slideUp 0.3s cubic-bezier(0.22,1,0.36,1) both;
+    border: 0.5px solid rgba(74,74,68,0.15);
+    box-shadow: 0 2px 24px rgba(43,43,40,0.08);
+    animation: fadeIn 0.25s ease both;
   }
-  .modal-title { font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 10px; }
-  .modal-msg { font-size: 14px; color: var(--ink-light); margin-bottom: 24px; line-height: 1.5; }
+  .modal-title { font-family: 'Noto Serif TC', serif; font-size: 15px; font-weight: 500; color: var(--sage-deep); letter-spacing: 4px; margin-bottom: 10px; }
+  .modal-msg { font-size: 14px; color: var(--ink-mid); margin-bottom: 24px; line-height: 1.7; letter-spacing: 1px; }
   .modal-btns { display: flex; gap: 10px; }
   .modal-btn {
-    flex: 1; padding: 12px; border-radius: 10px; border: none;
-    font-size: 14px; cursor: pointer; font-weight: 500;
+    flex: 1; padding: 12px; border-radius: 3px; border: none;
+    font-size: 14px; cursor: pointer; font-weight: 400;
+    letter-spacing: 2px;
     font-family: 'Noto Sans TC', sans-serif;
   }
-  .modal-btn-cancel { background: #f0f0f0; color: var(--ink); }
+  .modal-btn-cancel { background: transparent; color: var(--ink-mid); border: 0.5px solid rgba(74,74,68,0.25); }
   .modal-btn-confirm { background: var(--error); color: white; }
 
 
@@ -979,9 +979,9 @@
 </div>
 
 <!-- 全螢幕等待遮罩 -->
-<div id="bookingOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
-  <div class="spinner" style="width:32px;height:32px;border-width:3px;border-color:rgba(255,255,255,0.3);border-top-color:#fff;"></div>
-  <div id="bookingOverlayText" style="font-size:15px;font-weight:600;color:#fff;letter-spacing:0.5px;"></div>
+<div id="bookingOverlay" style="display:none;position:fixed;inset:0;background:rgba(244,242,236,0.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:18px;">
+  <div class="spinner" style="width:32px;height:32px;border-width:2px;border-color:rgba(74,74,68,0.15);border-top-color:var(--sage-dark);"></div>
+  <div id="bookingOverlayText" style="font-size:14px;font-weight:400;color:var(--ink-mid);letter-spacing:3px;"></div>
 </div>
 
 <div class="container">
@@ -1024,8 +1024,8 @@
       <div class="spinner" style="width:14px;height:14px;border-width:2px;"></div>
       <span style="font-size:12px;color:var(--ink-light);">確認中...</span>
     </div>
-    <div class="card" style="margin-top:4px">
-      <div class="card-title">請選擇服務</div>
+    <div style="margin-top:4px">
+      <div class="card-title" style="padding: 0 4px;">請選擇服務</div>
       <div class="entry-options">
         <div class="entry-btn" onclick="startBooking('複診')">
           <div class="entry-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg></div>
