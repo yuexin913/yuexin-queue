@@ -142,10 +142,11 @@
   }
   .beta-badge {
     display: inline-block;
-    font-size: 10px; font-weight: 700;
-    color: #fff; background: #D4522A;
-    padding: 1px 9px; border-radius: 20px;
-    letter-spacing: 1.5px; margin-top: 4px;
+    font-size: 10px; font-weight: 400;
+    color: #8a5f0a; background: transparent;
+    border: 0.5px solid rgba(194,134,10,0.4);
+    padding: 1px 9px; border-radius: 2px;
+    letter-spacing: 2px; margin-top: 4px;
   }
 
   .container { max-width: 480px; margin: 0 auto; padding: 24px 16px; }
@@ -477,7 +478,8 @@
 
   .fully-booked {
     text-align: center; padding: 18px; color: var(--ink-light); font-size: 13px;
-    border: 1.5px solid rgba(122,171,90,0.2); border-radius: 0 0 10px 10px; background: #fafafa;
+    border: 0.5px solid rgba(74,74,68,0.15); border-radius: 0 0 3px 3px; background: transparent;
+    letter-spacing: 1px;
   }
 
   /* ── 按鈕 ── */
@@ -540,12 +542,13 @@
 
   /* ── 警示 ── */
   .alert {
-    padding: 13px 16px; border-radius: 12px;
-    font-size: 14px; margin-bottom: 16px; line-height: 1.7;
+    padding: 13px 16px; border-radius: 3px;
+    font-size: 13.5px; margin-bottom: 16px; line-height: 1.8;
+    letter-spacing: 0.5px;
   }
-  .alert-error { background: #fdf0ef; color: var(--error); border: 1px solid #f5c6c2; }
-  .alert-info { background: var(--sage-mist); color: var(--sage-dark); border: 1px solid rgba(122,171,90,0.25); }
-  .alert-warn { background: var(--gold-light); color: #7a6020; border: 1px solid var(--warn-border); }
+  .alert-error { background: transparent; color: var(--error); border: 0.5px solid rgba(192,57,43,0.35); border-left-width: 2px; }
+  .alert-info { background: transparent; color: var(--sage-deep); border: 0.5px solid rgba(74,74,68,0.15); border-left: 2px solid var(--sage); }
+  .alert-warn { background: transparent; color: #7a6020; border: 0.5px solid rgba(200,168,75,0.35); border-left-width: 2px; }
 
   /* ══════════════════════════════════════════════
      v5.4 複診預約家庭友善預填清單
@@ -556,26 +559,26 @@
   }
   .patient-list-title {
     font-family: 'Noto Serif TC', serif;
-    font-size: 15px; font-weight: 500; color: var(--ink);
+    font-size: 14px; font-weight: 500; color: var(--sage-deep);
     margin-bottom: 12px;
     display: flex; align-items: center; gap: 10px;
-    letter-spacing: 0.3px;
+    letter-spacing: 3px;
   }
   .patient-list-title::before {
-    content: ''; width: 4px; height: 14px;
-    background: var(--sage); border-radius: 2px;
+    content: ''; width: 2px; height: 14px;
+    background: var(--sage); border-radius: 0;
   }
   .patient-list-cards {
-    display: flex; flex-direction: column; gap: 8px;
+    display: flex; flex-direction: column; gap: 6px;
   }
   .patient-card {
     display: flex; align-items: center; justify-content: space-between;
     gap: 10px;
     padding: 14px 16px;
-    border: 1.5px solid rgba(122,171,90,0.2);
-    border-radius: 12px;
-    background: var(--cream);
-    box-shadow: var(--shadow-sm);
+    border: 0.5px solid rgba(74,74,68,0.18);
+    border-radius: 3px;
+    background: transparent;
+    box-shadow: none;
     transition: all 0.2s;
   }
   .patient-card-main {
@@ -583,8 +586,9 @@
     cursor: pointer;
   }
   .patient-card-name {
-    font-size: 15px; font-weight: 500; color: var(--ink);
-    margin-bottom: 2px;
+    font-size: 15px; font-weight: 400; color: var(--ink);
+    letter-spacing: 1px;
+    margin-bottom: 3px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .patient-card-meta {
@@ -593,36 +597,37 @@
   }
   /* 按壓「卡片主區」(帶入) */
   .patient-card.active {
-    background: var(--sage-mist);
-    border-color: var(--sage);
-    box-shadow: 0 2px 8px rgba(122,171,90,0.25);
+    background: rgba(138,170,85,0.08);
+    border-color: var(--sage-dark);
+    box-shadow: none;
   }
-  .patient-card.active .patient-card-name { color: var(--sage-deep); }
+  .patient-card.active .patient-card-name { color: var(--sage-deep); font-weight: 500; }
   .patient-card.active .patient-card-meta { color: var(--sage-dark); }
   /* 其他卡片半透明 + disable(刪除中) */
-  .patient-card.dim { opacity: 0.45; pointer-events: none; }
+  .patient-card.dim { opacity: 0.4; pointer-events: none; }
   /* 被刪除中的卡片 */
   .patient-card.deleting {
-    background: #f5f5f0;
+    background: rgba(74,74,68,0.04);
     opacity: 0.7;
   }
 
   .patient-card-del {
     flex-shrink: 0;
     padding: 5px 12px;
-    border: 1.5px solid rgba(122,171,90,0.25);
-    border-radius: 14px;
-    background: var(--cream);
+    border: 0.5px solid rgba(74,74,68,0.22);
+    border-radius: 2px;
+    background: transparent;
     color: var(--ink-light);
     font-size: 12px;
     font-family: 'Noto Sans TC', sans-serif;
+    letter-spacing: 1px;
     cursor: pointer;
     transition: all 0.15s;
   }
   .patient-card-del:active {
     color: var(--error);
     border-color: var(--error);
-    background: #fdf0ef;
+    background: transparent;
   }
   .patient-card-del:disabled {
     opacity: 0.4; cursor: not-allowed;
@@ -631,7 +636,7 @@
   .patient-card-del .del-spinner {
     display: inline-block;
     width: 12px; height: 12px;
-    border: 2px solid rgba(122,171,90,0.3);
+    border: 1.5px solid rgba(74,74,68,0.2);
     border-top-color: var(--sage-dark);
     border-radius: 50%;
     animation: plSpin 0.8s linear infinite;
@@ -643,12 +648,12 @@
 
   /* Skeleton 載入狀態 */
   .patient-skeleton {
-    height: 56px;
-    border-radius: 12px;
-    background: linear-gradient(90deg, #ededed 0%, #f5f5f5 50%, #ededed 100%);
+    height: 54px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, rgba(74,74,68,0.04) 0%, rgba(74,74,68,0.08) 50%, rgba(74,74,68,0.04) 100%);
     background-size: 200% 100%;
-    animation: plPulse 1.4s ease-in-out infinite;
-    border: 1.5px solid rgba(122,171,90,0.12);
+    animation: plPulse 1.6s ease-in-out infinite;
+    border: 0.5px solid rgba(74,74,68,0.1);
   }
   @keyframes plPulse {
     0%   { background-position: 200% 0; }
@@ -669,12 +674,14 @@
     position: fixed;
     left: 50%; bottom: 28px;
     transform: translateX(-50%);
-    background: var(--ink);
-    color: #fff;
-    font-size: 14px;
-    padding: 10px 18px;
-    border-radius: 22px;
-    box-shadow: var(--shadow-md);
+    background: var(--cream);
+    color: var(--ink);
+    font-size: 13.5px;
+    letter-spacing: 1px;
+    padding: 11px 20px;
+    border-radius: 3px;
+    border: 0.5px solid rgba(74,74,68,0.2);
+    box-shadow: 0 2px 16px rgba(43,43,40,0.12);
     z-index: 9999;
     animation: plToastIn 0.2s ease both;
     pointer-events: none;
@@ -687,8 +694,8 @@
   /* ── Summary rows（confirm 頁與通用） ── */
   .summary-row {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid rgba(122,171,90,0.1);
+    padding: 13px 0;
+    border-bottom: 0.5px solid rgba(74,74,68,0.12);
     font-size: 14px;
     animation: fadeIn 0.3s ease both;
   }
@@ -702,48 +709,52 @@
   .summary-row:nth-child(7) { animation-delay: 0.35s; }
   .summary-row:nth-child(8) { animation-delay: 0.40s; }
   .summary-label {
-    font-size: 12px; color: var(--ink-light);
-    font-weight: 400; letter-spacing: 0.3px;
+    font-size: 11.5px; color: var(--ink-light);
+    font-weight: 400; letter-spacing: 2px;
   }
   .summary-value {
-    font-size: 14px; font-weight: 500;
+    font-size: 14.5px; font-weight: 400;
     color: var(--ink); text-align: right;
+    letter-spacing: 1px;
   }
   .summary-value.highlight {
-    color: var(--sage-dark); font-weight: 600;
+    color: var(--sage-deep); font-weight: 500;
+    font-family: 'Noto Serif TC', serif;
+    letter-spacing: 2px;
   }
 
-  /* ── Confirm 卡片（專用：深綠漸層 header） ── */
+  /* ── Confirm 卡片（專用：簡約沉穩 header） ── */
   .confirm-card {
     background: var(--cream);
-    border-radius: 20px;
-    box-shadow: var(--shadow-md);
+    border-radius: 4px;
+    box-shadow: none;
     overflow: hidden;
     margin-bottom: 16px;
-    border: 1px solid rgba(122,171,90,0.12);
-    animation: slideUp 0.4s cubic-bezier(0.22,1,0.36,1) both;
+    border: 0.5px solid rgba(74,74,68,0.15);
+    animation: fadeIn 0.3s ease both;
   }
   .confirm-card-header {
-    background: linear-gradient(135deg, var(--sage-deep) 0%, var(--sage-dark) 100%);
+    background: var(--sage-deep);
     padding: 18px 22px;
     display: flex; align-items: center; gap: 10px;
   }
-  .confirm-card-header-icon { font-size: 20px; opacity: 0.95; }
+  .confirm-card-header-icon { font-size: 20px; opacity: 0.9; }
   .confirm-card-header-title {
     font-family: 'Noto Serif TC', serif;
-    font-size: 15px; font-weight: 600;
-    color: rgba(255,255,255,0.95);
-    letter-spacing: 1px;
+    font-size: 15px; font-weight: 500;
+    color: rgba(255,255,255,0.94);
+    letter-spacing: 4px;
   }
   .confirm-card-body { padding: 8px 22px; }
 
   /* ── 成功頁 ── */
   .success-icon {
-    width: 72px; height: 72px; border-radius: 50%;
-    background: var(--sage-light);
+    width: 68px; height: 68px; border-radius: 50%;
+    background: transparent;
+    border: 0.5px solid rgba(138,170,85,0.5);
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 18px;
-    box-shadow: 0 4px 20px rgba(122,171,90,0.25);
+    margin: 0 auto 20px;
+    box-shadow: none;
     animation: successPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
   }
   @keyframes successPop {
@@ -751,29 +762,30 @@
     to   { opacity: 1; transform: scale(1); }
   }
   .success-icon svg {
-    width: 38px; height: 38px;
+    width: 32px; height: 32px;
     stroke: var(--sage-dark);
-    stroke-width: 3.5;
+    stroke-width: 2;
     fill: none;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-dasharray: 40;
     stroke-dashoffset: 40;
-    animation: drawCheck 0.5s 0.3s cubic-bezier(0.22,1,0.36,1) forwards;
+    animation: drawCheck 0.6s 0.3s cubic-bezier(0.22,1,0.36,1) forwards;
   }
   @keyframes drawCheck {
     to { stroke-dashoffset: 0; }
   }
   .success-title {
     font-family: 'Noto Serif TC', serif;
-    font-size: 22px; font-weight: 600; color: var(--sage-deep);
-    text-align: center; margin-bottom: 10px;
-    letter-spacing: 2px;
+    font-size: 20px; font-weight: 500; color: var(--sage-deep);
+    text-align: center; margin-bottom: 12px;
+    letter-spacing: 6px; padding-left: 6px;
     animation: fadeIn 0.4s 0.5s both;
   }
   .success-sub {
-    text-align: center; font-size: 14px;
-    color: var(--ink-light); line-height: 1.7; margin-bottom: 24px;
+    text-align: center; font-size: 13.5px;
+    color: var(--ink-mid); line-height: 1.9; margin-bottom: 24px;
+    letter-spacing: 1px;
     animation: fadeIn 0.4s 0.7s both;
   }
 
@@ -784,14 +796,15 @@
      支援四種語義:success / info / warning / error
      ══════════════════════════════════════════════ */
   .status-icon {
-    width: 72px; height: 72px; border-radius: 50%;
+    width: 68px; height: 68px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 18px;
+    margin: 0 auto 20px;
+    background: transparent;
     animation: successPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
   }
   .status-icon svg {
-    width: 38px; height: 38px;
-    stroke-width: 2.5;
+    width: 32px; height: 32px;
+    stroke-width: 1.8;
     fill: none;
     stroke-linecap: round;
     stroke-linejoin: round;
@@ -799,44 +812,45 @@
   }
   /* 成功(綠) */
   .status-icon.status-success {
-    background: var(--sage-light);
-    box-shadow: 0 4px 20px rgba(122,171,90,0.25);
+    border: 0.5px solid rgba(138,170,85,0.5);
+    box-shadow: none;
   }
   .status-icon.status-success svg { stroke: var(--sage-dark); }
   /* 資訊 / 待確認(sage 深綠) */
   .status-icon.status-info {
-    background: var(--sage-light);
-    box-shadow: 0 4px 20px rgba(122,171,90,0.2);
+    border: 0.5px solid rgba(138,170,85,0.45);
+    box-shadow: none;
   }
   .status-icon.status-info svg { stroke: var(--sage-dark); }
   /* 警告 / 過期(琥珀黃) */
   .status-icon.status-warning {
-    background: #fdf0d4;
-    box-shadow: 0 4px 20px rgba(214,158,46,0.2);
+    border: 0.5px solid rgba(194,134,10,0.45);
+    box-shadow: none;
   }
-  .status-icon.status-warning svg { stroke: #c2860a; }
+  .status-icon.status-warning svg { stroke: #a6730a; }
   /* 錯誤 / 禁止(深紅) */
   .status-icon.status-error {
-    background: #fde8e8;
-    box-shadow: 0 4px 20px rgba(197,48,48,0.15);
+    border: 0.5px solid rgba(192,57,43,0.4);
+    box-shadow: none;
   }
-  .status-icon.status-error svg { stroke: #c53030; }
+  .status-icon.status-error svg { stroke: var(--error); }
 
   /* 狀態頁通用標題 / 內文(共用動畫) */
   .status-title {
     font-family: 'Noto Serif TC', serif;
-    font-size: 22px; font-weight: 600;
-    text-align: center; margin-bottom: 10px;
-    letter-spacing: 2px;
+    font-size: 20px; font-weight: 500;
+    text-align: center; margin-bottom: 12px;
+    letter-spacing: 6px; padding-left: 6px;
     animation: fadeIn 0.4s 0.5s both;
   }
   .status-title.status-success-text { color: var(--sage-deep); }
   .status-title.status-info-text    { color: var(--ink); }
-  .status-title.status-warning-text { color: #9c6b0a; }
-  .status-title.status-error-text   { color: #9b2c2c; }
+  .status-title.status-warning-text { color: #8a5f0a; }
+  .status-title.status-error-text   { color: #8a2a22; }
   .status-sub {
-    text-align: center; font-size: 14px;
-    color: var(--ink-light); line-height: 1.7; margin-bottom: 24px;
+    text-align: center; font-size: 13.5px;
+    color: var(--ink-mid); line-height: 1.9; margin-bottom: 24px;
+    letter-spacing: 1px;
     animation: fadeIn 0.4s 0.7s both;
   }
   .status-container {
@@ -847,30 +861,31 @@
 
   /* ── 預約列表 ── */
   .booking-item {
-    border: 1.5px solid rgba(122,171,90,0.2); border-radius: 14px;
-    padding: 14px 16px; margin-bottom: 10px; background: var(--cream);
-    transition: box-shadow 0.2s;
+    border: 0.5px solid rgba(74,74,68,0.15); border-radius: 3px;
+    padding: 14px 16px; margin-bottom: 10px; background: transparent;
+    transition: background 0.2s;
   }
-  .booking-item:hover { box-shadow: var(--shadow-sm); }
+  .booking-item:hover { background: rgba(138,170,85,0.04); }
   .booking-item-header {
     display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
   }
-  .booking-date { font-size: 15px; font-weight: 500; color: var(--ink); }
+  .booking-date { font-family: 'Noto Serif TC', serif; font-size: 15px; font-weight: 500; color: var(--sage-deep); letter-spacing: 2px; }
   .booking-status {
-    font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 500;
-    letter-spacing: 0.3px;
+    font-size: 11px; padding: 2px 9px; border-radius: 2px; font-weight: 400;
+    letter-spacing: 1px;
   }
-  .status-pending { background: var(--gold-light); color: #856404; }
-  .status-confirmed { background: var(--sage-light); color: var(--sage-dark); }
-  .status-cancelled { background: #f5f5f5; color: #999; }
-  .booking-detail { font-size: 13px; color: var(--ink-light); line-height: 1.8; }
+  .status-pending { background: transparent; color: #8a5f0a; border: 0.5px solid rgba(194,134,10,0.35); }
+  .status-confirmed { background: transparent; color: var(--sage-dark); border: 0.5px solid rgba(138,170,85,0.45); }
+  .status-cancelled { background: transparent; color: var(--ink-light); border: 0.5px solid rgba(74,74,68,0.18); }
+  .booking-detail { font-size: 13px; color: var(--ink-mid); line-height: 1.9; letter-spacing: 0.5px; }
   .booking-cancel {
-    margin-top: 10px; padding: 9px; width: 100%;
-    border: 1px solid var(--error); border-radius: 10px;
-    background: var(--cream); color: var(--error); font-size: 13px;
+    margin-top: 12px; padding: 9px; width: 100%;
+    border: 0.5px solid rgba(192,57,43,0.4); border-radius: 3px;
+    background: transparent; color: var(--error); font-size: 13px;
     font-family: 'Noto Sans TC', sans-serif; cursor: pointer; transition: all 0.2s;
+    letter-spacing: 2px;
   }
-  .booking-cancel:hover { background: #fdf0ef; }
+  .booking-cancel:hover { background: rgba(192,57,43,0.05); border-color: var(--error); }
 
   /* ── 載入 ── */
   .loading {
@@ -878,54 +893,59 @@
     padding: 40px; color: var(--ink-light); font-size: 14px; gap: 10px;
   }
   .spinner {
-    width: 20px; height: 20px; border: 2px solid rgba(122,171,90,0.2);
-    border-top-color: var(--sage); border-radius: 50%;
+    width: 20px; height: 20px; border: 1.5px solid rgba(74,74,68,0.15);
+    border-top-color: var(--sage-dark); border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .no-clinic {
     text-align: center; padding: 20px; color: var(--ink-light);
-    font-size: 13px; background: #fafafa; border-radius: 12px;
-    border: 1.5px solid rgba(122,171,90,0.2);
+    font-size: 13px; background: transparent; border-radius: 3px;
+    border: 0.5px solid rgba(74,74,68,0.15);
+    letter-spacing: 1px;
   }
 
   .page { display: none; }
   .page.active { display: block; }
 
-  /* ── 門診公告（金色警示） ── */
+  /* ── 門診公告 ── */
   .announcement-box {
-    background: var(--gold-light);
-    border: 1.5px solid var(--warn-border);
-    border-radius: 12px; padding: 12px 14px;
+    background: transparent;
+    border: 0.5px solid rgba(74,74,68,0.15);
+    border-left: 2px solid #c2860a;
+    border-radius: 3px; padding: 14px 16px;
     margin: 8px 0 4px; display: none;
   }
   .announcement-title {
-    font-size: 13px; font-weight: 700; color: #B7660A;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 13px; font-weight: 500; color: #8a5f0a;
     display: flex; align-items: center; gap: 6px;
-    margin-bottom: 8px;
+    margin-bottom: 10px; letter-spacing: 3px;
   }
   .announcement-item {
     display: flex; align-items: baseline; gap: 8px;
-    padding: 5px 0; border-bottom: 1px solid #FAD9A0;
-    font-size: 13px; line-height: 1.5;
+    padding: 6px 0; border-bottom: 0.5px solid rgba(74,74,68,0.1);
+    font-size: 13px; line-height: 1.7;
   }
   .announcement-item:last-child { border-bottom: none; padding-bottom: 0; }
   .announcement-badge-closed {
-    font-size: 10px; font-weight: 700; color: #fff;
-    background: #C0392B; padding: 1px 6px; border-radius: 3px;
+    font-size: 10px; font-weight: 500; color: var(--error);
+    background: transparent; border: 0.5px solid rgba(192,57,43,0.4);
+    padding: 1px 7px; border-radius: 2px; letter-spacing: 0.5px;
     flex-shrink: 0;
   }
   .announcement-badge-sub {
-    font-size: 10px; font-weight: 700; color: #fff;
-    background: #2980B9; padding: 1px 6px; border-radius: 3px;
+    font-size: 10px; font-weight: 500; color: #1a5a84;
+    background: transparent; border: 0.5px solid rgba(41,128,185,0.4);
+    padding: 1px 7px; border-radius: 2px; letter-spacing: 0.5px;
     flex-shrink: 0;
   }
-  .announcement-text { color: var(--ink); }
-  .announcement-reason { color: var(--ink-light); font-size: 12px; }
+  .announcement-text { color: var(--ink); letter-spacing: 0.5px; }
+  .announcement-reason { color: var(--ink-light); font-size: 12px; letter-spacing: 0.3px; }
   .announcement-toggle {
-    font-size: 12px; color: #B7660A; text-align: center;
-    padding-top: 6px; cursor: pointer; font-weight: 600;
+    font-size: 12px; color: #8a5f0a; text-align: center;
+    padding-top: 8px; cursor: pointer; font-weight: 400; letter-spacing: 1px;
   }
 
   /* ── 自訂 Modal ── */
@@ -1201,17 +1221,17 @@
     <!-- 餘藥天數切換列 -->
     <div id="medCalcToggleBar" style="display:none;margin-bottom:4px;">
       <div style="display:flex;align-items:center;gap:10px;margin:10px 0;">
-        <div style="flex:1;height:1px;background:rgba(122,171,90,0.25);"></div>
+        <div style="flex:1;height:1px;background:rgba(74,74,68,0.15);"></div>
         <button class="btn-text-link-strong" onclick="toggleCalendar()" id="calToggleBtn">或 輸入剩餘藥物天數</button>
-        <div style="flex:1;height:1px;background:rgba(122,171,90,0.25);"></div>
+        <div style="flex:1;height:1px;background:rgba(74,74,68,0.15);"></div>
       </div>
     </div>
     <!-- 餘藥天數區塊 -->
     <div id="medCalcArea" style="display:none;margin-bottom:12px;">
       <div style="display:flex;align-items:center;gap:10px;margin:0 0 10px;">
-        <div style="flex:1;height:1px;background:rgba(122,171,90,0.25);"></div>
+        <div style="flex:1;height:1px;background:rgba(74,74,68,0.15);"></div>
         <button class="btn-text-link-strong" onclick="toggleCalendar()">或 直接選擇日期</button>
-        <div style="flex:1;height:1px;background:rgba(122,171,90,0.25);"></div>
+        <div style="flex:1;height:1px;background:rgba(74,74,68,0.15);"></div>
       </div>
       <div class="card" style="padding:18px;">
         <div class="card-title" style="margin-bottom:12px;">依據餘藥天數</div>
