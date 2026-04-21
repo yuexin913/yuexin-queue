@@ -1835,67 +1835,62 @@ async function loadPatientList() {
   patientListLoaded = true;
 
   const section = document.getElementById("patientListSection");
+
+  // v5.x「零版面位移」哲學:
+  //   · 進 pageInfo 的瞬間,若預熱「已完成且有資料」才一次性秀名單區
+  //   · 否則完全不動版面(skeleton、遮罩全部拿掉)
+  //   · 預熱還沒回/已失敗/0 筆 → 版面不變動、使用者繼續填表,完全不知道有此功能
+  //   · 下次使用者再來(預熱變快、或送出預約後再複診)就會發現這個彩蛋
+  section.style.display = "none";
+
+  const dataPromise = patientListPrewarm;
+  if (!dataPromise) return;  // 沒預熱 → 不顯示
+
+  // 檢查預熱是否已完成(不 await,避免使用者在等)
+  const probe = Promise.race([
+    dataPromise,
+    new Promise(function(r) { r("__PENDING__"); })
+  ]);
+  const probed = await probe;
+
+  // 預熱還沒完 → 放棄顯示、不動版面
+  if (probed === "__PENDING__") return;
+
+  // 預熱完成但失敗或 0 筆 → 不顯示
+  if (!probed || !probed.success || !probed.patients || probed.patients.length === 0) {
+    return;
+  }
+
+  // 預熱有資料 → 一次性秀出名單區(此時使用者通常剛進 pageInfo,版面一次到位)
+  renderPatientList(probed.patients);
+  section.style.display = "block";
+}
+
+// 刪除病患後的顯式刷新:可接受 skeleton + 遮罩,因為使用者已預期畫面更新
+async function refreshPatientListAfterDelete() {
+  if (state.type !== "複診" || !state.lineId) return;
+  patientListLoaded = true;
+
+  const section = document.getElementById("patientListSection");
   const cardsEl = document.getElementById("patientListCards");
 
-  // v5.x 判斷是否有預熱結果可用
-  //   case 1: 預熱已完成 → 直接用,不顯示任何 loading UI(秒出)
-  //   case 2: 預熱進行中 → 繼承那個 promise,照樣顯示 skeleton+遮罩
-  //   case 3: 預熱失敗或沒預熱 → 重新打 API,照樣顯示 skeleton+遮罩
-  let dataPromise = patientListPrewarm;
-  let prewarmResolved = false;
-
-  if (dataPromise) {
-    // 檢查是否已經 resolve(用 race 搭配 immediate promise 判斷)
-    const probe = Promise.race([dataPromise, new Promise(function(r) { r("__PENDING__"); })]);
-    const probed = await probe;
-    if (probed !== "__PENDING__") {
-      prewarmResolved = true;
-    }
-  }
-
-  // case 1: 預熱已完成 → 秒出,不顯示 loading
-  if (prewarmResolved) {
-    try {
-      const data = await dataPromise;
-      if (!data || !data.success || !data.patients || data.patients.length === 0) {
-        section.style.display = "none";
-        return;
-      }
-      section.style.display = "block";
-      renderPatientList(data.patients);
-      return;
-    } catch (e) {
-      section.style.display = "none";
-      return;
-    }
-  }
-
-  // case 2 / 3: 顯示 skeleton + 遮罩,繼承或重打 API
+  // 保持 section 顯示、秀 skeleton + 遮罩
   section.style.display = "block";
   cardsEl.innerHTML = '<div class="patient-skeleton"></div>';
-
   const overlay = document.createElement("div");
   overlay.className = "patient-list-loading-overlay";
-  overlay.innerHTML = '<div class="spinner"></div><span>查詢中</span>';
+  overlay.innerHTML = '<div class="spinner"></div><span>更新中</span>';
   section.appendChild(overlay);
 
   try {
-    let data;
-    if (dataPromise) {
-      // case 2: 繼承預熱 promise
-      data = await dataPromise;
-    } else {
-      // case 3: 重新打 API(預熱失敗或從未觸發)
-      const apiPromise = xhrPost(API_URL, {
-        action: "getMyPatientList",
-        lineId: state.lineId
-      });
-      const timeoutPromise = new Promise(function(_, reject) {
-        setTimeout(function() { reject(new Error("TIMEOUT")); }, 10000);
-      });
-      data = await Promise.race([apiPromise, timeoutPromise]);
-    }
-
+    const apiPromise = xhrPost(API_URL, {
+      action: "getMyPatientList",
+      lineId: state.lineId
+    });
+    const timeoutPromise = new Promise(function(_, reject) {
+      setTimeout(function() { reject(new Error("TIMEOUT")); }, 10000);
+    });
+    const data = await Promise.race([apiPromise, timeoutPromise]);
     if (!data || !data.success || !data.patients || data.patients.length === 0) {
       section.style.display = "none";
       cardsEl.innerHTML = "";
@@ -1905,7 +1900,6 @@ async function loadPatientList() {
     renderPatientList(data.patients);
     overlay.remove();
   } catch (e) {
-    // 靜默降級(含 timeout)
     section.style.display = "none";
     cardsEl.innerHTML = "";
     overlay.remove();
@@ -2001,10 +1995,11 @@ async function removePatient(rowIndex, cardEl, delBtn) {
 
     // v5.4.1:成功後重新載入清單,讓 rowIndex 同步到試算表刪除後的狀態
     // (避免列位移導致後續刪除對應到錯誤的列)
-    // 若重載失敗 loadPatientList 會靜默降級隱藏整區,使用者仍可手動輸入,符合 v5.4 哲學
+    // 刪除情境走「顯式刷新」路徑(skeleton + 遮罩),跟初次進入的「零版面位移」分開
+    // 因為使用者在這情境已預期畫面會更新、不會覺得突兀
     patientListLoaded = false;
-    patientListPrewarm = null;  // 清預熱結果(已過期)
-    await loadPatientList();
+    patientListPrewarm = null;
+    await refreshPatientListAfterDelete();
     // 下一步按鈕恢復(loadPatientList 只管清單 UI,不管表單按鈕)
     nextBtns.forEach(function(b) { b.disabled = false; });
   } catch (e) {
