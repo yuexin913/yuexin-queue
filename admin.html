@@ -1165,16 +1165,6 @@
     width: 100%;
     margin-bottom: 0;
   }
-  /* v5.3.2:聯繫方式子標籤(LINE 按鈕上方的小註解) */
-  .m-action-method-label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
-    color: var(--text-dim);
-    letter-spacing: 2px;
-    margin-bottom: 4px;
-    text-align: center;
-    opacity: 0.85;
-  }
 
   /* Compact 版按鈕(3 並排時用) */
   .m-btn-compact {
@@ -1785,7 +1775,7 @@
           </a>
         </div>
         <div id="btnContactMethodWrap" class="m-action-method" style="display:none;">
-          <div class="m-action-method-label">聯繫方式</div>
+          <div class="m-section-label">聯繫方式</div>
           <button class="m-btn" id="btnContactMethod" onclick="cycleContactMethod()"></button>
         </div>
       </div>
@@ -1879,10 +1869,7 @@
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">代掛完成</div>
       <div style="font-size:13px;color:var(--text-light);line-height:1.8;margin-bottom:16px;">病患無手機，請用 LINE 手動通知。</div>
       <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">複製 LINE 訊息</div>
-      <div style="display:flex;gap:6px;margin-bottom:12px;">
-        <button class="btn" style="flex:1;background:var(--btn-mid-bg);color:var(--text);border:1px solid var(--btn-mid-bd);font-size:13px;padding:10px;" onclick="copyLineMsgForAdd(false)">預約通知</button>
-        <button class="btn" style="flex:1;background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);font-size:13px;padding:10px;" onclick="copyLineMsgForAdd(true)">回診提醒</button>
-      </div>
+      <button class="btn" style="width:100%;background:var(--btn-mid-bg);color:var(--text);border:1px solid var(--btn-mid-bd);font-size:13px;padding:10px;margin-bottom:12px;" onclick="copyLineMsgForAdd(false)">預約通知</button>
       <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">病患綁定連結（10 分鐘有效）</div>
       <button class="btn" style="width:100%;background:var(--btn-mid-bg);color:var(--text);border:1px solid var(--btn-mid-bd);margin-bottom:16px;font-size:13px;" onclick="copyBindLink(false)"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 複製綁定連結（複診）</button>
       <div id="bindLinkError" class="alert alert-error" style="display:none;margin-bottom:8px;"></div>
@@ -3424,12 +3411,11 @@ async function copyBindLinkFromContact(followUp) {
     const displayName = sessionDisplayMap[state.contactSession] || state.contactSession + "診";
     const dParts = dateStr.split("/");
     const dateDisplay = parseInt(dParts[1]) + "月" + parseInt(dParts[2]) + "日";
-    const msg = "【悅心診所 預約確認】\n"
-      + patientName + " 您好，已為您預約 " + dateDisplay + " " + displayName + "！\n\n"
-      + "⬇️立刻點選連結確認並保留預約\n\n"
+    const msg = patientName + " 您好：\n\n"
+      + "已為您預約 " + dateDisplay + " " + displayName + "！麻煩您點下方連結並完成預約確認，才能為您保留預約，並會在前一天傳訊提醒您🙂\n\n"
       + bindUrl + "\n\n"
-      + "請於「 10 分鐘內」確認。\n\n"
-      + "若您並未預約回診，請直接忽略此訊息！";
+      + "連結 10 分鐘內有效。若來不及完成請和我們說，再為您重新發送😊\n\n"
+      + "【若您並未預約回診，請直接忽略此訊息！】";
     navigator.clipboard.writeText(msg).then(function() {
       showToast("✓ 已複製綁定連結");
     }).catch(function() {
@@ -3471,12 +3457,11 @@ async function copyBindLink(followUp) {
     // 日期格式：mm月dd日
     const dParts = dateStr.split("/");
     const dateDisplay = parseInt(dParts[1]) + "月" + parseInt(dParts[2]) + "日";
-    const msg = "【悅心診所 預約確認】\n"
-      + patientName + " 您好，已為您預約 " + dateDisplay + " " + displayName + "！\n\n"
-      + "⬇️立刻點選連結確認並保留預約\n\n"
+    const msg = patientName + " 您好：\n\n"
+      + "已為您預約 " + dateDisplay + " " + displayName + "！麻煩您點下方連結並完成預約確認，才能為您保留預約，並會在前一天傳訊提醒您🙂\n\n"
       + bindUrl + "\n\n"
-      + "請於「 10 分鐘內」確認。\n\n"
-      + "若您並未預約回診，請直接忽略此訊息！";
+      + "連結 10 分鐘內有效。若來不及完成請和我們說，再為您重新發送😊\n\n"
+      + "【若您並未預約回診，請直接忽略此訊息！】";
     navigator.clipboard.writeText(msg).then(function() {
       showToast("✓ 已複製綁定連結");
     }).catch(function() {
