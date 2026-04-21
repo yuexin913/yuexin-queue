@@ -279,182 +279,189 @@
   /* ── 日曆 ── */
   .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .cal-nav {
-    width: 32px; height: 32px; border: 1.5px solid rgba(122,171,90,0.25);
-    border-radius: 10px; background: var(--cream); cursor: pointer;
+    width: 32px; height: 32px; border: 0.5px solid rgba(74,74,68,0.2);
+    border-radius: 3px; background: transparent; cursor: pointer;
     font-size: 14px; display: flex; align-items: center; justify-content: center;
     color: var(--ink-mid); transition: all 0.2s;
   }
-  .cal-nav:hover { border-color: var(--sage); color: var(--sage-dark); background: var(--sage-mist); }
-  .cal-title { font-size: 15px; font-weight: 500; color: var(--ink); letter-spacing: 1px; }
+  .cal-nav:hover { border-color: var(--sage); color: var(--sage-dark); background: rgba(138,170,85,0.06); }
+  .cal-title { font-family: 'Noto Serif TC', serif; font-size: 15px; font-weight: 500; color: var(--sage-deep); letter-spacing: 4px; }
   .cal-weekdays {
     display: grid; grid-template-columns: repeat(7, 1fr);
     text-align: center; font-size: 11px; color: var(--ink-light); margin-bottom: 8px;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
   }
-  .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
   .cal-day {
     aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-    font-size: 13px; border-radius: 10px; cursor: pointer; transition: all 0.2s;
-    border: 1.5px solid transparent;
+    font-size: 13px; border-radius: 2px; cursor: pointer; transition: all 0.2s;
+    border: 0.5px solid transparent;
   }
   .cal-day:hover:not(.disabled):not(.empty) {
-    background: var(--sage-mist); border-color: var(--sage);
+    background: rgba(138,170,85,0.08);
+    border-color: rgba(138,170,85,0.4);
   }
   .cal-day.selected {
-    background: var(--sage); color: white; font-weight: 500;
-    box-shadow: 0 2px 8px rgba(122,171,90,0.35);
+    background: var(--sage-dark); color: white; font-weight: 400;
+    border-color: var(--sage-dark);
+    box-shadow: none;
   }
-  .cal-day.disabled { color: #ccc; cursor: not-allowed; }
-  .cal-day.today { font-weight: 600; color: var(--sage-dark); }
+  .cal-day.disabled { color: rgba(74,74,68,0.25); cursor: not-allowed; }
+  .cal-day.today { font-weight: 500; color: var(--sage-dark); border-color: rgba(138,170,85,0.5); }
   .cal-day.empty { cursor: default; }
 
   /* ── 時段 session ── */
   .session-block { margin-bottom: 16px; }
   .session-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 14px; background: var(--sage-mist);
-    border-radius: 10px 10px 0 0; border: 1.5px solid rgba(122,171,90,0.2); border-bottom: none;
+    padding: 10px 14px; background: rgba(138,170,85,0.06);
+    border-radius: 3px 3px 0 0; border: 0.5px solid rgba(74,74,68,0.15); border-bottom: none;
   }
-  .session-name { font-size: 14px; font-weight: 500; color: var(--sage-dark); }
-  .session-info { font-size: 11px; color: var(--ink-light); }
+  .session-name { font-family: 'Noto Serif TC', serif; font-size: 14px; font-weight: 500; color: var(--sage-deep); letter-spacing: 2px; }
+  .session-info { font-size: 11px; color: var(--ink-light); letter-spacing: 0.5px; }
   .session-doctor { font-size: 14px; color: var(--sage-dark); font-weight: 500; }
 
   /* 初診時間格（5欄） */
   .slots-grid {
     display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
-    padding: 12px; border: 1.5px solid rgba(122,171,90,0.2);
-    border-radius: 0 0 10px 10px; background: var(--cream);
+    padding: 12px; border: 0.5px solid rgba(74,74,68,0.15);
+    border-radius: 0 0 3px 3px; background: var(--cream);
   }
   .slot-btn {
-    padding: 10px 4px; border: 1.5px solid rgba(122,171,90,0.25);
-    border-radius: 8px; background: var(--cream);
+    padding: 10px 4px; border: 0.5px solid rgba(74,74,68,0.2);
+    border-radius: 2px; background: transparent;
     font-size: 14px; font-family: 'Noto Sans TC', sans-serif;
     color: var(--ink); cursor: pointer; text-align: center; transition: all 0.2s;
-    font-weight: 500;
+    font-weight: 400;
   }
   .slot-btn:hover:not(.unavailable) {
-    border-color: var(--sage-dark);
-    background: var(--cream);
-    box-shadow: 0 2px 6px rgba(122,171,90,0.15);
+    border-color: var(--sage);
+    background: rgba(138,170,85,0.06);
+    box-shadow: none;
   }
   .slot-btn.selected {
-    background: linear-gradient(135deg, var(--sage) 0%, var(--sage-dark) 100%);
-    border-color: var(--sage-dark); color: white; font-weight: 600;
-    box-shadow: 0 2px 8px rgba(122,171,90,0.3);
+    background: var(--sage-dark);
+    border-color: var(--sage-dark); color: white; font-weight: 400;
+    box-shadow: none;
   }
-  .slot-btn.unavailable { background: #f5f5f5; color: #ccc; cursor: not-allowed; border-color: #e8e8e8; }
+  .slot-btn.unavailable { background: transparent; color: rgba(74,74,68,0.25); cursor: not-allowed; border-color: rgba(74,74,68,0.1); }
 
   /* 複診時段卡片 */
   .time-cards {
-    display: flex; flex-direction: column; gap: 8px;
-    padding: 12px; border: 1.5px solid rgba(122,171,90,0.2);
-    border-radius: 0 0 10px 10px; background: var(--cream);
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 12px; border: 0.5px solid rgba(74,74,68,0.15);
+    border-radius: 0 0 3px 3px; background: var(--cream);
   }
   .time-card {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 16px; border: 1.5px solid rgba(122,171,90,0.25);
-    border-radius: 10px; background: var(--cream);
+    padding: 14px 16px; border: 0.5px solid rgba(74,74,68,0.2);
+    border-radius: 2px; background: transparent;
     cursor: pointer; transition: all 0.2s; text-align: left;
   }
   .time-card:hover:not(.time-card-disabled) {
-    border-color: var(--sage-dark);
-    background: var(--cream);
-    box-shadow: 0 2px 8px rgba(122,171,90,0.15);
+    border-color: var(--sage);
+    background: rgba(138,170,85,0.06);
+    box-shadow: none;
   }
   .time-card.selected {
-    background: linear-gradient(135deg, var(--sage) 0%, var(--sage-dark) 100%);
+    background: var(--sage-dark);
     border-color: var(--sage-dark);
-    box-shadow: 0 2px 10px rgba(122,171,90,0.3);
+    box-shadow: none;
   }
   .time-card.selected .time-card-title { color: white; }
-  .time-card.selected .time-card-label { color: rgba(255,255,255,0.85); }
-  .time-card.selected .time-card-badge { background: rgba(255,255,255,0.22); color: white; }
-  .time-card-disabled { background: #f5f5f5; cursor: not-allowed; border-color: #e8e8e8; }
-  .time-card-disabled .time-card-title { color: #ccc; }
-  .time-card-disabled .time-card-label { color: #ccc; }
-  .time-card-disabled .time-card-badge { background: #eee; color: #bbb; }
+  .time-card.selected .time-card-label { color: rgba(255,255,255,0.82); }
+  .time-card.selected .time-card-badge { background: rgba(255,255,255,0.18); color: white; }
+  .time-card-disabled { background: transparent; cursor: not-allowed; border-color: rgba(74,74,68,0.1); }
+  .time-card-disabled .time-card-title { color: rgba(74,74,68,0.3); }
+  .time-card-disabled .time-card-label { color: rgba(74,74,68,0.3); }
+  .time-card-disabled .time-card-badge { background: rgba(74,74,68,0.06); color: rgba(74,74,68,0.35); }
   .time-card-left { flex: 1; }
-  .time-card-title { font-size: 17px; font-weight: 600; color: var(--sage-dark); letter-spacing: 0.5px; }
-  .time-card-label { font-size: 12px; color: var(--ink-light); margin-top: 3px; }
+  .time-card-title { font-family: 'Noto Serif TC', serif; font-size: 16px; font-weight: 500; color: var(--sage-deep); letter-spacing: 2px; }
+  .time-card-label { font-size: 12px; color: var(--ink-light); margin-top: 4px; letter-spacing: 0.3px; }
   .time-card-badge {
-    font-size: 11px; font-weight: 500; padding: 3px 9px;
-    background: var(--sage-light); color: var(--sage-dark);
-    border-radius: 20px; white-space: nowrap; margin-left: 12px;
+    font-size: 11px; font-weight: 400; padding: 3px 10px;
+    background: rgba(138,170,85,0.12); color: var(--sage-dark);
+    border-radius: 2px; white-space: nowrap; margin-left: 12px;
+    letter-spacing: 0.5px;
   }
   .time-card-unspecified { border-style: dashed; }
-  .time-card-unspecified .time-card-title { font-size: 15px; font-weight: 500; color: var(--ink-light); }
+  .time-card-unspecified .time-card-title { font-family: 'Noto Sans TC', sans-serif; font-size: 14px; font-weight: 400; color: var(--ink-light); letter-spacing: 1px; }
   .time-card-unspecified.selected .time-card-title { color: white; }
   .time-card-unspecified:hover:not(.time-card-disabled) .time-card-title { color: var(--sage-dark); }
 
   /* ── 單選（初診來源） ── */
   .radio-option {
     display: block;
-    padding: 13px 16px;
-    border: 1.5px solid rgba(122,171,90,0.25);
-    border-radius: 10px;
+    padding: 14px 16px;
+    border: 0.5px solid rgba(74,74,68,0.2);
+    border-radius: 2px;
     cursor: pointer;
     font-size: 15px;
     color: var(--ink);
+    letter-spacing: 1px;
     transition: border-color 0.15s, background 0.15s, color 0.15s;
     user-select: none;
   }
   .radio-option:hover {
     border-color: var(--sage);
-    background: var(--sage-mist);
+    background: rgba(138,170,85,0.06);
   }
   .radio-option.selected {
     border-color: var(--sage-dark);
-    background: linear-gradient(135deg, var(--sage) 0%, var(--sage-dark) 100%);
+    background: var(--sage-dark);
     color: white;
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(122,171,90,0.3);
+    font-weight: 400;
+    box-shadow: none;
   }
 
   /* ── 已選日期摘要 ── */
   .selected-date-bar {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 11px 16px; background: var(--sage-mist);
-    border: 1.5px solid rgba(122,171,90,0.25); border-radius: 12px;
-    margin-bottom: 12px; font-size: 15px; font-weight: 500; color: var(--sage-dark);
+    padding: 11px 16px; background: rgba(138,170,85,0.06);
+    border: 0.5px solid rgba(74,74,68,0.15); border-radius: 3px;
+    margin-bottom: 12px; font-size: 15px; font-weight: 400; color: var(--sage-deep);
+    letter-spacing: 2px; font-family: 'Noto Serif TC', serif;
   }
   .btn-text-link {
-    background: none; border: none; color: var(--sage); font-size: 13px;
+    background: none; border: none; color: var(--sage-dark); font-size: 13px;
     font-family: 'Noto Sans TC', sans-serif; cursor: pointer; padding: 0;
-    text-decoration: underline; text-underline-offset: 2px;
+    text-decoration: underline; text-underline-offset: 3px;
+    letter-spacing: 0.5px;
   }
   .btn-reselect {
-    background: none; border: 1.5px solid var(--sage); color: var(--sage-dark);
+    background: none; border: 0.5px solid rgba(74,74,68,0.25); color: var(--ink-mid);
     font-size: 12px; font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
-    padding: 4px 12px; border-radius: 20px; font-weight: 600; white-space: nowrap;
-    transition: background 0.15s, color 0.15s;
+    padding: 4px 12px; border-radius: 2px; font-weight: 400; white-space: nowrap;
+    letter-spacing: 1px;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
   }
-  .btn-reselect:hover { background: var(--sage); color: #fff; }
+  .btn-reselect:hover { background: var(--sage-dark); color: #fff; border-color: var(--sage-dark); }
   .btn-text-link-strong {
     background: none; border: none; color: var(--sage-dark); font-size: 14px;
     font-family: 'Noto Sans TC', sans-serif; cursor: pointer; padding: 0;
     text-decoration: underline; text-underline-offset: 3px;
-    font-weight: 700; white-space: nowrap; letter-spacing: 0.3px;
+    font-weight: 500; white-space: nowrap; letter-spacing: 1px;
   }
 
   /* ── 診次選擇 ── */
-  .session-select-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .session-select-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
   .session-select-btn {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 16px; border: 1.5px solid rgba(122,171,90,0.25); border-radius: 12px;
-    background: var(--cream); cursor: pointer; transition: all 0.2s; text-align: left;
+    padding: 14px 16px; border: 0.5px solid rgba(74,74,68,0.2); border-radius: 3px;
+    background: transparent; cursor: pointer; transition: all 0.2s; text-align: left;
   }
   .session-select-btn:hover:not(.session-select-disabled) {
-    border-color: var(--sage); background: var(--sage-mist);
+    border-color: var(--sage); background: rgba(138,170,85,0.06);
   }
   .session-select-btn.session-select-active {
     border-color: var(--sage-dark);
-    background: var(--sage-mist);
-    box-shadow: inset 0 0 0 1px var(--sage);
+    background: rgba(138,170,85,0.1);
+    box-shadow: inset 0 0 0 0.5px var(--sage-dark);
   }
-  .session-select-btn.session-select-disabled { background: #f5f5f5; cursor: not-allowed; opacity: 0.5; }
-  .session-select-name { font-size: 15px; font-weight: 500; color: var(--sage-dark); }
-  .session-select-time { font-size: 12px; color: var(--ink-light); margin-top: 3px; }
-  .session-select-doctor { font-size: 16px; font-weight: 500; color: var(--sage-dark); white-space: nowrap; }
+  .session-select-btn.session-select-disabled { background: transparent; cursor: not-allowed; opacity: 0.4; }
+  .session-select-name { font-family: 'Noto Serif TC', serif; font-size: 15px; font-weight: 500; color: var(--sage-deep); letter-spacing: 2px; }
+  .session-select-time { font-size: 12px; color: var(--ink-light); margin-top: 4px; letter-spacing: 0.3px; }
+  .session-select-doctor { font-size: 15px; font-weight: 500; color: var(--sage-dark); white-space: nowrap; letter-spacing: 1px; }
   .doctor-avatar {
     width: 36px; height: 36px;
     border-radius: 50%;
@@ -522,12 +529,13 @@
   .btn-danger:hover { background: #fdf0ef; }
 
   .pill-btn {
-    padding: 7px 16px; border: 1.5px solid var(--sage); border-radius: 20px;
-    background: var(--cream); color: var(--sage-dark); font-family: inherit; font-size: 14px;
-    font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s;
+    padding: 8px 18px; border: 0.5px solid rgba(74,74,68,0.25); border-radius: 2px;
+    background: transparent; color: var(--ink-mid); font-family: inherit; font-size: 14px;
+    font-weight: 400; letter-spacing: 1.5px;
+    cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
   }
   .pill-btn:hover, .pill-btn.active {
-    background: var(--sage); color: white;
+    background: var(--sage-dark); color: white; border-color: var(--sage-dark);
   }
 
   /* ── 警示 ── */
