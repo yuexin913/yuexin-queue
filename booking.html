@@ -1508,6 +1508,10 @@ async function initLiff() {
     state.isVip = blResult.isVip === true;
 
     showPage("pageEntry");
+
+    // v5.x 預熱:首頁顯示後,背景偷偷預抓 patientList
+    // (使用者大概率會選複診,先拿好資料;若選初診也無傷)
+    prewarmPatientList();
   } catch(e) {
     // 清掉 slow hint timer(錯誤也不需要提示,直接進錯誤畫面)
     if (window._bindSlowHintTimer) clearTimeout(window._bindSlowHintTimer);
@@ -1750,6 +1754,8 @@ function parseBirthROC(y, m, d) {
 // v5.4 家庭友善預填清單
 // ══════════════════════════════════════════════
 let patientListLoaded = false;  // 返回不重載旗標
+// v5.x 預熱:首頁顯示後背景預抓 patientList,點複診時直接用
+let patientListPrewarm = null;  // 存 Promise 或 result object
 let patientListDeleting = false;  // 刪除中全域鎖
 
 // 西元 "1993-02-02" → {y:"82", m:"2", d:"2"},給預填用
@@ -1786,6 +1792,32 @@ function formatBirthROCDisplay(birthStr) {
   return s;
 }
 
+// v5.x 預熱:首頁顯示後背景呼叫,把結果存進 patientListPrewarm
+// 設計原則:
+//   · 完全靜默,不動任何 UI
+//   · 失敗靜默,不阻止後續正常流程(loadPatientList 會 fallback 打 API)
+//   · 同樣 10 秒 timeout 防止卡太久
+function prewarmPatientList() {
+  if (!state.lineId) return;
+  if (patientListPrewarm) return;  // 已經在跑或已完成,不重觸
+
+  const apiPromise = xhrPost(API_URL, {
+    action: "getMyPatientList",
+    lineId: state.lineId
+  });
+  const timeoutPromise = new Promise(function(_, reject) {
+    setTimeout(function() { reject(new Error("PREWARM_TIMEOUT")); }, 10000);
+  });
+
+  // 把 Promise 本身存起來,loadPatientList 可以直接 await 同一個
+  patientListPrewarm = Promise.race([apiPromise, timeoutPromise])
+    .catch(function(e) {
+      // 預熱失敗 → 標記為失敗,讓 loadPatientList 知道要重打
+      patientListPrewarm = null;
+      return null;
+    });
+}
+
 // 進入 pageInfo 時觸發(只對複診流程)
 async function loadPatientList() {
   // 只對複診流程顯示
@@ -1805,28 +1837,66 @@ async function loadPatientList() {
   const section = document.getElementById("patientListSection");
   const cardsEl = document.getElementById("patientListCards");
 
-  // 立即顯示 section + 1 條細 skeleton + 覆蓋遮罩
+  // v5.x 判斷是否有預熱結果可用
+  //   case 1: 預熱已完成 → 直接用,不顯示任何 loading UI(秒出)
+  //   case 2: 預熱進行中 → 繼承那個 promise,照樣顯示 skeleton+遮罩
+  //   case 3: 預熱失敗或沒預熱 → 重新打 API,照樣顯示 skeleton+遮罩
+  let dataPromise = patientListPrewarm;
+  let prewarmResolved = false;
+
+  if (dataPromise) {
+    // 檢查是否已經 resolve(用 race 搭配 immediate promise 判斷)
+    const probe = Promise.race([dataPromise, new Promise(function(r) { r("__PENDING__"); })]);
+    const probed = await probe;
+    if (probed !== "__PENDING__") {
+      prewarmResolved = true;
+    }
+  }
+
+  // case 1: 預熱已完成 → 秒出,不顯示 loading
+  if (prewarmResolved) {
+    try {
+      const data = await dataPromise;
+      if (!data || !data.success || !data.patients || data.patients.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+      section.style.display = "block";
+      renderPatientList(data.patients);
+      return;
+    } catch (e) {
+      section.style.display = "none";
+      return;
+    }
+  }
+
+  // case 2 / 3: 顯示 skeleton + 遮罩,繼承或重打 API
   section.style.display = "block";
   cardsEl.innerHTML = '<div class="patient-skeleton"></div>';
 
-  // 建立遮罩(蓋住整個 patient-list-section)
   const overlay = document.createElement("div");
   overlay.className = "patient-list-loading-overlay";
   overlay.innerHTML = '<div class="spinner"></div><span>查詢中</span>';
   section.appendChild(overlay);
 
   try {
-    // 加 10 秒 timeout,避免 API 真的卡住時使用者看著 skeleton 無限等
-    const apiPromise = xhrPost(API_URL, {
-      action: "getMyPatientList",
-      lineId: state.lineId
-    });
-    const timeoutPromise = new Promise(function(_, reject) {
-      setTimeout(function() { reject(new Error("TIMEOUT")); }, 10000);
-    });
-    const data = await Promise.race([apiPromise, timeoutPromise]);
-    if (!data.success || !data.patients || data.patients.length === 0) {
-      // 靜默降級:0 筆或失敗一律隱藏整個 section
+    let data;
+    if (dataPromise) {
+      // case 2: 繼承預熱 promise
+      data = await dataPromise;
+    } else {
+      // case 3: 重新打 API(預熱失敗或從未觸發)
+      const apiPromise = xhrPost(API_URL, {
+        action: "getMyPatientList",
+        lineId: state.lineId
+      });
+      const timeoutPromise = new Promise(function(_, reject) {
+        setTimeout(function() { reject(new Error("TIMEOUT")); }, 10000);
+      });
+      data = await Promise.race([apiPromise, timeoutPromise]);
+    }
+
+    if (!data || !data.success || !data.patients || data.patients.length === 0) {
       section.style.display = "none";
       cardsEl.innerHTML = "";
       overlay.remove();
@@ -1933,6 +2003,7 @@ async function removePatient(rowIndex, cardEl, delBtn) {
     // (避免列位移導致後續刪除對應到錯誤的列)
     // 若重載失敗 loadPatientList 會靜默降級隱藏整區,使用者仍可手動輸入,符合 v5.4 哲學
     patientListLoaded = false;
+    patientListPrewarm = null;  // 清預熱結果(已過期)
     await loadPatientList();
     // 下一步按鈕恢復(loadPatientList 只管清單 UI,不管表單按鈕)
     nextBtns.forEach(function(b) { b.disabled = false; });
@@ -2644,6 +2715,8 @@ async function submitBooking() {
 
 
     // 成功提醒文字（已移除）
+    // v5.x 清預熱:送出預約成功後名單可能多了這次的病患,下次複診要拿新資料
+    patientListPrewarm = null;
     showPage("pageSuccess");
   } catch(e) {
     // GAS 回傳的業務邏輯錯誤（data.error）直接顯示；網路/timeout/HTML錯誤顯示通用訊息
