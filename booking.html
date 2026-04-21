@@ -648,16 +648,37 @@
 
   /* Skeleton 載入狀態 */
   .patient-skeleton {
-    height: 54px;
-    border-radius: 3px;
-    background: linear-gradient(90deg, rgba(74,74,68,0.05) 0%, rgba(138,170,85,0.14) 50%, rgba(74,74,68,0.05) 100%);
+    height: 36px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgba(74,74,68,0.04) 0%, rgba(138,170,85,0.1) 50%, rgba(74,74,68,0.04) 100%);
     background-size: 200% 100%;
     animation: plPulse 1.3s ease-in-out infinite;
-    border: 0.5px solid rgba(74,74,68,0.12);
+    border: 0.5px solid rgba(74,74,68,0.1);
   }
   @keyframes plPulse {
     0%   { background-position: 200% 0; }
     100% { background-position: -200% 0; }
+  }
+
+  /* v5.x:名單區 loading 遮罩(蓋住 title + skeleton + 手動提示) */
+  .patient-list-section { position: relative; }
+  .patient-list-loading-overlay {
+    position: absolute; inset: -8px -4px;
+    background: rgba(244,242,236,0.88);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px;
+    z-index: 5;
+    border-radius: 4px;
+    animation: fadeIn 0.2s ease both;
+  }
+  .patient-list-loading-overlay .spinner {
+    width: 14px; height: 14px; border-width: 1.5px;
+  }
+  .patient-list-loading-overlay span {
+    font-size: 12px; color: var(--ink-mid);
+    letter-spacing: 2px;
   }
 
   /* 「或直接輸入 ⌄」 */
@@ -1036,6 +1057,26 @@
         若需協助,請傳訊息至官方 LINE,<br>
         或於門診時間來電:<strong style="color:var(--sage-dark)">07-363-1313</strong>
       </div>
+    </div>
+  </div>
+
+  <!-- 網路/系統錯誤頁(跟黑名單分開) -->
+  <div class="page" id="pageNetworkError">
+    <div class="status-container" style="min-height:60vh;">
+      <div class="status-icon status-warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+          <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+          <line x1="12" y1="20" x2="12.01" y2="20"/>
+          <line x1="2" y1="2" x2="22" y2="22"/>
+        </svg>
+      </div>
+      <div class="status-sub" style="max-width:340px;margin-top:8px;">
+        系統暫時無法回應,請稍後再試。<br>
+        若持續無法連線,請來電:<strong style="color:var(--sage-dark)">07-363-1313</strong>
+      </div>
+      <button class="btn btn-primary" style="max-width:220px;margin-top:12px;" onclick="location.reload()">重新載入</button>
     </div>
   </div>
 
@@ -1439,15 +1480,28 @@ async function initLiff() {
     // LIFF init 完成 → 立刻顯示全屏載入畫面
     showPage("pageLoading");
 
-    // 黑名單驗證 + 公告載入 並行執行,不互相等待
-    const [blResult] = await Promise.all([
-      xhrGet(`${API_URL}?action=checkBlacklist&lineId=${state.lineId}`).catch(() => ({})),
-      xhrGet(`${API_URL}?action=getUpcomingAnnouncements`).then(function(r) {
-        if (r && r.success && r.announcements) renderAnnouncements(r.announcements);
-      }).catch(() => {})
-    ]);
+    // 黑名單驗證:加 8 秒 timeout
+    // 安全原則:fail closed — timeout 或網路錯誤時都不放行
+    //   · 真的被封鎖 → pageLoadError(無法使用線上預約,給診所電話)
+    //   · Timeout / 網路錯誤 → pageNetworkError(連線逾時,給重新載入按鈕)
+    const blPromise = xhrGet(`${API_URL}?action=checkBlacklist&lineId=${state.lineId}`).catch(() => ({ _error: true }));
+    const timeoutPromise = new Promise(function(resolve) {
+      setTimeout(function() { resolve({ _timeout: true }); }, 8000);
+    });
+    const blResult = await Promise.race([blPromise, timeoutPromise]);
 
+    // 公告:lazy load 背景跑,不阻塞首頁顯示
+    xhrGet(`${API_URL}?action=getUpcomingAnnouncements`).then(function(r) {
+      if (r && r.success && r.announcements) renderAnnouncements(r.announcements);
+    }).catch(() => {});
+
+    if (blResult._timeout || blResult._error) {
+      // 網路/系統錯誤:顯示「連線逾時」頁(可重試)
+      showPage("pageNetworkError");
+      return;
+    }
     if (blResult.blocked) {
+      // 真的被封鎖:顯示「無法使用線上預約」頁
       showPage("pageLoadError");
       return;
     }
@@ -1751,29 +1805,40 @@ async function loadPatientList() {
   const section = document.getElementById("patientListSection");
   const cardsEl = document.getElementById("patientListCards");
 
-  // 立即顯示 skeleton
+  // 立即顯示 section + 1 條細 skeleton + 覆蓋遮罩
   section.style.display = "block";
-  cardsEl.innerHTML =
-    '<div class="patient-skeleton"></div>' +
-    '<div class="patient-skeleton"></div>' +
-    '<div class="patient-skeleton"></div>';
+  cardsEl.innerHTML = '<div class="patient-skeleton"></div>';
+
+  // 建立遮罩(蓋住整個 patient-list-section)
+  const overlay = document.createElement("div");
+  overlay.className = "patient-list-loading-overlay";
+  overlay.innerHTML = '<div class="spinner"></div><span>查詢中</span>';
+  section.appendChild(overlay);
 
   try {
-    const data = await xhrPost(API_URL, {
+    // 加 10 秒 timeout,避免 API 真的卡住時使用者看著 skeleton 無限等
+    const apiPromise = xhrPost(API_URL, {
       action: "getMyPatientList",
       lineId: state.lineId
     });
+    const timeoutPromise = new Promise(function(_, reject) {
+      setTimeout(function() { reject(new Error("TIMEOUT")); }, 10000);
+    });
+    const data = await Promise.race([apiPromise, timeoutPromise]);
     if (!data.success || !data.patients || data.patients.length === 0) {
-      // 靜默降級:0 筆或失敗一律隱藏
+      // 靜默降級:0 筆或失敗一律隱藏整個 section
       section.style.display = "none";
       cardsEl.innerHTML = "";
+      overlay.remove();
       return;
     }
     renderPatientList(data.patients);
+    overlay.remove();
   } catch (e) {
-    // 靜默降級
+    // 靜默降級(含 timeout)
     section.style.display = "none";
     cardsEl.innerHTML = "";
+    overlay.remove();
   }
 }
 
