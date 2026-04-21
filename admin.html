@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.3.1">
+  <meta name="version" content="5.3.2">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.3.1 (2026-04-21)
+     Version:   v5.3.2 (2026-04-21)
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -33,8 +33,14 @@
      · v5.2.2 - UI 小調整(登入動畫分行、今日/明日左邊條移除)
      · v5.3 - 櫃檯 keyin 小抄(35 天預覽內嵌 [今日][明日])
                搭配 backend v4.35(無異動,沿用既有 adminGetTodaySchedule)
-     · v5.3.1 目前 - Session 持久化(sessionStorage),減少反覆登入
-                     切 App 後回到 LINE 不需再登,只要分頁沒被殺就維持
+     · v5.3.1 - Session 持久化(sessionStorage),減少反覆登入
+     · v5.3.2 目前 - UI 小改版包:
+                     · 驗證動畫改循環式(. → .. → ... → 空)
+                     · LINE 按鈕加「聯繫方式」子標籤
+                     · Modal section 標籤色調亮(text-dim → text-light)
+                     · 登出 modal 加「回預約前台」按鈕(保留 session,只跳頁)
+                     · 登出動畫:admin 淡出 → JOIN System 文字電源循環式 → 登入頁淡入
+     · 待辦 - 雙模式登入(九宮格 + 傳統輸入框切換)
      · v6.0 預計 — 心理治療功能上線
      · v7.0 預計 — 帳號系統與多醫師登入
      ════════════════════════════════════════════════════════ */
@@ -245,7 +251,54 @@
     0%   { content: "."; }
     25%  { content: ".."; }
     50%  { content: "..."; }
-    75%  { content: ".."; }
+    75%  { content: ""; }
+  }
+
+  /* ══════════════════════════════════════════════
+     v5.3.2 登出過場層(JOIN System 電源循環式)
+     ══════════════════════════════════════════════ */
+  #logoutTransition {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  #logoutTransition.visible {
+    display: flex;
+    opacity: 1;
+  }
+  .logout-transition-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--text);
+    letter-spacing: 5px;
+    opacity: 0;
+    transition: opacity 0.4s ease, letter-spacing 0.6s ease;
+  }
+  .logout-transition-text.fade-in {
+    opacity: 1;
+    letter-spacing: 6px;
+  }
+  .logout-transition-text.fade-out {
+    opacity: 0;
+    letter-spacing: 12px;
+  }
+  /* 淡出狀態(admin 主畫面淡出) */
+  #pageMain.fading-out {
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    pointer-events: none;
+  }
+  #pageLogin.fading-in {
+    opacity: 0;
+    animation: loginFadeIn 0.4s ease forwards;
+  }
+  @keyframes loginFadeIn {
+    to { opacity: 1; }
   }
 
   /* ══════════════════════════════════════════════
@@ -1003,7 +1056,7 @@
   .m-section-label {
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
-    color: var(--text-dim);
+    color: var(--text-light);
     letter-spacing: 2.5px;
     text-transform: uppercase;
     margin-bottom: 10px;
@@ -1012,10 +1065,10 @@
   .m-section-hint {
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
-    color: var(--text-dim);
+    color: var(--text-light);
     letter-spacing: 1.5px;
     margin-left: 6px;
-    opacity: 0.7;
+    opacity: 0.75;
   }
 
   /* 統一按鈕(滑過橘框) */
@@ -1111,6 +1164,16 @@
   .m-action-method .m-btn {
     width: 100%;
     margin-bottom: 0;
+  }
+  /* v5.3.2:聯繫方式子標籤(LINE 按鈕上方的小註解) */
+  .m-action-method-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+    text-align: center;
+    opacity: 0.85;
   }
 
   /* Compact 版按鈕(3 並排時用) */
@@ -1536,6 +1599,11 @@
   </div>
 </div>
 
+<!-- v5.3.2:登出過場層(JOIN System 電源循環式) -->
+<div id="logoutTransition">
+  <div class="logout-transition-text">JOIN System</div>
+</div>
+
 <!-- Main -->
 <div id="pageMain">
 <div class="metro-grid" id="metroGrid">
@@ -1717,6 +1785,7 @@
           </a>
         </div>
         <div id="btnContactMethodWrap" class="m-action-method" style="display:none;">
+          <div class="m-action-method-label">聯繫方式</div>
           <button class="m-btn m-btn-compact" id="btnContactMethod" onclick="cycleContactMethod()"></button>
         </div>
       </div>
@@ -1932,6 +2001,10 @@
       <button class="m-btn" onclick="closeModal('modalLogout')">
         <span class="m-btn-icon">←</span>
         取消
+      </button>
+      <button class="m-btn" onclick="goToBooking()" style="margin-top:6px;">
+        <span class="m-btn-icon">⌂</span>
+        回預約前台
       </button>
     </div>
     <div class="m-danger-section">
@@ -2434,24 +2507,79 @@ function openLogoutModal() {
   openModal("modalLogout");
 }
 
-async function doLogout() {
+// v5.3.2:從 admin 跳到 booking 前台(不登出、保留 session)
+function goToBooking() {
+  const bookingUrl = "https://yuexin913.github.io/yuexin-queue/booking.html";
   try {
-    await xhrPost(API_URL, { action: "adminLogout", lineId: state.lineId, token: state.sessionToken });
-  } catch(e) { /* 即使失敗也繼續登出 */ }
+    if (typeof liff !== "undefined" && liff.openWindow) {
+      liff.openWindow({ url: bookingUrl, external: false });
+    } else {
+      window.location.href = bookingUrl;
+    }
+  } catch (e) {
+    window.location.href = bookingUrl;
+  }
+}
+
+async function doLogout() {
+  // 先關 modal,開始播登出動畫
+  closeModal("modalLogout");
+
+  // 同步呼叫 backend 登出(但前端不等它,直接開始動畫)
+  xhrPost(API_URL, { action: "adminLogout", lineId: state.lineId, token: state.sessionToken })
+    .catch(function(e) { /* 即使失敗也繼續登出 */ });
+
+  // 清 state + sessionStorage(這些與後端無關,可先清)
   state.sessionToken = "";
   state.adminName = "";
   state.loginTime = "";
-  // v5.3.1:清除 sessionStorage,下次進來要重新登入
   clearSessionFromStorage();
-  closeModal("modalLogout");
-  document.getElementById("pageMain").style.display = "none";
+
+  // ── v5.3.2 登出動畫序列 ──
+  const pageMain = document.getElementById("pageMain");
+  const transitionLayer = document.getElementById("logoutTransition");
+  const transitionText = transitionLayer.querySelector(".logout-transition-text");
   const pageLogin = document.getElementById("pageLogin");
-  pageLogin.style.display = "flex";
-  document.getElementById("loginPassword").value = "";
-  document.getElementById("loginError").style.display = "none";
-  document.getElementById("btnLogin").disabled = false;
-  document.getElementById("btnLogin").textContent = "登入";
-  setTimeout(function() { document.getElementById("loginPassword").focus(); }, 100);
+
+  // Step 1 (0ms):admin 主畫面開始淡出
+  pageMain.classList.add("fading-out");
+
+  // Step 2 (600ms):主畫面完全消失 → 過場層出現 + JOIN System 文字淡入
+  setTimeout(function() {
+    pageMain.style.display = "none";
+    pageMain.classList.remove("fading-out");
+    pageMain.style.opacity = "";  // reset 給下次登入用
+    transitionLayer.classList.add("visible");
+    setTimeout(function() {
+      transitionText.classList.add("fade-in");
+    }, 50);
+  }, 600);
+
+  // Step 3 (1300ms):文字「字距擴散」式淡出
+  setTimeout(function() {
+    transitionText.classList.remove("fade-in");
+    transitionText.classList.add("fade-out");
+  }, 1300);
+
+  // Step 4 (1900ms):過場層消失 → 登入頁淡入
+  setTimeout(function() {
+    transitionLayer.classList.remove("visible");
+    pageLogin.style.display = "flex";
+    pageLogin.classList.add("fading-in");
+    // 重置登入頁內容
+    document.getElementById("loginPassword").value = "";
+    document.getElementById("loginError").style.display = "none";
+    document.getElementById("btnLogin").disabled = false;
+    document.getElementById("btnLogin").textContent = "登入";
+  }, 1900);
+
+  // Step 5 (2400ms):重置過場層狀態(下次登出用)
+  setTimeout(function() {
+    transitionLayer.style.display = "";
+    transitionText.classList.remove("fade-out");
+    pageLogin.classList.remove("fading-in");
+    document.getElementById("loginPassword").focus();
+  }, 2400);
 }
 
 function handleSessionExpired() {
