@@ -1139,28 +1139,28 @@
     display: none;
   }
 
-  /* 立即行動 3 格並排(撥打 / 傳訊 / 聯繫方式) */
+  /* v5.3.2 改版:立即行動 2+1 兩排布局
+     上排:撥打 / 傳訊(各半寬並排)
+     下排:聯繫方式 LINE 按鈕(獨佔全寬)
+  */
   .m-action-row {
     display: flex;
-    gap: 6px;
-    align-items: stretch;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 10px;
   }
   .m-action-pair {
-    flex: 2;
     display: flex;
     gap: 6px;
-    min-width: 0;
+    width: 100%;
   }
   .m-action-pair .m-btn {
     flex: 1;
     margin-bottom: 0;
   }
   .m-action-method {
-    flex: 1;
-    min-width: 0;
+    width: 100%;
   }
-  /* 容器是 flex item,內部按鈕直接 width 100% 撐滿;不論 JS 設 display:block 還是 flex 都穩定 */
+  /* 容器是 flex item,內部按鈕直接 width 100% 撐滿 */
   .m-action-method .m-btn {
     width: 100%;
     margin-bottom: 0;
@@ -1786,7 +1786,7 @@
         </div>
         <div id="btnContactMethodWrap" class="m-action-method" style="display:none;">
           <div class="m-action-method-label">聯繫方式</div>
-          <button class="m-btn m-btn-compact" id="btnContactMethod" onclick="cycleContactMethod()"></button>
+          <button class="m-btn" id="btnContactMethod" onclick="cycleContactMethod()"></button>
         </div>
       </div>
     </div>
@@ -1839,10 +1839,6 @@
         複診
         <span class="m-btn-arrow">›</span>
       </button>
-      <button class="m-btn" onclick="copyBindLinkFromContact(true)">
-        含初診關懷
-        <span class="m-btn-arrow">›</span>
-      </button>
       <div id="bindLinkContactError" class="alert alert-error" style="display:none;margin-top:6px;"></div>
     </div>
 
@@ -1888,8 +1884,7 @@
         <button class="btn" style="flex:1;background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);font-size:13px;padding:10px;" onclick="copyLineMsgForAdd(true)">回診提醒</button>
       </div>
       <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">病患綁定連結（10 分鐘有效）</div>
-      <button class="btn" style="width:100%;background:var(--btn-mid-bg);color:var(--text);border:1px solid var(--btn-mid-bd);margin-bottom:8px;font-size:13px;" onclick="copyBindLink(false)"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 複製綁定連結（複診）</button>
-      <button class="btn" style="width:100%;background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);margin-bottom:16px;font-size:13px;" onclick="copyBindLink(true)"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 複製綁定連結（含初診關懷）</button>
+      <button class="btn" style="width:100%;background:var(--btn-mid-bg);color:var(--text);border:1px solid var(--btn-mid-bd);margin-bottom:16px;font-size:13px;" onclick="copyBindLink(false)"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 複製綁定連結（複診）</button>
       <div id="bindLinkError" class="alert alert-error" style="display:none;margin-bottom:8px;"></div>
       <button class="btn" style="width:100%;background:var(--marigold);color:#111;font-weight:700;" onclick="closeAdminAddResult()">關閉</button>
     </div>
