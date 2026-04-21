@@ -3,10 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <link rel="icon" href="assets/doctors/yuexinlogo.png" type="image/png">
-  <link rel="preload" href="assets/doctors/su.webp" as="image" type="image/webp">
-  <link rel="preload" href="assets/doctors/guo.webp" as="image" type="image/webp">
-  <link rel="preload" href="assets/doctors/seniorwang.webp" as="image" type="image/webp">
-  <link rel="preload" href="assets/doctors/juniorwang.webp" as="image" type="image/webp">
+  <!-- v5.x 醫師頭像改為首頁顯示後動態預載,不搶首次載入的頻寬 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
@@ -1512,6 +1509,9 @@ async function initLiff() {
     // v5.x 預熱:首頁顯示後,背景偷偷預抓 patientList
     // (使用者大概率會選複診,先拿好資料;若選初診也無傷)
     prewarmPatientList();
+
+    // v5.x 背景預載醫師頭像:不搶首次載入頻寬,但使用者到 pageTime 時圖已準備好
+    preloadDoctorAvatars();
   } catch(e) {
     // 清掉 slow hint timer(錯誤也不需要提示,直接進錯誤畫面)
     if (window._bindSlowHintTimer) clearTimeout(window._bindSlowHintTimer);
@@ -2126,6 +2126,18 @@ const DOCTOR_AVATARS = {
   "王麟祥": "assets/doctors/seniorwang.webp",
   "王伯元": "assets/doctors/juniorwang.webp"
 };
+
+// v5.x 背景預載醫師頭像:首頁顯示後靜默載入,使用者到選時段時圖已在快取
+// 失敗靜默,不影響任何流程
+let doctorAvatarsPreloaded = false;
+function preloadDoctorAvatars() {
+  if (doctorAvatarsPreloaded) return;
+  doctorAvatarsPreloaded = true;
+  Object.values(DOCTOR_AVATARS).forEach(function(src) {
+    const img = new Image();
+    img.src = src;  // 瀏覽器會把它放入 HTTP cache,之後正常 <img src> 會直接命中
+  });
+}
 
 function getDoctorAvatarHtml(doctor) {
   if (!doctor || !DOCTOR_AVATARS[doctor]) return "";
