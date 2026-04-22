@@ -960,28 +960,36 @@
     50%      { transform: scale(1.08); opacity: 0.6; }
   }
 
-  /* 載入文字:靜止、穩定清晰、兩行 */
+  /* 載入文字:中文主、英文輔 */
   .loading-text {
+    text-align: center;
+  }
+  .loading-text-zh {
     font-size: 13px;
     color: var(--ink-light);
-    letter-spacing: 2px;
+    letter-spacing: 4px;
     font-weight: 400;
-    text-align: center;
-    line-height: 1.9;
+    margin-bottom: 8px;
   }
-  .loading-text-line {
-    /* 靜態文字,不動 */
+  .loading-text-en {
+    font-size: 11px;
+    color: var(--ink-light);
+    letter-spacing: 2px;
+    font-weight: 300;
+    opacity: 0.7;
+    font-family: 'Noto Sans TC', sans-serif;
   }
 
-  /* 點點點動畫:三個點依序淡入淡出 */
+  /* 點點點動畫:三個點依序淡入淡出(只在 Loading 後面) */
   .loading-dots {
     display: inline-block;
+    margin-left: 4px;
   }
   .loading-dots span {
     opacity: 0.2;
     animation: dotFade 1.4s ease-in-out infinite;
     display: inline-block;
-    margin-left: 1px;
+    margin-left: 2px;
   }
   .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
   .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
@@ -1123,8 +1131,8 @@
              onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/yuexin913/yuexin-queue/main/assets/doctors/yuexinlogo-large.png';">
       </div>
       <div class="loading-text" id="loadingText">
-        <div class="loading-text-line">預約系統準備中</div>
-        <div class="loading-text-line">請稍候片刻<span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
+        <div class="loading-text-zh">載入中請稍候</div>
+        <div class="loading-text-en">Loading<span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
       </div>
     </div>
   </div>
