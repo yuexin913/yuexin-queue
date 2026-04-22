@@ -1477,6 +1477,10 @@ async function initLiff() {
     // LIFF init 完成 → 立刻顯示全屏載入畫面
     showPage("pageLoading");
 
+    // v5.x 預熱提前:跟 checkBlacklist 並行開始,不要等首頁顯示才跑
+    // 這樣使用者看到首頁時,預熱大多已完成,點複診能秒出
+    prewarmPatientList();
+
     // 黑名單驗證:加 8 秒 timeout
     // 安全原則:fail closed — timeout 或網路錯誤時都不放行
     //   · 真的被封鎖 → pageLoadError(無法使用線上預約,給診所電話)
@@ -1505,10 +1509,6 @@ async function initLiff() {
     state.isVip = blResult.isVip === true;
 
     showPage("pageEntry");
-
-    // v5.x 預熱:首頁顯示後,背景偷偷預抓 patientList
-    // (使用者大概率會選複診,先拿好資料;若選初診也無傷)
-    prewarmPatientList();
 
     // v5.x 背景預載醫師頭像:不搶首次載入頻寬,但使用者到 pageTime 時圖已準備好
     preloadDoctorAvatars();
