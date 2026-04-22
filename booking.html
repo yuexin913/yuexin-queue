@@ -922,13 +922,12 @@
     --ease-ritual: cubic-bezier(0.22, 0.61, 0.36, 1);
   }
 
-  /* 載入頁白底;動畫結束淡出到 parchment 米色 */
+  /* 載入頁米底;跟 pageEntry 同色避免切換時突兀 */
   #pageLoading {
-    background: #ffffff;
-    transition: background 0.5s var(--ease-ritual), opacity 0.5s var(--ease-ritual);
+    background: var(--parchment);
+    transition: opacity 0.5s var(--ease-ritual);
   }
   #pageLoading.fading-out {
-    background: var(--parchment);
     opacity: 0;
   }
 
@@ -946,7 +945,7 @@
   .logo-anim {
     width: 55px;
     height: auto;       /* 保持 logo 原比例 (512×525) */
-    animation: logoBreath 3s ease-in-out infinite;
+    animation: logoBreath 2.5s ease-in-out infinite;
     will-change: transform, opacity;
   }
   .logo-anim-img {
@@ -955,21 +954,22 @@
     display: block;
   }
 
-  /* 呼吸動畫:逐漸大 → 逐漸小 loop */
+  /* 呼吸動畫:幅度加大、節奏更明顯 */
   @keyframes logoBreath {
-    0%, 100% { transform: scale(1.0); opacity: 1; }
-    50%      { transform: scale(1.03); opacity: 0.88; }
+    0%, 100% { transform: scale(1.0);  opacity: 1;   }
+    50%      { transform: scale(1.08); opacity: 0.6; }
   }
 
-  /* 載入文字:靜止、穩定清晰 */
+  /* 載入文字:靜止、穩定清晰、兩行 */
   .loading-text {
     font-size: 13px;
     color: var(--ink-light);
     letter-spacing: 2px;
     font-weight: 400;
     text-align: center;
+    line-height: 1.9;
   }
-  .loading-text-body {
+  .loading-text-line {
     /* 靜態文字,不動 */
   }
 
@@ -1123,7 +1123,8 @@
              onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/yuexin913/yuexin-queue/main/assets/doctors/yuexinlogo-large.png';">
       </div>
       <div class="loading-text" id="loadingText">
-        <span class="loading-text-body">預約系統準備中,請稍候片刻</span><span class="loading-dots"><span>·</span><span>·</span><span>·</span></span>
+        <div class="loading-text-line">預約系統準備中</div>
+        <div class="loading-text-line">請稍候片刻<span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
       </div>
     </div>
   </div>
