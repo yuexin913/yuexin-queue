@@ -917,7 +917,7 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* v5.x 載入動畫:logo 在白底上緩緩浮現 → 過渡到首頁 */
+  /* v5.x 載入動畫:logo 呼吸 loop + 靜態文字 + 點點點動畫 */
   :root {
     --ease-ritual: cubic-bezier(0.22, 0.61, 0.36, 1);
   }
@@ -937,19 +937,17 @@
     width: 100%;
     min-height: 60vh;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 18px;
   }
 
   .logo-anim {
-    width: 75px;        /* 實測後的理想大小 */
-    height: auto;       /* 保持 logo 原比例 */
-    opacity: 0.15;
-    transform: scale(1.0) translate(0px, 0px);
-    transition:
-      opacity 2.5s var(--ease-ritual),
-      transform 2.5s var(--ease-ritual);
-    will-change: opacity, transform;
+    width: 55px;
+    height: auto;       /* 保持 logo 原比例 (512×525) */
+    animation: logoBreath 3s ease-in-out infinite;
+    will-change: transform, opacity;
   }
   .logo-anim-img {
     width: 100%;
@@ -957,26 +955,39 @@
     display: block;
   }
 
-  /* 階段 1:0.5s - 3.0s 推進(opacity 0.15 → 0.6) */
-  .logo-anim.stage-1 {
-    opacity: 0.6;
-  }
-
-  /* 階段 2:3.0s - 4.0s 聚焦(opacity 0.6 → 1.0) */
-  .logo-anim.stage-2 {
-    opacity: 1;
-    transition:
-      opacity 1s var(--ease-ritual),
-      transform 2.5s var(--ease-ritual);
-  }
-
-  /* 呼吸 loop:動畫結束後若 backend 還沒回來,logo 持續呼吸 */
-  .logo-anim.breathing {
-    animation: logoBreath 3s ease-in-out infinite;
-  }
+  /* 呼吸動畫:逐漸大 → 逐漸小 loop */
   @keyframes logoBreath {
-    0%, 100% { transform: scale(1.04); opacity: 1; }
-    50%      { transform: scale(1.045); opacity: 0.85; }
+    0%, 100% { transform: scale(1.0); opacity: 1; }
+    50%      { transform: scale(1.03); opacity: 0.88; }
+  }
+
+  /* 載入文字:靜止、穩定清晰 */
+  .loading-text {
+    font-size: 13px;
+    color: var(--ink-light);
+    letter-spacing: 2px;
+    font-weight: 400;
+    text-align: center;
+  }
+  .loading-text-body {
+    /* 靜態文字,不動 */
+  }
+
+  /* 點點點動畫:三個點依序淡入淡出 */
+  .loading-dots {
+    display: inline-block;
+  }
+  .loading-dots span {
+    opacity: 0.2;
+    animation: dotFade 1.4s ease-in-out infinite;
+    display: inline-block;
+    margin-left: 1px;
+  }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dotFade {
+    0%, 60%, 100% { opacity: 0.2; }
+    30%           { opacity: 1;   }
   }
 
   .no-clinic {
@@ -1110,6 +1121,9 @@
       <div class="logo-anim" id="loadingLogoImg">
         <img src="assets/doctors/yuexinlogo-large.png" alt="悅心診所" class="logo-anim-img"
              onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/yuexin913/yuexin-queue/main/assets/doctors/yuexinlogo-large.png';">
+      </div>
+      <div class="loading-text" id="loadingText">
+        <span class="loading-text-body">預約系統準備中,請稍候片刻</span><span class="loading-dots"><span>·</span><span>·</span><span>·</span></span>
       </div>
     </div>
   </div>
@@ -1880,37 +1894,12 @@ function formatBirthROCDisplay(birthStr) {
 //   · 完全靜默,不動任何 UI
 //   · 失敗靜默,不阻止後續正常流程(loadPatientList 會 fallback 打 API)
 //   · 同樣 10 秒 timeout 防止卡太久
-// v5.x 啟動 Loading 動畫:5 秒 logo 浮現 → 若此時 backend 已好,呼叫者會 resolve 進入 pageEntry
-// 若 backend 還沒好,logo 進入呼吸 loop、等 backend 完成
+// v5.x 啟動 Loading 動畫:logo 呼吸 loop 由 CSS 處理
+// JS 的責任是保底「最少顯示 1.5 秒」,避免 backend 太快時畫面一閃而過
+// 若 backend 慢於 1.5 秒,呼吸 loop 會持續播、等到 backend 回來才進首頁
 function startLoadingAnimation() {
   return new Promise(function(resolve) {
-    const logo = document.getElementById("loadingLogoImg");
-    if (!logo) { resolve(); return; }  // 防禦:沒有 logo 元素直接跳過
-
-    // 擲骰 logo 的微偏移(侘寂手作感)
-    const offsetX = (Math.random() * 20 - 10).toFixed(1);  // ±10px
-    const offsetY = (Math.random() * 16 - 8).toFixed(1);   // ±8px
-
-    // 階段 1:T=0.5s 推進(opacity 0.15 → 0.6, scale 1.0 → 1.04, translate 偏移)
-    requestAnimationFrame(function() {
-      setTimeout(function() {
-        logo.style.transform = `scale(1.04) translate(${offsetX}px, ${offsetY}px)`;
-        logo.classList.add("stage-1");
-      }, 500);
-    });
-
-    // 階段 2:T=3.0s 聚焦(opacity 0.6 → 1.0)
-    setTimeout(function() {
-      logo.classList.add("stage-2");
-    }, 3000);
-
-    // T=5.0s 動畫完成 → resolve Promise
-    //   若此時 backend 已好,呼叫者會立刻進 pageEntry
-    //   若 backend 還沒好,logo 進呼吸 loop 等待
-    setTimeout(function() {
-      logo.classList.add("breathing");
-      resolve();
-    }, 5000);
+    setTimeout(resolve, 1500);
   });
 }
 
