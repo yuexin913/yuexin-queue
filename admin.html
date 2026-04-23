@@ -2109,11 +2109,11 @@
     <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border-soft);">
       <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">LINE ID 反查</div>
       <div style="font-size:11px;color:var(--text-dim);line-height:1.6;margin-bottom:8px;font-weight:300;">貼上警示訊息的 LINE ID(前綴 U... 即可,至少 5 字)</div>
-      <div style="display:flex;gap:6px;margin-bottom:8px;">
+      <div style="display:flex;gap:6px;margin-bottom:8px;align-items:stretch;">
         <input type="text" id="lookupPrefix" placeholder="Uf5cdcc05bb8..."
-          style="flex:1;font-size:12px;padding:8px 10px;font-family:inherit;letter-spacing:0.5px;"
+          style="flex:1;min-width:0;font-size:12px;padding:8px 10px;font-family:inherit;letter-spacing:0.5px;margin-bottom:0;"
           onkeydown="if(event.key==='Enter'){doLookupByLineId();event.preventDefault();}">
-        <button class="btn" style="background:var(--capri-bg);color:var(--capri);border:1px solid var(--capri-bd);font-size:12px;padding:8px 14px;letter-spacing:1px;white-space:nowrap;" onclick="doLookupByLineId()">反查</button>
+        <button class="btn" style="width:auto;flex-shrink:0;background:var(--capri-bg);color:var(--capri);border:1px solid var(--capri-bd);font-size:12px;padding:8px 16px;letter-spacing:1px;white-space:nowrap;margin-bottom:0;" onclick="doLookupByLineId()">反查</button>
       </div>
       <div id="lookupError" class="alert alert-error" style="display:none;font-size:11px;padding:6px 8px;margin-bottom:8px;"></div>
       <div id="lookupResults" style="font-size:12px;"></div>
@@ -4202,6 +4202,10 @@ function openModal(id) {
     if (lerr) lerr.style.display = "none";
     const lres = document.getElementById("lookupResults");
     if (lres) lres.innerHTML = "";
+    // v5.4.3: 標記已讀按鈕也要重置為隱藏 — 否則上次殘留狀態會在「載入中」期間露出
+    // 依 v5.4.1 哲學:只有確定有未讀才顯示。loadSecurity 會根據 hasUnread 再次決定
+    const btnMR = document.getElementById("btnMarkRead");
+    if (btnMR) btnMR.style.display = "none";
     loadSecurity();
   }
   if (id === "modalSubstitute") loadSubstituteList();
