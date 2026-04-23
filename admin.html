@@ -4557,24 +4557,24 @@ async function loadSecurity() {
   el.innerHTML = `<div class="loading">載入中...</div>`;
   try {
     const data = await xhrPost(API_URL, { action: "getSecurityLog", lineId: state.lineId });
-    const logs = data.logs || [];
+    const allLogs = data.logs || [];
+    // v5.4.3: 只顯示未讀 log。已讀歷史仍保留在試算表(E 欄已讀時間、F 欄已讀管理員),
+    // 粟醫師若要看歷史可直接查試算表。前端 UI 保持乾淨,避免標記已讀後還看到一堆灰色 log 的困惑。
+    const logs = allLogs.filter(function(log) { return !log.isRead; });
     // 更新未讀小黑點
     const dot = document.getElementById("securityUnreadDot");
     if (dot) dot.style.display = data.hasUnread ? "block" : "none";
     // 更新標記已讀按鈕
     const btn = document.getElementById("btnMarkRead");
     if (btn) btn.style.display = data.hasUnread ? "block" : "none";
-    if (logs.length === 0) { el.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--kiwi);display:inline-block;vertical-align:-4px;margin-right:6px;"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>目前無異常記錄</div>`; return; }
+    if (logs.length === 0) { el.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--kiwi);display:inline-block;vertical-align:-4px;margin-right:6px;"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>目前無未讀的異常記錄</div>`; return; }
     el.innerHTML = logs.map(function(log) {
-      const readInfo = log.isRead
-        ? `<div style="font-size:10px;color:var(--text-light);margin-top:2px">已讀：${esc(log.readTime)}</div>`
-        : `<div style="font-size:10px;color:var(--marigold);margin-top:2px;font-weight:700">未讀</div>`;
-      return `<div class="log-item" style="opacity:${log.isRead ? '0.5' : '1'}">
+      return `<div class="log-item">
         <div class="log-time">${esc(log.time)}</div>
         ${log.lineId ? `<div style="margin:2px 0;font-size:11px">${esc(log.lineId)}</div>` : ""}
-        ${log.name ? `<div style="margin:2px 0;font-size:11px">姓名：${esc(log.name)}</div>` : ""}
+        ${log.name ? `<div style="margin:2px 0;font-size:11px">姓名:${esc(log.name)}</div>` : ""}
         <div class="log-event">${esc(log.event)}</div>
-        ${readInfo}
+        <div style="font-size:10px;color:var(--marigold);margin-top:2px;font-weight:700">未讀</div>
       </div>`;
     }).join("");
   } catch(e) { if (e.isSessionExpired) return; el.innerHTML = `<div class="alert alert-error">記錄暫時無法載入，請稍後再試。</div>`; }
@@ -4586,11 +4586,10 @@ async function doMarkSecurityRead() {
   btn.disabled = true; btn.textContent = "更新中...";
   try {
     await xhrPost(API_URL, { action: "markSecurityRead", lineId: state.lineId });
-    const dot = document.getElementById("securityUnreadDot");
-    if (dot) dot.style.display = "none";
-    btn.style.display = "none";
     btn.disabled = false; btn.textContent = "✓ 標記全部已讀";
-    // 重新載入顯示已讀狀態
+    // v5.4.3: loadSecurity 會 filter 掉已讀 log,UI 自動呈現「所有 log 消失」的乾淨狀態
+    // 小紅點、按鈕的隱藏也由 loadSecurity 統一處理(依 hasUnread)
+    showToast("✓ 已標記全部為已讀");
     loadSecurity();
   } catch(e) {
     if (e.isSessionExpired) return;
@@ -4603,6 +4602,8 @@ async function doLookupByLineId() {
   const input = document.getElementById("lookupPrefix");
   const errEl = document.getElementById("lookupError");
   const resultsEl = document.getElementById("lookupResults");
+  // v5.4.3: 找反查按鈕(input 的下一個 sibling),一併鎖起來避免連點
+  const btn = input && input.parentElement ? input.parentElement.querySelector("button") : null;
   errEl.style.display = "none";
   resultsEl.innerHTML = "";
   const raw = (input.value || "").trim();
@@ -4619,6 +4620,9 @@ async function doLookupByLineId() {
     return;
   }
   resultsEl.innerHTML = `<div style="color:var(--text-light);font-size:11px;padding:6px 0;">反查中...</div>`;
+  // v5.4.3: Gemini 審查建議 — 執行期間鎖定 input + 按鈕,避免連點耗盡 rate limit
+  input.disabled = true;
+  if (btn) btn.disabled = true;
   try {
     const data = await xhrPost(API_URL, {
       action: "adminLookupByLineId",
@@ -4638,6 +4642,10 @@ async function doLookupByLineId() {
     errEl.textContent = "反查失敗,請稍後再試。";
     errEl.style.display = "block";
     resultsEl.innerHTML = "";
+  } finally {
+    // v5.4.3: 不論成功失敗,一定解鎖(即使 session 過期提前 return 也會經過)
+    input.disabled = false;
+    if (btn) btn.disabled = false;
   }
 }
 
