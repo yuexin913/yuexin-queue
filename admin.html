@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.4.0">
+  <meta name="version" content="5.4.1">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.4.0 (2026-04-23) 桌機重排 clean 版
+     Version:   v5.4.1 (2026-04-23) 桌機重排 + 系統 tile UX 修正
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -40,7 +40,7 @@
                      · Modal section 標籤色調亮(text-dim → text-light)
                      · 登出 modal 加「回預約前台」按鈕(保留 session,只跳頁)
                      · 登出動畫:admin 淡出 → JOIN System 文字電源循環式 → 登入頁淡入
-     · v5.4.0 目前 - 桌機版 5+5 預約為王布局(單 container 純 CSS clean 版):
+     · v5.4.0 - 桌機版 5+5 預約為王布局(單 container 純 CSS clean 版):
                      · ≥ 1024px 螢幕切換為兩欄布局(手機版完全不變)
                      · 左右各 5 列:導覽/醫師 → 預約 1-30 → 不指定組/工具列
                      · 預約列 1 = 1-10、列 2 = 11-20、列 3 = 21-30(橫向連續,櫃檯反饋)
@@ -48,6 +48,11 @@
                      · 10 吋 Android 平板橫屏友善
                      · 純 CSS 新增,零 JS 改動,HTML 結構零改動
                      · backend 無異動
+     · v5.4.1 目前 - 系統 tile modal UX 修正:
+                     · 「✓ 標記全部已讀」按鈕預設隱藏(原本永遠顯示)
+                     · 載入中不再同時顯示按鈕,避免邏輯矛盾
+                     · 載入完後由 JS 依 hasUnread 決定顯示/隱藏(原邏輯已存在)
+                     · 1 處 HTML 改動,零 JS 改動,零 backend 改動
      · 待辦 - 雙模式登入(九宮格 + 傳統輸入框切換)
      · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
      · v6.0 預計 — 心理治療功能上線
@@ -2073,7 +2078,8 @@
     </div>
     <div id="securityContent"><div class="loading">載入中...</div></div>
     <div style="margin-top:12px">
-      <button class="btn" id="btnMarkRead" style="background:var(--marigold);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%" onclick="doMarkSecurityRead()">✓ 標記全部已讀</button>
+      <!-- v5.4.1: 預設 display:none,避免 modal 打開時「載入中」和按鈕同時顯示;載入完再由 JS 依 hasUnread 決定顯示 -->
+      <button class="btn" id="btnMarkRead" style="display:none;background:var(--marigold);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%" onclick="doMarkSecurityRead()">✓ 標記全部已讀</button>
     </div>
   </div>
 </div>

@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.4.1">
+  <meta name="version" content="5.5.1">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,8 +20,8 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.4.1 (2026-04-21)
-     Theme:     Sage 自然綠系 · Cream 背景 · 人文溫潤
+     Version:   v5.5.1 (2026-04-23)
+     Theme:     Japandi 自然米系 · Parchment/Cream 背景 · 侘寂風
      Typography: Noto Sans TC (主) + Noto Serif TC (診所名)
      Icons:     Lucide SVG (stroke-based, 16px)
      ----------------------------------------------------------
@@ -33,7 +33,12 @@
      · v5.2 - 與 admin v5.2 / backend v4.33 版本同步(booking 無改動)
      · v5.2.2 - UI 小調整(首頁 icon 放大上色、心寬轉介說明微調)
      · v5.4 - 複診預約家庭友善預填清單(getMyPatientList/removeMyPatient)
-     · v5.4.1 目前 - Gemini 審查修補:刪除成功後重載清單(消除列位移誤刪風險)
+     · v5.4.1 - Gemini 審查修補:刪除成功後重載清單(消除列位移誤刪風險)
+     · v5.5.0 - Japandi 視覺改版 + 預熱機制 + 零版面位移 + Loading 動畫
+     · v5.5.1 目前 - 首頁底部說明文字精簡:
+                     · 移除「傳訊官方 LINE」選項(病患都從 LINE 圖文選單進入,訊息冗餘)
+                     · 新文案:「若需協助,請於門診時間來電:07-363-1313」
+                     · 同時補齊 meta version 5.4.1 → 5.5.1(前版漏更新)
      · v6.0 預計 — 心理治療預約上線
      · v7.0 預計 — 帳號系統與病患個人資料管理
      ========================================================== */
@@ -1232,7 +1237,7 @@
       </div>
     </div>
     <div class="alert alert-info">
-      若需協助，請傳訊息至官方LINE，或於門診時間電洽診所：<strong>07-363-1313</strong>
+      若需協助,請於門診時間來電:<strong>07-363-1313</strong>
     </div>
   </div>
 
