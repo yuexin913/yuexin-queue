@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.4.2">
+  <meta name="version" content="5.4.3">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.4.2 (2026-04-23)
+     Version:   v5.4.3 (2026-04-23)
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -51,10 +51,16 @@
                      · tile 尺寸從 87px × 87px → 117px × 117px,30 格預約更有氣勢
                      · 平板橫屏(1280px)左右邊界從 190px → 40px
                      · 桌機(1920px)左右邊界從 510px → 360px,仍保留留白不擁擠
-     · v5.4.2 目前 - 桌機版垂直置中:
+     · v5.4.2 - 桌機版垂直置中:
                      · #pageMain 加 min-height:100vh + flex 置中
                      · 1360×768 小桌機螢幕底部黑色大片空白消失,視覺重心置中
                      · 用 attribute selector [style*="display"] 精準鎖定,不破壞登入前隱藏
+     · v5.4.3 目前 - 預約號碼改為橫向連續布局(櫃檯反饋):
+                     · 原本:1-15 左、16-30 右(之字形視覺,需心算分區)
+                     · 現在:每列都橫跨左右 — 列 1 = 1-10、列 2 = 11-20、列 3 = 21-30
+                     · 好處:號碼分布呈線性,櫃檯找號碼時視線從左到右連續,無需心算
+                     · 實作:只改 JS 分配邏輯(i%10<5 進左 container),CSS 零改動
+                     · 初診 banner 無跨 container 風險(rowStart 固定為 7/12/17/22/27,永遠同列)
      · 待辦 - 雙模式登入(九宮格 + 傳統輸入框切換)
      · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
      · v6.0 預計 — 心理治療功能上線
@@ -2787,15 +2793,13 @@ async function loadSchedule(preferredSession) {
     if (c) c.textContent = "—";
   });
   // A1：渲染30個 skeleton 空格
-  // v5.4.0: scheduleContent 拆為左右兩個 container(桌機版 5+5 布局用)
-  // helper:把 30 格 HTML 拆半塞入左右容器;手機版兩個 container 都 display:contents 所以視覺連續
-  // 注意:html 參數的格式是 30 個同等大小的 <div> 並列,拆的依據是 30 格的邊界 cell 數
+  // v5.4.3: 桌機版 skeleton 改為橫向連續拆法(1-5 左、6-10 右、11-15 左、依此類推)
+  // 注意:這裡 i 是「號碼」(1-30),不是 index。判斷用 ((i-1) % 10) < 5
   let skeletonHtmlLeft = "", skeletonHtmlRight = "";
-  for (let i = 1; i <= 15; i++) {
-    skeletonHtmlLeft += `<div class="grid-cell skeleton"><span class="cell-num" style="position:absolute;top:6px;left:6px;">${i}</span></div>`;
-  }
-  for (let i = 16; i <= 30; i++) {
-    skeletonHtmlRight += `<div class="grid-cell skeleton"><span class="cell-num" style="position:absolute;top:6px;left:6px;">${i}</span></div>`;
+  for (let i = 1; i <= 30; i++) {
+    const cellHtml = `<div class="grid-cell skeleton"><span class="cell-num" style="position:absolute;top:6px;left:6px;">${i}</span></div>`;
+    if (((i - 1) % 10) < 5) skeletonHtmlLeft += cellHtml;
+    else skeletonHtmlRight += cellHtml;
   }
   document.getElementById("scheduleContentLeft").innerHTML = skeletonHtmlLeft;
   document.getElementById("scheduleContentRight").innerHTML = skeletonHtmlRight;
@@ -2869,7 +2873,7 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
     let emptyHtmlLeft = "", emptyHtmlRight = "";
     for (let i = 1; i <= 30; i++) {
       const cellHtml = `<div class="grid-cell empty"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
-      if (i <= 15) emptyHtmlLeft += cellHtml;
+      if (((i - 1) % 10) < 5) emptyHtmlLeft += cellHtml;
       else emptyHtmlRight += cellHtml;
     }
     elLeft.innerHTML = emptyHtmlLeft;
@@ -2975,7 +2979,7 @@ function renderSessionContent(session, isClosed) {
       } else {
         cellHtml = `<div class="grid-cell empty" style="cursor:pointer" onclick="openAdminAddBookingModal(${i})"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
       }
-      if (i <= 15) emptyHtmlLeft += cellHtml;
+      if (((i - 1) % 10) < 5) emptyHtmlLeft += cellHtml;
       else emptyHtmlRight += cellHtml;
     }
     elLeft.innerHTML = emptyHtmlLeft;
@@ -3191,11 +3195,11 @@ function renderSessionContent(session, isClosed) {
       }
     }
 
-    // v5.4.0: 依 index 追加到左(1-15)或右(16-30)字串
-    // 注意:np_skip 在迴圈頂部已 continue,不會走到這裡
-    // 初診 banner 若落在 index 13、14(對應 14、15 號),仍放左側 container
-    // CSS grid 的 grid-column:3/span 3 + display:contents 會讓 banner 正確橫跨視覺位置
-    if (i < 15) htmlLeft += cellOut;
+    // v5.4.3: 櫃檯反饋 — 改為橫向連續布局(1-10 / 11-20 / 21-30 三列)
+    // 新規則:i 的個位數 < 5 進左 container,否則進右(i % 10 < 5)
+    // 例:i=5(號碼 6)個位 5 不 < 5 → 右;i=10(號碼 11)個位 0 < 5 → 左
+    // 好處:號碼呈線性分布,櫃檯找號碼時視線從左到右連續,無需心算分區
+    if (i % 10 < 5) htmlLeft += cellOut;
     else htmlRight += cellOut;
   }
 
