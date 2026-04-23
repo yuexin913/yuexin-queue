@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.3.2">
+  <meta name="version" content="5.4.0">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,8 +17,8 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.3.2 (2026-04-21)
-     Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent
+     Version:   v5.4.0 (2026-04-23)
+     Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
      ────────────────────────────────────────────────────────
@@ -34,13 +34,20 @@
      · v5.3 - 櫃檯 keyin 小抄(35 天預覽內嵌 [今日][明日])
                搭配 backend v4.35(無異動,沿用既有 adminGetTodaySchedule)
      · v5.3.1 - Session 持久化(sessionStorage),減少反覆登入
-     · v5.3.2 目前 - UI 小改版包:
+     · v5.3.2 - UI 小改版包:
                      · 驗證動畫改循環式(. → .. → ... → 空)
                      · LINE 按鈕加「聯繫方式」子標籤
                      · Modal section 標籤色調亮(text-dim → text-light)
                      · 登出 modal 加「回預約前台」按鈕(保留 session,只跳頁)
                      · 登出動畫:admin 淡出 → JOIN System 文字電源循環式 → 登入頁淡入
+     · v5.4.0 目前 - 桌機版 5+5 預約為王布局:
+                     · ≥ 1024px 螢幕切換為兩欄布局(手機版完全不變)
+                     · 左右各 5 列:導覽/醫師 → 預約 1-15 / 16-30 → 不指定組/工具列
+                     · 30 格預約置中,語義分組:病患預約 vs 情境脈絡 vs 系統工具
+                     · 平板橫屏友善(10 吋平板等 1024-1440px 裝置使用舒適)
+                     · backend 無異動(純 CSS + HTML 結構微調 + JS inject 拆兩半)
      · 待辦 - 雙模式登入(九宮格 + 傳統輸入框切換)
+     · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
      · v6.0 預計 — 心理治療功能上線
      · v7.0 預計 — 帳號系統與多醫師登入
      ════════════════════════════════════════════════════════ */
@@ -776,7 +783,14 @@
     color: var(--text-dim);
   }
 
-  /* scheduleContent 容器 */
+  /* v5.4.0: scheduleContent 拆為左右兩 container(桌機版 5+5 布局用) */
+  /* 手機版和桌機版都適用:display:contents 讓 container 本身不佔 grid 空間,子元素直接融入父 grid */
+  #scheduleContentLeft,
+  #scheduleContentRight {
+    /* 註:display:contents 已在 inline style 設定,此處只補背景色等樣式給子元素繼承不了的部分 */
+    /* 這兩個 container 本身因 display:contents 而「消失」,背景/padding 由 .grid-cell 自身處理 */
+  }
+  /* 保留舊 #scheduleContent 規則以防遺漏(fallback,正常不會觸發) */
   #scheduleContent {
     grid-column: 1 / -1;
     background: var(--bg);
@@ -796,6 +810,86 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .grid-cell.skeleton { background: var(--bg-3); animation: skeletonPulse 1.4s ease-in-out infinite; }
   .grid-cell.skeleton .cell-num { color: transparent; }
+
+  /* ═══════════════════════════════════════════════════════════
+     v5.4.0 桌機版 5+5 預約為王布局 (≥ 1024px)
+     ─────────────────────────────────────────────────────────
+     設計哲學:
+     · 預約 30 格置於畫面中央,是視線自然焦點
+     · 左側(L1-L5):導覽 → 預約 1-15 → 不指定組(病患預約的延伸)
+     · 右側(R1-R5):醫師資訊 → 預約 16-30 → 工具列(系統操作)
+     · 語義分組:左=病患預約脈絡,右=情境與工具
+     · 平板橫屏友善(10 吋平板等 1024-1440px 裝置)
+     ─────────────────────────────────────────────────────────
+     技術細節:
+     · 用 10 欄 grid(而不是兩個獨立 grid),HTML 結構改動最小
+     · 每個 tile 用 .tile-layout-L1 ~ .tile-layout-R5 class 明確指定所在列
+     · 預約 cells 繼續由 .grid-cell / .grid-np-banner 自帶的定位規則渲染
+     · 初診 banner 因 display:contents 跨 container 仍正確渲染
+     ═══════════════════════════════════════════════════════════ */
+  @media (min-width: 1024px) {
+    .metro-grid {
+      grid-template-columns: repeat(10, 1fr);
+      grid-auto-rows: calc((900px - 3px * 9) / 10);  /* tile 正方形 */
+      max-width: 900px;
+    }
+    /* tile 高度也要跟著 10 欄變小,才保持正方形 */
+    .tile,
+    .grid-cell,
+    .grid-np-banner {
+      height: calc((900px - 3px * 9) / 10) !important;
+      max-height: calc((900px - 3px * 9) / 10) !important;
+    }
+
+    /* ─── 左側列(columns 1-5)─── */
+    /* L1:日期導覽(5 格並排) */
+    .tile-layout-L1 { grid-column: span 1; grid-row: 1; }
+
+    /* L5:不指定 + 心理治療 + 預覽(2+2+1 = 5 格) */
+    /* 因 HTML 順序:不指定(tile-2) 心理治療(tile-2) 預覽(tile-1) */
+    .tile-layout-L5 { grid-row: 5; }
+
+    /* ─── 右側列(columns 6-10)─── */
+    /* R1:醫師(tile-2 佔右第 6-7 欄) + 早午晚(各 1 格) */
+    .tile-layout-R1 { grid-row: 1; }
+    .tile-layout-R1.tile-doctor { grid-column: 6 / span 2; }
+    .tile-layout-R1.tile-session { grid-column: span 1; }
+    .tile-layout-R1#session-早上 { grid-column: 8; }
+    .tile-layout-R1#session-下午 { grid-column: 9; }
+    .tile-layout-R1#session-晚上 { grid-column: 10; }
+
+    /* R5:工具列(查詢/代診/群發/系統/管理員,各 1 格) */
+    .tile-layout-R5 { grid-row: 5; }
+    /* 用 nth-of-type 或個別指定會太複雜,靠 DOM 順序 + span 1 自動排版 */
+    /* 因 HTML 的 R5 共 5 個 .tile-1,依序放 column 6-10 */
+
+    /* ─── 預約 container:左在 col 1-5、右在 col 6-10 ─── */
+    /* display:contents 讓子元素融入父 grid,子元素自動從 col 1/6 開始排 */
+    /* 但為了保證左 15 格只填 col 1-5、右 15 格只填 col 6-10,需要用 subgrid 或明確定位 */
+    /* 實作:給 container 加 grid-column 範圍 + 轉為 subgrid */
+    #scheduleContentLeft {
+      display: grid !important;
+      grid-column: 1 / 6;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: var(--gap);
+      grid-row: 2 / 5;
+    }
+    #scheduleContentRight {
+      display: grid !important;
+      grid-column: 6 / 11;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: var(--gap);
+      grid-row: 2 / 5;
+    }
+
+    /* 初診 banner 在桌機版也要維持跨 3 格橫幅 */
+    /* grid-column: 3 / span 3 相對於 container 的內部 grid,不變動 */
+  }
+  /* ═══════════════════════════════════════════════════════════
+     桌機版 CSS 結束
+     ═══════════════════════════════════════════════════════════ */
 
   /* ── 不指定(Kiwi 綠)/ 心理治療(深灰)/ 預覽(Smoked Teal)── */
   .tile-unspec {
@@ -1598,81 +1692,81 @@
 <div id="pageMain">
 <div class="metro-grid" id="metroGrid">
 
-  <!-- Row 1: 已移除（LIFF 瀏覽器頂部已顯示標題）-->
-
-  <!-- Row 1: 日期導覽 -->
-  <div class="tile tile-1 tile-nav today-btn" onclick="goToToday()" style="position:relative;">
+  <!-- Row 1 (桌機版=左第1列 L1): 日期導覽 -->
+  <div class="tile tile-1 tile-nav today-btn tile-layout-L1" onclick="goToToday()" style="position:relative;">
     <div class="tile-title" style="font-size:16px;">今日</div>
   </div>
-  <div class="tile tile-1 tile-nav today-btn" onclick="goToNextWorkday()" style="position:relative;">
+  <div class="tile tile-1 tile-nav today-btn tile-layout-L1" onclick="goToNextWorkday()" style="position:relative;">
     <div class="tile-title" style="font-size:16px;">明日</div>
   </div>
-  <div class="tile tile-1 tile-nav" id="btnPrev" onclick="changeDate(-1)" style="position:relative;">
+  <div class="tile tile-1 tile-nav tile-layout-L1" id="btnPrev" onclick="changeDate(-1)" style="position:relative;">
     <div class="tile-title" style="font-size:18px;color:var(--text-light);">＜</div>
   </div>
-  <div class="tile tile-1 tile-nav-date" style="position:relative;" onclick="document.getElementById('dateNavInput').showPicker()">
+  <div class="tile tile-1 tile-nav-date tile-layout-L1" style="position:relative;" onclick="document.getElementById('dateNavInput').showPicker()">
     <div class="tile-title" style="font-size:16px;pointer-events:none;" id="dateNavLabel"></div>
     <div class="tile-subtitle" style="font-size:14px;font-weight:300;color:var(--text-light);pointer-events:none;" id="dateNavSub"></div>
     <input type="date" class="date-nav-input" id="dateNavInput" onchange="onDatePick(event)">
   </div>
-  <div class="tile tile-1 tile-nav" id="btnNext" onclick="changeDate(1)" style="position:relative;">
+  <div class="tile tile-1 tile-nav tile-layout-L1" id="btnNext" onclick="changeDate(1)" style="position:relative;">
     <div class="tile-title" style="font-size:18px;color:var(--text-light);">＞</div>
   </div>
 
-  <!-- Row 2: 醫師資訊 + 時段磚 -->
-  <div class="tile tile-2 tile-doctor" id="doctorTile" style="position:relative;" onclick="loadSchedule(activeSession)" title="點擊重新整理">
+  <!-- Row 2 (桌機版=右第1列 R1): 醫師資訊 + 時段磚 -->
+  <div class="tile tile-2 tile-doctor tile-layout-R1" id="doctorTile" style="position:relative;" onclick="loadSchedule(activeSession)" title="點擊重新整理">
     <div class="tile-title" style="font-size:20px;font-weight:200;" id="sessionDoctorText">—</div>
     <div style="font-size:11px;color:rgba(216,212,192,0.7);margin-top:auto;font-weight:300;letter-spacing:1.5px;">主治醫師</div>
   </div>
-  <div class="tile tile-1 tile-session" id="session-早上" onclick="switchTab('早上')" style="position:relative;">
+  <div class="tile tile-1 tile-session tile-layout-R1" id="session-早上" onclick="switchTab('早上')" style="position:relative;">
     <div class="tile-title" style="font-size:16px;">早上診</div>
     <div class="count-text" id="count-早上">—</div>
   </div>
-  <div class="tile tile-1 tile-session" id="session-下午" onclick="switchTab('下午')" style="position:relative;">
+  <div class="tile tile-1 tile-session tile-layout-R1" id="session-下午" onclick="switchTab('下午')" style="position:relative;">
     <div class="tile-title" style="font-size:16px;">下午診</div>
     <div class="count-text" id="count-下午">—</div>
   </div>
-  <div class="tile tile-1 tile-session" id="session-晚上" onclick="switchTab('晚上')" style="position:relative;">
+  <div class="tile tile-1 tile-session tile-layout-R1" id="session-晚上" onclick="switchTab('晚上')" style="position:relative;">
     <div class="tile-title" style="font-size:16px;">晚上診</div>
     <div class="count-text" id="count-晚上">—</div>
   </div>
 
   <!-- scheduleLoading 已移除，改用 skeleton 格 -->
-  <!-- Row 4-9: 30格診單（JS 動態輸出到這裡）-->
-  <div id="scheduleContent" style="display:contents;"></div>
+  <!-- 桌機版 ≥ 1024px: 左側 L2-L4(1-15 格)/ 右側 R2-R4(16-30 格)
+       手機版 < 1024px: 兩個 container 都 display:contents,30 格依序塞入單欄 -->
+  <div id="scheduleContentLeft" style="display:contents;"></div>
+  <div id="scheduleContentRight" style="display:contents;"></div>
 
-  <!-- Row 9: 現場排號 + 心理治療 + 預覽 -->
-  <div class="tile tile-2 tile-unspec" onclick="openUnspecModal()" style="position:relative;">
+  <!-- Row 9 (桌機版=左第5列 L5): 現場排號 + 心理治療 + 預覽 -->
+  <div class="tile tile-2 tile-unspec tile-layout-L5" onclick="openUnspecModal()" style="position:relative;">
     <div class="tile-title" style="font-size:18px;">不指定</div>
     <div style="font-size:12px;font-weight:300;color:rgba(186,203,0,0.75);margin-top:auto;letter-spacing:0.5px;" id="unspecCount"></div>
     <div id="unspecPendingDot" style="display:none;position:absolute;bottom:7px;right:7px;width:8px;height:8px;background:var(--marigold);"></div>
   </div>
-  <div class="tile tile-2" style="position:relative;background:var(--bg-3);border:1px solid var(--border-soft);">
+  <div class="tile tile-2 tile-layout-L5" style="position:relative;background:var(--bg-3);border:1px solid var(--border-soft);">
     <div class="tile-title" style="font-size:15px;color:var(--text-dim);font-weight:400;">心理治療</div>
     <div style="font-size:11px;font-weight:300;color:var(--text-dim);position:absolute;bottom:7px;left:10px;letter-spacing:0.5px;">目前尚無排程資料</div>
     <div class="tile-note" style="background:var(--bg-4);color:var(--text-dim);border:1px solid var(--border-soft);">建置中</div>
   </div>
-  <div class="tile tile-1 tile-teal" style="position:relative;cursor:pointer;" onclick="openPreviewModal()">
+  <div class="tile tile-1 tile-teal tile-layout-L5" style="position:relative;cursor:pointer;" onclick="openPreviewModal()">
     <div class="tile-title" style="font-size:18px;">預覽</div>
     <div style="font-size:11px;font-weight:300;color:rgba(168,208,188,0.7);position:absolute;bottom:7px;left:10px;letter-spacing:0.5px;">35天總覽</div>
   </div>
 
-  <!-- Row 10: 工具＋管理員 -->
-  <div class="tile tile-1 tile-capri" onclick="openModal('modalQuery')" style="position:relative;cursor:pointer;">
+  <!-- Row 10 (桌機版=右第5列 R5): 工具＋管理員 -->
+  <div class="tile tile-1 tile-capri tile-layout-R5" onclick="openModal('modalQuery')" style="position:relative;cursor:pointer;">
     <div class="tile-title" style="font-size:18px;">查詢</div>
   </div>
-  <div class="tile tile-1 tile-yellow" onclick="openModal('modalSubstitute')" style="position:relative;cursor:pointer;">
+  <div class="tile tile-1 tile-yellow tile-layout-R5" onclick="openModal('modalSubstitute')" style="position:relative;cursor:pointer;">
     <div class="tile-title" style="font-size:18px;">代診</div>
   </div>
-  <div class="tile tile-1 tile-orchid" onclick="openModal('modalBroadcast')" style="position:relative;cursor:pointer;">
+  <div class="tile tile-1 tile-orchid tile-layout-R5" onclick="openModal('modalBroadcast')" style="position:relative;cursor:pointer;">
     <div class="tile-title" style="font-size:18px;">群發</div>
   </div>
-  <div class="tile tile-1 tile-pink" id="securityTile" onclick="openModal('modalSecurity')" style="position:relative;cursor:pointer;">
+  <div class="tile tile-1 tile-pink tile-layout-R5" id="securityTile" onclick="openModal('modalSecurity')" style="position:relative;cursor:pointer;">
     <div class="tile-title" style="font-size:18px;">系統</div>
     <div id="securityUnreadDot" style="display:none;position:absolute;bottom:7px;right:7px;width:8px;height:8px;background:var(--pink);"></div>
     <div id="conflictBadge" style="display:none;position:absolute;top:6px;right:6px;min-width:18px;height:18px;background:var(--error);color:#fff;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 3px;"></div>
   </div>
-  <div class="tile tile-1 tile-admin" style="position:relative;cursor:pointer;" onclick="openLogoutModal()">
+  <div class="tile tile-1 tile-admin tile-layout-R5" style="position:relative;cursor:pointer;" onclick="openLogoutModal()">
     <div class="tile-title" style="font-size:14px;font-weight:400;" id="adminBadge">...</div>
     <div style="position:absolute;bottom:7px;left:10px;font-size:11px;font-weight:300;color:rgba(216,212,192,0.7);letter-spacing:1.5px;">管理員</div>
   </div>
@@ -2666,11 +2760,18 @@ async function loadSchedule(preferredSession) {
     if (c) c.textContent = "—";
   });
   // A1：渲染30個 skeleton 空格
-  let skeletonHtml = "";
-  for (let i = 1; i <= 30; i++) {
-    skeletonHtml += `<div class="grid-cell skeleton"><span class="cell-num" style="position:absolute;top:6px;left:6px;">${i}</span></div>`;
+  // v5.4.0: scheduleContent 拆為左右兩個 container(桌機版 5+5 布局用)
+  // helper:把 30 格 HTML 拆半塞入左右容器;手機版兩個 container 都 display:contents 所以視覺連續
+  // 注意:html 參數的格式是 30 個同等大小的 <div> 並列,拆的依據是 30 格的邊界 cell 數
+  let skeletonHtmlLeft = "", skeletonHtmlRight = "";
+  for (let i = 1; i <= 15; i++) {
+    skeletonHtmlLeft += `<div class="grid-cell skeleton"><span class="cell-num" style="position:absolute;top:6px;left:6px;">${i}</span></div>`;
   }
-  document.getElementById("scheduleContent").innerHTML = skeletonHtml;
+  for (let i = 16; i <= 30; i++) {
+    skeletonHtmlRight += `<div class="grid-cell skeleton"><span class="cell-num" style="position:absolute;top:6px;left:6px;">${i}</span></div>`;
+  }
+  document.getElementById("scheduleContentLeft").innerHTML = skeletonHtmlLeft;
+  document.getElementById("scheduleContentRight").innerHTML = skeletonHtmlRight;
   const loadingBar = document.getElementById("scheduleLoading");
   if (loadingBar) loadingBar.style.display = "none";
   try {
@@ -2683,14 +2784,18 @@ async function loadSchedule(preferredSession) {
     if (myLoadId !== _scheduleLoadId) return;
     hideAdminOverlay();
     if (loadingBar) loadingBar.style.display = "none";
-    document.getElementById("scheduleContent").innerHTML =
+    // v5.4.0: 錯誤訊息只放左 container 並 span 兩欄,右 container 清空
+    document.getElementById("scheduleContentLeft").innerHTML =
       `<div style="grid-column:1/-1;padding:12px;background:var(--bg);"><div class="alert alert-error">${e.message === "SERVER_HTML" ? "系統暫時無法使用，請稍後再試。" : "診表暫時無法載入。<br><small>" + e.message + "</small>"}</div></div>`;
+    document.getElementById("scheduleContentRight").innerHTML = "";
   }
 }
 
 function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
   allBookings = bookings;
-  const el = document.getElementById("scheduleContent");
+  // v5.4.0: 雙 container(桌機版 5+5 用)
+  const elLeft = document.getElementById("scheduleContentLeft");
+  const elRight = document.getElementById("scheduleContentRight");
   // 優先使用 GAS 回傳的開診時段（含醫師），fallback 到前端副本
   const dow = state.viewDate.getDay();
   const rawSessions = openSessionsFromGAS ||
@@ -2733,11 +2838,15 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
     if (oldN) oldN.remove();
     const subElR = document.getElementById("sessionDoctorSub");
     if (subElR) subElR.textContent = "";
-    let emptyHtml = "";
+    // v5.4.0: 無開診的 30 格空格也要拆左右 container
+    let emptyHtmlLeft = "", emptyHtmlRight = "";
     for (let i = 1; i <= 30; i++) {
-      emptyHtml += `<div class="grid-cell empty"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
+      const cellHtml = `<div class="grid-cell empty"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
+      if (i <= 15) emptyHtmlLeft += cellHtml;
+      else emptyHtmlRight += cellHtml;
     }
-    el.innerHTML = emptyHtml;
+    elLeft.innerHTML = emptyHtmlLeft;
+    elRight.innerHTML = emptyHtmlRight;
     return;
   }
 
@@ -2801,7 +2910,9 @@ function switchTab(session) {
    核心渲染：30 格儀表板
    ════════════════════════════════════════════════ */
 function renderSessionContent(session, isClosed) {
-  const el = document.getElementById("scheduleContent");
+  // v5.4.0: 拆左右兩 container(桌機版 5+5 布局)
+  const elLeft = document.getElementById("scheduleContentLeft");
+  const elRight = document.getElementById("scheduleContentRight");
   const list = allBookings.filter(b => b.session === session);
   const npList = list.filter(b => b.type === "初診")
     .slice().sort(function(a, b) {
@@ -2827,16 +2938,21 @@ function renderSessionContent(session, isClosed) {
   }
 
   if (list.length === 0) {
-    let emptyHtml = "";
+    // v5.4.0: 30 格空診拆左右 — 1-15 塞左 / 16-30 塞右
+    let emptyHtmlLeft = "", emptyHtmlRight = "";
     for (let i = 1; i <= 30; i++) {
+      let cellHtml;
       if (isClosed) {
         // 停診：空格不可點
-        emptyHtml += `<div class="grid-cell empty"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
+        cellHtml = `<div class="grid-cell empty"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
       } else {
-        emptyHtml += `<div class="grid-cell empty" style="cursor:pointer" onclick="openAdminAddBookingModal(${i})"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
+        cellHtml = `<div class="grid-cell empty" style="cursor:pointer" onclick="openAdminAddBookingModal(${i})"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
       }
+      if (i <= 15) emptyHtmlLeft += cellHtml;
+      else emptyHtmlRight += cellHtml;
     }
-    el.innerHTML = emptyHtml;
+    elLeft.innerHTML = emptyHtmlLeft;
+    elRight.innerHTML = emptyHtmlRight;
     // 更新不指定人數
     const unspecEl = document.getElementById("unspecCount");
     if (unspecEl) unspecEl.textContent = "";
@@ -2968,11 +3084,16 @@ function renderSessionContent(session, isClosed) {
   });
 
   // 渲染 HTML
-  let html = ``;
+  // v5.4.0: 拆左右兩個 HTML 字串 — cells[0..14] 進 elLeft,cells[15..29] 進 elRight
+  // 說明:初診 banner 用 grid-column: 3/span 3 絕對定位,display:contents 讓 banner 跨 container 仍正確渲染
+  let htmlLeft = ``, htmlRight = ``;
 
   for (let i = 0; i < 30; i++) {
     const c = cells[i];
     if (c.type === "np_skip") continue; // 已被 grid-column: 1/-1 佔用，不輸出
+
+    // v5.4.0 helper:把這一格的 HTML 追加到左或右
+    let cellOut = ``;
 
     if (c.type === "np_banner") {
       const isDone = c.status === "已看診";
@@ -2991,7 +3112,7 @@ function renderSessionContent(session, isClosed) {
       const isXinkuan = c.source === "心寬轉介";
 
       const npBirthDisplay = c.birth ? rocDate(c.birth) : "";
-      html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="cursor:pointer;position:relative;">
+      cellOut += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="cursor:pointer;position:relative;">
         <div style="position:absolute;top:7px;left:6px;font-size:20px;font-weight:700;color:#ffffff;">${esc(c.checkInTime)}前</div>
         ${npBirthDisplay ? `<div style="position:absolute;top:50%;left:6px;right:90px;transform:translateY(-50%);font-size:12px;font-weight:400;color:#ffffff;opacity:0.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${npBirthDisplay}</div>` : ""}
         <div style="position:absolute;bottom:6px;left:6px;right:90px;font-size:14px;font-weight:400;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${isXinkuan ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(c.name)}</span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>` : esc(c.name)}</div>
@@ -3014,7 +3135,7 @@ function renderSessionContent(session, isClosed) {
         ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(c.name)}</span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>`
         : esc(c.name);
       const birthDisplay = c.birth ? rocDate(c.birth) : "";
-      html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
+      cellOut += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#ffffff;position:absolute;top:6px;left:6px;">${numDisplay}</span>
         ${birthDisplay ? `<span style="font-size:12px;font-weight:400;color:#ffffff;opacity:0.7;position:absolute;top:50%;left:6px;right:6px;transform:translateY(-50%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${birthDisplay}</span>` : ""}
         <span style="font-size:14px;font-weight:400;color:#ffffff;position:absolute;bottom:5px;left:6px;right:${nameRight};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${nameHtml}</span>
@@ -3023,13 +3144,13 @@ function renderSessionContent(session, isClosed) {
     } else if (c.type === "conflict") {
       if (c.isNpConflict) {
         // 初診衝突：全幅紅色橫幅
-        html += `<div class="grid-np-banner" style="background:#C0392B;position:relative;cursor:default;">
+        cellOut += `<div class="grid-np-banner" style="background:#C0392B;position:relative;cursor:default;">
           <div style="position:absolute;top:7px;left:6px;font-size:14px;font-weight:700;color:rgba(255,255,255,0.95);letter-spacing:1.5px;display:flex;align-items:center;gap:4px;"><span style="display:inline-flex;align-items:center;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>初診重複預約</div>
           <div style="position:absolute;bottom:6px;left:6px;font-size:12px;color:rgba(255,255,255,0.8);">請至系統磚查看詳情</div>
         </div>`;
       } else {
         // 複診衝突：紅底 + ⚠️
-        html += `<div class="grid-cell" style="background:#C0392B;position:relative;">
+        cellOut += `<div class="grid-cell" style="background:#C0392B;position:relative;">
           <span style="font-size:20px;font-weight:200;color:rgba(255,255,255,0.6);position:absolute;top:6px;left:6px;">${c.num}</span>
           <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--pink);"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>
         </div>`;
@@ -3037,11 +3158,18 @@ function renderSessionContent(session, isClosed) {
     } else {
       // empty
       if (isClosed) {
-        html += `<div class="grid-cell empty"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${c.num}</span></div>`;
+        cellOut += `<div class="grid-cell empty"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${c.num}</span></div>`;
       } else {
-        html += `<div class="grid-cell empty" style="cursor:pointer" onclick="openAdminAddBookingModal(${c.num})"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${c.num}</span></div>`;
+        cellOut += `<div class="grid-cell empty" style="cursor:pointer" onclick="openAdminAddBookingModal(${c.num})"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${c.num}</span></div>`;
       }
     }
+
+    // v5.4.0: 依 index 追加到左(1-15)或右(16-30)字串
+    // 注意:np_skip 在迴圈頂部已 continue,不會走到這裡
+    // 初診 banner 若落在 index 13、14(對應 14、15 號),仍放左側 container
+    // CSS grid 的 grid-column:3/span 3 + display:contents 會讓 banner 正確橫跨視覺位置
+    if (i < 15) htmlLeft += cellOut;
+    else htmlRight += cellOut;
   }
 
 
@@ -3055,7 +3183,9 @@ function renderSessionContent(session, isClosed) {
     unspecDot.style.display = hasPending ? "block" : "none";
   }
 
-  el.innerHTML = html;
+  // v5.4.0: 拆左右 inject
+  elLeft.innerHTML = htmlLeft;
+  elRight.innerHTML = htmlRight;
 
   // 更新系統 tile 衝突角標
   const badge = document.getElementById("conflictBadge");
