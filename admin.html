@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.4.2">
+  <meta name="version" content="5.3.2">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,8 +17,8 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.4.2 (2026-04-23) 代掛 bug 修補
-     Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
+     Version:   v5.3.2 (2026-04-21)
+     Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
      ────────────────────────────────────────────────────────
@@ -34,37 +34,13 @@
      · v5.3 - 櫃檯 keyin 小抄(35 天預覽內嵌 [今日][明日])
                搭配 backend v4.35(無異動,沿用既有 adminGetTodaySchedule)
      · v5.3.1 - Session 持久化(sessionStorage),減少反覆登入
-     · v5.3.2 - UI 小改版包:
+     · v5.3.2 目前 - UI 小改版包:
                      · 驗證動畫改循環式(. → .. → ... → 空)
                      · LINE 按鈕加「聯繫方式」子標籤
                      · Modal section 標籤色調亮(text-dim → text-light)
                      · 登出 modal 加「回預約前台」按鈕(保留 session,只跳頁)
                      · 登出動畫:admin 淡出 → JOIN System 文字電源循環式 → 登入頁淡入
-     · v5.4.0 - 桌機版 5+5 預約為王布局(單 container 純 CSS clean 版):
-                     · ≥ 1024px 螢幕切換為兩欄布局(手機版完全不變)
-                     · 左右各 5 列:導覽/醫師 → 預約 1-30 → 不指定組/工具列
-                     · 預約列 1 = 1-10、列 2 = 11-20、列 3 = 21-30(橫向連續,櫃檯反饋)
-                     · grid max-width 1200px、垂直置中(#pageMain flex center)
-                     · 10 吋 Android 平板橫屏友善
-                     · 純 CSS 新增,零 JS 改動,HTML 結構零改動
-                     · backend 無異動
-     · v5.4.1 - 系統 tile modal UX 修正:
-                     · 「✓ 標記全部已讀」按鈕預設隱藏(原本永遠顯示)
-                     · 載入中不再同時顯示按鈕,避免邏輯矛盾
-                     · 載入完後由 JS 依 hasUnread 決定顯示/隱藏(原邏輯已存在)
-                     · 1 處 HTML 改動,零 JS 改動,零 backend 改動
-     · v5.4.2 目前 - 代掛兩個 bug 修補:
-                     · [1] NaN 號 bug:代掛成功但病患無 LINE ID 時,forced 分支漏設
-                           pendingForceAdd,導致複製「預約通知」訊息時 parseInt("") = NaN
-                           修法:在 forced 分支也同步設 pendingForceAdd
-                     · [2] 「病患無手機,仍要代掛」按鈕過場不明顯:原本只改按鈕文字,
-                           沒有全螢幕 overlay,與第一次代掛視覺不一致
-                           修法:confirmForceAdd 加 showAdminOverlay/hideAdminOverlay,
-                           用 finally 確保一定收起來
      · 待辦 - 雙模式登入(九宮格 + 傳統輸入框切換)
-     · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
-     · 待辦 - 櫃檯教學模式(新人訓練 + tile tooltip,Intro.js 或自寫)
-     · 待辦 - 節日彩蛋(低浮誇版,低成本高報酬)
      · v6.0 預計 — 心理治療功能上線
      · v7.0 預計 — 帳號系統與多醫師登入
      ════════════════════════════════════════════════════════ */
@@ -821,111 +797,6 @@
   .grid-cell.skeleton { background: var(--bg-3); animation: skeletonPulse 1.4s ease-in-out infinite; }
   .grid-cell.skeleton .cell-num { color: transparent; }
 
-  /* ═══════════════════════════════════════════════════════════
-     v5.4.0 桌機版 5+5 預約為王布局 (≥ 1024px)
-     ─────────────────────────────────────────────────────────
-     設計哲學:
-     · 預約 30 格置於畫面中央,是視線自然焦點
-     · 10 欄 × 5 列 grid,預約三列橫向連續(1-10 / 11-20 / 21-30)
-     · L1:日期導覽(左上)| R1:醫師+時段(右上)
-     · L5:不指定+心理治療+預覽(左下)| R5:工具列+管理員(右下)
-     · 語義分組:病患預約置中(主角)/ 情境脈絡在頂 / 擴充與工具在底
-     ─────────────────────────────────────────────────────────
-     技術細節:
-     · 單一 scheduleContent container(不拆),完全不動 JS
-     · 父 grid 改 10 欄後,每個非預約 tile 用 grid-column/grid-row 明確定位
-     · 30 格預約在 row 2-4 的 10 欄 × 3 列自動填入 → 天然 1-10/11-20/21-30 橫向連續
-     · #pageMain 垂直置中(min-height: 100vh + flex center)
-     · 手機版(< 1024px)完全不受影響 — 此 @media 區塊不觸發
-     ═══════════════════════════════════════════════════════════ */
-  @media (min-width: 1024px) {
-    /* 桌機版垂直置中容器 */
-    #pageMain {
-      min-height: 100vh;
-      align-items: center;
-      justify-content: center;
-    }
-    #pageMain[style*="display: block"],
-    #pageMain[style*="display:block"] {
-      display: flex !important;
-    }
-
-    /* 主 grid:10 欄 × 5 列,max-width 1200px 減黑邊 */
-    .metro-grid {
-      grid-template-columns: repeat(10, 1fr);
-      grid-auto-rows: calc((1200px - 3px * 9) / 10);
-      max-width: 1200px;
-    }
-    /* tile 高度也跟著變小保持正方形 */
-    .tile,
-    .grid-cell,
-    .grid-np-banner {
-      height: calc((1200px - 3px * 9) / 10) !important;
-      max-height: calc((1200px - 3px * 9) / 10) !important;
-    }
-
-    /* ─── 第 1 列:左 = 日期導覽、右 = 醫師+時段 ─── */
-    /* 日期導覽(今日/明日/</日期/>)在左 col 1-5
-       雖然 auto-placement 也會這樣填,但顯式指定更穩定 */
-    .tile-nav.today-btn:nth-of-type(1) { grid-column: 1; grid-row: 1; }
-    /* 用更通用的方式:前 5 個 .tile-nav 類相關 tile 強制 row 1 */
-    .metro-grid > .tile-nav,
-    .metro-grid > .tile-nav-date {
-      grid-row: 1;
-    }
-
-    /* 醫師 tile-2 → col 6-7 */
-    .tile-doctor {
-      grid-column: 6 / span 2;
-      grid-row: 1;
-    }
-    /* 早午晚診分別到 col 8, 9, 10 */
-    #session-早上 { grid-column: 8; grid-row: 1; }
-    #session-下午 { grid-column: 9; grid-row: 1; }
-    #session-晚上 { grid-column: 10; grid-row: 1; }
-
-    /* ─── 第 2-4 列:30 格預約 ─── */
-    /* scheduleContent 是 display:contents,子元素直接融入父 grid
-       由於前面 10 個 tile 已填滿第 1 列,30 個預約 cell 會從第 2 列 col 1 開始自動填
-       天然橫向連續:
-         列 2: cells[0..9]  = 號碼 1-10
-         列 3: cells[10..19] = 號碼 11-20
-         列 4: cells[20..29] = 號碼 21-30
-       ✅ 這正是櫃檯要的布局,且手機版原本就正確,兩邊都不用動 JS */
-
-    /* 初診 banner:CSS 既有的 grid-column: 3/span 3 是相對定位,
-       桌機版會自動放在它該落的那一列的 col 3-5(左側初診)或 col 8-10(右側)
-       但 banner 可能跨越左右邊界 — 例如 rowStart=7(號碼 8)佔 col 8,9,10 ✅ 不跨
-       其他 rowStart(12, 17, 22, 27)也都不跨 10 欄格線 ✅
-       所以 banner 定位是自動正確的,不需調整 */
-
-    /* ─── 第 5 列:左 = 不指定組、右 = 工具列 ─── */
-    /* 左側 L5:不指定(tile-2, col 1-2)、心理治療(tile-2, col 3-4)、預覽(tile-1, col 5) */
-    .tile-unspec { grid-column: 1 / span 2; grid-row: 5; }
-    /* 心理治療 tile — 用屬性選擇器鎖定(HTML 是 tile tile-2,樣式混用,但有 "心理治療" 字樣)
-       實際上按 DOM 順序,它會接在 tile-unspec 後面自動放 col 3-4
-       但為了保險顯式指定 */
-    .tile-unspec ~ .tile.tile-2 {
-      grid-column: 3 / span 2;
-      grid-row: 5;
-    }
-    /* 預覽 tile(.tile-teal 第 1 格)自動接在後面到 col 5 */
-    .tile.tile-teal {
-      grid-column: 5;
-      grid-row: 5;
-    }
-
-    /* 右側 R5:查詢/代診/群發/系統/管理員(5 個 tile-1 各 1 格) */
-    .tile.tile-capri  { grid-column: 6;  grid-row: 5; }
-    .tile.tile-yellow { grid-column: 7;  grid-row: 5; }
-    .tile.tile-orchid { grid-column: 8;  grid-row: 5; }
-    .tile.tile-pink   { grid-column: 9;  grid-row: 5; }
-    .tile.tile-admin  { grid-column: 10; grid-row: 5; }
-  }
-  /* ═══════════════════════════════════════════════════════════
-     桌機版 CSS 結束
-     ═══════════════════════════════════════════════════════════ */
-
   /* ── 不指定(Kiwi 綠)/ 心理治療(深灰)/ 預覽(Smoked Teal)── */
   .tile-unspec {
     background: var(--kiwi-bg);
@@ -1293,6 +1164,16 @@
   .m-action-method .m-btn {
     width: 100%;
     margin-bottom: 0;
+  }
+  /* v5.3.2:聯繫方式子標籤(LINE 按鈕上方的小註解) */
+  .m-action-method-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+    text-align: center;
+    opacity: 0.85;
   }
 
   /* Compact 版按鈕(3 並排時用) */
@@ -1904,7 +1785,7 @@
           </a>
         </div>
         <div id="btnContactMethodWrap" class="m-action-method" style="display:none;">
-          <div class="m-section-label">聯繫方式</div>
+          <div class="m-action-method-label">聯繫方式</div>
           <button class="m-btn" id="btnContactMethod" onclick="cycleContactMethod()"></button>
         </div>
       </div>
@@ -1998,7 +1879,10 @@
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">代掛完成</div>
       <div style="font-size:13px;color:var(--text-light);line-height:1.8;margin-bottom:16px;">病患無手機，請用 LINE 手動通知。</div>
       <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">複製 LINE 訊息</div>
-      <button class="btn" style="width:100%;background:var(--btn-mid-bg);color:var(--text);border:1px solid var(--btn-mid-bd);font-size:13px;padding:10px;margin-bottom:12px;" onclick="copyLineMsgForAdd(false)">預約通知</button>
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
+        <button class="btn" style="flex:1;background:var(--btn-mid-bg);color:var(--text);border:1px solid var(--btn-mid-bd);font-size:13px;padding:10px;" onclick="copyLineMsgForAdd(false)">預約通知</button>
+        <button class="btn" style="flex:1;background:var(--btn-secondary-bg);color:var(--text-light);border:1px solid var(--btn-secondary-bd);font-size:13px;padding:10px;" onclick="copyLineMsgForAdd(true)">回診提醒</button>
+      </div>
       <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1px;margin-bottom:6px;">病患綁定連結（10 分鐘有效）</div>
       <button class="btn" style="width:100%;background:var(--btn-mid-bg);color:var(--text);border:1px solid var(--btn-mid-bd);margin-bottom:16px;font-size:13px;" onclick="copyBindLink(false)"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 複製綁定連結（複診）</button>
       <div id="bindLinkError" class="alert alert-error" style="display:none;margin-bottom:8px;"></div>
@@ -2088,8 +1972,7 @@
     </div>
     <div id="securityContent"><div class="loading">載入中...</div></div>
     <div style="margin-top:12px">
-      <!-- v5.4.1: 預設 display:none,避免 modal 打開時「載入中」和按鈕同時顯示;載入完再由 JS 依 hasUnread 決定顯示 -->
-      <button class="btn" id="btnMarkRead" style="display:none;background:var(--marigold);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%" onclick="doMarkSecurityRead()">✓ 標記全部已讀</button>
+      <button class="btn" id="btnMarkRead" style="background:var(--marigold);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%" onclick="doMarkSecurityRead()">✓ 標記全部已讀</button>
     </div>
   </div>
 </div>
@@ -3402,10 +3285,6 @@ async function doAdminAddBooking(forceSlot) {
       if (data.lineIdFound) {
         showAdminAddResult("found");
       } else {
-        // v5.4.2 修補:代掛成功但病患無 LINE ID 時,必須同時設 pendingForceAdd
-        // 讓後續「預約通知」按鈕點擊時 copyLineMsgForAdd 能讀到正確的 slot
-        // (原本缺這行,導致 parseInt(undefined || "") = NaN,訊息變成「號碼:NaN 號」)
-        state.pendingForceAdd = { name, phone, birth, slot: String(slot), isUnspec };
         state.forcedBookingId = data.bookingId || "";
         showAdminAddResult("forced");
       }
@@ -3545,11 +3424,12 @@ async function copyBindLinkFromContact(followUp) {
     const displayName = sessionDisplayMap[state.contactSession] || state.contactSession + "診";
     const dParts = dateStr.split("/");
     const dateDisplay = parseInt(dParts[1]) + "月" + parseInt(dParts[2]) + "日";
-    const msg = patientName + " 您好：\n\n"
-      + "已為您預約 " + dateDisplay + " " + displayName + "！麻煩您點下方連結並完成預約確認，才能為您保留預約，並會在前一天傳訊提醒您🙂\n\n"
+    const msg = "【悅心診所 預約確認】\n"
+      + patientName + " 您好，已為您預約 " + dateDisplay + " " + displayName + "！\n\n"
+      + "⬇️立刻點選連結確認並保留預約\n\n"
       + bindUrl + "\n\n"
-      + "連結 10 分鐘內有效。若來不及完成請和我們說，再為您重新發送😊\n\n"
-      + "【若您並未預約回診，請直接忽略此訊息！】";
+      + "請於「 10 分鐘內」確認。\n\n"
+      + "若您並未預約回診，請直接忽略此訊息！";
     navigator.clipboard.writeText(msg).then(function() {
       showToast("✓ 已複製綁定連結");
     }).catch(function() {
@@ -3591,11 +3471,12 @@ async function copyBindLink(followUp) {
     // 日期格式：mm月dd日
     const dParts = dateStr.split("/");
     const dateDisplay = parseInt(dParts[1]) + "月" + parseInt(dParts[2]) + "日";
-    const msg = patientName + " 您好：\n\n"
-      + "已為您預約 " + dateDisplay + " " + displayName + "！麻煩您點下方連結並完成預約確認，才能為您保留預約，並會在前一天傳訊提醒您🙂\n\n"
+    const msg = "【悅心診所 預約確認】\n"
+      + patientName + " 您好，已為您預約 " + dateDisplay + " " + displayName + "！\n\n"
+      + "⬇️立刻點選連結確認並保留預約\n\n"
       + bindUrl + "\n\n"
-      + "連結 10 分鐘內有效。若來不及完成請和我們說，再為您重新發送😊\n\n"
-      + "【若您並未預約回診，請直接忽略此訊息！】";
+      + "請於「 10 分鐘內」確認。\n\n"
+      + "若您並未預約回診，請直接忽略此訊息！";
     navigator.clipboard.writeText(msg).then(function() {
       showToast("✓ 已複製綁定連結");
     }).catch(function() {
@@ -3704,8 +3585,6 @@ async function confirmForceAdd() {
   // 病患無手機：使用暫存資料重新呼叫 adminAddBooking，帶 forceAdd: true
   const btn = document.querySelector("#adminAddResultNotFound button:last-child");
   if (btn) { btn.disabled = true; btn.textContent = "代掛中..."; }
-  // v5.4.2 修補:原本只改按鈕文字,使用者容易誤判是否當機。補上全螢幕 overlay 統一視覺回饋
-  showAdminOverlay("代掛中...");
   try {
     const p = state.pendingForceAdd || {};
     const name  = p.name || "";
@@ -3715,7 +3594,6 @@ async function confirmForceAdd() {
     const isUnspec = p.isUnspec || false;
     // 防呆：若暫存資料不完整（正常流程不應發生），中止並提示
     if (!name || !phone || !birth || !slot || slot === "null") {
-      hideAdminOverlay();
       if (btn) { btn.disabled = false; btn.textContent = "病患無手機,仍要代掛"; }
       alert("狀態異常，請關閉後重新代掛。");
       return;
@@ -3740,9 +3618,6 @@ async function confirmForceAdd() {
     if (e.isSessionExpired) return;
     if (btn) { btn.disabled = false; btn.textContent = "病患無手機,仍要代掛"; }
     alert(e.message || "代掛失敗，請稍後再試。");
-  } finally {
-    // v5.4.2: 確保 overlay 一定會被收起來(即使 throw 或 success 都經過這裡)
-    hideAdminOverlay();
   }
 }
 
