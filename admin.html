@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.4.3">
+  <meta name="version" content="5.4.4">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.4.3 (2026-04-23) 不指定自動通知可點 + LINE ID 反查
+     Version:   v5.4.4 (2026-04-24) 桌機版初診 banner 跑版修補
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -61,7 +61,7 @@
                            沒有全螢幕 overlay,與第一次代掛視覺不一致
                            修法:confirmForceAdd 加 showAdminOverlay/hideAdminOverlay,
                            用 finally 確保一定收起來
-     · v5.4.3 目前 - 推播失敗補發工作流:
+     · v5.4.3 - 推播失敗補發工作流:
                      · [Bug] 不指定 modal「自動通知」狀態的列可點開 contact card
                            原本「已通知 = 不能點」過度保護,推播失敗要補發時點不動
                            修法:notifyTag 加 onclick=openUnspecContactCard、
@@ -72,6 +72,16 @@
                            隱私設計:不在警示訊息加姓名(LINE 訊息有外流風險),
                                     反查結果不寫入試算表、不產生 LINE 訊息
                            搭配 backend v4.39 adminLookupByLineId
+     · v5.4.4 目前 - 桌機版初診 banner 跑版修補:
+                     · 根因:v5.4.0 clean 版桌機 @media 漏覆蓋 .grid-np-banner 的 grid-column
+                           手機版 CSS 是 `grid-column: 3 / span 3`(絕對座標,col 3-5)
+                           桌機 10 欄下,所有 banner 被硬鎖 col 3-5,但 slot 8/18/28 的
+                           banner 應該落 col 8-10 → 跑版連鎖錯位
+                     · 修法:桌機 @media 內改 `.grid-np-banner { grid-column: auto / span 3 }`
+                           Grid auto-placement 依 DOM 順序自動找到正確的 3-col 空間
+                     · Claude 的過失承認:v5.4.0 clean 版當時寫的「banner 自動正確
+                           不需調整」註解推理錯誤,把「絕對座標」誤認成「相對定位」。
+                           bug 埋了 10 天才被郭玉柱醫師早上診 14 初診情境觸發爆出
      · 待辦 - 雙模式登入(九宮格 + 傳統輸入框切換)
      · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
      · 待辦 - 櫃檯教學模式(新人訓練 + tile tooltip,Intro.js 或自寫)
@@ -904,11 +914,18 @@
          列 4: cells[20..29] = 號碼 21-30
        ✅ 這正是櫃檯要的布局,且手機版原本就正確,兩邊都不用動 JS */
 
-    /* 初診 banner:CSS 既有的 grid-column: 3/span 3 是相對定位,
-       桌機版會自動放在它該落的那一列的 col 3-5(左側初診)或 col 8-10(右側)
-       但 banner 可能跨越左右邊界 — 例如 rowStart=7(號碼 8)佔 col 8,9,10 ✅ 不跨
-       其他 rowStart(12, 17, 22, 27)也都不跨 10 欄格線 ✅
-       所以 banner 定位是自動正確的,不需調整 */
+    /* 初診 banner:v5.4.4 修補
+       手機版 CSS(第 774 行)是 `grid-column: 3 / span 3`,絕對座標指向 col 3-5
+       在桌機 10 欄 grid 下,這會讓所有 banner 都擠在 col 3-5,與 slot 位置錯開:
+         - slot 8 banner 應落 col 8-10 → 但被鎖在 col 3-5 ❌
+         - slot 18 banner 應落 col 8-10 → 但被鎖在 col 3-5 ❌
+         - slot 28 banner 應落 col 8-10 → 但被鎖在 col 3-5 ❌
+       修法:桌機版改用 `auto / span 3`,讓 Grid auto-placement 自動找到正確位置
+       (依 DOM 順序,banner 進入該 row 剩餘的 3-col 空間,就是對應 slot 的位置)
+       手機版不受影響(此 @media 只作用在 ≥ 1024px) */
+    .grid-np-banner {
+      grid-column: auto / span 3;
+    }
 
     /* ─── 第 5 列:左 = 不指定組、右 = 工具列 ─── */
     /* 左側 L5:不指定(tile-2, col 1-2)、心理治療(tile-2, col 3-4)、預覽(tile-1, col 5) */
