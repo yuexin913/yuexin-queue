@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.4.1">
+  <meta name="version" content="5.4.2">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.4.1 (2026-04-23) 桌機重排 + 系統 tile UX 修正
+     Version:   v5.4.2 (2026-04-23) 代掛 bug 修補
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -48,13 +48,23 @@
                      · 10 吋 Android 平板橫屏友善
                      · 純 CSS 新增,零 JS 改動,HTML 結構零改動
                      · backend 無異動
-     · v5.4.1 目前 - 系統 tile modal UX 修正:
+     · v5.4.1 - 系統 tile modal UX 修正:
                      · 「✓ 標記全部已讀」按鈕預設隱藏(原本永遠顯示)
                      · 載入中不再同時顯示按鈕,避免邏輯矛盾
                      · 載入完後由 JS 依 hasUnread 決定顯示/隱藏(原邏輯已存在)
                      · 1 處 HTML 改動,零 JS 改動,零 backend 改動
+     · v5.4.2 目前 - 代掛兩個 bug 修補:
+                     · [1] NaN 號 bug:代掛成功但病患無 LINE ID 時,forced 分支漏設
+                           pendingForceAdd,導致複製「預約通知」訊息時 parseInt("") = NaN
+                           修法:在 forced 分支也同步設 pendingForceAdd
+                     · [2] 「病患無手機,仍要代掛」按鈕過場不明顯:原本只改按鈕文字,
+                           沒有全螢幕 overlay,與第一次代掛視覺不一致
+                           修法:confirmForceAdd 加 showAdminOverlay/hideAdminOverlay,
+                           用 finally 確保一定收起來
      · 待辦 - 雙模式登入(九宮格 + 傳統輸入框切換)
      · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
+     · 待辦 - 櫃檯教學模式(新人訓練 + tile tooltip,Intro.js 或自寫)
+     · 待辦 - 節日彩蛋(低浮誇版,低成本高報酬)
      · v6.0 預計 — 心理治療功能上線
      · v7.0 預計 — 帳號系統與多醫師登入
      ════════════════════════════════════════════════════════ */
@@ -3392,6 +3402,10 @@ async function doAdminAddBooking(forceSlot) {
       if (data.lineIdFound) {
         showAdminAddResult("found");
       } else {
+        // v5.4.2 修補:代掛成功但病患無 LINE ID 時,必須同時設 pendingForceAdd
+        // 讓後續「預約通知」按鈕點擊時 copyLineMsgForAdd 能讀到正確的 slot
+        // (原本缺這行,導致 parseInt(undefined || "") = NaN,訊息變成「號碼:NaN 號」)
+        state.pendingForceAdd = { name, phone, birth, slot: String(slot), isUnspec };
         state.forcedBookingId = data.bookingId || "";
         showAdminAddResult("forced");
       }
@@ -3690,6 +3704,8 @@ async function confirmForceAdd() {
   // 病患無手機：使用暫存資料重新呼叫 adminAddBooking，帶 forceAdd: true
   const btn = document.querySelector("#adminAddResultNotFound button:last-child");
   if (btn) { btn.disabled = true; btn.textContent = "代掛中..."; }
+  // v5.4.2 修補:原本只改按鈕文字,使用者容易誤判是否當機。補上全螢幕 overlay 統一視覺回饋
+  showAdminOverlay("代掛中...");
   try {
     const p = state.pendingForceAdd || {};
     const name  = p.name || "";
@@ -3699,6 +3715,7 @@ async function confirmForceAdd() {
     const isUnspec = p.isUnspec || false;
     // 防呆：若暫存資料不完整（正常流程不應發生），中止並提示
     if (!name || !phone || !birth || !slot || slot === "null") {
+      hideAdminOverlay();
       if (btn) { btn.disabled = false; btn.textContent = "病患無手機,仍要代掛"; }
       alert("狀態異常，請關閉後重新代掛。");
       return;
@@ -3723,6 +3740,9 @@ async function confirmForceAdd() {
     if (e.isSessionExpired) return;
     if (btn) { btn.disabled = false; btn.textContent = "病患無手機,仍要代掛"; }
     alert(e.message || "代掛失敗，請稍後再試。");
+  } finally {
+    // v5.4.2: 確保 overlay 一定會被收起來(即使 throw 或 success 都經過這裡)
+    hideAdminOverlay();
   }
 }
 
