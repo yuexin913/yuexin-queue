@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.4.2">
+  <meta name="version" content="5.4.3">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.4.2 (2026-04-23) 代掛 bug 修補
+     Version:   v5.4.3 (2026-04-23) 不指定自動通知可點 + LINE ID 反查
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -53,7 +53,7 @@
                      · 載入中不再同時顯示按鈕,避免邏輯矛盾
                      · 載入完後由 JS 依 hasUnread 決定顯示/隱藏(原邏輯已存在)
                      · 1 處 HTML 改動,零 JS 改動,零 backend 改動
-     · v5.4.2 目前 - 代掛兩個 bug 修補:
+     · v5.4.2 - 代掛兩個 bug 修補:
                      · [1] NaN 號 bug:代掛成功但病患無 LINE ID 時,forced 分支漏設
                            pendingForceAdd,導致複製「預約通知」訊息時 parseInt("") = NaN
                            修法:在 forced 分支也同步設 pendingForceAdd
@@ -61,6 +61,17 @@
                            沒有全螢幕 overlay,與第一次代掛視覺不一致
                            修法:confirmForceAdd 加 showAdminOverlay/hideAdminOverlay,
                            用 finally 確保一定收起來
+     · v5.4.3 目前 - 推播失敗補發工作流:
+                     · [Bug] 不指定 modal「自動通知」狀態的列可點開 contact card
+                           原本「已通知 = 不能點」過度保護,推播失敗要補發時點不動
+                           修法:notifyTag 加 onclick=openUnspecContactCard、
+                                 CSS cursor:pointer + hover 字色微亮
+                           複診 tile 無此限制,這次對齊行為
+                     · [功能] 系統 modal 加 LINE ID 反查姓名小工具
+                           警示訊息只顯示前綴(Uf5cdcc05bb8...),現場反查姓名 + 最近預約
+                           隱私設計:不在警示訊息加姓名(LINE 訊息有外流風險),
+                                    反查結果不寫入試算表、不產生 LINE 訊息
+                           搭配 backend v4.39 adminLookupByLineId
      · 待辦 - 雙模式登入(九宮格 + 傳統輸入框切換)
      · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
      · 待辦 - 櫃檯教學模式(新人訓練 + tile tooltip,Intro.js 或自寫)
@@ -1534,7 +1545,9 @@
     font-size: 10px; font-weight: 300; color: var(--text-dim);
     padding: 2px 4px; flex-shrink: 0;
     letter-spacing: 1px; font-style: italic;
+    cursor: pointer; transition: color 0.15s ease;
   }
+  .unspec-notify-auto:hover { color: var(--text-light); }
 
   /* ── 群發模式切換 ── */
   .btn-mode {
@@ -2090,6 +2103,20 @@
     <div style="margin-top:12px">
       <!-- v5.4.1: 預設 display:none,避免 modal 打開時「載入中」和按鈕同時顯示;載入完再由 JS 依 hasUnread 決定顯示 -->
       <button class="btn" id="btnMarkRead" style="display:none;background:var(--marigold);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%" onclick="doMarkSecurityRead()">✓ 標記全部已讀</button>
+    </div>
+
+    <!-- v5.4.3: LINE ID 反查姓名(推播失敗補發用) -->
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border-soft);">
+      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">LINE ID 反查</div>
+      <div style="font-size:11px;color:var(--text-dim);line-height:1.6;margin-bottom:8px;font-weight:300;">貼上警示訊息的 LINE ID(前綴 U... 即可,至少 5 字)</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <input type="text" id="lookupPrefix" placeholder="Uf5cdcc05bb8..."
+          style="flex:1;font-size:12px;padding:8px 10px;font-family:inherit;letter-spacing:0.5px;"
+          onkeydown="if(event.key==='Enter'){doLookupByLineId();event.preventDefault();}">
+        <button class="btn" style="background:var(--capri-bg);color:var(--capri);border:1px solid var(--capri-bd);font-size:12px;padding:8px 14px;letter-spacing:1px;white-space:nowrap;" onclick="doLookupByLineId()">反查</button>
+      </div>
+      <div id="lookupError" class="alert alert-error" style="display:none;font-size:11px;padding:6px 8px;margin-bottom:8px;"></div>
+      <div id="lookupResults" style="font-size:12px;"></div>
     </div>
   </div>
 </div>
@@ -3254,8 +3281,10 @@ function renderUnspecList() {
       notifyTag = `<span class="unspec-notify-done"
         onclick="openUnspecContactCard('${esc(b.bookingId)}')">✓ 已通知</span>`;
     } else {
-      // [待通知] / [已通知]：系統自動處理，不顯示標籤
-      notifyTag = `<span class="unspec-notify-auto">自動通知</span>`;
+      // [待通知] / [已通知]：系統自動處理，但仍可點擊開聯絡小卡複製訊息補發
+      // v5.4.3：推播失敗時從 admin 開 modal 複製訊息手動補發
+      notifyTag = `<span class="unspec-notify-auto"
+        onclick="openUnspecContactCard('${esc(b.bookingId)}')">自動通知</span>`;
     }
 
     const xinkuanDot = b.source === "心寬轉介"
@@ -4167,7 +4196,14 @@ function openModal(id) {
     el.selectedIndex = 0;
   });
   document.getElementById(id).classList.add("active");
-  if (id === "modalSecurity") loadSecurity();
+  if (id === "modalSecurity") {
+    // v5.4.3: 每次打開都重置反查區(input 已由上方統一清空處理)
+    const lerr = document.getElementById("lookupError");
+    if (lerr) lerr.style.display = "none";
+    const lres = document.getElementById("lookupResults");
+    if (lres) lres.innerHTML = "";
+    loadSecurity();
+  }
   if (id === "modalSubstitute") loadSubstituteList();
 }
 function closeModal(id) { document.getElementById(id).classList.remove("active"); }
@@ -4552,6 +4588,85 @@ async function doMarkSecurityRead() {
     if (e.isSessionExpired) return;
     btn.disabled = false; btn.textContent = "✓ 標記全部已讀";
   }
+}
+
+/* ── LINE ID 反查姓名(v5.4.3) ── */
+async function doLookupByLineId() {
+  const input = document.getElementById("lookupPrefix");
+  const errEl = document.getElementById("lookupError");
+  const resultsEl = document.getElementById("lookupResults");
+  errEl.style.display = "none";
+  resultsEl.innerHTML = "";
+  const raw = (input.value || "").trim();
+  // 前端先做一次格式檢查(後端也會檢查,這是為了即時回饋)
+  const cleaned = raw.replace(/[.．。…]+$/, "");
+  if (cleaned.length < 5) {
+    errEl.textContent = "前綴至少 5 字(含開頭的 U)";
+    errEl.style.display = "block";
+    return;
+  }
+  if (!/^U[0-9a-fA-F]*$/.test(cleaned)) {
+    errEl.textContent = "格式不正確,應為 U 開頭 + 16 進位字元";
+    errEl.style.display = "block";
+    return;
+  }
+  resultsEl.innerHTML = `<div style="color:var(--text-light);font-size:11px;padding:6px 0;">反查中...</div>`;
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "adminLookupByLineId",
+      lineId: state.lineId,
+      token: state.sessionToken,
+      prefix: cleaned
+    });
+    if (!data.success) {
+      errEl.textContent = data.error || "反查失敗";
+      errEl.style.display = "block";
+      resultsEl.innerHTML = "";
+      return;
+    }
+    renderLookupResults(data.matched || []);
+  } catch(e) {
+    if (e.isSessionExpired) return;
+    errEl.textContent = "反查失敗,請稍後再試。";
+    errEl.style.display = "block";
+    resultsEl.innerHTML = "";
+  }
+}
+
+function renderLookupResults(matched) {
+  const resultsEl = document.getElementById("lookupResults");
+  if (!matched || matched.length === 0) {
+    resultsEl.innerHTML = `<div style="color:var(--text-dim);font-size:11px;padding:8px 0;font-style:italic;">查無符合的病患。</div>`;
+    return;
+  }
+  resultsEl.innerHTML = matched.map(function(m) {
+    // 多筆姓名(家人共用 LINE ID)
+    const namesHtml = (m.names || []).map(function(n) {
+      const birthStr = n.birth ? rocDate(n.birth) : "";
+      const parts = [];
+      if (birthStr) parts.push(birthStr);
+      if (n.phone) parts.push(esc(n.phone));
+      const meta = parts.length ? ` <span style="color:var(--text-dim);font-size:10px;font-weight:300;">${parts.join("　")}</span>` : "";
+      return `<div style="padding:2px 0;"><span style="color:var(--text);font-weight:400;">${esc(n.name)}</span>${meta}</div>`;
+    }).join("");
+    // 最近一筆預約
+    let lastBookingHtml = "";
+    if (m.lastBooking && m.lastBooking.date) {
+      const lb = m.lastBooking;
+      const slotStr = lb.slot ? (/^\d+$/.test(lb.slot) ? lb.slot + " 號" : lb.slot) : "";
+      const parts = [lb.date, lb.session, slotStr, lb.status].filter(function(x) { return x; });
+      lastBookingHtml = `<div style="margin-top:4px;font-size:10px;color:var(--text-dim);font-weight:300;">最近預約：${esc(parts.join(" · "))}</div>`;
+    } else {
+      lastBookingHtml = `<div style="margin-top:4px;font-size:10px;color:var(--text-dim);font-weight:300;font-style:italic;">無預約紀錄</div>`;
+    }
+    // 完整 LINE ID(方便 copy)
+    const fullIdHtml = `<div style="margin-top:4px;font-size:10px;color:var(--text-light);font-family:monospace;word-break:break-all;">${esc(m.fullLineId)}</div>`;
+    return `<div style="padding:8px 10px;background:var(--bg-2);border-left:2px solid var(--capri);margin-bottom:6px;">
+      ${namesHtml}
+      ${lastBookingHtml}
+      ${fullIdHtml}
+    </div>`;
+  }).join("");
 }
 
 /* ── 35天預覽 ── */

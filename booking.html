@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.5.1">
+  <meta name="version" content="5.5.2">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -2307,7 +2307,11 @@ function startQuery() {
 // 基本資料 → 時間
 // ===================================
 async function goToPageTime() {
-  const name = document.getElementById("inputName").value.trim();
+  // v5.5.2: 姓名防呆 — 移除所有空白、檢查 ≥2 字、禁數字、禁英文
+  // 實戰看到:只輸入姓氏一字、或把電話誤輸入到姓名欄位
+  const rawName = document.getElementById("inputName").value;
+  // 全形/半形空白全部移除(「王 大明」→「王大明」)
+  const name = rawName.replace(/[\s\u3000]/g, "");
   // 全形數字轉半形，移除非數字字元
   const phone = document.getElementById("inputPhone").value
     .replace(/[０-９]/g, function(c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
@@ -2316,6 +2320,11 @@ async function goToPageTime() {
   const birthM = document.getElementById("inputBirthM").value.trim();
   const birthD = document.getElementById("inputBirthD").value.trim();
   if (!name) return showError("errorPage1", "請輸入您的姓名。");
+  if (name.length < 2) return showError("errorPage1", "姓名請至少輸入 2 個字。");
+  // 禁阿拉伯數字(半形+全形)— 防止電話號碼誤輸入到姓名欄位
+  if (/[0-9０-９]/.test(name)) return showError("errorPage1", "姓名不可包含數字,若為電話號碼請輸入到下方的手機欄位。");
+  // 禁英文字母 — 若為英文姓名,請於門診時間來電預約
+  if (/[a-zA-Z]/.test(name)) return showError("errorPage1", "姓名暫不支援英文,若為英文姓名請於門診時間來電預約:07-363-1313");
   if (!phone || !/^09\d{8}$/.test(phone)) return showError("errorPage1", "手機號碼格式不正確，請重新確認（須為 09 開頭的 10 碼）。");
   const birth = parseBirthROC(birthY, birthM, birthD);
   if (!birth) return showError("errorPage1", "生日格式不正確，請重新確認（民國年，如 80/05/20）。");
