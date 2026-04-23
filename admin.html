@@ -4042,7 +4042,11 @@ function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, bi
 
   // 保留號時隱藏無意義的按鈕
   document.getElementById("contactPhoneBtns").style.display = isReservedContact ? "none" : (phone ? "flex" : "none");
-  document.getElementById("btnToggleNotifiedWrap").style.display = isReservedContact ? "none" : "";
+  // v5.4.3 修補:不能無條件把 btnToggleNotifiedWrap 設為 ""(會覆蓋上方 showToggle=false 的 "none" 決策)
+  // 只在保留號情境強制隱藏,其他情境尊重上方第 3991-4001 行依 showToggle 的決定
+  if (isReservedContact) {
+    document.getElementById("btnToggleNotifiedWrap").style.display = "none";
+  }
   document.getElementById("btnCopyMsgWrap").style.display = isReservedContact ? "none" : "block";
   document.getElementById("btnBindLinkWrap").style.display = isReservedContact ? "none" : (notifyStatus === "[人工預約]" ? "block" : "none");
   document.getElementById("btnContactMethodWrap").style.display = isReservedContact ? "none" : (isAdminBooking ? "block" : "none");
