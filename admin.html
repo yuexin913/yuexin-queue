@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.4.0">
+  <meta name="version" content="5.4.2">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.4.0 (2026-04-23)
+     Version:   v5.4.2 (2026-04-23)
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -40,12 +40,21 @@
                      · Modal section 標籤色調亮(text-dim → text-light)
                      · 登出 modal 加「回預約前台」按鈕(保留 session,只跳頁)
                      · 登出動畫:admin 淡出 → JOIN System 文字電源循環式 → 登入頁淡入
-     · v5.4.0 目前 - 桌機版 5+5 預約為王布局:
+     · v5.4.0 - 桌機版 5+5 預約為王布局:
                      · ≥ 1024px 螢幕切換為兩欄布局(手機版完全不變)
                      · 左右各 5 列:導覽/醫師 → 預約 1-15 / 16-30 → 不指定組/工具列
                      · 30 格預約置中,語義分組:病患預約 vs 情境脈絡 vs 系統工具
                      · 平板橫屏友善(10 吋平板等 1024-1440px 裝置使用舒適)
                      · backend 無異動(純 CSS + HTML 結構微調 + JS inject 拆兩半)
+     · v5.4.1 - 桌機版黑邊微調:
+                     · grid max-width 900px → 1200px,減少 1360px 桌機螢幕左右黑邊
+                     · tile 尺寸從 87px × 87px → 117px × 117px,30 格預約更有氣勢
+                     · 平板橫屏(1280px)左右邊界從 190px → 40px
+                     · 桌機(1920px)左右邊界從 510px → 360px,仍保留留白不擁擠
+     · v5.4.2 目前 - 桌機版垂直置中:
+                     · #pageMain 加 min-height:100vh + flex 置中
+                     · 1360×768 小桌機螢幕底部黑色大片空白消失,視覺重心置中
+                     · 用 attribute selector [style*="display"] 精準鎖定,不破壞登入前隱藏
      · 待辦 - 雙模式登入(九宮格 + 傳統輸入框切換)
      · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
      · v6.0 預計 — 心理治療功能上線
@@ -828,17 +837,35 @@
      · 初診 banner 因 display:contents 跨 container 仍正確渲染
      ═══════════════════════════════════════════════════════════ */
   @media (min-width: 1024px) {
+    /* v5.4.2: 桌機版垂直置中 — #pageMain 變 flex 容器,讓 .metro-grid 在視窗中央
+       min-height: 100vh 讓 pageMain 高度等於視窗,flex 達成垂直置中
+       注意:JS 會動態切換 pageMain 的 inline display(none ↔ block),
+       所以這裡只處理「當 pageMain 可見時」的 flex 布局,透過不用 !important 讓 inline 能勝過 */
+    #pageMain {
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+    /* 當 JS 把 pageMain 設成 display:block 時,我們希望實際是 flex */
+    /* 做法:用 attribute selector 精準鎖定「display 被設為 block」的情境 */
+    #pageMain[style*="display: block"],
+    #pageMain[style*="display:block"] {
+      display: flex !important;
+    }
+
     .metro-grid {
+      /* v5.4.1 (2026-04-23): 900px → 1200px,減少 1360px 螢幕的黑邊 */
+      /* 考量:1360px 螢幕 grid 佔 1200px → 左右各 80px 邊界(舒服),tile 從 87px→117px */
       grid-template-columns: repeat(10, 1fr);
-      grid-auto-rows: calc((900px - 3px * 9) / 10);  /* tile 正方形 */
-      max-width: 900px;
+      grid-auto-rows: calc((1200px - 3px * 9) / 10);  /* tile 正方形 */
+      max-width: 1200px;
     }
     /* tile 高度也要跟著 10 欄變小,才保持正方形 */
     .tile,
     .grid-cell,
     .grid-np-banner {
-      height: calc((900px - 3px * 9) / 10) !important;
-      max-height: calc((900px - 3px * 9) / 10) !important;
+      height: calc((1200px - 3px * 9) / 10) !important;
+      max-height: calc((1200px - 3px * 9) / 10) !important;
     }
 
     /* ─── 左側列(columns 1-5)─── */
