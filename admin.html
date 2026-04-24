@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.4.4">
+  <meta name="version" content="5.5.0">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.4.4 (2026-04-24) 桌機版初診 banner 跑版修補
+     Version:   v5.5.0 (2026-04-24) 初診關懷改手動 keyin + 群發 modal 雙 tab
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -72,7 +72,7 @@
                            隱私設計:不在警示訊息加姓名(LINE 訊息有外流風險),
                                     反查結果不寫入試算表、不產生 LINE 訊息
                            搭配 backend v4.39 adminLookupByLineId
-     · v5.4.4 目前 - 桌機版初診 banner 跑版修補:
+     · v5.4.4 - 桌機版初診 banner 跑版修補:
                      · 根因:v5.4.0 clean 版桌機 @media 漏覆蓋 .grid-np-banner 的 grid-column
                            手機版 CSS 是 `grid-column: 3 / span 3`(絕對座標,col 3-5)
                            桌機 10 欄下,所有 banner 被硬鎖 col 3-5,但 slot 8/18/28 的
@@ -82,6 +82,26 @@
                      · Claude 的過失承認:v5.4.0 clean 版當時寫的「banner 自動正確
                            不需調整」註解推理錯誤,把「絕對座標」誤認成「相對定位」。
                            bug 埋了 10 天才被郭玉柱醫師早上診 14 初診情境觸發爆出
+     · v5.4.5 - 雙 LLM 審查後資安與一致性修補(搭 backend v4.40):
+                     · [C1] onclick XSS 修補:confirmCancel / cancelSubstitute 3 處
+                           原因:esc() 的 &#39; 在 onclick attribute 內會被 HTML decode 還原成單引號
+                                 → 可 break out of JS string → 姓名欄位構造 XSS 成立
+                           修法:用 encodeURIComponent/decodeURIComponent 傳遞,不會被 HTML decode
+                     · [I1-A] rocDate 結果加 esc × 5 處(初診 banner / 複診 tile /
+                           不指定 modal / 代掛 matches / 反查結果)
+                           原因:rocDate 原樣回傳 birth,進 template literal HTML 造成 XSS
+                           搭配 backend v4.40 [I1-B] 源頭格式驗證,雙重防護
+                     · [I4 前端] 群發成功訊息加 failedCount 顯示
+     · v5.5.0 目前 - 初診關懷改手動 keyin + 群發 modal 雙 tab(搭 backend v4.42):
+                     · 背景:原機制只能關懷「走預約系統的初診」,漏掉現場直接報到的初診
+                           (占比不小)。粟醫師決定雙軌合併成單軌:所有初診一律手動 keyin
+                     · [UI] 群發 modal 改雙 tab:「群發公告」(既有功能) / 「初診關懷」(新)
+                     · [新] 初診關懷 tab:姓名+民國生日反查一般名單 → 加入清單(寫入試算表)
+                           → 預計發送清單(可取消,soft delete 刪除線)
+                     · [移除] 初診 tile 的 [未報到]/[已看診] 切換按鈕(用不到,實務上不會切)
+                     · 重用 lookupPatientLineId 反查邏輯,零學習曲線(跟代掛一致)
+                     · 取消按鈕:單擊取消(不需打 go,風險低)、顯示刪除線 + 按鈕消失
+                     · 反悔:重新 keyin(不提供恢復,避免跨日恢復誤導管理員)
      · 待辦 - 雙模式登入(九宮格 + 傳統輸入框切換)
      · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
      · 待辦 - 櫃檯教學模式(新人訓練 + tile tooltip,Intro.js 或自寫)
@@ -1580,6 +1600,97 @@
     color: var(--marigold);
   }
 
+  /* ── v5.5.0 群發 modal 雙 tab ── */
+  .tab-bar {
+    display: flex; gap: 0; margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .tab-btn {
+    flex: 1; padding: 10px 8px;
+    background: transparent; border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-dim);
+    font-family: inherit; font-weight: 400; font-size: 13px;
+    cursor: pointer; letter-spacing: 2px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+    margin-bottom: -1px;
+  }
+  .tab-btn:hover { color: var(--text-light); }
+  .tab-btn.active {
+    color: var(--marigold);
+    border-bottom-color: var(--marigold);
+  }
+
+  /* ── v5.5.0 初診關懷 tab 專用 ── */
+  .fu-lookup-block {
+    padding: 12px; background: var(--bg-2);
+    border: 1px solid var(--border-soft);
+    margin-bottom: 14px;
+  }
+  .fu-lookup-block .form-label {
+    font-size: 11px; letter-spacing: 1.5px;
+  }
+  .fu-result-item {
+    padding: 10px; background: var(--bg-3);
+    border-left: 2px solid var(--kiwi);
+    margin-top: 8px;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    flex-wrap: wrap;
+  }
+  .fu-result-info { font-size: 12px; color: var(--text); flex: 1; min-width: 180px; }
+  .fu-result-info .fu-name-big { font-size: 14px; font-weight: 700; color: var(--kiwi); margin-right: 8px; }
+  .fu-result-info .fu-meta { color: var(--text-light); font-size: 11px; }
+  .fu-add-btn {
+    font-size: 12px; padding: 6px 12px;
+    background: var(--kiwi); color: #111;
+    border: none; cursor: pointer;
+    font-family: inherit; letter-spacing: 1px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .fu-add-btn:active { transform: scale(0.97); }
+  .fu-add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .fu-list-block { margin-top: 4px; }
+  .fu-list-header {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    color: var(--text-light); margin-bottom: 8px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border-soft);
+  }
+  .fu-list-item {
+    padding: 10px 12px; background: var(--bg-2);
+    border-left: 2px solid var(--kiwi);
+    margin-bottom: 6px;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  }
+  .fu-list-item.cancelled {
+    border-left-color: var(--border-soft);
+    opacity: 0.55;
+  }
+  .fu-list-item.cancelled .fu-list-name {
+    text-decoration: line-through;
+    color: var(--text-dim);
+  }
+  .fu-list-name { font-size: 13px; color: var(--text); flex: 1; }
+  .fu-list-meta { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; margin-left: 8px; }
+  .fu-cancel-btn {
+    font-size: 11px; padding: 4px 10px;
+    background: transparent;
+    border: 1px solid var(--border-soft);
+    color: var(--text-light);
+    cursor: pointer; font-family: inherit; letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+  .fu-cancel-btn:hover {
+    background: rgba(249,50,89,0.1);
+    border-color: rgba(249,50,89,0.4);
+    color: var(--pink);
+  }
+  .fu-list-empty {
+    padding: 20px; text-align: center;
+    color: var(--text-dim); font-size: 12px; letter-spacing: 1px;
+    background: var(--bg-2);
+    border: 1px dashed var(--border-soft);
+  }
   /* ── Loading Overlay ── */
   .loading-overlay {
     display: none; position: fixed; inset: 0;
@@ -1994,7 +2105,7 @@
     <!-- 取消預約(危險區) -->
     <div id="btnCancelBookingWrap" class="m-danger-section" style="display:none;">
       <button class="m-danger-btn"
-        onclick="confirmCancel(state.contactBookingId, document.getElementById('contactName').textContent, document.getElementById('contactTimeSlot').textContent, 'modalContact')">取消此預約</button>
+        onclick="confirmCancel(encodeURIComponent(state.contactBookingId), encodeURIComponent(document.getElementById('contactName').textContent), encodeURIComponent(document.getElementById('contactTimeSlot').textContent), 'modalContact')">取消此預約</button>
     </div>
   </div>
 </div>
@@ -2069,8 +2180,17 @@
 <!-- Modal: 群發訊息 -->
 <div class="modal-overlay" id="modalBroadcast">
   <div class="modal">
-    <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">群發訊息</div><div class="m-topbar-title">broadcast.msg</div><button class="modal-close" onclick="closeModal('modalBroadcast')">✕</button></div>
-    <div class="alert alert-info">發送前請確認訊息內容，送出後無法收回。</div>
+    <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">群發中心</div><div class="m-topbar-title">broadcast.msg</div><button class="modal-close" onclick="closeModal('modalBroadcast')">✕</button></div>
+
+    <!-- v5.5.0 雙 tab -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tabBtnBroadcast" onclick="switchBcTab('broadcast')">群發公告</button>
+      <button class="tab-btn" id="tabBtnFollowUp" onclick="switchBcTab('followup')">初診關懷</button>
+    </div>
+
+    <!-- Tab 1: 群發公告 -->
+    <div id="tabPanelBroadcast">
+    <div class="alert alert-info">發送前請確認訊息內容,送出後無法收回。</div>
     <div style="display:flex;gap:4px;margin-bottom:14px;">
       <button class="btn-mode active" id="bcModeRange" onclick="setBcMode('range')" style="flex:1;padding:9px;border:1px solid var(--marigold-bd);font-family:inherit;font-weight:400;font-size:13px;cursor:pointer;background:var(--marigold-bg);color:var(--marigold);letter-spacing:1px;">日期區間</button>
       <button class="btn-mode" id="bcModeSingle" onclick="setBcMode('single')" style="flex:1;padding:9px;border:1px solid var(--border-soft);font-family:inherit;font-weight:400;font-size:13px;cursor:pointer;background:var(--bg-2);color:var(--text-light);letter-spacing:1px;">指定單診</button>
@@ -2099,12 +2219,44 @@
     <div id="bcSuccess" class="alert alert-success" style="display:none"></div>
     <button class="btn btn-outline" id="btnBcPreview" onclick="doBroadcastPreview()">預覽發送人數</button>
     <div id="bcConfirmWrap" style="display:none;margin-bottom:8px;">
-      <div class="alert alert-error" style="margin-bottom:8px;"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> 此操作無法復原!請輸入 <strong>go</strong> 確認：</div>
+      <div class="alert alert-error" style="margin-bottom:8px;"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> 此操作無法復原!請輸入 <strong>go</strong> 確認:</div>
       <input type="text" id="bcConfirmInput" placeholder="輸入 go" maxlength="2" autocomplete="off"
         oninput="document.getElementById('btnBcSend').disabled = this.value.toLowerCase() !== 'go';"
         style="text-align:center;font-size:20px;font-weight:700;letter-spacing:8px;">
     </div>
     <button class="btn btn-primary" id="btnBcSend" onclick="doBroadcastSend()" style="display:none;" disabled>確認發送</button>
+    </div><!-- /Tab 1 -->
+
+    <!-- Tab 2: 初診關懷 (v5.5.0) -->
+    <div id="tabPanelFollowUp" style="display:none;">
+      <div class="alert alert-info" style="margin-bottom:14px;">手動輸入今日初診,明天 12:00 自動發送 LINE 關懷訊息。</div>
+
+      <!-- 反查表單 -->
+      <div class="fu-lookup-block">
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text-light);margin-bottom:10px;">新增初診關懷</div>
+        <div class="form-group" style="margin-bottom:10px;"><label class="form-label">姓名</label><input type="text" id="fuName" autocomplete="off" placeholder="輸入病患姓名"></div>
+        <div class="form-group" style="margin-bottom:10px;"><label class="form-label">生日 (民國)</label>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="number" id="fuBirthY" inputmode="numeric" placeholder="年" style="flex:1;text-align:center;" min="1" max="150">
+            <span style="color:var(--text-dim);font-size:12px;">年</span>
+            <input type="number" id="fuBirthM" inputmode="numeric" placeholder="月" style="flex:1;text-align:center;" min="1" max="12">
+            <span style="color:var(--text-dim);font-size:12px;">月</span>
+            <input type="number" id="fuBirthD" inputmode="numeric" placeholder="日" style="flex:1;text-align:center;" min="1" max="31">
+            <span style="color:var(--text-dim);font-size:12px;">日</span>
+          </div>
+        </div>
+        <button class="btn btn-outline" id="btnFuLookup" onclick="doFuLookup()" style="margin-bottom:0;">查詢一般名單</button>
+        <div id="fuLookupError" class="alert alert-error" style="display:none;margin-top:10px;margin-bottom:0;font-size:12px;"></div>
+        <div id="fuLookupResults" style="margin-top:4px;"></div>
+      </div>
+
+      <!-- 預計發送清單 -->
+      <div class="fu-list-block">
+        <div class="fu-list-header">預計發送清單 <span id="fuListCount" style="color:var(--text-dim);font-weight:400;letter-spacing:1px;margin-left:6px;"></span></div>
+        <div id="fuListContainer"><div class="loading" style="padding:16px;">載入中...</div></div>
+      </div>
+    </div><!-- /Tab 2 -->
+
   </div>
 </div>
 
@@ -3149,29 +3301,22 @@ function renderSessionContent(session, isClosed) {
     if (c.type === "np_skip") continue; // 已被 grid-column: 1/-1 佔用，不輸出
 
     if (c.type === "np_banner") {
-      const isDone = c.status === "已看診";
       const isNotified = c.isAdminBooking && c.notifyStatus === "[已人工通知]";
       const bannerClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.slot||'')}" data-session="${esc(session)}" data-type="初診" data-status="${esc(c.status||'')}" data-np-referral="${esc(c.npReferral)}" data-np-isadult="${esc(c.npIsAdult)}" data-np-residence="${esc(c.npResidence)}" data-np-livingwith="${esc(c.npLivingWith)}" data-np-occupation="${esc(c.npOccupation)}" data-np-availabletime="${esc(c.npAvailableTime)}" onclick="openContactModalFromEl(this)"`;
       // isPending = 代掛未通知（sunny lime）；否則（一般初診或已通知）= kiwi
       const isPending = c.isAdminBooking && c.notifyStatus === "[人工預約]";
-      // 按鈕文字顏色：與 tile 同色（kiwi 或 sunny）
-      const btnTextColor = isPending ? "var(--sunny)" : "var(--kiwi)";
-      const btnLabel = isDone ? "已報到" : "未報到";
       const cautionHtml = isPending
         ? `<div style="position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>` : "";
       const npConflictHtml = (c.hasRtConflict || conflictNpRowStarts.has(c.npRowStart))
         ? `<div style="position:absolute;bottom:6px;right:7px;line-height:1;color:var(--pink);"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>` : "";
       const isXinkuan = c.source === "心寬轉介";
 
-      const npBirthDisplay = c.birth ? rocDate(c.birth) : "";
+      const npBirthDisplay = c.birth ? esc(rocDate(c.birth)) : "";
       html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="cursor:pointer;position:relative;">
         <div style="position:absolute;top:7px;left:6px;font-size:20px;font-weight:700;color:#ffffff;">${esc(c.checkInTime)}前</div>
         ${npBirthDisplay ? `<div style="position:absolute;top:50%;left:6px;right:90px;transform:translateY(-50%);font-size:12px;font-weight:400;color:#ffffff;opacity:0.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${npBirthDisplay}</div>` : ""}
         <div style="position:absolute;bottom:6px;left:6px;right:90px;font-size:14px;font-weight:400;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${isXinkuan ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(c.name)}</span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>` : esc(c.name)}</div>
-        <button id="btn-${esc(c.bookingId)}"
-          onclick="event.stopPropagation(); toggleCheckin('${esc(c.bookingId)}',this)"
-          style="position:absolute;top:7px;right:7px;background:#000;color:${btnTextColor};border:none;font-family:inherit;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;letter-spacing:0.5px;">${btnLabel}</button>
         ${cautionHtml}${npConflictHtml}
       </div>`;
     } else if (c.type === "rt") {
@@ -3187,7 +3332,7 @@ function renderSessionContent(session, isClosed) {
       const nameHtml = isXinkuan
         ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(c.name)}</span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>`
         : esc(c.name);
-      const birthDisplay = c.birth ? rocDate(c.birth) : "";
+      const birthDisplay = c.birth ? esc(rocDate(c.birth)) : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#ffffff;position:absolute;top:6px;left:6px;">${numDisplay}</span>
         ${birthDisplay ? `<span style="font-size:12px;font-weight:400;color:#ffffff;opacity:0.7;position:absolute;top:50%;left:6px;right:6px;transform:translateY(-50%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${birthDisplay}</span>` : ""}
@@ -3282,8 +3427,8 @@ function renderUnspecList() {
     return;
   }
   el.innerHTML = list.map(function(b, i) {
-    const birthStr = b.birth ? rocDate(b.birth) : "";
-    const phoneStr = b.phone || "";
+    const birthStr = b.birth ? esc(rocDate(b.birth)) : "";
+    const phoneStr = esc(b.phone || "");
     const ns = b.notifyStatus || "";
     const isAdminBooking = b.isAdminBooking || false;
 
@@ -3316,7 +3461,7 @@ function renderUnspecList() {
       </div>
       ${notifyTag}
       <button class="btn btn-danger btn-sm" style="flex-shrink:0;font-size:11px;padding:3px 8px;"
-        onclick="confirmCancel('${esc(b.bookingId)}','${esc(b.name)}','${esc(b.date)}','modalUnspecified')">取消</button>
+        onclick="confirmCancel('${encodeURIComponent(b.bookingId)}','${encodeURIComponent(b.name)}','${encodeURIComponent(b.date)}','modalUnspecified')">取消</button>
     </div>`;
   }).join("");
 }
@@ -3342,7 +3487,8 @@ function openUnspecContactCard(bookingId) {
   const cancelBtn = document.querySelector("#btnCancelBookingWrap button");
   if (cancelBtn) {
     cancelBtn.onclick = function() {
-      confirmCancel(b.bookingId, b.name, b.date, "modalContact");
+      // v5.4.5 [C1]: 統一所有呼叫端都走 encodeURIComponent,confirmCancel 內部 decode
+      confirmCancel(encodeURIComponent(b.bookingId), encodeURIComponent(b.name || ""), encodeURIComponent(b.date || ""), "modalContact");
     };
   }
 }
@@ -3507,7 +3653,7 @@ function showAdminAddResult(type, matches) {
         ? `<input type="radio" name="matchPatient" value="${i}" id="matchOpt${i}" onchange="selectMatchPatient(${i})" style="margin-right:6px;">`
         : "";
       const labelHtml = `<label for="matchOpt${i}" style="font-size:13px;cursor:pointer;">
-        ${m.name || ""}　${m.birth || ""}　${m.phone || ""}
+        ${esc(m.name || "")}　${esc(m.birth || "")}　${esc(m.phone || "")}
       </label>`;
       return `<div style="padding:8px;border:1px solid var(--border);border-radius:4px;margin-bottom:6px;display:flex;align-items:center;">
         ${radioHtml}${labelHtml}
@@ -4178,7 +4324,9 @@ async function doToggleNotified() {
   }
 }
 
-/* ── 報到切換 ── */
+/* ── 報到切換 ──
+   v5.5.0: 呼叫端已移除(初診 tile 的 [未報到]/[已看診] 按鈕拿掉了),
+   函式本體保留以備未來復用。backend 的 adminUpdateStatus 仍正常運作(v4.40 加 enum 白名單)。 */
 async function toggleCheckin(bookingId, btn) {
   const isDone = btn.classList.contains("done");
   const newStatus = isDone ? "已確認" : "已看診";
@@ -4230,6 +4378,18 @@ function openModal(id) {
     loadSecurity();
   }
   if (id === "modalSubstitute") loadSubstituteList();
+  if (id === "modalBroadcast") {
+    // v5.5.0: 開啟群發 modal 時重置到「群發公告」tab、載入初診關懷清單供 tab 2 用
+    switchBcTab('broadcast');
+    // 清空初診關懷 tab 內的輸入與結果殘留
+    ["fuName","fuBirthY","fuBirthM","fuBirthD"].forEach(function(eid) {
+      var el = document.getElementById(eid); if (el) el.value = "";
+    });
+    var fuErr = document.getElementById("fuLookupError"); if (fuErr) { fuErr.style.display = "none"; fuErr.textContent = ""; }
+    var fuRes = document.getElementById("fuLookupResults"); if (fuRes) fuRes.innerHTML = "";
+    // 清單先顯示 loading,等 user 切到 tab 2 或立刻就載(立刻載簡單點,反正 API 很快)
+    loadFollowUpList();
+  }
 }
 function closeModal(id) { document.getElementById(id).classList.remove("active"); }
 
@@ -4276,7 +4436,7 @@ async function loadSubstituteList() {
         <span style="color:var(--text-light)">${sn[item.session]||item.session}</span>
         ${typeLabel}
         <span style="font-weight:400;flex:1;color:var(--text)">${esc(item.doctor)}</span>
-        <button onclick="cancelSubstitute('${esc(item.date)}','${esc(item.session)}',this)"
+        <button onclick="cancelSubstitute('${encodeURIComponent(item.date)}','${encodeURIComponent(item.session)}',this)"
           style="font-size:11px;padding:2px 7px;border:1px solid var(--error);background:white;color:var(--error);cursor:pointer">取消</button>
       </div>`;
     }).join('') + `<div style="font-size:10px;color:var(--text-light);margin-top:5px">同一時段多次設定以最新一筆為準。</div>`;
@@ -4284,6 +4444,13 @@ async function loadSubstituteList() {
 }
 
 async function cancelSubstitute(date, session, btn) {
+  // v5.4.5 [C1]: 呼叫端已 encodeURIComponent（onclick 安全注入），此處 decode 回原值供 backend 比對試算表 date/session 欄位
+  try {
+    date = decodeURIComponent(date || "");
+    session = decodeURIComponent(session || "");
+  } catch(e) {
+    // decode 失敗（罕見）→ 用原值，backend 比對不到會返回「查無」，安全 fail
+  }
   btn.disabled = true; btn.textContent = '取消中...';
   try {
     const data = await xhrPost(API_URL, { action: 'cancelSubstituteDoctor', date, session, lineId: state.lineId });
@@ -4408,13 +4575,24 @@ function renderQueryResults(bookings) {
     html += `<div class="result-item">
       <div class="result-header"><div class="result-date">${esc(b.date)} ${esc(b.displayName)}</div><div class="result-status">${esc(b.status)}</div></div>
       <div class="result-detail">${esc(b.name)}　${slotDisplay}　${esc(b.type)}${b.doctor?"　醫師："+esc(b.doctor):""}</div>
-      ${b.status!=="已取消"?`<button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="confirmCancel('${esc(b.bookingId)}','${esc(b.name)}','${esc(b.date)}','modalQuery')">取消此預約</button>`:""}
+      ${b.status!=="已取消"?`<button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="confirmCancel('${encodeURIComponent(b.bookingId)}','${encodeURIComponent(b.name)}','${encodeURIComponent(b.date)}','modalQuery')">取消此預約</button>`:""}
     </div>`;
   });
   el.innerHTML = html;
 }
 
 function confirmCancel(bookingId, name, date, fromModal) {
+  // v5.4.5 [C1]: 呼叫端改用 encodeURIComponent 傳遞,此處 decode 還原
+  // 防禦 onclick attribute 的 &#39; 被 HTML decode 造成 JS string break-out XSS
+  // bookingId / name / date 在呼叫端已 encodeURIComponent
+  try {
+    bookingId = decodeURIComponent(bookingId || "");
+    name = decodeURIComponent(name || "");
+    date = decodeURIComponent(date || "");
+  } catch(e) {
+    // decode 失敗(極罕見 — 通常是輸入本身已被破壞)→ 用原值,不阻斷取消流程
+    // 預約 ID 若無法 decode,下游 cancelBooking 比對不到會返回「查無預約」,安全 fail
+  }
   // date 參數目前未使用，保留供未來在確認 Modal 顯示「取消 XX 日期的預約」提示文字用
   // 注意：聯絡小卡呼叫點傳入的是時段文字而非日期，若未來啟用此參數需一併修正該呼叫點
   state.pendingCancelId = bookingId;
@@ -4552,11 +4730,195 @@ async function doBroadcastSend() {
   try {
     const params = Object.assign({ action: "sendAnnouncement", message, lineId: state.lineId }, getBcParams());
     const data = await xhrPost(API_URL, params);
-    if (data.success) { sucEl.textContent = `✓ 已成功發送給 ${data.sentCount} 位病患`; sucEl.style.display = "block"; btn.style.display = "none"; document.getElementById("bcPreview").style.display = "none"; }
+    if (data.success) {
+      // v5.4.5 [I4]: 顯示失敗數與連續中止狀態（backend 已分 sentCount / failedCount / aborted）
+      const hasFailed = (data.failedCount || 0) > 0;
+      sucEl.textContent = hasFailed
+        ? `✓ 發送 ${data.sentCount} 人，失敗 ${data.failedCount} 人（請查系統異常記錄確認）${data.aborted ? ' · 連續失敗已中止' : ''}`
+        : `✓ 已成功發送給 ${data.sentCount} 位病患`;
+      sucEl.style.display = "block"; btn.style.display = "none"; document.getElementById("bcPreview").style.display = "none";
+    }
     else { errEl.textContent = data.error || "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
   } catch(e) { if (e.isSessionExpired) return; errEl.textContent = "操作未完成，請稍後再試。"; errEl.style.display = "block"; }
   document.getElementById("broadcastOverlay").classList.remove("active");
   btn.disabled = false; btn.textContent = "確認發送";
+}
+
+/* ──────────────────────────────────────────────────────
+   v5.5.0:初診關懷手動 keyin(群發 modal Tab 2)
+   ────────────────────────────────────────────────────── */
+
+function switchBcTab(tab) {
+  const isBroadcast = tab === 'broadcast';
+  document.getElementById('tabPanelBroadcast').style.display = isBroadcast ? '' : 'none';
+  document.getElementById('tabPanelFollowUp').style.display = isBroadcast ? 'none' : '';
+  document.getElementById('tabBtnBroadcast').classList.toggle('active', isBroadcast);
+  document.getElementById('tabBtnFollowUp').classList.toggle('active', !isBroadcast);
+}
+
+// 民國年轉西元年(跟一般名單格式一致:yyyy/MM/dd)
+// 1980/05/20(西元)= 69/05/20(民國)
+function fuRocToAd(y, m, d) {
+  const yy = parseInt(y, 10);
+  const mm = parseInt(m, 10);
+  const dd = parseInt(d, 10);
+  if (!yy || !mm || !dd) return null;
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+  const adY = yy + 1911;
+  return adY + "/" + String(mm).padStart(2, "0") + "/" + String(dd).padStart(2, "0");
+}
+
+async function doFuLookup() {
+  const errEl = document.getElementById("fuLookupError");
+  const resEl = document.getElementById("fuLookupResults");
+  errEl.style.display = "none"; errEl.textContent = "";
+  resEl.innerHTML = "";
+
+  const name = (document.getElementById("fuName").value || "").trim();
+  const y = document.getElementById("fuBirthY").value;
+  const m = document.getElementById("fuBirthM").value;
+  const d = document.getElementById("fuBirthD").value;
+
+  if (!name) { errEl.textContent = "請輸入姓名"; errEl.style.display = "block"; return; }
+  const birthAd = fuRocToAd(y, m, d);
+  if (!birthAd) { errEl.textContent = "請輸入完整且合法的民國生日"; errEl.style.display = "block"; return; }
+
+  const btn = document.getElementById("btnFuLookup");
+  btn.disabled = true; btn.textContent = "查詢中...";
+  try {
+    // 重用 backend 的 lookupPatientLineId(透過 adminLookupPatient wrapper)
+    const data = await xhrPost(API_URL, { action: "adminLookupPatient", name: name, birth: birthAd, lineId: state.lineId });
+    if (!data.success) { errEl.textContent = data.error || "查詢失敗"; errEl.style.display = "block"; return; }
+    const matches = data.matches || [];
+    if (matches.length === 0) {
+      errEl.textContent = "查無此病患。該病患可能未加 LINE 或未在系統中,請改以電話關懷。";
+      errEl.style.display = "block";
+      return;
+    }
+    // 顯示結果,每筆一個「加入清單」按鈕
+    let html = "";
+    matches.forEach(function(m) {
+      const ridBirthDisplay = m.birth ? rocDate(m.birth) : "";
+      html += `<div class="fu-result-item">
+        <div class="fu-result-info">
+          <span class="fu-name-big">${esc(name)}</span>
+          <span class="fu-meta">${esc(m.phone || "")} · ${esc(ridBirthDisplay)}</span>
+        </div>
+        <button class="fu-add-btn"
+          onclick="doFuAdd('${encodeURIComponent(m.lineId)}','${encodeURIComponent(name)}',this)">
+          + 加入清單
+        </button>
+      </div>`;
+    });
+    resEl.innerHTML = html;
+  } catch(e) {
+    if (e.isSessionExpired) return;
+    errEl.textContent = "查詢失敗,請稍後再試"; errEl.style.display = "block";
+  } finally {
+    btn.disabled = false; btn.textContent = "查詢一般名單";
+  }
+}
+
+async function doFuAdd(targetLineIdEnc, nameEnc, btn) {
+  let targetLineId = "", name = "";
+  try {
+    targetLineId = decodeURIComponent(targetLineIdEnc || "");
+    name = decodeURIComponent(nameEnc || "");
+  } catch(e) {
+    // decode 失敗不常見,直接用 raw 值(backend 會驗)
+    targetLineId = targetLineIdEnc || ""; name = nameEnc || "";
+  }
+  btn.disabled = true; btn.textContent = "加入中...";
+  try {
+    const data = await xhrPost(API_URL, { action: "adminAddFollowUp", targetLineId, name, lineId: state.lineId });
+    if (!data.success) {
+      btn.disabled = false; btn.textContent = "+ 加入清單";
+      const errTip = document.createElement("span");
+      errTip.textContent = " " + (data.error || "加入失敗");
+      errTip.style.cssText = "font-size:11px;color:var(--pink);margin-left:6px;";
+      btn.parentNode.appendChild(errTip);
+      setTimeout(function() { if (errTip.parentNode) errTip.parentNode.removeChild(errTip); }, 3500);
+      return;
+    }
+    // 成功:按鈕改「已加入」,清單 refresh
+    btn.textContent = "✓ 已加入";
+    btn.style.background = "var(--text-dim)";
+    loadFollowUpList();
+  } catch(e) {
+    if (e.isSessionExpired) return;
+    btn.disabled = false; btn.textContent = "+ 加入清單";
+  }
+}
+
+async function loadFollowUpList() {
+  const container = document.getElementById("fuListContainer");
+  const countEl = document.getElementById("fuListCount");
+  if (!container) return;
+  container.innerHTML = '<div class="loading" style="padding:16px;">載入中...</div>';
+  try {
+    const data = await xhrPost(API_URL, { action: "getPendingFollowUpList", lineId: state.lineId });
+    if (!data.success) {
+      container.innerHTML = '<div class="fu-list-empty">載入失敗:' + esc(data.error || "") + '</div>';
+      return;
+    }
+    const list = data.list || [];
+    if (list.length === 0) {
+      container.innerHTML = '<div class="fu-list-empty">目前沒有預計發送的初診關懷</div>';
+      countEl.textContent = "";
+      return;
+    }
+    // 分類:待發 / 已取消
+    const pending = list.filter(function(x) { return x.status === "已看診"; });
+    const cancelled = list.filter(function(x) { return x.status === "已取消關懷"; });
+
+    let html = "";
+    pending.forEach(function(item) {
+      html += `<div class="fu-list-item">
+        <span class="fu-list-name">${esc(item.name || "(未知)")}</span>
+        <button class="fu-cancel-btn"
+          onclick="doFuCancel('${encodeURIComponent(item.lineId)}','${encodeURIComponent(item.date)}','${esc(item.name||"")}',this)">
+          取消
+        </button>
+      </div>`;
+    });
+    cancelled.forEach(function(item) {
+      html += `<div class="fu-list-item cancelled">
+        <span class="fu-list-name">${esc(item.name || "(未知)")}</span>
+        <span class="fu-list-meta">已取消</span>
+      </div>`;
+    });
+    container.innerHTML = html;
+    countEl.textContent = "(" + pending.length + " 筆待發"
+      + (cancelled.length > 0 ? ",共 " + list.length + " 筆" : "")
+      + ")";
+  } catch(e) {
+    if (e.isSessionExpired) return;
+    container.innerHTML = '<div class="fu-list-empty">載入失敗,請稍後再試</div>';
+  }
+}
+
+async function doFuCancel(lineIdEnc, dateEnc, name, btn) {
+  let targetLineId = "", date = "";
+  try {
+    targetLineId = decodeURIComponent(lineIdEnc || "");
+    date = decodeURIComponent(dateEnc || "");
+  } catch(e) {
+    targetLineId = lineIdEnc || ""; date = dateEnc || "";
+  }
+  // 單擊取消,不要額外 confirm(符合 UX 設計)
+  btn.disabled = true; btn.textContent = "取消中...";
+  try {
+    const data = await xhrPost(API_URL, { action: "adminCancelFollowUp", targetLineId, date, lineId: state.lineId });
+    if (!data.success) {
+      btn.disabled = false; btn.textContent = "取消";
+      return;
+    }
+    // 成功:refresh 清單
+    loadFollowUpList();
+  } catch(e) {
+    if (e.isSessionExpired) return;
+    btn.disabled = false; btn.textContent = "取消";
+  }
 }
 
 /* ── 系統異常 caution 檢查 ── */
@@ -4675,7 +5037,7 @@ function renderLookupResults(matched) {
   resultsEl.innerHTML = matched.map(function(m) {
     // 多筆姓名(家人共用 LINE ID)
     const namesHtml = (m.names || []).map(function(n) {
-      const birthStr = n.birth ? rocDate(n.birth) : "";
+      const birthStr = n.birth ? esc(rocDate(n.birth)) : "";
       const parts = [];
       if (birthStr) parts.push(birthStr);
       if (n.phone) parts.push(esc(n.phone));
