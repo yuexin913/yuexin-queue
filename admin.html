@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.0">
+  <meta name="version" content="5.5.1">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.5.0 (2026-04-24) 初診關懷改手動 keyin + 群發 modal 雙 tab
+     Version:   v5.5.1 (2026-04-24) modal 內按鈕/tab 顏色對齊 tile 主題色
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -92,7 +92,7 @@
                            原因:rocDate 原樣回傳 birth,進 template literal HTML 造成 XSS
                            搭配 backend v4.40 [I1-B] 源頭格式驗證,雙重防護
                      · [I4 前端] 群發成功訊息加 failedCount 顯示
-     · v5.5.0 目前 - 初診關懷改手動 keyin + 群發 modal 雙 tab(搭 backend v4.42):
+     · v5.5.0 - 初診關懷改手動 keyin + 群發 modal 雙 tab(搭 backend v4.42):
                      · 背景:原機制只能關懷「走預約系統的初診」,漏掉現場直接報到的初診
                            (占比不小)。粟醫師決定雙軌合併成單軌:所有初診一律手動 keyin
                      · [UI] 群發 modal 改雙 tab:「群發公告」(既有功能) / 「初診關懷」(新)
@@ -102,6 +102,16 @@
                      · 重用 lookupPatientLineId 反查邏輯,零學習曲線(跟代掛一致)
                      · 取消按鈕:單擊取消(不需打 go,風險低)、顯示刪除線 + 按鈕消失
                      · 反悔:重新 keyin(不提供恢復,避免跨日恢復誤導管理員)
+     · v5.5.1 目前 - modal 內按鈕/tab 顏色對齊 tile 主題色(純 CSS、零邏輯):
+                     · 設計原則:(1) 警示紅/橘維持(btn-danger、確認群發、確認停診)
+                                (2) 查詢類統一 capri 天藍(肌肉記憶「天藍=搜尋」)
+                                (3) 主 CTA 用 tile 主題色,次級按鈕用淺色邊框版
+                     · modalUnspecified(不指定 kiwi 綠):確認新增 marigold→kiwi、+新增 灰→kiwi-bg/bd
+                     · modalBroadcast(群發 orchid 紫粉):Tab 和 mode 切換 marigold→orchid
+                                                        查詢病患名單中性→capri
+                     · modalQuery(查詢 capri 天藍):查詢按鈕 yellow→capri
+                     · modalSubstitute(代診 yellow 黃):Tab 代診/停診 marigold→yellow、確認更新 marigold→yellow
+                     · modalSecurity(系統 pink):標記全部已讀 marigold→pink
      · 待辦 - 雙模式登入(九宮格 + 傳統輸入框切換)
      · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
      · 待辦 - 櫃檯教學模式(新人訓練 + tile tooltip,Intro.js 或自寫)
@@ -1600,7 +1610,7 @@
     color: var(--marigold);
   }
 
-  /* ── v5.5.0 群發 modal 雙 tab ── */
+  /* ── v5.5.0 群發 modal 雙 tab(v5.5.1 active 色改 orchid,對齊 tile-orchid 主題)── */
   .tab-bar {
     display: flex; gap: 0; margin-bottom: 16px;
     border-bottom: 1px solid var(--border-soft);
@@ -1617,8 +1627,8 @@
   }
   .tab-btn:hover { color: var(--text-light); }
   .tab-btn.active {
-    color: var(--marigold);
-    border-bottom-color: var(--marigold);
+    color: var(--orchid);
+    border-bottom-color: var(--orchid);
   }
 
   /* ── v5.5.0 初診關懷 tab 專用 ── */
@@ -1956,7 +1966,7 @@
     <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">不指定名單</div><div class="m-topbar-title">unspec.list</div><button class="modal-close" onclick="closeModal('modalUnspecified')">✕</button></div>
     <div id="unspecContent"><div class="loading">載入中...</div></div>
     <div style="margin-top:12px">
-      <button class="btn" style="background:var(--btn-mid-bg);color:var(--text);border:1px solid var(--btn-mid-bd);font-size:13px;padding:10px;" onclick="toggleUnspecForm()">＋ 新增不指定</button>
+      <button class="btn" style="background:var(--kiwi-bg);color:var(--kiwi);border:1px solid var(--kiwi-bd);font-size:13px;padding:10px;" onclick="toggleUnspecForm()">＋ 新增不指定</button>
       <div id="unspecAddForm" style="display:none;margin-top:12px">
         <div class="form-group"><label class="form-label">姓名</label><input type="text" id="uAddName" placeholder="請輸入姓名"></div>
         <div class="form-group"><label class="form-label">電話</label><input type="tel" id="uAddPhone" placeholder="09xxxxxxxx" oninput="this.value=this.value.replace(/\D/g,'')"></div>
@@ -1971,7 +1981,7 @@
           </div>
         </div>
         <div id="unspecAddError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
-        <button class="btn" style="background:var(--marigold);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%" onclick="doAdminAddBooking('不指定')">確認新增不指定</button>
+        <button class="btn" style="background:var(--kiwi);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%" onclick="doAdminAddBooking('不指定')">確認新增不指定</button>
       </div>
     </div>
   </div>
@@ -2192,7 +2202,7 @@
     <div id="tabPanelBroadcast">
     <div class="alert alert-info">發送前請確認訊息內容,送出後無法收回。</div>
     <div style="display:flex;gap:4px;margin-bottom:14px;">
-      <button class="btn-mode active" id="bcModeRange" onclick="setBcMode('range')" style="flex:1;padding:9px;border:1px solid var(--marigold-bd);font-family:inherit;font-weight:400;font-size:13px;cursor:pointer;background:var(--marigold-bg);color:var(--marigold);letter-spacing:1px;">日期區間</button>
+      <button class="btn-mode active" id="bcModeRange" onclick="setBcMode('range')" style="flex:1;padding:9px;border:1px solid var(--orchid-bd);font-family:inherit;font-weight:400;font-size:13px;cursor:pointer;background:var(--orchid-bg);color:var(--orchid);letter-spacing:1px;">日期區間</button>
       <button class="btn-mode" id="bcModeSingle" onclick="setBcMode('single')" style="flex:1;padding:9px;border:1px solid var(--border-soft);font-family:inherit;font-weight:400;font-size:13px;cursor:pointer;background:var(--bg-2);color:var(--text-light);letter-spacing:1px;">指定單診</button>
     </div>
     <div id="bcRangeFields">
@@ -2229,7 +2239,7 @@
 
     <!-- Tab 2: 初診關懷 (v5.5.0) -->
     <div id="tabPanelFollowUp" style="display:none;">
-      <div class="alert alert-info" style="margin-bottom:14px;">手動輸入今日初診,明天 12:00 自動發送 LINE 關懷訊息。</div>
+      <div class="alert alert-info" style="margin-bottom:14px;">輸入初診名單並於明天中午自動發送關懷訊息。</div>
 
       <!-- 反查表單 -->
       <div class="fu-lookup-block">
@@ -2245,7 +2255,7 @@
             <span style="color:var(--text-dim);font-size:12px;">日</span>
           </div>
         </div>
-        <button class="btn btn-outline" id="btnFuLookup" onclick="doFuLookup()" style="margin-bottom:0;">查詢一般名單</button>
+        <button class="btn" id="btnFuLookup" onclick="doFuLookup()" style="margin-bottom:0;background:var(--capri-bg);color:var(--capri);border:1px solid var(--capri-bd);">查詢病患名單</button>
         <div id="fuLookupError" class="alert alert-error" style="display:none;margin-top:10px;margin-bottom:0;font-size:12px;"></div>
         <div id="fuLookupResults" style="margin-top:4px;"></div>
       </div>
@@ -2271,7 +2281,7 @@
     <div id="securityContent"><div class="loading">載入中...</div></div>
     <div style="margin-top:12px">
       <!-- v5.4.1: 預設 display:none,避免 modal 打開時「載入中」和按鈕同時顯示;載入完再由 JS 依 hasUnread 決定顯示 -->
-      <button class="btn" id="btnMarkRead" style="display:none;background:var(--marigold);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%" onclick="doMarkSecurityRead()">✓ 標記全部已讀</button>
+      <button class="btn" id="btnMarkRead" style="display:none;background:var(--pink);color:#fff;font-weight:700;font-size:13px;padding:10px;width:100%" onclick="doMarkSecurityRead()">✓ 標記全部已讀</button>
     </div>
 
     <!-- v5.4.3: LINE ID 反查姓名(推播失敗補發用) -->
@@ -2354,7 +2364,7 @@
       </div>
     </div>
     <div id="qError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
-    <button class="btn" style="background:var(--yellow);color:#111;font-size:13px;padding:10px;width:100%;margin-bottom:12px;" id="btnQuery" onclick="doQuery()">查詢</button>
+    <button class="btn" style="background:var(--capri);color:#fff;font-weight:700;font-size:13px;padding:10px;width:100%;margin-bottom:12px;" id="btnQuery" onclick="doQuery()">查詢</button>
     <div id="queryResults"></div>
   </div>
 </div>
@@ -2366,7 +2376,7 @@
     <!-- Tab 切換 -->
     <div style="display:flex;gap:6px;margin-bottom:14px;">
       <button id="tabBtnSubstitute" onclick="switchSubTab('substitute')"
-        style="flex:1;padding:9px;font-size:13px;font-weight:400;border:1px solid var(--marigold-bd);cursor:pointer;background:var(--marigold-bg);color:var(--marigold);letter-spacing:1px;">代診</button>
+        style="flex:1;padding:9px;font-size:13px;font-weight:400;border:1px solid var(--yellow-bd);cursor:pointer;background:var(--yellow-bg);color:var(--yellow);letter-spacing:1px;">代診</button>
       <button id="tabBtnClosed" onclick="switchSubTab('closed')"
         style="flex:1;padding:9px;font-size:13px;font-weight:400;border:1px solid var(--border-soft);cursor:pointer;background:var(--bg-2);color:var(--text-light);letter-spacing:1px;">停診</button>
     </div>
@@ -2385,7 +2395,7 @@
       <div class="form-group"><label class="form-label">代診醫師</label><input type="text" id="subDoctor" placeholder="請輸入代診醫師姓名"></div>
       <div id="subError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
       <div id="subSuccess" class="alert alert-success" style="display:none;margin-bottom:8px"></div>
-      <button class="btn" style="background:var(--marigold);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%;margin-bottom:14px;" id="btnSub" onclick="doSubstitute()">確認更新</button>
+      <button class="btn" style="background:var(--yellow);color:#111;font-weight:700;font-size:13px;padding:10px;width:100%;margin-bottom:14px;" id="btnSub" onclick="doSubstitute()">確認更新</button>
       <div style="font-size:12px;font-weight:700;color:var(--text-light);margin-bottom:6px;">已設定的異動</div>
       <div id="subList"><div class="loading">載入中...</div></div>
     </div>
@@ -4398,10 +4408,16 @@ function switchSubTab(tab) {
   const isSub = tab === 'substitute';
   document.getElementById('tabSubstitute').style.display = isSub ? '' : 'none';
   document.getElementById('tabClosed').style.display = isSub ? 'none' : '';
-  document.getElementById('tabBtnSubstitute').style.background = isSub ? 'var(--marigold)' : '#F0F0F0';
-  document.getElementById('tabBtnSubstitute').style.color = isSub ? 'white' : 'var(--text-light)';
-  document.getElementById('tabBtnClosed').style.background = isSub ? '#F0F0F0' : 'var(--marigold)';
-  document.getElementById('tabBtnClosed').style.color = isSub ? 'var(--text-light)' : 'white';
+  // v5.5.1: active 用 yellow 淺色版(--yellow-bg/bd/yellow),對齊 modalSubstitute 主題 tile-yellow
+  // inactive 用 --bg-2 + border-soft + text-light
+  const bSub = document.getElementById('tabBtnSubstitute');
+  bSub.style.background = isSub ? 'var(--yellow-bg)' : 'var(--bg-2)';
+  bSub.style.borderColor = isSub ? 'var(--yellow-bd)' : 'var(--border-soft)';
+  bSub.style.color = isSub ? 'var(--yellow)' : 'var(--text-light)';
+  const bClo = document.getElementById('tabBtnClosed');
+  bClo.style.background = isSub ? 'var(--bg-2)' : 'var(--yellow-bg)';
+  bClo.style.borderColor = isSub ? 'var(--border-soft)' : 'var(--yellow-bd)';
+  bClo.style.color = isSub ? 'var(--text-light)' : 'var(--yellow)';
 }
 
 /* ── 醫師磚 Modal ── */
@@ -4651,10 +4667,17 @@ function setBcMode(mode) {
   bcMode = mode;
   document.getElementById("bcRangeFields").style.display = mode === "range" ? "block" : "none";
   document.getElementById("bcSingleFields").style.display = mode === "single" ? "block" : "none";
-  document.getElementById("bcModeRange").style.background = mode === "range" ? "var(--marigold)" : "#F0F0F0";
-  document.getElementById("bcModeRange").style.color = mode === "range" ? "white" : "var(--text-light)";
-  document.getElementById("bcModeSingle").style.background = mode === "single" ? "var(--marigold)" : "#F0F0F0";
-  document.getElementById("bcModeSingle").style.color = mode === "single" ? "white" : "var(--text-light)";
+  // v5.5.1: active 用 orchid 淺色版(--orchid-bg/bd/orchid),跟初始 HTML style 和 modalBroadcast 主題對齊
+  // inactive 用 --bg-2 + border-soft + text-light(對齊 modal 內其他中性 tab)
+  const rangeActive = mode === "range";
+  const bRange = document.getElementById("bcModeRange");
+  bRange.style.background = rangeActive ? "var(--orchid-bg)" : "var(--bg-2)";
+  bRange.style.borderColor = rangeActive ? "var(--orchid-bd)" : "var(--border-soft)";
+  bRange.style.color = rangeActive ? "var(--orchid)" : "var(--text-light)";
+  const bSingle = document.getElementById("bcModeSingle");
+  bSingle.style.background = rangeActive ? "var(--bg-2)" : "var(--orchid-bg)";
+  bSingle.style.borderColor = rangeActive ? "var(--border-soft)" : "var(--orchid-bd)";
+  bSingle.style.color = rangeActive ? "var(--text-light)" : "var(--orchid)";
   document.getElementById("bcPreview").style.display = "none";
   document.getElementById("btnBcSend").style.display = "none";
   document.getElementById("bcConfirmWrap").style.display = "none";
@@ -4815,7 +4838,7 @@ async function doFuLookup() {
     if (e.isSessionExpired) return;
     errEl.textContent = "查詢失敗,請稍後再試"; errEl.style.display = "block";
   } finally {
-    btn.disabled = false; btn.textContent = "查詢一般名單";
+    btn.disabled = false; btn.textContent = "查詢病患名單";
   }
 }
 
