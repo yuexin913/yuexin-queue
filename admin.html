@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.1">
+  <meta name="version" content="5.5.2">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.5.1 (2026-04-24) modal 內按鈕/tab 顏色對齊 tile 主題色
+     Version:   v5.5.2 (2026-04-24) modalBroadcast 去橘化(alert/預覽按鈕中性化,橘色只剩 stripe + 確認發送)
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -2200,7 +2200,7 @@
 
     <!-- Tab 1: 群發公告 -->
     <div id="tabPanelBroadcast">
-    <div class="alert alert-info">發送前請確認訊息內容,送出後無法收回。</div>
+    <div class="alert alert-info" style="background:var(--bg-3);border-left-color:var(--text-light);color:var(--text);">發送前請確認訊息內容,送出後無法收回。</div>
     <div style="display:flex;gap:4px;margin-bottom:14px;">
       <button class="btn-mode active" id="bcModeRange" onclick="setBcMode('range')" style="flex:1;padding:9px;border:1px solid var(--orchid-bd);font-family:inherit;font-weight:400;font-size:13px;cursor:pointer;background:var(--orchid-bg);color:var(--orchid);letter-spacing:1px;">日期區間</button>
       <button class="btn-mode" id="bcModeSingle" onclick="setBcMode('single')" style="flex:1;padding:9px;border:1px solid var(--border-soft);font-family:inherit;font-weight:400;font-size:13px;cursor:pointer;background:var(--bg-2);color:var(--text-light);letter-spacing:1px;">指定單診</button>
@@ -2227,7 +2227,7 @@
     <div id="bcPreview" class="preview-count" style="display:none"></div>
     <div id="bcError" class="alert alert-error" style="display:none"></div>
     <div id="bcSuccess" class="alert alert-success" style="display:none"></div>
-    <button class="btn btn-outline" id="btnBcPreview" onclick="doBroadcastPreview()">預覽發送人數</button>
+    <button class="btn" id="btnBcPreview" onclick="doBroadcastPreview()" style="background:transparent;border:1px solid var(--border);color:var(--text-light);">預覽發送人數</button>
     <div id="bcConfirmWrap" style="display:none;margin-bottom:8px;">
       <div class="alert alert-error" style="margin-bottom:8px;"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> 此操作無法復原!請輸入 <strong>go</strong> 確認:</div>
       <input type="text" id="bcConfirmInput" placeholder="輸入 go" maxlength="2" autocomplete="off"
@@ -2239,7 +2239,7 @@
 
     <!-- Tab 2: 初診關懷 (v5.5.0) -->
     <div id="tabPanelFollowUp" style="display:none;">
-      <div class="alert alert-info" style="margin-bottom:14px;">輸入初診名單並於明天中午自動發送關懷訊息。</div>
+      <div class="alert alert-info" style="margin-bottom:14px;background:var(--bg-3);border-left-color:var(--text-light);color:var(--text);">輸入初診名單並於明天中午自動發送關懷訊息。</div>
 
       <!-- 反查表單 -->
       <div class="fu-lookup-block">
