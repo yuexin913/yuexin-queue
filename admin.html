@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.4">
+  <meta name="version" content="5.5.5">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.5.4 (2026-04-25) modalCheatSheet 可讀性升級(姓名升 15px、Mist Green 斑馬背景)
+     Version:   v5.5.5 (2026-04-25) 雙模式登入(電子密碼鎖九宮格 + 既有文字模式切換)
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -117,14 +117,24 @@
                      · [UI] 9 個 input 加 Enter 觸發(初診關懷 4 + 進階查詢 5)
                      · [Backend] 新增 lookupNewPatientLineId(支援 strict 旗標)獨立給初診關懷用
                        既有 lookupPatientLineId 維持代掛流程的精準匹配,不互相影響
-     · v5.5.4 目前 - modalCheatSheet 可讀性升級(純 CSS、零邏輯):
+     · v5.5.4 - modalCheatSheet 可讀性升級(純 CSS、零邏輯):
                      · 起因:粟醫師反映「全黑+白色+小字連續」不易閱讀
                      · 姓名 13px → 15px(主視覺升級)
                      · 報到號碼/生日從 text-light → text-dim(弱化次要資訊建立層級)
                      · 移除底線分隔,改 Mist Green 斑馬條紋(奇行 8% Mist Green 底色)
                      · 對齊 tile-teal「預覽」主題色 — 入口 tile 跟 modal 內容色系延伸一致
                      · 新增 --smoked-teal-bg-zebra CSS 變數(0.08 透明度,比 bg 0.18 更淡)
-     · 待辦 - 雙模式登入(九宮格 + 傳統輸入框切換)
+     · v5.5.5 目前 - 雙模式登入(電子密碼鎖九宮格 + 文字輸入切換):
+                     · 預設九宮格(電子密碼鎖風格,類似門禁/保險箱):
+                          - 6 格星號顯示區 + 12 格按鍵(0-9 + backspace + enter)
+                          - 數字按下星號淡入(keypadDotIn 動畫)
+                          - 密碼錯誤:6 格變紅 + 抖動 + 自動清空 + 回到第 1 格
+                          - 鎖定狀態:整個九宮格變灰 disabled
+                     · 文字模式:既有 input + button 100% 保留(fallback 路徑)
+                     · 切換鈕:「使用文字輸入」/「使用九宮格」一鍵切
+                     · 實體鍵盤支援(0-9 / Backspace / Enter)
+                     · 安全策略:既有 doLogin 函式核心邏輯零改動,
+                                只在結尾加 syncKeypadAfterLogin hook(包 try-catch)
      · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
      · 待辦 - 櫃檯教學模式(新人訓練 + tile tooltip,Intro.js 或自寫)
      · 待辦 - 節日彩蛋(低浮誇版,低成本高報酬)
@@ -516,6 +526,118 @@
   }
   .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .login-btn:disabled::after { opacity: 0.5; }
+
+  /* ════════════════════════════════════════════════════════
+     v5.5.5: 雙模式登入 — 電子密碼鎖九宮格
+     ════════════════════════════════════════════════════════ */
+  /* 6 格星號顯示區 */
+  .keypad-display {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 0 8px 0;
+    margin-bottom: 8px;
+  }
+  .keypad-dot {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    background: var(--bg-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+  .keypad-dot.filled {
+    background: var(--bg-3);
+    border-color: var(--marigold-bd);
+  }
+  .keypad-dot.filled::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    background: var(--marigold);
+    border-radius: 50%;
+    animation: keypadDotIn 0.18s ease;
+  }
+  @keyframes keypadDotIn {
+    from { transform: scale(0.4); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+  }
+  /* 錯誤抖動 + 變紅 */
+  .keypad-display.error .keypad-dot {
+    border-color: var(--pink-bd);
+  }
+  .keypad-display.error .keypad-dot.filled::before {
+    background: var(--pink);
+  }
+  .keypad-display.shake {
+    animation: keypadShake 0.4s ease;
+  }
+  @keyframes keypadShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  /* 12 格按鍵網格(3 col x 4 row)*/
+  .keypad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .keypad-btn {
+    height: 56px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.05s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .keypad-btn:hover:not(:disabled) {
+    background: var(--bg-3);
+    border-color: var(--text-light);
+  }
+  .keypad-btn:active:not(:disabled) {
+    background: var(--marigold-bg);
+    border-color: var(--marigold-bd);
+    transform: scale(0.96);
+  }
+  .keypad-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .keypad-btn-fn { color: var(--text-light); }
+  .keypad-btn-fn svg { display: block; }
+
+  /* 模式切換按鈕(底部小字) */
+  .login-mode-switch {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    padding: 12px 0;
+    margin-top: 4px;
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+  .login-mode-switch:hover { color: var(--text-light); }
 
   /* ════════════════════════════════════════════════════════
      METRO GRID 主版面
@@ -1881,12 +2003,53 @@
     <div class="login-clinic">悅心診所</div>
     <div class="login-clinic-en">JOIN System</div>
     <div class="login-divider"></div>
-    <div class="login-field-label">password</div>
-    <input type="password" id="loginPassword" class="login-input"
-      placeholder="請輸入管理密碼"
-      onkeydown="if(event.key==='Enter')doLogin()">
-    <div id="loginError" class="login-error"></div>
-    <button onclick="doLogin()" id="btnLogin" class="login-btn">登入</button>
+
+    <!-- v5.5.5: 雙模式登入 — 預設九宮格,可切換為文字輸入 -->
+    <!-- 九宮格模式(預設) -->
+    <div id="loginKeypadMode">
+      <div class="login-field-label">passcode</div>
+      <!-- 6 格星號顯示區 -->
+      <div class="keypad-display" id="keypadDisplay">
+        <span class="keypad-dot" data-pos="0"></span>
+        <span class="keypad-dot" data-pos="1"></span>
+        <span class="keypad-dot" data-pos="2"></span>
+        <span class="keypad-dot" data-pos="3"></span>
+        <span class="keypad-dot" data-pos="4"></span>
+        <span class="keypad-dot" data-pos="5"></span>
+      </div>
+      <div id="loginErrorKeypad" class="login-error"></div>
+      <!-- 12 格按鍵 -->
+      <div class="keypad-grid" id="keypadGrid">
+        <button type="button" class="keypad-btn" data-key="1">1</button>
+        <button type="button" class="keypad-btn" data-key="2">2</button>
+        <button type="button" class="keypad-btn" data-key="3">3</button>
+        <button type="button" class="keypad-btn" data-key="4">4</button>
+        <button type="button" class="keypad-btn" data-key="5">5</button>
+        <button type="button" class="keypad-btn" data-key="6">6</button>
+        <button type="button" class="keypad-btn" data-key="7">7</button>
+        <button type="button" class="keypad-btn" data-key="8">8</button>
+        <button type="button" class="keypad-btn" data-key="9">9</button>
+        <button type="button" class="keypad-btn keypad-btn-fn" data-key="back" aria-label="退格">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M6 12h13"/></svg>
+        </button>
+        <button type="button" class="keypad-btn" data-key="0">0</button>
+        <button type="button" class="keypad-btn keypad-btn-fn" data-key="enter" aria-label="確認">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+      </div>
+      <button type="button" class="login-mode-switch" onclick="switchLoginMode('text')">使用文字輸入</button>
+    </div>
+
+    <!-- 文字模式(既有,完全不動,fallback 用) -->
+    <div id="loginTextMode" style="display:none;">
+      <div class="login-field-label">password</div>
+      <input type="password" id="loginPassword" class="login-input"
+        placeholder="請輸入管理密碼"
+        onkeydown="if(event.key==='Enter')doLogin()">
+      <div id="loginError" class="login-error"></div>
+      <button onclick="doLogin()" id="btnLogin" class="login-btn">登入</button>
+      <button type="button" class="login-mode-switch" onclick="switchLoginMode('keypad')">使用九宮格</button>
+    </div>
   </div>
 </div>
 
@@ -2824,9 +2987,164 @@ async function doLogin() {
     btn.disabled = false; btn.textContent = "登入";
   }
   isLoggingIn = false;
+  // v5.5.5: 雙模式同步 — 若九宮格模式啟用,把錯誤訊息和狀態同步過去
+  // 包 try-catch:萬一九宮格邏輯壞了,不影響既有文字模式登入
+  try { syncKeypadAfterLogin(); } catch(e) { console.error("syncKeypadAfterLogin failed:", e); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// v5.5.5: 雙模式登入 — 電子密碼鎖九宮格
+// ═══════════════════════════════════════════════════════════
+
+var keypadBuffer = "";        // 累積按鍵字串
+var keypadMaxLen = 6;         // 上限 6 位
+var keypadDisabled = false;   // 鎖定狀態(登入失敗過多時)
+
+function switchLoginMode(mode) {
+  const keypadMode = document.getElementById("loginKeypadMode");
+  const textMode = document.getElementById("loginTextMode");
+  if (mode === "text") {
+    keypadMode.style.display = "none";
+    textMode.style.display = "block";
+    setTimeout(function() {
+      const ip = document.getElementById("loginPassword");
+      if (ip) ip.focus();
+    }, 50);
+  } else {
+    textMode.style.display = "none";
+    keypadMode.style.display = "block";
+    keypadResetUI(); // 進入九宮格時清空 buffer 和星點
+  }
+}
+
+function keypadResetUI() {
+  keypadBuffer = "";
+  document.getElementById("loginPassword").value = "";
+  const dots = document.querySelectorAll("#keypadDisplay .keypad-dot");
+  dots.forEach(function(d) { d.classList.remove("filled"); });
+  const display = document.getElementById("keypadDisplay");
+  display.classList.remove("error", "shake");
+  const errEl = document.getElementById("loginErrorKeypad");
+  if (errEl) { errEl.style.display = "none"; errEl.textContent = ""; }
+}
+
+function keypadRenderDots() {
+  const dots = document.querySelectorAll("#keypadDisplay .keypad-dot");
+  dots.forEach(function(d, i) {
+    if (i < keypadBuffer.length) d.classList.add("filled");
+    else d.classList.remove("filled");
+  });
+}
+
+function keypadPress(key) {
+  if (keypadDisabled || isLoggingIn) return;
+  // 任一輸入動作都先清掉之前的錯誤狀態
+  const display = document.getElementById("keypadDisplay");
+  const errEl = document.getElementById("loginErrorKeypad");
+  if (display.classList.contains("error")) {
+    display.classList.remove("error");
+  }
+  if (errEl && errEl.style.display === "block") {
+    errEl.style.display = "none";
+  }
+
+  if (key === "back") {
+    if (keypadBuffer.length > 0) {
+      keypadBuffer = keypadBuffer.slice(0, -1);
+      keypadRenderDots();
+    }
+  } else if (key === "enter") {
+    if (keypadBuffer.length === 0) return;
+    // 把 buffer 塞進現有 input,呼叫既有 doLogin
+    document.getElementById("loginPassword").value = keypadBuffer;
+    doLogin();
+  } else if (/^[0-9]$/.test(key)) {
+    if (keypadBuffer.length >= keypadMaxLen) return;
+    keypadBuffer += key;
+    keypadRenderDots();
+  }
+}
+
+// doLogin 結束後同步狀態到九宮格(成功時清空,失敗時抖動,鎖定時禁用)
+function syncKeypadAfterLogin() {
+  const keypadMode = document.getElementById("loginKeypadMode");
+  // 只有九宮格模式可見時才處理
+  if (!keypadMode || keypadMode.style.display === "none") return;
+
+  const textErrEl = document.getElementById("loginError");
+  const keypadErrEl = document.getElementById("loginErrorKeypad");
+  const display = document.getElementById("keypadDisplay");
+
+  // 把文字模式的錯誤訊息同步顯示給九宮格
+  if (textErrEl.style.display === "block" && textErrEl.textContent) {
+    keypadErrEl.textContent = textErrEl.textContent;
+    keypadErrEl.style.display = "block";
+
+    // 鎖定狀態:整個九宮格 disable
+    if (textErrEl.textContent.indexOf("鎖定") !== -1 || textErrEl.textContent.indexOf("失敗次數過多") !== -1) {
+      keypadDisabled = true;
+      document.querySelectorAll(".keypad-btn").forEach(function(b) { b.disabled = true; });
+    } else {
+      // 一般密碼錯誤:抖動 + 變紅 + 清空 buffer
+      display.classList.add("error", "shake");
+      setTimeout(function() {
+        display.classList.remove("shake");
+      }, 450);
+      keypadBuffer = "";
+      keypadRenderDots();
+    }
+  } else {
+    // 沒錯誤(成功或還沒送出),確保 UI 乾淨
+    keypadErrEl.style.display = "none";
+  }
+}
+
+// 初始化:綁定九宮格按鍵 + 實體鍵盤
+function initKeypad() {
+  document.querySelectorAll("#keypadGrid .keypad-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      keypadPress(btn.getAttribute("data-key"));
+    });
+  });
+  // 實體鍵盤支援(只在九宮格模式啟用時生效)
+  document.addEventListener("keydown", function(e) {
+    const keypadMode = document.getElementById("loginKeypadMode");
+    if (!keypadMode || keypadMode.style.display === "none") return;
+    // 避免跟其他頁面的 keydown 衝突,先檢查 pageLogin 是否可見
+    const pageLogin = document.getElementById("pageLogin");
+    if (!pageLogin || pageLogin.style.display === "none") return;
+    if (e.key >= "0" && e.key <= "9") {
+      e.preventDefault();
+      keypadPress(e.key);
+    } else if (e.key === "Backspace") {
+      e.preventDefault();
+      keypadPress("back");
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      keypadPress("enter");
+    }
+  });
+}
+
+// 在 DOM ready 時初始化
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initKeypad);
+} else {
+  initKeypad();
 }
 
 function enterMainPage() {
+  // v5.5.5: 進入主頁時清空九宮格 buffer,下次登出回來時是乾淨的
+  keypadBuffer = "";
+  keypadDisabled = false;
+  document.querySelectorAll(".keypad-btn").forEach(function(b) { b.disabled = false; });
+  const display = document.getElementById("keypadDisplay");
+  if (display) {
+    display.classList.remove("error", "shake");
+    document.querySelectorAll("#keypadDisplay .keypad-dot").forEach(function(d) { d.classList.remove("filled"); });
+  }
+  const keypadErr = document.getElementById("loginErrorKeypad");
+  if (keypadErr) keypadErr.style.display = "none";
   const pageLogin = document.getElementById("pageLogin");
   const pageMain = document.getElementById("pageMain");
   pageLogin.style.display = "none";
