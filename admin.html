@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.7">
+  <meta name="version" content="5.5.8">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.5.7 (2026-04-25) 九宮格星點放大對齊 + 錯誤訊息寄生 passcode label(零 reflow)
+     Version:   v5.5.8 (2026-04-25) 修 v5.5.7 寬度 reflow regression(label 預留兩行高 + 自動 wrap)
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -145,7 +145,7 @@
                      · doLogin 結束(syncKeypadAfterLogin 內)清除 loading 狀態
                      · keypadResetUI / enterMainPage 也順手清 loading,防 edge case 殘留
                      · 純 CSS + 一個新 helper 函式,既有 doLogin 0 改動
-     · v5.5.7 目前 - 九宮格星點放大對齊 + 錯誤訊息寄生 passcode label(零 reflow):
+     · v5.5.7 - 九宮格星點放大對齊 + 錯誤訊息寄生 passcode label(零 reflow):
                      · 起因:粟醫師實機反映 ① 6 格星點太小、寬度跟下方 12 宮格不齊
                                               ② 錯誤訊息獨立區塊讓畫面 reflow,「打開又縮起來」不自然
                      · [3] 6 格星點放大 28px → 45px、星點圓 8px → 12px
@@ -158,6 +158,21 @@
                           - 設計學上叫 in-place feedback,對齊 iOS Lock Screen Try Again pattern
                      · 新增 helper:keypadShowLabelError / keypadClearLabelError
                      · 移除既有 #loginErrorKeypad div + 4 處 reference
+     · v5.5.8 目前 - 修 v5.5.7 寬度 reflow regression(label 預留兩行高 + 自動 wrap):
+                     · 起因:粟醫師實機踩到 v5.5.7 引入的 regression — 錯誤訊息出現時容器
+                            寬度被中文訊息撐破(從 320px 撐到 ~346px),九宮格跟著變寬
+                     · 根因:flex 父容器(pageLogin)下,內層子元素的 max-width 會被 inline
+                            內容撐破(min-width: auto 預設值)。錯誤訊息中文塞進 inline span,
+                            因為沒 wrap 而向右擴張容器
+                     · 修法(極小,4 行 CSS):
+                          .login-field-label {
+                            min-height: 26px;            // 預留 2 行高度
+                            line-height: 1.6;
+                            word-wrap: break-word;       // 中文 wrap 不撐破
+                            overflow-wrap: break-word;
+                          }
+                     · 結果:正常/錯誤狀態下,容器寬 = 320px、九宮格寬 = 320px、label 高 = 26px
+                            完全 0 reflow(寬高皆恆定),訊息超長自然 wrap 到第二行
      · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
      · 待辦 - 櫃檯教學模式(新人訓練 + tile tooltip,Intro.js 或自寫)
      · 待辦 - 節日彩蛋(低浮誇版,低成本高報酬)
@@ -490,6 +505,13 @@
     letter-spacing: 3px;
     text-transform: lowercase;
     margin-bottom: 8px;
+    /* v5.5.8: 修 v5.5.7 寬度 reflow regression
+       錯誤訊息塞 inline span 時若不 wrap 會撐破 max-width: 320px
+       → 預留兩行高度 + 強制 wrap,寬度恆定不撐破 */
+    min-height: 26px;
+    line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   /* v5.5.7: passcode label 錯誤狀態 — 整行變紅,錯誤訊息寄生在 label 後段 */
   .login-field-label.error #keypadLabelText {
