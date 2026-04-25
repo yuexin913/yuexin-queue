@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.3">
+  <meta name="version" content="5.5.4">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.5.3 (2026-04-25) 初診關懷反查 OR/AND 雙模式 + 修日期分隔符 + Enter 觸發
+     Version:   v5.5.4 (2026-04-25) modalCheatSheet 可讀性升級(姓名升 15px、Mist Green 斑馬背景)
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -106,7 +106,7 @@
                      · 設計原則:警示紅/橘維持、查詢類統一 capri、主 CTA 對齊 tile 主題
      · v5.5.2 - modalBroadcast 去橘化(橘紫色衝突修補):
                      · alert/預覽按鈕中性化,橘色只剩 m-stripe + 確認發送(語意性橘色)
-     · v5.5.3 目前 - 初診關懷反查 OR 邏輯 + 修日期分隔符 + Enter 觸發
+     · v5.5.3 - 初診關懷反查 OR 邏輯 + 修日期分隔符 + Enter 觸發
                      (搭 backend v4.43):
                      · 🔴 [Critical Bug] fuRocToAd 從 yyyy/MM/dd 改為 yyyy-MM-dd
                        (對齊一般名單實際格式 dash,原本 slash 導致反查全部失敗)
@@ -117,6 +117,13 @@
                      · [UI] 9 個 input 加 Enter 觸發(初診關懷 4 + 進階查詢 5)
                      · [Backend] 新增 lookupNewPatientLineId(支援 strict 旗標)獨立給初診關懷用
                        既有 lookupPatientLineId 維持代掛流程的精準匹配,不互相影響
+     · v5.5.4 目前 - modalCheatSheet 可讀性升級(純 CSS、零邏輯):
+                     · 起因:粟醫師反映「全黑+白色+小字連續」不易閱讀
+                     · 姓名 13px → 15px(主視覺升級)
+                     · 報到號碼/生日從 text-light → text-dim(弱化次要資訊建立層級)
+                     · 移除底線分隔,改 Mist Green 斑馬條紋(奇行 8% Mist Green 底色)
+                     · 對齊 tile-teal「預覽」主題色 — 入口 tile 跟 modal 內容色系延伸一致
+                     · 新增 --smoked-teal-bg-zebra CSS 變數(0.08 透明度,比 bg 0.18 更淡)
      · 待辦 - 雙模式登入(九宮格 + 傳統輸入框切換)
      · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
      · 待辦 - 櫃檯教學模式(新人訓練 + tile tooltip,Intro.js 或自寫)
@@ -194,6 +201,7 @@
     --smoked-teal-bg:     rgba(143,184,165,0.18);
     --smoked-teal-bd:     rgba(143,184,165,0.55);
     --smoked-teal-bg-hov: rgba(143,184,165,0.28);
+    --smoked-teal-bg-zebra: rgba(143,184,165,0.08); /* v5.5.4: cheat sheet 斑馬條紋專用,比 bg 更淡 */
 
     /* Modal 按鈕階層(邊框+底色雙重) */
     --btn-mid-bg:       #1e1e1e;
@@ -1146,21 +1154,26 @@
   .cheat-row {
     display: grid;
     grid-template-columns: 44px 1fr 84px 34px;
-    gap: 8px;
+    gap: 10px;
     align-items: center;
-    padding: 8px 4px;
-    border-bottom: 1px solid var(--border-soft);
+    padding: 10px 8px;
     font-size: 13px;
+    border-radius: 2px;
   }
-  .cheat-row:last-child { border-bottom: none; }
+  /* v5.5.4: Mist Green 斑馬條紋 — 對齊 tile-teal 預覽主題色,tag 顏色全保留辨識度 */
+  .cheat-row:nth-child(odd) {
+    background: var(--smoked-teal-bg-zebra);
+  }
   .cheat-slot {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: var(--text-light);
+    font-size: 11px;
+    color: var(--text-dim);
   }
   .cheat-name {
     color: var(--text);
     font-weight: 500;
+    font-size: 15px;
+    letter-spacing: 1px;
     cursor: pointer;
     padding: 2px 0;
     transition: color 0.15s ease;
@@ -1170,13 +1183,16 @@
   .cheat-birth {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
-    color: var(--text-light);
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
   }
   .cheat-type {
     font-size: 10px;
     text-align: center;
-    padding: 2px 0;
+    padding: 3px 0;
     letter-spacing: 1px;
+    font-weight: 600;
+    border-radius: 2px;
   }
   .cheat-type.np { color: var(--marigold); border: 1px solid var(--marigold-bd); }
   .cheat-type.rt { color: var(--text-light); border: 1px solid var(--border); }
