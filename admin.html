@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.8">
+  <meta name="version" content="5.5.9">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.5.8 (2026-04-25) 修 v5.5.7 寬度 reflow regression(label 預留兩行高 + 自動 wrap)
+     Version:   v5.5.9 (2026-04-25) 修 v5.5.6 keypadSetLoading class 衝突(loading class 撞到既有提示文字 padding)
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -642,8 +642,9 @@
     60% { transform: translateX(-4px); }
     80% { transform: translateX(4px); }
   }
-  /* v5.5.6: 驗證中狀態 — 6 格星點橘色脈動 */
-  .keypad-display.loading .keypad-dot.filled::before {
+  /* v5.5.6: 驗證中狀態 — 6 格星點橘色脈動
+     v5.5.9: class 從 loading 改名 keypad-loading,避免跟全域 .loading(載入中文字 padding:20px)衝突 */
+  .keypad-display.keypad-loading .keypad-dot.filled::before {
     background: var(--marigold);
     animation: keypadDotPulse 1.2s ease-in-out infinite;
   }
@@ -3106,7 +3107,7 @@ function keypadResetUI() {
   const dots = document.querySelectorAll("#keypadDisplay .keypad-dot");
   dots.forEach(function(d) { d.classList.remove("filled"); });
   const display = document.getElementById("keypadDisplay");
-  display.classList.remove("error", "shake", "loading"); // v5.5.6: 也清 loading
+  display.classList.remove("error", "shake", "keypad-loading"); // v5.5.9: keypad-loading(舊 loading 撞到全域 class)
   // v5.5.7: 清 label 錯誤訊息(取代既有 loginErrorKeypad)
   keypadClearLabelError();
   // v5.5.6: 確保 enter 按鈕的 loading class 也清乾淨
@@ -3176,14 +3177,14 @@ function keypadSetLoading(on) {
   const display = document.getElementById("keypadDisplay");
   if (!display) return;
   if (on) {
-    display.classList.add("loading");
+    display.classList.add("keypad-loading"); // v5.5.9: 改名避開全域 .loading class 衝突
     // 12 格全部 disable,防重複按
     document.querySelectorAll(".keypad-btn").forEach(function(b) { b.disabled = true; });
     // enter 按鈕額外加 loading class 顯示「驗證中」字樣
     const enterBtn = document.querySelector('.keypad-btn[data-key="enter"]');
     if (enterBtn) enterBtn.classList.add("keypad-btn-loading");
   } else {
-    display.classList.remove("loading");
+    display.classList.remove("keypad-loading"); // v5.5.9: 對應 add 改名
     // 只在沒鎖定時 enable 按鈕(鎖定優先級高於 loading)
     if (!keypadDisabled) {
       document.querySelectorAll(".keypad-btn").forEach(function(b) { b.disabled = false; });
@@ -3269,7 +3270,7 @@ function enterMainPage() {
   document.querySelectorAll(".keypad-btn").forEach(function(b) { b.disabled = false; });
   const display = document.getElementById("keypadDisplay");
   if (display) {
-    display.classList.remove("error", "shake", "loading"); // v5.5.6: 也清 loading
+    display.classList.remove("error", "shake", "keypad-loading"); // v5.5.9: keypad-loading(舊 loading 撞到全域 class)
     document.querySelectorAll("#keypadDisplay .keypad-dot").forEach(function(d) { d.classList.remove("filled"); });
   }
   // v5.5.6: 也清 enter 按鈕的 loading class
