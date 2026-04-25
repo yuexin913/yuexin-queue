@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.2">
+  <meta name="version" content="5.5.3">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.5.2 (2026-04-24) modalBroadcast 去橘化(alert/預覽按鈕中性化,橘色只剩 stripe + 確認發送)
+     Version:   v5.5.3 (2026-04-25) 初診關懷反查 OR/AND 雙模式 + 修日期分隔符 + Enter 觸發
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -102,16 +102,21 @@
                      · 重用 lookupPatientLineId 反查邏輯,零學習曲線(跟代掛一致)
                      · 取消按鈕:單擊取消(不需打 go,風險低)、顯示刪除線 + 按鈕消失
                      · 反悔:重新 keyin(不提供恢復,避免跨日恢復誤導管理員)
-     · v5.5.1 目前 - modal 內按鈕/tab 顏色對齊 tile 主題色(純 CSS、零邏輯):
-                     · 設計原則:(1) 警示紅/橘維持(btn-danger、確認群發、確認停診)
-                                (2) 查詢類統一 capri 天藍(肌肉記憶「天藍=搜尋」)
-                                (3) 主 CTA 用 tile 主題色,次級按鈕用淺色邊框版
-                     · modalUnspecified(不指定 kiwi 綠):確認新增 marigold→kiwi、+新增 灰→kiwi-bg/bd
-                     · modalBroadcast(群發 orchid 紫粉):Tab 和 mode 切換 marigold→orchid
-                                                        查詢病患名單中性→capri
-                     · modalQuery(查詢 capri 天藍):查詢按鈕 yellow→capri
-                     · modalSubstitute(代診 yellow 黃):Tab 代診/停診 marigold→yellow、確認更新 marigold→yellow
-                     · modalSecurity(系統 pink):標記全部已讀 marigold→pink
+     · v5.5.1 - modal 內按鈕/tab 顏色對齊 tile 主題色(純 CSS):
+                     · 設計原則:警示紅/橘維持、查詢類統一 capri、主 CTA 對齊 tile 主題
+     · v5.5.2 - modalBroadcast 去橘化(橘紫色衝突修補):
+                     · alert/預覽按鈕中性化,橘色只剩 m-stripe + 確認發送(語意性橘色)
+     · v5.5.3 目前 - 初診關懷反查 OR 邏輯 + 修日期分隔符 + Enter 觸發
+                     (搭 backend v4.43):
+                     · 🔴 [Critical Bug] fuRocToAd 從 yyyy/MM/dd 改為 yyyy-MM-dd
+                       (對齊一般名單實際格式 dash,原本 slash 導致反查全部失敗)
+                     · [UI] 反查改 OR/AND 雙模式邏輯:
+                          - 兩格都填(姓名+生日)→ AND 精準比對(只 1 筆)
+                          - 只填一格(姓名「或」生日)→ OR 寬鬆比對(可能多筆)
+                          - 生日要填要填完整三格,避免「只有月份」這類無效輸入
+                     · [UI] 9 個 input 加 Enter 觸發(初診關懷 4 + 進階查詢 5)
+                     · [Backend] 新增 lookupNewPatientLineId(支援 strict 旗標)獨立給初診關懷用
+                       既有 lookupPatientLineId 維持代掛流程的精準匹配,不互相影響
      · 待辦 - 雙模式登入(九宮格 + 傳統輸入框切換)
      · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
      · 待辦 - 櫃檯教學模式(新人訓練 + tile tooltip,Intro.js 或自寫)
@@ -2244,14 +2249,14 @@
       <!-- 反查表單 -->
       <div class="fu-lookup-block">
         <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text-light);margin-bottom:10px;">新增初診關懷</div>
-        <div class="form-group" style="margin-bottom:10px;"><label class="form-label">姓名</label><input type="text" id="fuName" autocomplete="off" placeholder="輸入病患姓名"></div>
+        <div class="form-group" style="margin-bottom:10px;"><label class="form-label">姓名</label><input type="text" id="fuName" autocomplete="off" placeholder="輸入病患姓名" onkeydown="if(event.key==='Enter'){event.preventDefault();doFuLookup();}"></div>
         <div class="form-group" style="margin-bottom:10px;"><label class="form-label">生日 (民國)</label>
           <div style="display:flex;gap:6px;align-items:center;">
-            <input type="number" id="fuBirthY" inputmode="numeric" placeholder="年" style="flex:1;text-align:center;" min="1" max="150">
+            <input type="number" id="fuBirthY" inputmode="numeric" placeholder="年" style="flex:1;text-align:center;" min="1" max="150" onkeydown="if(event.key==='Enter'){event.preventDefault();doFuLookup();}">
             <span style="color:var(--text-dim);font-size:12px;">年</span>
-            <input type="number" id="fuBirthM" inputmode="numeric" placeholder="月" style="flex:1;text-align:center;" min="1" max="12">
+            <input type="number" id="fuBirthM" inputmode="numeric" placeholder="月" style="flex:1;text-align:center;" min="1" max="12" onkeydown="if(event.key==='Enter'){event.preventDefault();doFuLookup();}">
             <span style="color:var(--text-dim);font-size:12px;">月</span>
-            <input type="number" id="fuBirthD" inputmode="numeric" placeholder="日" style="flex:1;text-align:center;" min="1" max="31">
+            <input type="number" id="fuBirthD" inputmode="numeric" placeholder="日" style="flex:1;text-align:center;" min="1" max="31" onkeydown="if(event.key==='Enter'){event.preventDefault();doFuLookup();}">
             <span style="color:var(--text-dim);font-size:12px;">日</span>
           </div>
         </div>
@@ -2351,16 +2356,16 @@
 <div class="modal-overlay" id="modalQuery">
   <div class="modal">
     <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">進階查詢</div><div class="m-topbar-title">search.query</div><button class="modal-close" onclick="closeModal('modalQuery')">✕</button></div>
-    <div class="form-group"><label class="form-label">姓名</label><input type="text" id="qName" placeholder="請輸入姓名"></div>
-    <div class="form-group"><label class="form-label">電話</label><input type="tel" id="qPhone" placeholder="09xxxxxxxx" oninput="this.value=this.value.replace(/\D/g,'')"></div>
+    <div class="form-group"><label class="form-label">姓名</label><input type="text" id="qName" placeholder="請輸入姓名" onkeydown="if(event.key==='Enter'){event.preventDefault();doQuery();}"></div>
+    <div class="form-group"><label class="form-label">電話</label><input type="tel" id="qPhone" placeholder="09xxxxxxxx" oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter'){event.preventDefault();doQuery();}"></div>
     <div class="form-group">
       <label class="form-label">生日（民國年）</label>
       <div style="display:flex;gap:6px;align-items:center">
-        <input type="tel" id="qBirthY" placeholder="年" style="width:70px" maxlength="3" oninput="this.value=this.value.replace(/\D/g,'')">
+        <input type="tel" id="qBirthY" placeholder="年" style="width:70px" maxlength="3" oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter'){event.preventDefault();doQuery();}">
         <span>/</span>
-        <input type="tel" id="qBirthM" placeholder="月" style="width:55px" maxlength="2" oninput="this.value=this.value.replace(/\D/g,'')">
+        <input type="tel" id="qBirthM" placeholder="月" style="width:55px" maxlength="2" oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter'){event.preventDefault();doQuery();}">
         <span>/</span>
-        <input type="tel" id="qBirthD" placeholder="日" style="width:55px" maxlength="2" oninput="this.value=this.value.replace(/\D/g,'')">
+        <input type="tel" id="qBirthD" placeholder="日" style="width:55px" maxlength="2" oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter'){event.preventDefault();doQuery();}">
       </div>
     </div>
     <div id="qError" class="alert alert-error" style="display:none;margin-bottom:8px"></div>
@@ -4779,8 +4784,9 @@ function switchBcTab(tab) {
   document.getElementById('tabBtnFollowUp').classList.toggle('active', !isBroadcast);
 }
 
-// 民國年轉西元年(跟一般名單格式一致:yyyy/MM/dd)
-// 1980/05/20(西元)= 69/05/20(民國)
+// 民國年轉西元年(對齊一般名單 B 欄格式:yyyy-MM-dd)
+// v5.5.3: 從 yyyy/MM/dd 改為 yyyy-MM-dd (一般名單實際格式是 dash 不是 slash)
+// 1980-05-20(西元) = 69/05/20(民國)
 function fuRocToAd(y, m, d) {
   const yy = parseInt(y, 10);
   const mm = parseInt(m, 10);
@@ -4788,7 +4794,7 @@ function fuRocToAd(y, m, d) {
   if (!yy || !mm || !dd) return null;
   if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
   const adY = yy + 1911;
-  return adY + "/" + String(mm).padStart(2, "0") + "/" + String(dd).padStart(2, "0");
+  return adY + "-" + String(mm).padStart(2, "0") + "-" + String(dd).padStart(2, "0");
 }
 
 async function doFuLookup() {
@@ -4802,15 +4808,31 @@ async function doFuLookup() {
   const m = document.getElementById("fuBirthM").value;
   const d = document.getElementById("fuBirthD").value;
 
-  if (!name) { errEl.textContent = "請輸入姓名"; errEl.style.display = "block"; return; }
-  const birthAd = fuRocToAd(y, m, d);
-  if (!birthAd) { errEl.textContent = "請輸入完整且合法的民國生日"; errEl.style.display = "block"; return; }
+  // v5.5.3: 生日要填要填完整三格,避免「只有月份」這類無效輸入
+  const hasAnyBirth = !!(y || m || d);
+  const hasAllBirth = !!(y && m && d);
+  if (hasAnyBirth && !hasAllBirth) {
+    errEl.textContent = "生日請填寫完整(年、月、日皆需填)。"; errEl.style.display = "block"; return;
+  }
+
+  let birthAd = "";
+  if (hasAllBirth) {
+    birthAd = fuRocToAd(y, m, d);
+    if (!birthAd) { errEl.textContent = "請輸入合法的民國生日"; errEl.style.display = "block"; return; }
+  }
+
+  if (!name && !birthAd) {
+    errEl.textContent = "請至少輸入姓名或完整生日"; errEl.style.display = "block"; return;
+  }
+
+  // v5.5.3 Q5-B: 兩格都填 → backend 用 AND(精準);只填一格 → backend 用 OR(寬鬆)
+  // 透過 strict 旗標告知 backend 使用哪種邏輯
+  const useStrict = !!(name && birthAd);
 
   const btn = document.getElementById("btnFuLookup");
   btn.disabled = true; btn.textContent = "查詢中...";
   try {
-    // 重用 backend 的 lookupPatientLineId(透過 adminLookupPatient wrapper)
-    const data = await xhrPost(API_URL, { action: "adminLookupPatient", name: name, birth: birthAd, lineId: state.lineId });
+    const data = await xhrPost(API_URL, { action: "adminLookupPatient", name: name, birth: birthAd, strict: useStrict, lineId: state.lineId });
     if (!data.success) { errEl.textContent = data.error || "查詢失敗"; errEl.style.display = "block"; return; }
     const matches = data.matches || [];
     if (matches.length === 0) {
@@ -4818,17 +4840,20 @@ async function doFuLookup() {
       errEl.style.display = "block";
       return;
     }
-    // 顯示結果,每筆一個「加入清單」按鈕
-    let html = "";
-    matches.forEach(function(m) {
-      const ridBirthDisplay = m.birth ? rocDate(m.birth) : "";
+    // 顯示結果(無分頁,實務上量小)
+    let html = matches.length > 1
+      ? `<div style="font-size:11px;color:var(--text-dim);letter-spacing:1px;padding:6px 0 4px 0;">找到 ${matches.length} 筆,請選擇要加入的病患</div>`
+      : "";
+    matches.forEach(function(mm) {
+      const ridBirthDisplay = mm.birth ? rocDate(mm.birth) : "";
+      const itemName = mm.name || "";
       html += `<div class="fu-result-item">
         <div class="fu-result-info">
-          <span class="fu-name-big">${esc(name)}</span>
-          <span class="fu-meta">${esc(m.phone || "")} · ${esc(ridBirthDisplay)}</span>
+          <span class="fu-name-big">${esc(itemName)}</span>
+          <span class="fu-meta">${esc(mm.phone || "")} · ${esc(ridBirthDisplay)}</span>
         </div>
         <button class="fu-add-btn"
-          onclick="doFuAdd('${encodeURIComponent(m.lineId)}','${encodeURIComponent(name)}',this)">
+          onclick="doFuAdd('${encodeURIComponent(mm.lineId)}','${encodeURIComponent(itemName)}',this)">
           + 加入清單
         </button>
       </div>`;
