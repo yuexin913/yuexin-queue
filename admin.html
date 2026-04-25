@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.6">
+  <meta name="version" content="5.5.7">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.5.6 (2026-04-25) 九宮格按 enter 加驗證中 visual feedback(防 lag 重複按)
+     Version:   v5.5.7 (2026-04-25) 九宮格星點放大對齊 + 錯誤訊息寄生 passcode label(零 reflow)
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -135,7 +135,7 @@
                      · 實體鍵盤支援(0-9 / Backspace / Enter)
                      · 安全策略:既有 doLogin 函式核心邏輯零改動,
                                 只在結尾加 syncKeypadAfterLogin hook(包 try-catch)
-     · v5.5.6 目前 - 九宮格按 enter 加驗證中 visual feedback(防 lag 重複按):
+     · v5.5.6 - 九宮格按 enter 加驗證中 visual feedback(防 lag 重複按):
                      · 起因:粟醫師反映 enter 後畫面零反應 1-3 秒(GAS 冷啟動),
                             使用者誤以為當機重複按 → 失敗計數誤增
                      · 按 enter 立刻觸發 keypadSetLoading(true):
@@ -145,6 +145,19 @@
                      · doLogin 結束(syncKeypadAfterLogin 內)清除 loading 狀態
                      · keypadResetUI / enterMainPage 也順手清 loading,防 edge case 殘留
                      · 純 CSS + 一個新 helper 函式,既有 doLogin 0 改動
+     · v5.5.7 目前 - 九宮格星點放大對齊 + 錯誤訊息寄生 passcode label(零 reflow):
+                     · 起因:粟醫師實機反映 ① 6 格星點太小、寬度跟下方 12 宮格不齊
+                                              ② 錯誤訊息獨立區塊讓畫面 reflow,「打開又縮起來」不自然
+                     · [3] 6 格星點放大 28px → 45px、星點圓 8px → 12px
+                          數學:6*45 + 5*10 = 320px,完美對齊下方 12 宮格寬度
+                     · [2] 錯誤訊息「寄生」passcode label:
+                          - HTML:label 內加 keypadLabelText + keypadLabelError 兩個 span
+                          - 錯誤時 label 變紅 + 後段接訊息「密碼錯誤,請重新輸入。(剩餘 N 次)」
+                          - 下次按任一鍵時清掉,passcode 回灰
+                          - 畫面零 reflow(高度恆定,只有文字內容變化)
+                          - 設計學上叫 in-place feedback,對齊 iOS Lock Screen Try Again pattern
+                     · 新增 helper:keypadShowLabelError / keypadClearLabelError
+                     · 移除既有 #loginErrorKeypad div + 4 處 reference
      · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
      · 待辦 - 櫃檯教學模式(新人訓練 + tile tooltip,Intro.js 或自寫)
      · 待辦 - 節日彩蛋(低浮誇版,低成本高報酬)
@@ -478,6 +491,18 @@
     text-transform: lowercase;
     margin-bottom: 8px;
   }
+  /* v5.5.7: passcode label 錯誤狀態 — 整行變紅,錯誤訊息寄生在 label 後段 */
+  .login-field-label.error #keypadLabelText {
+    color: var(--pink);
+  }
+  #keypadLabelError {
+    color: var(--pink);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin-left: 8px;
+    text-transform: none;
+  }
   .login-input {
     width: 100%;
     padding: 12px 12px 12px 12px;
@@ -541,6 +566,9 @@
      v5.5.5: 雙模式登入 — 電子密碼鎖九宮格
      ════════════════════════════════════════════════════════ */
   /* 6 格星號顯示區 */
+  /* v5.5.7: 6 格星點放大 + 對齊下方 12 宮格寬度
+     12 宮格:3 col × 1fr + gap 8px,父寬 320px → 單欄 ~101px、總寬 320px
+     6 格星點:45px × 6 + gap 10px × 5 = 270 + 50 = 320px ✅ 完全對齊 */
   .keypad-display {
     display: flex;
     justify-content: center;
@@ -549,8 +577,8 @@
     margin-bottom: 8px;
   }
   .keypad-dot {
-    width: 28px;
-    height: 28px;
+    width: 45px;
+    height: 45px;
     border: 1px solid var(--border);
     border-radius: 2px;
     background: var(--bg-2);
@@ -565,8 +593,8 @@
   }
   .keypad-dot.filled::before {
     content: "";
-    width: 8px;
-    height: 8px;
+    width: 12px;
+    height: 12px;
     background: var(--marigold);
     border-radius: 50%;
     animation: keypadDotIn 0.18s ease;
@@ -2038,7 +2066,10 @@
     <!-- v5.5.5: 雙模式登入 — 預設九宮格,可切換為文字輸入 -->
     <!-- 九宮格模式(預設) -->
     <div id="loginKeypadMode">
-      <div class="login-field-label">passcode</div>
+      <!-- v5.5.7: passcode label 內嵌錯誤訊息(零 reflow,訊息寄生在既有空間)-->
+      <div class="login-field-label" id="keypadLabel">
+        <span id="keypadLabelText">passcode</span><span id="keypadLabelError" style="display:none;"></span>
+      </div>
       <!-- 6 格星號顯示區 -->
       <div class="keypad-display" id="keypadDisplay">
         <span class="keypad-dot" data-pos="0"></span>
@@ -2048,7 +2079,6 @@
         <span class="keypad-dot" data-pos="4"></span>
         <span class="keypad-dot" data-pos="5"></span>
       </div>
-      <div id="loginErrorKeypad" class="login-error"></div>
       <!-- 12 格按鍵 -->
       <div class="keypad-grid" id="keypadGrid">
         <button type="button" class="keypad-btn" data-key="1">1</button>
@@ -3055,11 +3085,29 @@ function keypadResetUI() {
   dots.forEach(function(d) { d.classList.remove("filled"); });
   const display = document.getElementById("keypadDisplay");
   display.classList.remove("error", "shake", "loading"); // v5.5.6: 也清 loading
-  const errEl = document.getElementById("loginErrorKeypad");
-  if (errEl) { errEl.style.display = "none"; errEl.textContent = ""; }
+  // v5.5.7: 清 label 錯誤訊息(取代既有 loginErrorKeypad)
+  keypadClearLabelError();
   // v5.5.6: 確保 enter 按鈕的 loading class 也清乾淨
   const enterBtn = document.querySelector('.keypad-btn[data-key="enter"]');
   if (enterBtn) enterBtn.classList.remove("keypad-btn-loading");
+}
+
+// v5.5.7: 把錯誤訊息寄生在 passcode label,訊息出現/消失皆零 reflow
+function keypadShowLabelError(msg) {
+  const label = document.getElementById("keypadLabel");
+  const errSpan = document.getElementById("keypadLabelError");
+  if (!label || !errSpan) return;
+  errSpan.textContent = msg;
+  errSpan.style.display = "inline";
+  label.classList.add("error");
+}
+function keypadClearLabelError() {
+  const label = document.getElementById("keypadLabel");
+  const errSpan = document.getElementById("keypadLabelError");
+  if (!label || !errSpan) return;
+  errSpan.textContent = "";
+  errSpan.style.display = "none";
+  label.classList.remove("error");
 }
 
 function keypadRenderDots() {
@@ -3074,13 +3122,11 @@ function keypadPress(key) {
   if (keypadDisabled || isLoggingIn) return;
   // 任一輸入動作都先清掉之前的錯誤狀態
   const display = document.getElementById("keypadDisplay");
-  const errEl = document.getElementById("loginErrorKeypad");
   if (display.classList.contains("error")) {
     display.classList.remove("error");
   }
-  if (errEl && errEl.style.display === "block") {
-    errEl.style.display = "none";
-  }
+  // v5.5.7: 清 label 錯誤訊息(取代既有 loginErrorKeypad)
+  keypadClearLabelError();
 
   if (key === "back") {
     if (keypadBuffer.length > 0) {
@@ -3134,13 +3180,12 @@ function syncKeypadAfterLogin() {
   keypadSetLoading(false);
 
   const textErrEl = document.getElementById("loginError");
-  const keypadErrEl = document.getElementById("loginErrorKeypad");
   const display = document.getElementById("keypadDisplay");
 
   // 把文字模式的錯誤訊息同步顯示給九宮格
   if (textErrEl.style.display === "block" && textErrEl.textContent) {
-    keypadErrEl.textContent = textErrEl.textContent;
-    keypadErrEl.style.display = "block";
+    // v5.5.7: 把錯誤訊息寄生 passcode label,而非獨立 div(零 reflow)
+    keypadShowLabelError(textErrEl.textContent);
 
     // 鎖定狀態:整個九宮格 disable
     if (textErrEl.textContent.indexOf("鎖定") !== -1 || textErrEl.textContent.indexOf("失敗次數過多") !== -1) {
@@ -3156,8 +3201,8 @@ function syncKeypadAfterLogin() {
       keypadRenderDots();
     }
   } else {
-    // 沒錯誤(成功或還沒送出),確保 UI 乾淨
-    keypadErrEl.style.display = "none";
+    // v5.5.7: 沒錯誤(成功或還沒送出),確保 label 是乾淨的
+    keypadClearLabelError();
   }
 }
 
@@ -3208,8 +3253,8 @@ function enterMainPage() {
   // v5.5.6: 也清 enter 按鈕的 loading class
   const enterBtn = document.querySelector('.keypad-btn[data-key="enter"]');
   if (enterBtn) enterBtn.classList.remove("keypad-btn-loading");
-  const keypadErr = document.getElementById("loginErrorKeypad");
-  if (keypadErr) keypadErr.style.display = "none";
+  // v5.5.7: 清 label 錯誤訊息(取代既有 loginErrorKeypad)
+  keypadClearLabelError();
   const pageLogin = document.getElementById("pageLogin");
   const pageMain = document.getElementById("pageMain");
   pageLogin.style.display = "none";
