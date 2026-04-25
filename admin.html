@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.5">
+  <meta name="version" content="5.5.6">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,7 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.5.5 (2026-04-25) 雙模式登入(電子密碼鎖九宮格 + 既有文字模式切換)
+     Version:   v5.5.6 (2026-04-25) 九宮格按 enter 加驗證中 visual feedback(防 lag 重複按)
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -124,7 +124,7 @@
                      · 移除底線分隔,改 Mist Green 斑馬條紋(奇行 8% Mist Green 底色)
                      · 對齊 tile-teal「預覽」主題色 — 入口 tile 跟 modal 內容色系延伸一致
                      · 新增 --smoked-teal-bg-zebra CSS 變數(0.08 透明度,比 bg 0.18 更淡)
-     · v5.5.5 目前 - 雙模式登入(電子密碼鎖九宮格 + 文字輸入切換):
+     · v5.5.5 - 雙模式登入(電子密碼鎖九宮格 + 文字輸入切換):
                      · 預設九宮格(電子密碼鎖風格,類似門禁/保險箱):
                           - 6 格星號顯示區 + 12 格按鍵(0-9 + backspace + enter)
                           - 數字按下星號淡入(keypadDotIn 動畫)
@@ -135,6 +135,16 @@
                      · 實體鍵盤支援(0-9 / Backspace / Enter)
                      · 安全策略:既有 doLogin 函式核心邏輯零改動,
                                 只在結尾加 syncKeypadAfterLogin hook(包 try-catch)
+     · v5.5.6 目前 - 九宮格按 enter 加驗證中 visual feedback(防 lag 重複按):
+                     · 起因:粟醫師反映 enter 後畫面零反應 1-3 秒(GAS 冷啟動),
+                            使用者誤以為當機重複按 → 失敗計數誤增
+                     · 按 enter 立刻觸發 keypadSetLoading(true):
+                          - 6 格星點橘色脈動(keypadDotPulse 1.2s loop)
+                          - enter 按鈕變橘 + 顯示「驗證中」字樣
+                          - 12 格全 disabled,防止重複按
+                     · doLogin 結束(syncKeypadAfterLogin 內)清除 loading 狀態
+                     · keypadResetUI / enterMainPage 也順手清 loading,防 edge case 殘留
+                     · 純 CSS + 一個新 helper 函式,既有 doLogin 0 改動
      · 待辦 - admin Japandi 視覺化(延伸 booking v5.5.0 風格,設計待討論)
      · 待辦 - 櫃檯教學模式(新人訓練 + tile tooltip,Intro.js 或自寫)
      · 待辦 - 節日彩蛋(低浮誇版,低成本高報酬)
@@ -581,6 +591,27 @@
     40% { transform: translateX(6px); }
     60% { transform: translateX(-4px); }
     80% { transform: translateX(4px); }
+  }
+  /* v5.5.6: 驗證中狀態 — 6 格星點橘色脈動 */
+  .keypad-display.loading .keypad-dot.filled::before {
+    background: var(--marigold);
+    animation: keypadDotPulse 1.2s ease-in-out infinite;
+  }
+  @keyframes keypadDotPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+  /* v5.5.6: 驗證中狀態 — enter 按鈕變橘 + 顯示驗證中 */
+  .keypad-btn.keypad-btn-loading {
+    background: var(--marigold-bg);
+    border-color: var(--marigold-bd);
+    color: var(--marigold);
+  }
+  .keypad-btn.keypad-btn-loading svg { display: none; }
+  .keypad-btn.keypad-btn-loading::after {
+    content: "驗證中";
+    font-size: 11px;
+    letter-spacing: 1px;
   }
   /* 12 格按鍵網格(3 col x 4 row)*/
   .keypad-grid {
@@ -3023,9 +3054,12 @@ function keypadResetUI() {
   const dots = document.querySelectorAll("#keypadDisplay .keypad-dot");
   dots.forEach(function(d) { d.classList.remove("filled"); });
   const display = document.getElementById("keypadDisplay");
-  display.classList.remove("error", "shake");
+  display.classList.remove("error", "shake", "loading"); // v5.5.6: 也清 loading
   const errEl = document.getElementById("loginErrorKeypad");
   if (errEl) { errEl.style.display = "none"; errEl.textContent = ""; }
+  // v5.5.6: 確保 enter 按鈕的 loading class 也清乾淨
+  const enterBtn = document.querySelector('.keypad-btn[data-key="enter"]');
+  if (enterBtn) enterBtn.classList.remove("keypad-btn-loading");
 }
 
 function keypadRenderDots() {
@@ -3055,6 +3089,8 @@ function keypadPress(key) {
     }
   } else if (key === "enter") {
     if (keypadBuffer.length === 0) return;
+    // v5.5.6: 立刻給 loading visual feedback,防止 lag 期間使用者重複按
+    keypadSetLoading(true);
     // 把 buffer 塞進現有 input,呼叫既有 doLogin
     document.getElementById("loginPassword").value = keypadBuffer;
     doLogin();
@@ -3066,10 +3102,36 @@ function keypadPress(key) {
 }
 
 // doLogin 結束後同步狀態到九宮格(成功時清空,失敗時抖動,鎖定時禁用)
+// v5.5.6: 設定/清除九宮格「驗證中」狀態
+// 立刻給使用者視覺反饋,避免 GAS 冷啟動 1-3 秒期間使用者重複按 enter
+function keypadSetLoading(on) {
+  const display = document.getElementById("keypadDisplay");
+  if (!display) return;
+  if (on) {
+    display.classList.add("loading");
+    // 12 格全部 disable,防重複按
+    document.querySelectorAll(".keypad-btn").forEach(function(b) { b.disabled = true; });
+    // enter 按鈕額外加 loading class 顯示「驗證中」字樣
+    const enterBtn = document.querySelector('.keypad-btn[data-key="enter"]');
+    if (enterBtn) enterBtn.classList.add("keypad-btn-loading");
+  } else {
+    display.classList.remove("loading");
+    // 只在沒鎖定時 enable 按鈕(鎖定優先級高於 loading)
+    if (!keypadDisabled) {
+      document.querySelectorAll(".keypad-btn").forEach(function(b) { b.disabled = false; });
+    }
+    const enterBtn = document.querySelector('.keypad-btn[data-key="enter"]');
+    if (enterBtn) enterBtn.classList.remove("keypad-btn-loading");
+  }
+}
+
 function syncKeypadAfterLogin() {
   const keypadMode = document.getElementById("loginKeypadMode");
   // 只有九宮格模式可見時才處理
   if (!keypadMode || keypadMode.style.display === "none") return;
+
+  // v5.5.6: 一進來先關閉 loading 狀態(無論成功或失敗,都要解除「驗證中」)
+  keypadSetLoading(false);
 
   const textErrEl = document.getElementById("loginError");
   const keypadErrEl = document.getElementById("loginErrorKeypad");
@@ -3140,9 +3202,12 @@ function enterMainPage() {
   document.querySelectorAll(".keypad-btn").forEach(function(b) { b.disabled = false; });
   const display = document.getElementById("keypadDisplay");
   if (display) {
-    display.classList.remove("error", "shake");
+    display.classList.remove("error", "shake", "loading"); // v5.5.6: 也清 loading
     document.querySelectorAll("#keypadDisplay .keypad-dot").forEach(function(d) { d.classList.remove("filled"); });
   }
+  // v5.5.6: 也清 enter 按鈕的 loading class
+  const enterBtn = document.querySelector('.keypad-btn[data-key="enter"]');
+  if (enterBtn) enterBtn.classList.remove("keypad-btn-loading");
   const keypadErr = document.getElementById("loginErrorKeypad");
   if (keypadErr) keypadErr.style.display = "none";
   const pageLogin = document.getElementById("pageLogin");
