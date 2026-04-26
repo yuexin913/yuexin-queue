@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.6.4">
+  <meta name="version" content="5.6.5">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,7 +20,7 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.6.4 (2026-04-26)
+     Version:   v5.6.5 (2026-04-26)
      Theme:     Japandi 自然米系 · Parchment/Cream 背景 · 侘寂風
      Typography: Noto Sans TC (主) + Noto Serif TC (診所名)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -62,12 +62,18 @@
      · v5.6.3 目前 — 順手清理立項:
                      · cancelModal 遮罩加深(0.32 → 0.45) + blur(3px → 6px) 對齊 v5.6.1 cardModal 視覺一致性
                      · 順手補 `-webkit-backdrop-filter` 前綴(iOS Safari 早期版本需要,可能是原本「無遮罩感」的真正根因)
-     · v5.6.4 目前 — 列表卡極簡化(配合未來 LINE 訊息可能取消的戰略設計):
+     · v5.6.4 - 列表卡極簡化(配合未來 LINE 訊息可能取消的戰略設計):
                      · 已確認預約改單行「日期 · 時段 · 醫師」+ 「查看詳情 →」CTA + 取消按鈕
                      · 已取消預約改單行 + opacity 0.55 視覺降級 + inline 灰字「已取消」(去 boxed 框)
                      · 醫師名過長(代診)用 flex + min-width:0 + ellipsis 截斷處理
                      · 設計哲學:列表 = 目錄,圖卡 = 詳情,單一信源,圖卡作為病患預約資訊主體
                      · 滑動密度提升 ~2.3 倍,圖卡 re-access 動機增強
+     · v5.6.5 目前 — 列表卡 actions 視覺權重微調:
+                     · 已確認預約改 2 行(主資訊 / 兩按鈕並列):查看詳情 + 取消預約
+                     · X₁ + Y₄ 配置:寬度 1.5:1(查看詳情寬)、查看詳情 sage 框 1.5px + serif weight 700、取消預約紅 outline 0.5px + sans
+                     · 文案微調:「取消此預約」→「取消預約」(4 字對稱「查看詳情」)、「查看詳情 →」→「→ 查看詳情」(箭頭移左、避免原箭頭指向取消按鈕的視覺誘導)
+                     · 移除 v5.6.1 的 `.booking-detail-cta` inline CTA 樣式(改為按鈕後不需要)
+                     · 解決粟醫師實機觀察:醫師名 ellipsis 截斷、卡片寬度不一致、取消按鈕獨佔一行頭重腳輕
      · v6.0 預計 — 心理治療預約上線
      · v7.0 預計 — 帳號系統與病患個人資料管理
      ========================================================== */
@@ -1138,8 +1144,30 @@
     background: rgba(74,74,68,0.02);  /* 不可點,hover 不變色 */
   }
   .booking-detail { font-size: 13px; color: var(--ink-mid); line-height: 1.9; letter-spacing: 0.5px; }
+  /* v5.6.5: 列表卡 actions 容器(flex 並列「查看詳情」+「取消預約」按鈕) */
+  .booking-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  /* v5.6.5: 查看詳情按鈕(主按鈕,sage 框 1.5px + serif weight 700) */
+  .booking-detail-btn {
+    flex: 1.5;
+    padding: 9px;
+    border: 1.5px solid var(--sage-dark); border-radius: 3px;
+    background: transparent; color: var(--sage-dark); font-size: 13px;
+    font-family: 'Noto Serif TC', serif; cursor: pointer; transition: all 0.2s;
+    font-weight: 700;
+    letter-spacing: 2px;
+  }
+  .booking-detail-btn:hover {
+    background: rgba(138,170,85,0.05);
+    border-color: var(--sage-deep);
+  }
+  /* v5.6.5: 取消預約按鈕(次按鈕,紅 outline 0.5px + sans + 寬度 flex:1) */
   .booking-cancel {
-    margin-top: 12px; padding: 9px; width: 100%;
+    flex: 1;
+    padding: 9px;
     border: 0.5px solid rgba(192,57,43,0.4); border-radius: 3px;
     background: transparent; color: var(--error); font-size: 13px;
     font-family: 'Noto Sans TC', sans-serif; cursor: pointer; transition: all 0.2s;
@@ -1336,15 +1364,8 @@
   .booking-item.is-clickable:hover { background: rgba(138,170,85,0.06); }
   .booking-item.is-clickable:active { background: rgba(138,170,85,0.10); }
 
-  /* 「查看詳情 →」CTA(取代原本「已確認」標籤) */
-  .booking-detail-cta {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 13px;
-    color: var(--sage-dark);
-    letter-spacing: 2px;
-    white-space: nowrap;
-    user-select: none;
-  }
+  /* v5.6.1 的 .booking-detail-cta(inline 「查看詳情 →」CTA)
+     v5.6.5 改為 button(.booking-detail-btn),inline CTA 樣式已移除 */
 
   /* 4 行資訊 grid:lbl + val,跟 fusion-info 設計呼應 */
   .booking-info-grid {
@@ -3448,8 +3469,7 @@ function renderBookingPage() {
   //         設計哲學:列表 = 目錄,圖卡 = 詳情,單一信源
   let html = "";
   pageBookings.forEach(function(b) {
-    const canCancel = b.status !== "已取消";
-    const isClickable = b.status === "已確認";  // 只有已確認可點開圖卡
+    const isClickable = b.status === "已確認";  // 只有已確認可點開圖卡 + 顯示 actions
     const displayName = esc(b.displayName || b.session + "診");
 
     // ── 組醫師標籤(代診加「(代診)」) ──
@@ -3457,28 +3477,35 @@ function renderBookingPage() {
       ? esc(b.doctor) + " 醫師" + (b.isSubstitute ? "(代診)" : "")
       : "-";
 
-    // ── 主資訊單行:日期 · 時段 · 醫師 ──
-    const mainLine = `${esc(b.date)} ${displayName} · ${doctorLabel}`;
-
-    // ── header 右側:已確認 → CTA;已取消 → inline 灰字 ──
-    const headerRight = isClickable
-      ? `<div class="booking-detail-cta">查看詳情 →</div>`
-      : `<div class="booking-cancelled-inline">已取消</div>`;
+    // ── 主資訊行:日期 · 時段 · 醫師(已確認顯示醫師,已取消為了精簡只顯示時段) ──
+    const mainLine = isClickable
+      ? `${esc(b.date)} ${displayName} · ${doctorLabel}`
+      : `${esc(b.date)} ${displayName}`;
 
     const itemClick = isClickable
       ? ` onclick="openCardModal('${esc(b.bookingId)}')"`
       : "";
     const itemCls = "booking-item"
-      + (isClickable ? " is-clickable" : "")
-      + (!isClickable ? " is-cancelled" : "");
+      + (isClickable ? " is-clickable" : " is-cancelled");
 
-    html += `<div class="${itemCls}"${itemClick}>
-      <div class="booking-item-header">
+    if (isClickable) {
+      // v5.6.5: 已確認 = 兩行(主資訊 / 兩按鈕並列「→ 查看詳情」+「取消預約」)
+      html += `<div class="${itemCls}"${itemClick}>
         <div class="booking-line">${mainLine}</div>
-        ${headerRight}
-      </div>
-      ${canCancel ? `<button class="booking-cancel" onclick="event.stopPropagation(); cancelBooking('${esc(b.bookingId)}', this);">取消此預約</button>` : ""}
-    </div>`;
+        <div class="booking-actions">
+          <button class="booking-detail-btn" onclick="event.stopPropagation(); openCardModal('${esc(b.bookingId)}');">→ 查看詳情</button>
+          <button class="booking-cancel" onclick="event.stopPropagation(); cancelBooking('${esc(b.bookingId)}', this);">取消預約</button>
+        </div>
+      </div>`;
+    } else {
+      // v5.6.5: 已取消 = 單行(主資訊 + 右側灰字「已取消」),不可點
+      html += `<div class="${itemCls}">
+        <div class="booking-item-header">
+          <div class="booking-line">${mainLine}</div>
+          <div class="booking-cancelled-inline">已取消</div>
+        </div>
+      </div>`;
+    }
   });
   listEl.innerHTML = html;
 
