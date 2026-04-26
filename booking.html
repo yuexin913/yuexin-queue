@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.6.2">
+  <meta name="version" content="5.6.4">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,7 +20,7 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.6.2 (2026-04-26)
+     Version:   v5.6.4 (2026-04-26)
      Theme:     Japandi 自然米系 · Parchment/Cream 背景 · 侘寂風
      Typography: Noto Sans TC (主) + Noto Serif TC (診所名)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -56,9 +56,18 @@
                      · 圖卡 modal:深灰遮罩 0.45 + blur 6px + fadeInUp 0.2s 過渡
                      · 圖卡內動畫(drawCheck/successPop/fadeIn)在 modal 中禁用,只在預約完成頁播放
                      · 順手:statusMap 移除「待確認」死 key
-     · v5.6.2 目前 — v5.6.1 實機 hotfix:
+     · v5.6.2 - v5.6.1 實機 hotfix:
                      · 「報到時間」4 字 label 在 50px 欄位被斷行 → 統一改 2 字「報到」(對齊圖卡內 lbl 設計)
                      · CSS 防呆:`.booking-info-grid .lbl` 加 `white-space: nowrap`(未來防止再次斷行)
+     · v5.6.3 目前 — 順手清理立項:
+                     · cancelModal 遮罩加深(0.32 → 0.45) + blur(3px → 6px) 對齊 v5.6.1 cardModal 視覺一致性
+                     · 順手補 `-webkit-backdrop-filter` 前綴(iOS Safari 早期版本需要,可能是原本「無遮罩感」的真正根因)
+     · v5.6.4 目前 — 列表卡極簡化(配合未來 LINE 訊息可能取消的戰略設計):
+                     · 已確認預約改單行「日期 · 時段 · 醫師」+ 「查看詳情 →」CTA + 取消按鈕
+                     · 已取消預約改單行 + opacity 0.55 視覺降級 + inline 灰字「已取消」(去 boxed 框)
+                     · 醫師名過長(代診)用 flex + min-width:0 + ellipsis 截斷處理
+                     · 設計哲學:列表 = 目錄,圖卡 = 詳情,單一信源,圖卡作為病患預約資訊主體
+                     · 滑動密度提升 ~2.3 倍,圖卡 re-access 動機增強
      · v6.0 預計 — 心理治療預約上線
      · v7.0 預計 — 帳號系統與病患個人資料管理
      ========================================================== */
@@ -1079,20 +1088,55 @@
   .booking-item {
     border: 0.5px solid rgba(74,74,68,0.15); border-radius: 3px;
     padding: 14px 16px; margin-bottom: 10px; background: transparent;
-    transition: background 0.2s;
+    transition: background 0.2s, opacity 0.2s;
   }
   .booking-item:hover { background: rgba(138,170,85,0.04); }
   .booking-item-header {
-    display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px;
+    margin-bottom: 0;  /* v5.6.4 單行設計,無下方 detail 區 */
   }
+  /* v5.6.4 主資訊單行(日期 · 時段 · 醫師)— ellipsis 處理代診長名 */
+  .booking-line {
+    flex: 1;
+    min-width: 0;  /* 允許 flex item 縮小被 ellipsis 截斷 */
+    font-family: 'Noto Serif TC', serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--sage-deep);
+    letter-spacing: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* 沿用 .booking-date 兼容(若舊 code 仍有引用),v5.6.4 主推 .booking-line */
   .booking-date { font-family: 'Noto Serif TC', serif; font-size: 15px; font-weight: 500; color: var(--sage-deep); letter-spacing: 2px; }
   .booking-status {
     font-size: 11px; padding: 2px 9px; border-radius: 2px; font-weight: 400;
     letter-spacing: 1px;
+    flex-shrink: 0;
   }
   .status-pending { background: transparent; color: #8a5f0a; border: 0.5px solid rgba(194,134,10,0.35); }
   .status-confirmed { background: transparent; color: var(--sage-dark); border: 0.5px solid rgba(138,170,85,0.45); }
   .status-cancelled { background: transparent; color: var(--ink-light); border: 0.5px solid rgba(74,74,68,0.18); }
+  /* v5.6.4 已取消改 inline 灰字(去 boxed),呼應整張卡視覺降級 */
+  .booking-cancelled-inline {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 12px;
+    color: var(--ink-light);
+    letter-spacing: 2px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  /* v5.6.4 已取消整張卡視覺降級(opacity + 淡背景 + 淡邊框) */
+  .booking-item.is-cancelled {
+    opacity: 0.55;
+    background: rgba(74,74,68,0.02);
+    border-color: rgba(74,74,68,0.08);
+  }
+  .booking-item.is-cancelled:hover {
+    background: rgba(74,74,68,0.02);  /* 不可點,hover 不變色 */
+  }
   .booking-detail { font-size: 13px; color: var(--ink-mid); line-height: 1.9; letter-spacing: 0.5px; }
   .booking-cancel {
     margin-top: 12px; padding: 9px; width: 100%;
@@ -1258,9 +1302,10 @@
   /* ── 自訂 Modal ── */
   .modal-overlay {
     display: none; position: fixed; inset: 0;
-    background: rgba(43,43,40,0.32); z-index: 1000;
+    background: rgba(43,43,40,0.45); z-index: 1000;
     align-items: center; justify-content: center;
-    backdrop-filter: blur(3px);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
   }
   .modal-overlay.active { display: flex; }
   .modal-box {
@@ -3398,64 +3443,40 @@ function renderBookingPage() {
   }
 
   // v5.6.1: 移除「待確認」死 key(後端 submitBooking 一律寫「已確認」,系統不會產生「待確認」狀態)
-  const statusMap = { "已確認": "status-confirmed", "已取消": "status-cancelled" };
+  // v5.6.4: 列表卡極簡化 — 已確認單行(日期 · 時段 · 醫師 + CTA + 取消按鈕)
+  //         已取消單行(同上) + opacity 視覺降級 + inline 灰字「已取消」
+  //         設計哲學:列表 = 目錄,圖卡 = 詳情,單一信源
   let html = "";
   pageBookings.forEach(function(b) {
-    const statusCls = statusMap[b.status] || "status-cancelled";
     const canCancel = b.status !== "已取消";
     const isClickable = b.status === "已確認";  // 只有已確認可點開圖卡
     const displayName = esc(b.displayName || b.session + "診");
 
-    // ── 組「號碼/報到」資訊 ──
-    let slotText = "";
-    let arrivalText = "";
-    if (b.type === "初診") {
-      arrivalText = esc(b.checkInTime);
-    } else if (b.slot === "不指定") {
-      slotText = "不指定時段";
-      arrivalText = esc(b.checkInTime);
-    } else {
-      const slotNum = parseInt(b.slot);
-      let rangeDisplay = "";
-      if (!isNaN(slotNum) && RETURN_TIME_CARDS[b.session]) {
-        const cards = RETURN_TIME_CARDS[b.session];
-        const matched = cards.find(function(c) { return slotNum >= c.minNum && slotNum <= c.maxNum; });
-        if (matched) rangeDisplay = matched.label;
-      }
-      slotText = esc(b.slot) + " 號";
-      arrivalText = rangeDisplay;
-    }
+    // ── 組醫師標籤(代診加「(代診)」) ──
+    const doctorLabel = b.doctor
+      ? esc(b.doctor) + " 醫師" + (b.isSubstitute ? "(代診)" : "")
+      : "-";
 
-    // ── 組 grid 行(只渲染有內容的列) ──
-    let gridRows = "";
-    if (b.name) {
-      gridRows += `<div class="lbl">姓名</div><div class="val is-name">${esc(b.name)}</div>`;
-    }
-    if (slotText) {
-      const lbl = b.slot === "不指定" ? "時段" : "號碼";
-      gridRows += `<div class="lbl">${lbl}</div><div class="val">${slotText}</div>`;
-    }
-    if (arrivalText) {
-      gridRows += `<div class="lbl">報到</div><div class="val">${arrivalText}</div>`;
-    }
-    gridRows += `<div class="lbl">醫師</div><div class="val">${esc(b.doctor || "-")} 醫師</div>`;
+    // ── 主資訊單行:日期 · 時段 · 醫師 ──
+    const mainLine = `${esc(b.date)} ${displayName} · ${doctorLabel}`;
 
-    // ── header 右側:已確認 → CTA;已取消 → 灰標籤 ──
+    // ── header 右側:已確認 → CTA;已取消 → inline 灰字 ──
     const headerRight = isClickable
       ? `<div class="booking-detail-cta">查看詳情 →</div>`
-      : `<div class="booking-status ${statusCls}">${esc(b.status)}</div>`;
+      : `<div class="booking-cancelled-inline">已取消</div>`;
 
     const itemClick = isClickable
       ? ` onclick="openCardModal('${esc(b.bookingId)}')"`
       : "";
-    const itemCls = "booking-item" + (isClickable ? " is-clickable" : "");
+    const itemCls = "booking-item"
+      + (isClickable ? " is-clickable" : "")
+      + (!isClickable ? " is-cancelled" : "");
 
     html += `<div class="${itemCls}"${itemClick}>
       <div class="booking-item-header">
-        <div class="booking-date">${esc(b.date)} ${displayName}</div>
+        <div class="booking-line">${mainLine}</div>
         ${headerRight}
       </div>
-      <div class="booking-info-grid">${gridRows}</div>
       ${canCancel ? `<button class="booking-cancel" onclick="event.stopPropagation(); cancelBooking('${esc(b.bookingId)}', this);">取消此預約</button>` : ""}
     </div>`;
   });
@@ -3487,12 +3508,12 @@ async function cancelBooking(bookingId, btn) {
     try {
       const data = await xhrPost(API_URL, { action: "cancelBooking", bookingId: bookingId, lineId: state.lineId });
       if (!data.success) throw new Error(data.error);
-      // allBookingResults の該当エントリを更新（ページ切り替え時に正しく表示するため）
+      // 更新 allBookingResults 該筆狀態,然後整頁重渲染
+      // v5.6.4: 改用 renderBookingPage 而非 inline DOM patch,因為新結構(.booking-line + .booking-cancelled-inline)
+      // 跟舊版 inline 操作的 .booking-status 已不相容,而且整頁重渲染保證 is-cancelled class、onclick 移除等同步
       const bk = allBookingResults.find(function(b) { return b.bookingId === bookingId; });
       if (bk) bk.status = "已取消";
-      btn.closest(".booking-item").querySelector(".booking-status").textContent = "已取消";
-      btn.closest(".booking-item").querySelector(".booking-status").className = "booking-status status-cancelled";
-      btn.remove();
+      renderBookingPage();
     } catch(e) {
       btn.disabled = false; btn.textContent = "取消此預約";
       const errEl = document.getElementById("cancelError");
