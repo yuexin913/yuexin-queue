@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.6.6.1">
+  <meta name="version" content="5.6.6.2">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,7 +20,7 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.6.6.1 (2026-04-26)
+     Version:   v5.6.6.2 (2026-04-26)
      Theme:     Japandi 自然米系 · Parchment/Cream 背景 · 侘寂風
      Typography: Noto Sans TC (主) + Noto Serif TC (診所名)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -1016,8 +1016,8 @@
     margin-bottom: 2px;
   }
   .fusion-footer-logo .en {
-    font-size: 9px;
-    letter-spacing: 3px;
+    font-size: 8px;
+    letter-spacing: 2px;
     color: var(--ink-light);
   }
   .fusion-footer-logo-img {
@@ -1469,8 +1469,8 @@
 <div class="modal-overlay" id="cancelModal">
   <div class="modal-box">
     <div class="modal-title">取消預約</div>
-    <div class="modal-msg">確定要取消此預約嗎？</div>
-    <div class="modal-btns">
+    <div class="modal-msg" id="cancelModalMsg">確定要取消此預約嗎?</div>
+    <div class="modal-btns" id="cancelModalBtns">
       <button class="modal-btn modal-btn-cancel" onclick="closeCancelModal()">返回</button>
       <button class="modal-btn modal-btn-confirm" id="modalConfirmBtn">確定取消</button>
     </div>
@@ -1507,7 +1507,7 @@
       <div class="fusion-footer">
         <div class="fusion-footer-logo">
           <div class="clinic">悅心診所</div>
-          <div class="en">YUEXIN CLINIC</div>
+          <div class="en">YUEXIN PSYCHIATRIC CLINIC</div>
         </div>
         <img id="cardModalLogo" class="fusion-footer-logo-img" src="" alt="" onerror="this.style.display='none'">
       </div>
@@ -1856,7 +1856,7 @@
       <div class="fusion-footer">
         <div class="fusion-footer-logo">
           <div class="clinic">悅心診所</div>
-          <div class="en">YUEXIN CLINIC</div>
+          <div class="en">YUEXIN PSYCHIATRIC CLINIC</div>
         </div>
         <img id="successLogo" class="fusion-footer-logo-img" src="" alt="" onerror="this.style.display='none'">
         <span id="successBirthdayEgg" class="fusion-footer-birthday-egg" style="display:none;" aria-label="生日蛋糕">🎂</span>
@@ -3561,12 +3561,26 @@ function changePage(delta) {
 
 async function cancelBooking(bookingId, btn) {
   document.getElementById("cancelModal").classList.add("active");
+  // v5.6.6.2: 重置 modal 狀態(避免上次失敗的 error 訊息殘留)
+  const msgEl = document.getElementById("cancelModalMsg");
+  const btnsEl = document.getElementById("cancelModalBtns");
+  msgEl.textContent = "確定要取消此預約嗎?";
+  msgEl.style.color = "";
+  btnsEl.style.display = "";
+
   document.getElementById("modalConfirmBtn").onclick = async function() {
-    closeCancelModal();
-    btn.disabled = true; btn.textContent = "取消中...";
+    // v5.6.6.2: 取消期間 modal 不關,改顯示 loading 狀態
+    // 解決粟醫師觀察:原本關 modal + 按鈕變「取消中...」導致整頁可操作 + 無遮罩感
+    msgEl.textContent = "取消中...";
+    msgEl.style.color = "var(--ink-light)";
+    btnsEl.style.display = "none";  // 隱藏「返回 / 確定取消」按鈕,避免重複點
+    btn.disabled = true;  // 也鎖列表卡按鈕(防止 modal 關掉後又點)
+
     try {
       const data = await xhrPost(API_URL, { action: "cancelBooking", bookingId: bookingId, lineId: state.lineId });
       if (!data.success) throw new Error(data.error);
+      // 成功 → 關 modal + 整頁重渲染
+      closeCancelModal();
       // 更新 allBookingResults 該筆狀態,然後整頁重渲染
       // v5.6.4: 改用 renderBookingPage 而非 inline DOM patch,因為新結構(.booking-line + .booking-cancelled-inline)
       // 跟舊版 inline 操作的 .booking-status 已不相容,而且整頁重渲染保證 is-cancelled class、onclick 移除等同步
@@ -3574,10 +3588,11 @@ async function cancelBooking(bookingId, btn) {
       if (bk) bk.status = "已取消";
       renderBookingPage();
     } catch(e) {
-      btn.disabled = false; btn.textContent = "取消此預約";
-      const errEl = document.getElementById("cancelError");
-      errEl.textContent = "系統連線異常，請再試一次。";
-      errEl.style.display = "block";
+      // 失敗 → modal 內顯示錯誤,讓使用者選擇重試或返回
+      msgEl.textContent = "系統連線異常,請再試一次。";
+      msgEl.style.color = "var(--error)";
+      btnsEl.style.display = "";  // 重新顯示按鈕(可重試或返回)
+      btn.disabled = false;  // 解鎖列表卡按鈕(不還原文案,因為文案沒變)
     }
   };
 }
