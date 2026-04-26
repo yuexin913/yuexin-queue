@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.6.6.2">
+  <meta name="version" content="5.6.7">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,7 +20,7 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.6.6.2 (2026-04-26)
+     Version:   v5.6.7 (2026-04-26)
      Theme:     Japandi 自然米系 · Parchment/Cream 背景 · 侘寂風
      Typography: Noto Sans TC (主) + Noto Serif TC (診所名)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -74,13 +74,24 @@
                      · 文案微調:「取消此預約」→「取消預約」(4 字對稱「查看詳情」)、「查看詳情 →」→「→ 查看詳情」(箭頭移左、避免原箭頭指向取消按鈕的視覺誘導)
                      · 移除 v5.6.1 的 `.booking-detail-cta` inline CTA 樣式(改為按鈕後不需要)
                      · 解決粟醫師實機觀察:醫師名 ellipsis 截斷、卡片寬度不一致、取消按鈕獨佔一行頭重腳輕
-     · v5.6.6 目前 — 預約完成圖卡生日彩蛋(機構讓位給個人):
+     · v5.6.6 - 預約完成圖卡生日彩蛋(機構讓位給個人):
                      · 病患預約日期 = 生日(月日相符)→ pageSuccess 圖卡 footer 右側 logo 替換為 🎂 emoji 36px(完整綻放、無透明度)
                      · 設計語意:特殊時刻,診所招牌為病患個人時刻讓位(emoji 完整取代,不是並存)
                      · 範圍:**只 pageSuccess**(預約完成那一刻最有儀式感),cardModal 不觸發 — 這個小遺憾反而強化記憶
                      · 完整版 defensive check(空值、格式異常、非字串)— 「彩蛋」是 nice-to-have,「圖卡渲染」是 must-have,nice-to-have 不能炸 must-have
                      · a11y:aria-label="生日蛋糕"(無障礙友善)
                      · 順手清:移除 v5.6.1 的 `.booking-info-grid` 死碼 CSS(v5.6.4 後不再渲染,清掉減 Gotchas)
+                     · v5.6.6.1 hotfix:isBirthdayMatch 正則格式錯(Claude 憑記憶寫斜線格式,實際 state.birth 是 dash 格式)→ 改接受 - / 兩種分隔符 + 1-2 位數月日 + parseInt 比較
+                     · v5.6.6.2:footer 文字「YUEXIN CLINIC」→「YUEXIN PSYCHIATRIC CLINIC」(字級 9px→8px / ls 3px→2px 容納長文)+ 取消預約 UX 改 modal 內 loading(原本立刻關 modal 變整頁可操作)
+     · v5.6.7 目前 — 認領機制(綁定連結)文案精準化:
+                     · 設計哲學:病患體感「點了才確認預約 / 沒點不確認」— 完全隱藏「綁定」「LINE 帳號」等技術詞
+                     · admin LINE 訊息範本改寫:精簡 + 加「(週幾)」+ 寫死「6 小時內完成」+ 「若連結已過期」對應 booking 過期頁
+                     · booking 確認頁:「確認保留此預約?」→「確認您的預約」、▸ 三角符號→· 點符號(對齊 v5.6.x 圖卡)、按鈕「確認」→「確認預約」、底部提示「放棄預約請直接退出或關閉」(措辭重)→「若您並未預約,請直接關閉本頁,勿點選確認」(具體動作明確)
+                     · booking 過期頁:「已超過有效時間 / 確認未完成」→「連結已過期」+ tel:073631313 連結讓 LIFF 內可直接撥號
+                     · booking 成功頁:「預約已確認!」→「預約完成」(對齊 pageSuccess 主流程,病患體感統一)
+                     · 載入文案:「查詢中」→「讀取中」/「載入時間較長」→「網路較慢,請稍候片刻」
+                     · backend cache.put:600 → 21600(10 分鐘 → 6 小時),容納離開診所後才點的情境
+                     · 設計師 takeaway:設計哲學是給設計者看的,不是給使用者看的(粟醫師糾正:這個彈窗使用者已是「不能自助的人」,對他們講「下次自助」= 隱性責備)
      · v6.0 預計 — 心理治療預約上線
      · v7.0 預計 — 帳號系統與病患個人資料管理
      ========================================================== */
@@ -1646,11 +1657,9 @@
   <div class="page" id="pageBind">
     <div class="card" style="margin-top:16px;text-align:center;">
       <div id="pageBindContent">
-        <div class="loading"><div class="spinner"></div>查詢中...</div>
-        <div id="pageBindSlowHint" style="display:none;margin-top:20px;padding:14px 16px;background:rgba(255,200,0,0.12);border-left:3px solid #d4a017;font-size:13px;color:var(--ink);line-height:1.7;text-align:left;">
-          載入時間較長,建議:<br>
-          1. 稍待幾秒再試試<br>
-          2. 若持續無反應,請關閉此頁,回到 LINE 重新點選連結
+        <div class="loading"><div class="spinner"></div>讀取中...</div>
+        <div id="pageBindSlowHint" style="display:none;margin-top:20px;padding:14px 16px;background:rgba(255,200,0,0.12);border-left:3px solid #d4a017;font-size:13px;color:var(--ink);line-height:1.7;text-align:center;">
+          網路較慢,請稍候片刻。
         </div>
       </div>
     </div>
@@ -2060,8 +2069,8 @@ async function initLiff() {
                 <line x1="2" y1="2" x2="22" y2="22"/>
               </svg>
             </div>
-            <div class="status-title status-warning-text">${isTimeout ? "連線逾時" : "連線異常"}</div>
-            <div class="status-sub" style="max-width:320px;">請關閉此頁,回到 LINE 重新點選連結。</div>
+            <div class="status-title status-warning-text">${isTimeout ? "連線逾時" : "無法連線"}</div>
+            <div class="status-sub" style="max-width:320px;">請確認網路狀態後再試。</div>
             <button class="btn btn-primary" style="max-width:200px;" onclick="location.reload()">重新載入</button>
           </div>`;
       }
@@ -2167,8 +2176,8 @@ async function handleBindToken(bindToken) {
               <polyline points="12 6 12 12 16 14"/>
             </svg>
           </div>
-          <div class="status-title status-warning-text">已超過有效時間</div>
-          <div class="status-sub">確認未完成。<br>請聯繫診所重新取得確認連結。</div>
+          <div class="status-title status-warning-text">連結已過期</div>
+          <div class="status-sub">請於門診時間聯繫診所重新取得連結:<br><a href="tel:073631313" style="color:var(--sage-dark);font-weight:600;text-decoration:none;">07-363-1313</a></div>
         </div>`;
       return;
     }
@@ -2181,16 +2190,16 @@ async function handleBindToken(bindToken) {
             <path d="M9 14l2 2 4-4"/>
           </svg>
         </div>
-        <div class="status-title status-info-text">確認保留此預約?</div>
+        <div class="status-title status-info-text">確認您的預約</div>
       </div>
       <div style="text-align:left;background:var(--bg-2);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:14px;line-height:2;">
-        <div>▸ 日期：${data.date}(週${data.weekday})</div>
-        <div>▸ 時段：${data.displayName}</div>
+        <div>· 日期:${data.date}(週${data.weekday})</div>
+        <div>· 時段:${data.displayName}</div>
       </div>
-      <div style="font-size:12px;color:var(--text-light);margin-bottom:16px;line-height:1.6;text-align:center;">確認後系統將發送預約通知給您。</div>
+      <div style="font-size:12px;color:var(--text-light);margin-bottom:16px;line-height:1.6;text-align:center;">點選確認後,系統將發送預約通知給您。</div>
       <div id="bindConfirmError" class="alert alert-error" style="display:none;margin-bottom:12px;"></div>
-      <button class="btn btn-primary" id="btnBindConfirm" onclick="submitBind('${bindToken}')">確認</button>
-      <div style="font-size:12px;color:var(--text-light);margin-top:12px;text-align:center;">放棄預約請直接退出或關閉。</div>`;
+      <button class="btn btn-primary" id="btnBindConfirm" onclick="submitBind('${bindToken}')">確認預約</button>
+      <div style="font-size:12px;color:var(--text-light);margin-top:12px;text-align:center;line-height:1.6;">若您並未預約,請直接關閉本頁,勿點選確認。</div>`;
   } catch(e) {
     el.innerHTML = `
       <div class="status-container">
@@ -2203,8 +2212,8 @@ async function handleBindToken(bindToken) {
             <line x1="2" y1="2" x2="22" y2="22"/>
           </svg>
         </div>
-        <div class="status-title status-warning-text">連線異常</div>
-        <div class="status-sub">請確認網路後再試一次。</div>
+        <div class="status-title status-warning-text">無法連線</div>
+        <div class="status-sub">請確認網路狀態後再試。</div>
         <button class="btn btn-primary" style="max-width:200px;" onclick="handleBindToken('${bindToken}')">重試</button>
       </div>`;
   }
@@ -2232,14 +2241,14 @@ async function submitBind(bindToken) {
                 <polyline points="12 6 12 12 16 14"/>
               </svg>
             </div>
-            <div class="status-title status-warning-text">已超過有效時間</div>
-            <div class="status-sub">確認未完成。<br>請聯繫診所重新取得確認連結。</div>
+            <div class="status-title status-warning-text">連結已過期</div>
+            <div class="status-sub">請於門診時間聯繫診所重新取得連結:<br><a href="tel:073631313" style="color:var(--sage-dark);font-weight:600;text-decoration:none;">07-363-1313</a></div>
           </div>`;
         return;
       }
-      errEl.textContent = data.error || "確認失敗，請稍後再試。";
+      errEl.textContent = data.error || "確認失敗,請稍後再試。";
       errEl.style.display = "block";
-      btn.disabled = false; btn.textContent = "確認";
+      btn.disabled = false; btn.textContent = "確認預約";
       return;
     }
     document.getElementById("pageBindContent").innerHTML = `
@@ -2249,13 +2258,13 @@ async function submitBind(bindToken) {
             <polyline points="4 12 10 18 20 6"></polyline>
           </svg>
         </div>
-        <div class="status-title status-success-text">預約已確認!</div>
-        <div class="status-sub">系統將發送預約確認通知給您。</div>
+        <div class="status-title status-success-text">預約完成</div>
+        <div class="status-sub">系統將發送預約通知給您。</div>
       </div>`;
   } catch(e) {
-    errEl.textContent = "系統連線異常，請稍後再試。";
+    errEl.textContent = "系統連線異常,請稍後再試。";
     errEl.style.display = "block";
-    btn.disabled = false; btn.textContent = "確認";
+    btn.disabled = false; btn.textContent = "確認預約";
   } finally {
     hideOverlay();
   }
