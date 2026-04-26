@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.6.6">
+  <meta name="version" content="5.6.6.1">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,7 +20,7 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.6.6 (2026-04-26)
+     Version:   v5.6.6.1 (2026-04-26)
      Theme:     Japandi 自然米系 · Parchment/Cream 背景 · 侘寂風
      Typography: Noto Sans TC (主) + Noto Serif TC (診所名)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -3307,17 +3307,26 @@ const SUCCESS_CARD_FALLBACK = { color: "var(--sage-dark)", logo: "yuexinlogo_fin
 // ──────────────────────────────────────────────
 // 完整版 defensive 處理:
 //   - birth / apptDate 任一非字串或空 → false
-//   - 格式不符 YYYY/MM/DD → false
+//   - 接受兩種分隔符(- 或 /)以容錯
 //   - 「彩蛋」不能炸「圖卡渲染」這個 must-have
 // 不比對年份(否則一輩子只觸發 1 次)
+//
+// v5.6.6.1 hotfix:state.birth 實際格式是 "YYYY-MM-DD"(parseBirthROC 回傳),
+// state.date 實際格式是 "YYYY/MM/DD"(月曆選擇),
+// 原本正則只接受斜線 → 永遠 not match → 彩蛋無法觸發。
+// 修法:接受任一分隔符,且月日允許 1-2 位數
 // ══════════════════════════════════════════════
 function isBirthdayMatch(birth, apptDate) {
   if (!birth || typeof birth !== "string") return false;
   if (!apptDate || typeof apptDate !== "string") return false;
-  const birthMatch = birth.match(/^\d{4}\/(\d{2})\/(\d{2})$/);
-  const apptMatch = apptDate.match(/^\d{4}\/(\d{2})\/(\d{2})$/);
+  // 接受 YYYY-MM-DD / YYYY/MM/DD 任一分隔符,月日 1-2 位數
+  const dateRegex = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/;
+  const birthMatch = birth.match(dateRegex);
+  const apptMatch = apptDate.match(dateRegex);
   if (!birthMatch || !apptMatch) return false;
-  return birthMatch[1] === apptMatch[1] && birthMatch[2] === apptMatch[2];
+  // 比對月、日(數字比較,避免 "4" vs "04" 字串差異)
+  return parseInt(birthMatch[2], 10) === parseInt(apptMatch[2], 10)
+      && parseInt(birthMatch[3], 10) === parseInt(apptMatch[3], 10);
 }
 
 function renderSuccessCard(data) {
