@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.6.5">
+  <meta name="version" content="5.6.6">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,7 +20,7 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.6.5 (2026-04-26)
+     Version:   v5.6.6 (2026-04-26)
      Theme:     Japandi 自然米系 · Parchment/Cream 背景 · 侘寂風
      Typography: Noto Sans TC (主) + Noto Serif TC (診所名)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -68,12 +68,19 @@
                      · 醫師名過長(代診)用 flex + min-width:0 + ellipsis 截斷處理
                      · 設計哲學:列表 = 目錄,圖卡 = 詳情,單一信源,圖卡作為病患預約資訊主體
                      · 滑動密度提升 ~2.3 倍,圖卡 re-access 動機增強
-     · v5.6.5 目前 — 列表卡 actions 視覺權重微調:
+     · v5.6.5 - 列表卡 actions 視覺權重微調:
                      · 已確認預約改 2 行(主資訊 / 兩按鈕並列):查看詳情 + 取消預約
                      · X₁ + Y₄ 配置:寬度 1.5:1(查看詳情寬)、查看詳情 sage 框 1.5px + serif weight 700、取消預約紅 outline 0.5px + sans
                      · 文案微調:「取消此預約」→「取消預約」(4 字對稱「查看詳情」)、「查看詳情 →」→「→ 查看詳情」(箭頭移左、避免原箭頭指向取消按鈕的視覺誘導)
                      · 移除 v5.6.1 的 `.booking-detail-cta` inline CTA 樣式(改為按鈕後不需要)
                      · 解決粟醫師實機觀察:醫師名 ellipsis 截斷、卡片寬度不一致、取消按鈕獨佔一行頭重腳輕
+     · v5.6.6 目前 — 預約完成圖卡生日彩蛋(機構讓位給個人):
+                     · 病患預約日期 = 生日(月日相符)→ pageSuccess 圖卡 footer 右側 logo 替換為 🎂 emoji 36px(完整綻放、無透明度)
+                     · 設計語意:特殊時刻,診所招牌為病患個人時刻讓位(emoji 完整取代,不是並存)
+                     · 範圍:**只 pageSuccess**(預約完成那一刻最有儀式感),cardModal 不觸發 — 這個小遺憾反而強化記憶
+                     · 完整版 defensive check(空值、格式異常、非字串)— 「彩蛋」是 nice-to-have,「圖卡渲染」是 must-have,nice-to-have 不能炸 must-have
+                     · a11y:aria-label="生日蛋糕"(無障礙友善)
+                     · 順手清:移除 v5.6.1 的 `.booking-info-grid` 死碼 CSS(v5.6.4 後不再渲染,清掉減 Gotchas)
      · v6.0 預計 — 心理治療預約上線
      · v7.0 預計 — 帳號系統與病患個人資料管理
      ========================================================== */
@@ -1019,6 +1026,13 @@
     display: block;
     object-fit: contain;
   }
+  /* v5.6.6: 生日彩蛋 emoji,替代 logo 位置(機構讓位給個人時刻)
+     font-size 36px 對齊原 logo 36×36 視覺重量,line-height: 1 避免 inline 行高撐高 */
+  .fusion-footer-birthday-egg {
+    font-size: 36px;
+    line-height: 1;
+    user-select: none;
+  }
 
   /* ══════════════════════════════════════════════
      統一狀態圖示系統 v5.0
@@ -1367,30 +1381,9 @@
   /* v5.6.1 的 .booking-detail-cta(inline 「查看詳情 →」CTA)
      v5.6.5 改為 button(.booking-detail-btn),inline CTA 樣式已移除 */
 
-  /* 4 行資訊 grid:lbl + val,跟 fusion-info 設計呼應 */
-  .booking-info-grid {
-    display: grid;
-    grid-template-columns: 50px 1fr;
-    gap: 8px 12px;
-    padding-top: 6px;
-    font-size: 13px;
-  }
-  .booking-info-grid .lbl {
-    color: var(--ink-light);
-    letter-spacing: 2px;
-    font-size: 11px;
-    align-self: center;
-    white-space: nowrap;
-  }
-  .booking-info-grid .val {
-    color: var(--ink-mid);
-    letter-spacing: 0.5px;
-    line-height: 1.5;
-  }
-  .booking-info-grid .val.is-name {
-    color: var(--text);
-    font-weight: 600;
-  }
+  /* v5.6.1 .booking-info-grid 列表卡 grid 排版 CSS,
+     v5.6.4 列表卡單行極簡化後不再使用,
+     v5.6.6 順手清掉(死碼移除) */
 
   /* ══════════════════════════════════════════════
      v5.6.1 圖卡 modal(查詢頁點開重看)
@@ -1866,6 +1859,7 @@
           <div class="en">YUEXIN CLINIC</div>
         </div>
         <img id="successLogo" class="fusion-footer-logo-img" src="" alt="" onerror="this.style.display='none'">
+        <span id="successBirthdayEgg" class="fusion-footer-birthday-egg" style="display:none;" aria-label="生日蛋糕">🎂</span>
       </div>
     </div>
     <div id="newPatientNotice"></div>
@@ -3308,6 +3302,24 @@ const SUCCESS_CARD_DOCTOR_THEME = {
 };
 const SUCCESS_CARD_FALLBACK = { color: "var(--sage-dark)", logo: "yuexinlogo_finalpage_green.png" };
 
+// ══════════════════════════════════════════════
+// v5.6.6 生日比對:病患生日(月日)= 預約日期(月日)?
+// ──────────────────────────────────────────────
+// 完整版 defensive 處理:
+//   - birth / apptDate 任一非字串或空 → false
+//   - 格式不符 YYYY/MM/DD → false
+//   - 「彩蛋」不能炸「圖卡渲染」這個 must-have
+// 不比對年份(否則一輩子只觸發 1 次)
+// ══════════════════════════════════════════════
+function isBirthdayMatch(birth, apptDate) {
+  if (!birth || typeof birth !== "string") return false;
+  if (!apptDate || typeof apptDate !== "string") return false;
+  const birthMatch = birth.match(/^\d{4}\/(\d{2})\/(\d{2})$/);
+  const apptMatch = apptDate.match(/^\d{4}\/(\d{2})\/(\d{2})$/);
+  if (!birthMatch || !apptMatch) return false;
+  return birthMatch[1] === apptMatch[1] && birthMatch[2] === apptMatch[2];
+}
+
 function renderSuccessCard(data) {
   const card = document.getElementById("successCard");
   if (!card) return;
@@ -3325,10 +3337,21 @@ function renderSuccessCard(data) {
   card.style.setProperty("--doc-color", theme.color);
 
   const logoEl = document.getElementById("successLogo");
-  if (logoEl) {
-    logoEl.style.display = "";  // 重置(避免上次 onerror 隱藏殘留)
-    logoEl.src = "assets/doctors/" + theme.logo;
-    logoEl.alt = "悅心診所";
+  const eggEl = document.getElementById("successBirthdayEgg");
+  // v5.6.6: 生日彩蛋 — 病患生日(月日)= 預約日期(月日)→ logo 替換為 🎂 emoji
+  // 設計語意:特殊時刻,診所招牌為病患個人時刻讓位
+  // 完整版 defensive:彩蛋邏輯永遠不能炸圖卡渲染
+  const isBirthday = isBirthdayMatch(state.birth, state.date);
+  if (logoEl && eggEl) {
+    if (isBirthday) {
+      logoEl.style.display = "none";
+      eggEl.style.display = "";  // 顯示 emoji
+    } else {
+      eggEl.style.display = "none";  // 隱藏 emoji
+      logoEl.style.display = "";  // 顯示 logo(重置 onerror 殘留)
+      logoEl.src = "assets/doctors/" + theme.logo;
+      logoEl.alt = "悅心診所";
+    }
   }
 
   // ── 2. 號碼區:僅複診指定時段 + 有 assignedSlot 才顯示 ──
