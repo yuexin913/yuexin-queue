@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.6.1">
+  <meta name="version" content="5.6.2">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,7 +20,7 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.6.1 (2026-04-26)
+     Version:   v5.6.2 (2026-04-26)
      Theme:     Japandi 自然米系 · Parchment/Cream 背景 · 侘寂風
      Typography: Noto Sans TC (主) + Noto Serif TC (診所名)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -49,13 +49,16 @@
                      · 5 種主題:粟紫/郭藍/王麟祥黃/王伯元紅/代診通用綠
                      · 順手:「查詢預約」按鈕改名為「查詢 / 取消預約」
                      · 順手:預載 5 張圖卡 logo(沿用 preloadDoctorAvatars pattern)
-     · v5.6.1 目前 — 查詢頁圖卡 modal + 列表卡排版重構:
+     · v5.6.1 - 查詢頁圖卡 modal + 列表卡排版重構:
                      · 查詢頁列表卡點擊 → 開圖卡 modal(整張可點 + 「查看詳情 →」CTA)
                      · 列表卡改 grid 排版:醫師獨立一行,解決姓名截斷
                      · 移除「已確認」標籤(後端死碼,系統永遠寫「已確認」)
                      · 圖卡 modal:深灰遮罩 0.45 + blur 6px + fadeInUp 0.2s 過渡
                      · 圖卡內動畫(drawCheck/successPop/fadeIn)在 modal 中禁用,只在預約完成頁播放
                      · 順手:statusMap 移除「待確認」死 key
+     · v5.6.2 目前 — v5.6.1 實機 hotfix:
+                     · 「報到時間」4 字 label 在 50px 欄位被斷行 → 統一改 2 字「報到」(對齊圖卡內 lbl 設計)
+                     · CSS 防呆:`.booking-info-grid .lbl` 加 `white-space: nowrap`(未來防止再次斷行)
      · v6.0 預計 — 心理治療預約上線
      · v7.0 預計 — 帳號系統與病患個人資料管理
      ========================================================== */
@@ -1311,6 +1314,7 @@
     letter-spacing: 2px;
     font-size: 11px;
     align-self: center;
+    white-space: nowrap;
   }
   .booking-info-grid .val {
     color: var(--ink-mid);
@@ -3432,8 +3436,7 @@ function renderBookingPage() {
       gridRows += `<div class="lbl">${lbl}</div><div class="val">${slotText}</div>`;
     }
     if (arrivalText) {
-      const lbl = b.type === "初診" ? "報到" : "報到時間";
-      gridRows += `<div class="lbl">${lbl}</div><div class="val">${arrivalText}</div>`;
+      gridRows += `<div class="lbl">報到</div><div class="val">${arrivalText}</div>`;
     }
     gridRows += `<div class="lbl">醫師</div><div class="val">${esc(b.doctor || "-")} 醫師</div>`;
 
