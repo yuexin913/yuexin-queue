@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.6.0">
+  <meta name="version" content="5.6.1">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,7 +20,7 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.6.0 (2026-04-26)
+     Version:   v5.6.1 (2026-04-26)
      Theme:     Japandi 自然米系 · Parchment/Cream 背景 · 侘寂風
      Typography: Noto Sans TC (主) + Noto Serif TC (診所名)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -43,12 +43,19 @@
      · v5.5.3 — 雙 LLM 審查修補(搭 backend v4.40):
                      · [M1] 姓名防呆加全形英文字母 Ａ-Ｚ / ａ-ｚ(與數字防呆一致)
                      · [I6] XHR_TIMEOUT 15s → 30s(對齊 admin,應對 GAS 冷啟動 + LINE API 慢尾)
-     · v5.6.0 目前 — 預約完成圖卡(數位預約圖卡):
+     · v5.6.0 - 預約完成圖卡(數位預約圖卡):
                      · pageSuccess 改為 fusion-card 圖卡設計(cream 底 + 8% 醫師色暈 + noise 紙紋)
                      · 4 行資訊區(姓名/日期/診次/醫師) + 條件號碼區(僅複診指定顯示)
                      · 5 種主題:粟紫/郭藍/王麟祥黃/王伯元紅/代診通用綠
                      · 順手:「查詢預約」按鈕改名為「查詢 / 取消預約」
                      · 順手:預載 5 張圖卡 logo(沿用 preloadDoctorAvatars pattern)
+     · v5.6.1 目前 — 查詢頁圖卡 modal + 列表卡排版重構:
+                     · 查詢頁列表卡點擊 → 開圖卡 modal(整張可點 + 「查看詳情 →」CTA)
+                     · 列表卡改 grid 排版:醫師獨立一行,解決姓名截斷
+                     · 移除「已確認」標籤(後端死碼,系統永遠寫「已確認」)
+                     · 圖卡 modal:深灰遮罩 0.45 + blur 6px + fadeInUp 0.2s 過渡
+                     · 圖卡內動畫(drawCheck/successPop/fadeIn)在 modal 中禁用,只在預約完成頁播放
+                     · 順手:statusMap 移除「待確認」死 key
      · v6.0 預計 — 心理治療預約上線
      · v7.0 預計 — 帳號系統與病患個人資料管理
      ========================================================== */
@@ -1273,6 +1280,116 @@
   .modal-btn-confirm { background: var(--error); color: white; }
 
 
+  /* ══════════════════════════════════════════════
+     v5.6.1 列表卡 grid 重排 + 「查看詳情」CTA
+     ────────────────────────────────────────────── */
+  /* 整張卡可點(已確認狀態) */
+  .booking-item.is-clickable { cursor: pointer; }
+  .booking-item.is-clickable:hover { background: rgba(138,170,85,0.06); }
+  .booking-item.is-clickable:active { background: rgba(138,170,85,0.10); }
+
+  /* 「查看詳情 →」CTA(取代原本「已確認」標籤) */
+  .booking-detail-cta {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 13px;
+    color: var(--sage-dark);
+    letter-spacing: 2px;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  /* 4 行資訊 grid:lbl + val,跟 fusion-info 設計呼應 */
+  .booking-info-grid {
+    display: grid;
+    grid-template-columns: 50px 1fr;
+    gap: 8px 12px;
+    padding-top: 6px;
+    font-size: 13px;
+  }
+  .booking-info-grid .lbl {
+    color: var(--ink-light);
+    letter-spacing: 2px;
+    font-size: 11px;
+    align-self: center;
+  }
+  .booking-info-grid .val {
+    color: var(--ink-mid);
+    letter-spacing: 0.5px;
+    line-height: 1.5;
+  }
+  .booking-info-grid .val.is-name {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* ══════════════════════════════════════════════
+     v5.6.1 圖卡 modal(查詢頁點開重看)
+     ────────────────────────────────────────────── */
+  .card-modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(43,43,40,0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 1100;
+    align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .card-modal-overlay.active { display: flex; }
+  .card-modal-box {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: cardModalIn 0.2s ease-out both;
+  }
+  @keyframes cardModalIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  /* X 關閉按鈕 — 浮在圖卡右上角外側 */
+  .card-modal-close {
+    position: absolute;
+    top: -10px; right: -10px;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--cream);
+    border: 0.5px solid rgba(74,74,68,0.2);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--ink-mid);
+    z-index: 2;
+    padding: 0;
+    transition: all 0.15s;
+  }
+  .card-modal-close:hover {
+    color: var(--ink);
+    border-color: rgba(74,74,68,0.4);
+  }
+  .card-modal-close svg {
+    width: 16px; height: 16px;
+    stroke: currentColor; stroke-width: 2;
+    fill: none; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* Modal 內的圖卡:禁用所有內建動畫(打勾不重播、各區直接顯示) */
+  .card-modal-box .fusion-card,
+  .card-modal-box .fusion-check,
+  .card-modal-box .fusion-title,
+  .card-modal-box .fusion-divider,
+  .card-modal-box .fusion-number-area,
+  .card-modal-box .fusion-info,
+  .card-modal-box .fusion-footer {
+    animation: none !important;
+  }
+  .card-modal-box .fusion-check svg {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+  .card-modal-box .fusion-card { margin-bottom: 0; }
+
+
   /* Lucide SVG icon — 統一樣式 */
   .icon {
     display: inline-block;
@@ -1293,6 +1410,44 @@
     <div class="modal-btns">
       <button class="modal-btn modal-btn-cancel" onclick="closeCancelModal()">返回</button>
       <button class="modal-btn modal-btn-confirm" id="modalConfirmBtn">確定取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- v5.6.1 圖卡 modal(查詢頁點開重看) -->
+<div class="card-modal-overlay" id="cardModal" onclick="closeCardModalIfBackdrop(event)">
+  <div class="card-modal-box">
+    <button type="button" class="card-modal-close" onclick="closeCardModal()" aria-label="關閉">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+    </button>
+    <div id="cardModalContent" class="fusion-card">
+      <div class="fusion-check">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <polyline points="4 12 10 18 20 6"></polyline>
+        </svg>
+      </div>
+      <div class="fusion-title">預約完成</div>
+      <div class="fusion-divider"></div>
+
+      <div id="cardModalSlotInfo" class="fusion-number-area" style="display:none">
+        <div class="fusion-number-label">預約號碼</div>
+        <div class="fusion-number-big"><span id="cardModalSlotNumber"></span><small>號</small></div>
+      </div>
+
+      <div class="fusion-info">
+        <div class="fusion-info-row"><div class="lbl">姓名</div><div class="val" id="cardModalName"></div></div>
+        <div class="fusion-info-row"><div class="lbl">日期</div><div class="val" id="cardModalDate"></div></div>
+        <div class="fusion-info-row"><div class="lbl">診次</div><div class="val" id="cardModalSession"></div></div>
+        <div class="fusion-info-row"><div class="lbl">醫師</div><div class="val doc" id="cardModalDoctor"></div></div>
+      </div>
+
+      <div class="fusion-footer">
+        <div class="fusion-footer-logo">
+          <div class="clinic">悅心診所</div>
+          <div class="en">YUEXIN CLINIC</div>
+        </div>
+        <img id="cardModalLogo" class="fusion-footer-logo-img" src="" alt="" onerror="this.style.display='none'">
+      </div>
     </div>
   </div>
 </div>
@@ -3238,20 +3393,23 @@ function renderBookingPage() {
     return;
   }
 
-  const statusMap = { "待確認": "status-pending", "已確認": "status-confirmed", "已取消": "status-cancelled" };
+  // v5.6.1: 移除「待確認」死 key(後端 submitBooking 一律寫「已確認」,系統不會產生「待確認」狀態)
+  const statusMap = { "已確認": "status-confirmed", "已取消": "status-cancelled" };
   let html = "";
   pageBookings.forEach(function(b) {
-    const statusCls = statusMap[b.status] || "status-pending";
+    const statusCls = statusMap[b.status] || "status-cancelled";
     const canCancel = b.status !== "已取消";
+    const isClickable = b.status === "已確認";  // 只有已確認可點開圖卡
     const displayName = esc(b.displayName || b.session + "診");
 
-    let slotLine = "";
-    let checkInLine = "";
+    // ── 組「號碼/報到」資訊 ──
+    let slotText = "";
+    let arrivalText = "";
     if (b.type === "初診") {
-      checkInLine = `報到：${esc(b.checkInTime)}　`;
+      arrivalText = esc(b.checkInTime);
     } else if (b.slot === "不指定") {
-      slotLine = "不指定時段　";
-      checkInLine = `報到時間：${esc(b.checkInTime)}　`;
+      slotText = "不指定時段";
+      arrivalText = esc(b.checkInTime);
     } else {
       const slotNum = parseInt(b.slot);
       let rangeDisplay = "";
@@ -3260,19 +3418,42 @@ function renderBookingPage() {
         const matched = cards.find(function(c) { return slotNum >= c.minNum && slotNum <= c.maxNum; });
         if (matched) rangeDisplay = matched.label;
       }
-      slotLine = `號碼：${esc(b.slot)} 號　`;
-      checkInLine = rangeDisplay ? `報到時間：${rangeDisplay}　` : "";
+      slotText = esc(b.slot) + " 號";
+      arrivalText = rangeDisplay;
     }
-    html += `<div class="booking-item">
+
+    // ── 組 grid 行(只渲染有內容的列) ──
+    let gridRows = "";
+    if (b.name) {
+      gridRows += `<div class="lbl">姓名</div><div class="val is-name">${esc(b.name)}</div>`;
+    }
+    if (slotText) {
+      const lbl = b.slot === "不指定" ? "時段" : "號碼";
+      gridRows += `<div class="lbl">${lbl}</div><div class="val">${slotText}</div>`;
+    }
+    if (arrivalText) {
+      const lbl = b.type === "初診" ? "報到" : "報到時間";
+      gridRows += `<div class="lbl">${lbl}</div><div class="val">${arrivalText}</div>`;
+    }
+    gridRows += `<div class="lbl">醫師</div><div class="val">${esc(b.doctor || "-")} 醫師</div>`;
+
+    // ── header 右側:已確認 → CTA;已取消 → 灰標籤 ──
+    const headerRight = isClickable
+      ? `<div class="booking-detail-cta">查看詳情 →</div>`
+      : `<div class="booking-status ${statusCls}">${esc(b.status)}</div>`;
+
+    const itemClick = isClickable
+      ? ` onclick="openCardModal('${esc(b.bookingId)}')"`
+      : "";
+    const itemCls = "booking-item" + (isClickable ? " is-clickable" : "");
+
+    html += `<div class="${itemCls}"${itemClick}>
       <div class="booking-item-header">
         <div class="booking-date">${esc(b.date)} ${displayName}</div>
-        <div class="booking-status ${statusCls}">${esc(b.status)}</div>
+        ${headerRight}
       </div>
-      ${b.name ? `<div class="booking-detail" style="font-weight:700;color:var(--text);"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ${esc(b.name)}</div>` : ""}
-      <div class="booking-detail">
-        ${slotLine}${checkInLine}醫師：${esc(b.doctor || "-")}
-      </div>
-      ${canCancel ? `<button class="booking-cancel" onclick="cancelBooking('${esc(b.bookingId)}', this)">取消此預約</button>` : ""}
+      <div class="booking-info-grid">${gridRows}</div>
+      ${canCancel ? `<button class="booking-cancel" onclick="event.stopPropagation(); cancelBooking('${esc(b.bookingId)}', this);">取消此預約</button>` : ""}
     </div>`;
   });
   listEl.innerHTML = html;
@@ -3320,6 +3501,110 @@ async function cancelBooking(bookingId, btn) {
 
 function closeCancelModal() {
   document.getElementById("cancelModal").classList.remove("active");
+}
+
+// ═══════════════════════════════════════════════════════════
+// v5.6.1 圖卡 modal:查詢頁列表卡點擊 → 重看圖卡
+// ───────────────────────────────────────────────────────────
+// 跟 pageSuccess 的 renderSuccessCard() 是兩條獨立路徑:
+//   · 預約完成圖卡(pageSuccess)→ 從 state 渲染 + 完整動畫(drawCheck/successPop)
+//   · 圖卡 modal(cardModal)   → 從 booking 物件渲染 + 動畫禁用(在 modal 中重看)
+// 這樣 renderSuccessCard 完全不動,風險最低。
+// ═══════════════════════════════════════════════════════════
+function openCardModal(bookingId) {
+  const b = (allBookingResults || []).find(function(x) { return x.bookingId === bookingId; });
+  if (!b) return;
+  populateCardModal(b);
+  document.getElementById("cardModal").classList.add("active");
+}
+
+function closeCardModal() {
+  document.getElementById("cardModal").classList.remove("active");
+}
+
+// 點背景遮罩關閉(點到圖卡內容不關)
+function closeCardModalIfBackdrop(event) {
+  if (event.target === event.currentTarget) {
+    closeCardModal();
+  }
+}
+
+// 從 booking 物件填入 cardModal(獨立 DOM id,不影響 pageSuccess)
+function populateCardModal(b) {
+  const card = document.getElementById("cardModalContent");
+  if (!card) return;
+
+  // ── 1. 醫師色 + logo + 是否代診 ──
+  const isSubstitute = !!b.isSubstitute;
+  const doctor = b.doctor || "";
+  const theme = isSubstitute
+    ? SUCCESS_CARD_FALLBACK
+    : (SUCCESS_CARD_DOCTOR_THEME[doctor] || SUCCESS_CARD_FALLBACK);
+  card.style.setProperty("--doc-color", theme.color);
+
+  const logoEl = document.getElementById("cardModalLogo");
+  if (logoEl) {
+    logoEl.style.display = "";
+    logoEl.src = "assets/doctors/" + theme.logo;
+    logoEl.alt = "悅心診所";
+  }
+
+  // ── 2. 號碼區:僅複診指定時段才顯示 ──
+  const slotInfo = document.getElementById("cardModalSlotInfo");
+  const slotNum = document.getElementById("cardModalSlotNumber");
+  const isUnspecified = (b.slot === "不指定");
+  const slotInt = parseInt(b.slot);
+  if (b.type !== "初診" && !isUnspecified && !isNaN(slotInt)) {
+    slotNum.textContent = slotInt;
+    slotInfo.style.display = "";
+  } else {
+    slotInfo.style.display = "none";
+  }
+
+  // ── 3. 4 行資訊 ──
+  document.getElementById("cardModalName").textContent = b.name || "-";
+
+  // 日期(加 weekday)
+  const weekdays = ["日","一","二","三","四","五","六"];
+  const weekday = b.date ? weekdays[new Date(b.date).getDay()] : "";
+  document.getElementById("cardModalDate").textContent =
+    b.date ? (b.date + "(" + weekday + ")") : "-";
+
+  // 診次:displayName · arrivalText
+  const sessionDisplayName = b.displayName || (b.session ? b.session + "診" : "-");
+  let arrivalText = "";
+  if (isUnspecified) {
+    arrivalText = (SESSION_END_TIME[b.session] || "結診") + " 前抵達";
+  } else if (b.type === "初診") {
+    // 從 b.slot(時間 code 如 "0915")反推 "09:15 前報到" 格式,跟 pageSuccess 圖卡一致
+    if (b.slot && /^\d{4}$/.test(b.slot)) {
+      const npH = parseInt(b.slot.substring(0, 2), 10);
+      const npM = b.slot.substring(2, 4);
+      arrivalText = npH + ":" + npM + " 前報到";
+    } else {
+      arrivalText = b.checkInTime || "";  // 容錯
+    }
+  } else if (!isNaN(slotInt) && RETURN_TIME_CARDS[b.session]) {
+    // 複診指定:從 slot 反查 RETURN_TIME_CARDS 找區間 label
+    const cards = RETURN_TIME_CARDS[b.session];
+    const matched = cards.find(function(c) { return slotInt >= c.minNum && slotInt <= c.maxNum; });
+    if (matched) arrivalText = matched.label;
+  }
+  document.getElementById("cardModalSession").textContent =
+    arrivalText ? (sessionDisplayName + " · " + arrivalText) : sessionDisplayName;
+
+  // 醫師(代診加標籤)— 用 textContent + appendChild 防 XSS
+  const doctorEl = document.getElementById("cardModalDoctor");
+  doctorEl.textContent = "";
+  if (isSubstitute) {
+    doctorEl.textContent = doctor + " 醫師";
+    const tag = document.createElement("span");
+    tag.className = "substitute-tag";
+    tag.textContent = "(代診)";
+    doctorEl.appendChild(tag);
+  } else {
+    doctorEl.textContent = (doctor || "-") + (doctor ? " 醫師" : "");
+  }
 }
 
 // ===================================
