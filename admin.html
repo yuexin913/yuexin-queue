@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.10">
+  <meta name="version" content="5.5.11">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,7 +17,25 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.5.10 (2026-04-26) v5.6.7 配套:綁定連結訊息範本精簡 + 加(週幾) + 標籤改「6 小時有效」
+     Version:   v5.5.11 (2026-04-29) 對齊 backend v4.47 互鎖規則(3 格 → 2 格)
+     ──────────────────────────────────────────────────────────
+     v5.5.11 (2026-04-29) 修正 admin tile 衝堂判斷沒對應 v4.47 鎖 2 格規則:
+     · 動機:粟醫師截圖證據顯示,複診預約 13 號 + 初診 idx 1(第 2 個初診)同時存在時,
+       admin tile 仍顯示衝堂(紅色警告),但 v4.47 backend 已開放 13 號預約。
+     · 根因:v4.47 部署時只改 GAS 兩個函式(getLockedReturnSlotsForNP + getNPIndexForReturnSlot),
+       沒同步檢查 admin tile 渲染端的衝堂判斷邏輯(2 處 hardcode 假設「鎖 3 格」)。
+     · 改動:
+       - 衝堂判斷(行 3685):`(idx >= 7 && (idx - 7) % 5 < 3)` → `(idx >= 8 && (idx - 8) % 5 < 2)`
+         真值表:9-10/14-15/19-20/24-25/29-30 → rowStart 7/12/17/22/27,其他 → null
+       - 初診塞入掃描(行 3733):`for k = 0; k < 3` → `for k = 1; k < 3`(跳過初診本身的格子,只掃後 2 格鎖定區)
+     · 不改項目:
+       - 橫幅視覺寬度(span 3)仍正確 — 橫幅蓋住「初診本身 + 鎖 2 格」共 3 格寬度
+       - GAS npRowStart 算法(7,12,17,22,27)仍正確 — 對應 cells idx 0-indexed
+       - 衝堂時 np_skip 標記範圍(k=1; k<3)仍正確 — 本來就只標 2 格
+     · Meta 教訓:**Claude 改 backend 規則時要 grep 所有 caller 影響範圍**
+       v4.47 部署時 oversight,粟醫師第 12 次 push back 才發現,對齊 v5.7.0 教訓 #4
+
+     v5.5.10 (2026-04-26) v5.6.7 配套:綁定連結訊息範本精簡 + 加(週幾) + 標籤改「6 小時有效」
      Theme:     Metro 深色主題 · Pearl 醫師 tile · 橘色 accent · 桌機版 5+5 預約為王
      Typography: Noto Sans TC (主) + JetBrains Mono (資料對齊)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -3681,8 +3699,8 @@ function renderSessionContent(session, isClosed) {
     const slot = parseInt(b.slot, 10);
     if (slot >= 1 && slot <= 30) {
       const idx = slot - 1;
-      // 新互鎖邏輯：slot 8-10 → rowStart 7, slot 13-15 → rowStart 12, ...
-      const rowStart = (idx >= 7 && (idx - 7) % 5 < 3) ? Math.floor((idx - 7) / 5) * 5 + 7 : null;
+      // v5.5.11: 對齊 v4.47 互鎖 2 格 — 只有號碼 9-10/14-15/19-20/24-25/29-30 被鎖,對應 rowStart 7,12,17,22,27
+      const rowStart = (idx >= 8 && (idx - 8) % 5 < 2) ? Math.floor((idx - 8) / 5) * 5 + 7 : null;
       if (rowStart !== null && npRowStarts.has(rowStart)) {
         conflictList.push(b);
         conflictNpRowStarts.add(rowStart); // 標記這個初診列有衝突
@@ -3728,9 +3746,9 @@ function renderSessionContent(session, isClosed) {
         return;
       }
 
-      // 初診塞入前：掃描 rowStart~rowStart+2，把所有已存在的複診推進 conflictList
+      // 初診塞入前：掃描 rowStart+1~rowStart+2（v5.5.11: 對齊 v4.47 互鎖 2 格,跳過初診本身的格子）
       let hasRtConflict = false;
-      for (let k = 0; k < 3; k++) {
+      for (let k = 1; k < 3; k++) {
         const idx = rowStart + k;
         if (idx < 30 && cells[idx].type === "rt") {
           if (!conflictList.find(function(c) { return c.bookingId === cells[idx].bookingId; })) {
