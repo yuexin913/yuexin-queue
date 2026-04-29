@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.6.7">
+  <meta name="version" content="5.7.1">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,7 +20,20 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.6.7 (2026-04-26)
+     Version:   v5.7.1 (2026-04-29)
+     ──────────────────────────────────────────────────────────
+     v5.7.1 (2026-04-29) 動畫微調 — 預約打勾放大放慢 + 取消綠靄漸退:
+     · 打勾動畫(success-icon svg + fusion-check svg)
+       - 36px → 40px、stroke 2.5(維持)、dasharray 40 → 50、0.6s → 0.8s、delay 0.3s → 0.4s
+       - 對齊 v5.6.0 fusion-card 視覺重量,放慢呈現出儀式感
+       - 設計理念:預約完成是 commitment,值得明確的視覺回饋(但不過度慶祝)
+     · 取消預約綠靄動畫(.booking-item.just-cancelled)
+       - 1.5s sage 6% 極克制綠靄 + scale 0.98 細微縮放 → 漸退到 .is-cancelled 灰色終態
+       - 對齊 v4.46「不替病患預設情緒」+ v6.0「便利不一定善」哲學
+       - 不戲劇、不慶祝、不警示,純粹的「狀態變化發生了」視覺確認
+     · cardModal 重看版動畫保持禁用(v5.6.1 既有設計)
+     · 設計收斂過程:Demo v1(5 candidates)→ Demo v2(濃度 fine-tune)→ 最終 B + 6%
+     ──────────────────────────────────────────────────────────
      Theme:     Japandi 自然米系 · Parchment/Cream 背景 · 侘寂風
      Typography: Noto Sans TC (主) + Noto Serif TC (診所名)
      Icons:     Lucide SVG (stroke-based, 16px)
@@ -83,7 +96,7 @@
                      · 順手清:移除 v5.6.1 的 `.booking-info-grid` 死碼 CSS(v5.6.4 後不再渲染,清掉減 Gotchas)
                      · v5.6.6.1 hotfix:isBirthdayMatch 正則格式錯(Claude 憑記憶寫斜線格式,實際 state.birth 是 dash 格式)→ 改接受 - / 兩種分隔符 + 1-2 位數月日 + parseInt 比較
                      · v5.6.6.2:footer 文字「YUEXIN CLINIC」→「YUEXIN PSYCHIATRIC CLINIC」(字級 9px→8px / ls 3px→2px 容納長文)+ 取消預約 UX 改 modal 內 loading(原本立刻關 modal 變整頁可操作)
-     · v5.6.7 目前 — 認領機制(綁定連結)文案精準化:
+     · v5.6.7 — 認領機制(綁定連結)文案精準化:
                      · 設計哲學:病患體感「點了才確認預約 / 沒點不確認」— 完全隱藏「綁定」「LINE 帳號」等技術詞
                      · admin LINE 訊息範本改寫:精簡 + 加「(週幾)」+ 寫死「6 小時內完成」+ 「若連結已過期」對應 booking 過期頁
                      · booking 確認頁:「確認保留此預約?」→「確認您的預約」、▸ 三角符號→· 點符號(對齊 v5.6.x 圖卡)、按鈕「確認」→「確認預約」、底部提示「放棄預約請直接退出或關閉」(措辭重)→「若您並未預約,請直接關閉本頁,勿點選確認」(具體動作明確)
@@ -92,6 +105,38 @@
                      · 載入文案:「查詢中」→「讀取中」/「載入時間較長」→「網路較慢,請稍候片刻」
                      · backend cache.put:600 → 21600(10 分鐘 → 6 小時),容納離開診所後才點的情境
                      · 設計師 takeaway:設計哲學是給設計者看的,不是給使用者看的(粟醫師糾正:這個彈窗使用者已是「不能自助的人」,對他們講「下次自助」= 隱性責備)
+     · v5.7.0 目前 — booking 整合維護模式(取代獨立 booking_maintenance.html):
+                     · 設計哲學:單一 booking.html + Script Property 開關 + 暗門 pattern
+                       (排除子資料夾測試法 / LIFF endpoint 切換 / 白名單檢查等方案)
+                     · 新增 pageMaintenance 頁面:沿用 .status-icon.status-info(sage 深綠)+ .status-title + .status-sub
+                       完全 0 行新 CSS,跟 pageLoadError / pageNetworkError 同款骨架
+                     · 文案:「線上預約系統暫停服務,/ 造成不便敬請見諒。」
+                       電話合進內文(沿用 pageLoadError pattern,不另開來電卡片)
+                       移除「預計短時間內恢復」(隱性承諾,改由 LINE 圖文選單自動回應給具體時間)
+                       移除 footer(主 booking 各頁本來也都沒有,結構一致)
+                     · 進場流程:checkBlacklist response 拿到後,maintenance 旗標放第一順位判斷
+                       (system 狀態 > 個人狀態,黑名單病患維護期間看到「系統維護中」而非拒絕頁,避免隱性責備)
+                     · 暗門 A(解鎖預約):長按 .status-icon 3 秒 → 切到 pageEntry
+                       觸控+滑鼠雙支援(touchstart/touchend/touchcancel + mousedown/mouseup/mouseleave)
+                       零視覺反饋(切頁本身就是最強反饋,微反饋會被切頁覆蓋是冗餘)
+                       state.isVip 在 checkBlacklist 階段已拿到並保留,解鎖後黑名單仍受擋
+                     · 暗門 B(跳 admin):footer 連點 3 下不動,但維護頁沒 footer = 維護頁只有 A
+                       Threat model:病患發現 A → 進 pageEntry「啊只是預約頁」探索動機消退
+                       即使到 pageEntry 找到 footer 暗門 B 跳 admin → ADMIN_WHITELIST 第二道擋
+                     · backend 配合(v4.45):checkBlacklist 回傳新增 maintenance 欄位
+                       即時讀 PropertiesService Property,fail-open(讀取失敗預設 false)
+                     · 部署順序:GAS 先(內部已有 BOOKING_MAINTENANCE Property)→ booking 後
+                     · 設計教訓:handoff 寫的「沿用 admin 暗門 pattern」其實 admin 沒這設計
+                       真實的暗門 pattern 在 booking footer(連點 3 下/2 秒 → admin)
+                       → 動手前先 grep 真實 code,不憑記憶寫設計(對齊 v5.6.6.1 isBirthdayMatch 教訓)
+                     · 雙 LLM 審查補強(2026-04-27 同日,Claude+Gemini):
+                       - 暗門 A 加 contextmenu preventDefault:防 Android 長按反白 / 桌機右鍵
+                         觸發系統選單搶焦點,導致 mouseup/touchend 不觸發 → 計時器背景意外解鎖
+                         (Claude 自審漏掉,Gemini 補抓 — 長按互動需檢查 contextmenu/touch-callout/dragstart 三件套)
+                       - 暗門 A 長按時間 3000ms → 2000ms:無回饋暗門業界節奏(1.5-2 秒)
+                         對齊使用者體感(自測 3 秒會自我懷疑「壞了沒」),contextmenu 修補後不增加意外解鎖風險
+                       - 已知技術債(接受不修):一般病患長按解鎖後仍能送出真實預約,維護期間需手動
+                         看「預約資料」分頁;不引入 Bypass Token 機制以避免複雜化(機率極低,事後手動取消即可)
      · v6.0 預計 — 心理治療預約上線
      · v7.0 預計 — 帳號系統與病患個人資料管理
      ========================================================== */
@@ -845,15 +890,15 @@
     to   { opacity: 1; transform: scale(1); }
   }
   .success-icon svg {
-    width: 32px; height: 32px;
+    width: 40px; height: 40px;
     stroke: var(--sage-dark);
-    stroke-width: 2;
+    stroke-width: 2.5;
     fill: none;
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-dasharray: 40;
-    stroke-dashoffset: 40;
-    animation: drawCheck 0.6s 0.3s cubic-bezier(0.22,1,0.36,1) forwards;
+    stroke-dasharray: 50;
+    stroke-dashoffset: 50;
+    animation: drawCheck 0.8s 0.4s cubic-bezier(0.22,1,0.36,1) forwards;
   }
   @keyframes drawCheck {
     to { stroke-dashoffset: 0; }
@@ -911,15 +956,15 @@
     animation: successPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
   }
   .fusion-check svg {
-    width: 36px; height: 36px;
+    width: 40px; height: 40px;
     stroke: var(--doc-color, var(--sage-deep));
     stroke-width: 2.5;
     fill: none;
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-dasharray: 40;
-    stroke-dashoffset: 40;
-    animation: drawCheck 0.6s 0.3s cubic-bezier(0.22,1,0.36,1) forwards;
+    stroke-dasharray: 50;
+    stroke-dashoffset: 50;
+    animation: drawCheck 0.8s 0.4s cubic-bezier(0.22,1,0.36,1) forwards;
   }
 
   /* 標題「預約完成」— sage-deep + serif 22px + ls 8px */
@@ -1167,6 +1212,19 @@
   }
   .booking-item.is-cancelled:hover {
     background: rgba(74,74,68,0.02);  /* 不可點,hover 不變色 */
+  }
+  /* v5.7.1 取消瞬間的綠靄動畫(sage 6% 極克制 + 細微縮放)
+     · 1.5s 動畫 → 從原本的「已確認」終態漸退到 .is-cancelled 終態
+     · 25% 時刻短暫出現 sage 6% 綠靄 + scale 0.98 細微收一下(像深呼吸)
+     · 100% 回到 transparent + opacity 0.55(對齊既有 .is-cancelled 灰色降級)
+     · 心理含義:不戲劇、不慶祝、不警示,純粹「狀態變化發生了」的視覺確認 */
+  .booking-item.just-cancelled {
+    animation: justCancelledFade 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes justCancelledFade {
+    0%   { background: rgba(138,170,85,0.06); transform: scale(1);    opacity: 1;    }
+    25%  { background: rgba(138,170,85,0.06); transform: scale(0.98); opacity: 0.85; }
+    100% { background: rgba(74,74,68,0.02);   transform: scale(1);    opacity: 0.55; }
   }
   .booking-detail { font-size: 13px; color: var(--ink-mid); line-height: 1.9; letter-spacing: 0.5px; }
   /* v5.6.5: 列表卡 actions 容器(flex 並列「查看詳情」+「取消預約」按鈕) */
@@ -1588,6 +1646,25 @@
         若持續無法連線,請來電:<strong style="color:var(--sage-dark)">07-363-1313</strong>
       </div>
       <button class="btn btn-primary" style="max-width:220px;margin-top:12px;" onclick="location.reload()">重新載入</button>
+    </div>
+  </div>
+
+  <!-- v5.7.0 維護頁(整合自 booking_maintenance.html)
+       · 觸發:checkBlacklist 回傳 maintenance:true(對應 GAS Property BOOKING_MAINTENANCE="true")
+       · 沿用 .status-icon.status-info / .status-title / .status-sub,0 行新 CSS
+       · 暗門 A:長按 .status-icon 3 秒 → 切到 pageEntry(JS 在 initLiff 之後綁定) -->
+  <div class="page" id="pageMaintenance">
+    <div class="status-container" style="min-height:60vh;">
+      <div class="status-icon status-info" id="maintenanceUnlockIcon" style="cursor:default;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+        </svg>
+      </div>
+      <div class="status-title status-info-text">系統維護中</div>
+      <div class="status-sub" style="max-width:340px;">
+        線上預約系統暫停服務,造成不便敬請見諒。<br>
+        若需協助,請於門診時間來電:<strong style="color:var(--sage-dark)">07-363-1313</strong>
+      </div>
     </div>
   </div>
 
@@ -2035,13 +2112,27 @@ async function initLiff() {
       showPage("pageNetworkError");
       return;
     }
+    // v5.7.0 state.isVip 提前 set:三條路徑(maintenance / blocked / 一般)都用得到
+    // · maintenance 路徑:暗門 A 解鎖後仍要正確顯示 VIP 預約權限
+    // · blocked 路徑:VIP 不會落入 blocked 分支(checkBlacklist 已 early-return)
+    // · 一般路徑:跟原本行為完全相同
+    state.isVip = blResult.isVip === true;
+    // v5.7.0 維護模式判斷(maintenance 旗標放第一順位,排在 blocked 之前)
+    // · 對齊設計:系統狀態 > 個人狀態,黑名單病患維護期間看到「系統維護中」而非拒絕頁(避免隱性責備)
+    // · 暗門 A 在 showPage('pageMaintenance') 之後即綁好監聽,長按 3 秒會切回 pageEntry
+    // · backend 風險:即使黑名單病患長按解鎖前端,submitBooking GAS 端仍有獨立黑名單擋
+    if (blResult.maintenance === true) {
+      await animationPromise;
+      showPage("pageMaintenance");
+      bindMaintenanceUnlock();
+      return;
+    }
     if (blResult.blocked) {
       // 真的被封鎖:顯示「無法使用線上預約」頁
       await animationPromise;
       showPage("pageLoadError");
       return;
     }
-    state.isVip = blResult.isVip === true;
 
     // v5.x 等動畫至少跑滿 5 秒再進首頁
     // 若 backend 很快 → 等動畫;若 backend 慢於動畫 → logo 會在呼吸,等 backend 完成後就會進這裡
@@ -3526,8 +3617,11 @@ function renderBookingPage() {
     const itemClick = isClickable
       ? ` onclick="openCardModal('${esc(b.bookingId)}')"`
       : "";
+    // v5.7.1: 若這筆是「剛取消」,加 .just-cancelled 觸發 1.5s 綠靄動畫
+    const isJustCancelled = !isClickable && window._justCancelledId === b.bookingId;
     const itemCls = "booking-item"
-      + (isClickable ? " is-clickable" : " is-cancelled");
+      + (isClickable ? " is-clickable" : " is-cancelled")
+      + (isJustCancelled ? " just-cancelled" : "");
 
     if (isClickable) {
       // v5.6.5: 已確認 = 兩行(主資訊 / 兩按鈕並列「→ 查看詳情」+「取消預約」)
@@ -3595,7 +3689,15 @@ async function cancelBooking(bookingId, btn) {
       // 跟舊版 inline 操作的 .booking-status 已不相容,而且整頁重渲染保證 is-cancelled class、onclick 移除等同步
       const bk = allBookingResults.find(function(b) { return b.bookingId === bookingId; });
       if (bk) bk.status = "已取消";
+      // v5.7.1: 標記「剛取消」讓 renderBookingPage 加上 .just-cancelled animation class
+      // · marker 只保留 1.5s,動畫結束後自動清除避免下次重渲染重播
+      window._justCancelledId = bookingId;
       renderBookingPage();
+      setTimeout(function() {
+        if (window._justCancelledId === bookingId) {
+          window._justCancelledId = null;
+        }
+      }, 1500);
     } catch(e) {
       // 失敗 → modal 內顯示錯誤,讓使用者選擇重試或返回
       msgEl.textContent = "系統連線異常,請再試一次。";
@@ -3809,7 +3911,51 @@ function xhrPost(url, payload) {
 
 initLiff();
 
-/* ── 暗門：2秒內連點3下進入 Admin ── */
+/* ── v5.7.0 暗門 A:長按 2 秒解鎖維護頁 ──
+   · 觸發點:#maintenanceUnlockIcon (.status-icon.status-info)
+   · 觸控+滑鼠雙支援(櫃台電腦也能用,不只 LIFF 行動端)
+   · 零視覺反饋:切頁本身就是最強反饋,微反饋會被切頁覆蓋是冗餘
+   · 不影響非維護模式:函式只在 initLiff 進入 maintenance 分支時呼叫綁定
+   · 雙 LLM 審查補強(2026-04-27):
+     - 加 contextmenu preventDefault:防 Android / 桌機右鍵長按觸發系統選單,
+       焦點被搶走後 mouseup/touchend 不會觸發 → 計時器跑滿背景意外解鎖
+     - 長按時間 3000 → 2000:無回饋暗門業界節奏(1.5-2 秒),
+       contextmenu 修補後不增加意外解鎖風險,自用體感更順 */
+let _maintPressTimer = null;
+function bindMaintenanceUnlock() {
+  const icon = document.getElementById('maintenanceUnlockIcon');
+  if (!icon) return;
+  // 防止重複綁定(理論上 initLiff 只跑一次,保險起見)
+  if (icon.dataset.unlockBound === "1") return;
+  icon.dataset.unlockBound = "1";
+
+  const startPress = function(e) {
+    if (_maintPressTimer) clearTimeout(_maintPressTimer);
+    _maintPressTimer = setTimeout(function() {
+      _maintPressTimer = null;
+      showPage('pageEntry');
+      // 暗門解鎖後背景預載資源,跟正常進場行為對齊
+      try { preloadDoctorAvatars(); } catch (e) {}
+      try { prewarmPatientList(); } catch (e) {}
+    }, 2000);
+  };
+  const cancelPress = function() {
+    if (_maintPressTimer) { clearTimeout(_maintPressTimer); _maintPressTimer = null; }
+  };
+
+  // 觸控(LIFF 行動端)
+  icon.addEventListener('touchstart', startPress, { passive: true });
+  icon.addEventListener('touchend', cancelPress);
+  icon.addEventListener('touchcancel', cancelPress);
+  // 滑鼠(櫃台電腦操作 join)
+  icon.addEventListener('mousedown', startPress);
+  icon.addEventListener('mouseup', cancelPress);
+  icon.addEventListener('mouseleave', cancelPress);
+  // 防系統 Context Menu 搶焦點(Android 長按反白 / 桌機右鍵)
+  icon.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+}
+
+/* ── 暗門 B：2秒內連點3下進入 Admin(v5.0 起既有,維護頁無 footer 不會觸發) ── */
 let _tapCount = 0;
 let _tapTimer = null;
 const _ADMIN_URL = "https://yuexin913.github.io/yuexin-queue/admin.html";
