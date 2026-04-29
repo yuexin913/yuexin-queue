@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.11">
+  <meta name="version" content="5.5.12">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,8 +17,32 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.5.11 (2026-04-29) 對齊 backend v4.47 互鎖規則(3 格 → 2 格)
+     Version:   v5.5.12 (2026-04-29) admin tile 視覺對齊 v4.48 npRowStart +1 + 鎖 2 格
      ──────────────────────────────────────────────────────────
+     v5.5.12 (2026-04-29) admin tile 視覺對齊 v4.48 鎖 2 格規則(P5 緊急議題收尾):
+     · 動機:v5.5.11 只對齊衝堂判斷邏輯,沒改視覺寬度(span 3)→ 5 個複診號 8/13/18/23/28
+       邏輯上可用但被橫幅遮蓋。autoAssignReturnSlot 會自動分派 13/18/23/28 號,
+       admin 卻看不到預約者(粟醫師同事無法管理)。
+     · reality check 發現比 P5 描述更嚴重:複診號 13 + 初診 0945 並存時,複診者會
+       「被 banner 無聲覆蓋」— 連 hasRtConflict 警示都不會觸發(掃描範圍是 rowStart+1~+2,
+       不掃 rowStart 本身)。粟醫師同事完全不知道有人預約 13 號。
+     · 改動(配合 backend v4.48 npRowStart 起點 +1):
+       - 手機 CSS L1049:`grid-column: 3 / span 3` → `grid-column: 4 / span 2`(占 col 4-5)
+       - 桌機 CSS L1193:`grid-column: auto / span 3` → `grid-column: auto / span 2`
+       - JS L3737(衝突 np_skip 標記):`for k = 1; k < 3` → `k < 2`(只標 1 格)
+       - JS L3750(掃描 rt 衝堂):`for k = 1; k < 3` → `k < 2`(只掃 1 格)
+       - JS L3789(正常 np_skip 標記):`for k = 1; k < 3` → `k < 2`(只標 1 格)
+     · 視覺新樣貌:橫幅占複診號 9-10/14-15/19-20/24-25/29-30(= v4.47 邏輯鎖範圍)
+       號碼 8/13/18/23/28 變獨立可見可預約格(視覺與邏輯完全對齊)
+     · 注意:衝堂判斷 L3702 的 `(idx >= 8 && (idx - 8) % 5 < 2)` 仍正確,不變動
+       (它判斷的是「複診號是否被鎖」,跟視覺寬度沒關係,v5.5.11 改動仍對)
+     · 真值表(已驗證):
+       - 號碼 1-8/11-13/16-18/21-23/26-28 → rowStart null(可預約,不衝堂)
+       - 號碼 9-10/14-15/19-20/24-25/29-30 → 對應初診 rowStart 8/13/18/23/28,被鎖
+     · Meta 教訓:**改互鎖規則時要同步檢查 admin tile 渲染 3 個面向 — 衝堂判斷邏輯
+       (v5.5.11 已修)+ 橫幅視覺寬度(v5.5.12 修)+ np_skip 範圍(v5.5.12 修)**
+       v4.47 部署時只改了第 1 個,粟醫師第 13 次 push back 才發現完整範圍
+
      v5.5.11 (2026-04-29) 修正 admin tile 衝堂判斷沒對應 v4.47 鎖 2 格規則:
      · 動機:粟醫師截圖證據顯示,複診預約 13 號 + 初診 idx 1(第 2 個初診)同時存在時,
        admin tile 仍顯示衝堂(紅色警告),但 v4.47 backend 已開放 13 號預約。
@@ -28,10 +52,10 @@
        - 衝堂判斷(行 3685):`(idx >= 7 && (idx - 7) % 5 < 3)` → `(idx >= 8 && (idx - 8) % 5 < 2)`
          真值表:9-10/14-15/19-20/24-25/29-30 → rowStart 7/12/17/22/27,其他 → null
        - 初診塞入掃描(行 3733):`for k = 0; k < 3` → `for k = 1; k < 3`(跳過初診本身的格子,只掃後 2 格鎖定區)
-     · 不改項目:
-       - 橫幅視覺寬度(span 3)仍正確 — 橫幅蓋住「初診本身 + 鎖 2 格」共 3 格寬度
-       - GAS npRowStart 算法(7,12,17,22,27)仍正確 — 對應 cells idx 0-indexed
-       - 衝堂時 np_skip 標記範圍(k=1; k<3)仍正確 — 本來就只標 2 格
+     · 不改項目(後續 v5.5.12 補修):
+       - ~~橫幅視覺寬度(span 3)仍正確~~ ❌ v5.5.12 發現視覺寬度未對齊
+       - ~~GAS npRowStart 算法(7,12,17,22,27)仍正確~~ ❌ v5.5.12 改為 8,13,18,23,28
+       - ~~衝堂時 np_skip 標記範圍(k=1; k<3)仍正確~~ ❌ v5.5.12 改為 k<2
      · Meta 教訓:**Claude 改 backend 規則時要 grep 所有 caller 影響範圍**
        v4.47 部署時 oversight,粟醫師第 12 次 push back 才發現,對齊 v5.7.0 教訓 #4
 
@@ -1046,7 +1070,9 @@
 
   /* ── 初診橫幅 ── */
   .grid-np-banner {
-    grid-column: 3 / span 3;
+    /* v5.5.12: 對齊 v4.48 npRowStart 起點 +1 + 鎖 2 格範圍。原 col 3 / span 3 占複診號 8-10,
+       現 col 4 / span 2 占複診號 9-10(= 邏輯鎖範圍)→ 號碼 8 變獨立可見可預約 */
+    grid-column: 4 / span 2;
     background: var(--bg-3);
     border: 1px solid var(--border-hard);
     padding: 8px 12px;
@@ -1179,17 +1205,14 @@
          列 4: cells[20..29] = 號碼 21-30
        ✅ 這正是櫃檯要的布局,且手機版原本就正確,兩邊都不用動 JS */
 
-    /* 初診 banner:v5.4.4 修補
-       手機版 CSS(第 774 行)是 `grid-column: 3 / span 3`,絕對座標指向 col 3-5
-       在桌機 10 欄 grid 下,這會讓所有 banner 都擠在 col 3-5,與 slot 位置錯開:
-         - slot 8 banner 應落 col 8-10 → 但被鎖在 col 3-5 ❌
-         - slot 18 banner 應落 col 8-10 → 但被鎖在 col 3-5 ❌
-         - slot 28 banner 應落 col 8-10 → 但被鎖在 col 3-5 ❌
-       修法:桌機版改用 `auto / span 3`,讓 Grid auto-placement 自動找到正確位置
-       (依 DOM 順序,banner 進入該 row 剩餘的 3-col 空間,就是對應 slot 的位置)
-       手機版不受影響(此 @media 只作用在 ≥ 1024px) */
+    /* 初診 banner:v5.4.4 修補 + v5.5.12 對齊 v4.48
+       手機版 CSS(第 1049 行)v5.5.12 改為 `grid-column: 4 / span 2`,絕對座標指向 col 4-5
+       在桌機 10 欄 grid 下,絕對座標會與 slot 位置錯開,故桌機改用 `auto / span 2`
+       讓 Grid auto-placement 依 DOM 順序自動排到該 row 的剩餘 2-col 空間(就是對應 slot 的位置)
+       手機版不受影響(此 @media 只作用在 ≥ 1024px)
+       v5.5.12 變更:span 3 → span 2(對齊 v4.48 npRowStart +1 + 互鎖鎖 2 格範圍) */
     .grid-np-banner {
-      grid-column: auto / span 3;
+      grid-column: auto / span 2;
     }
 
     /* ─── 第 5 列:左 = 不指定組、右 = 工具列 ─── */
@@ -3699,8 +3722,8 @@ function renderSessionContent(session, isClosed) {
     const slot = parseInt(b.slot, 10);
     if (slot >= 1 && slot <= 30) {
       const idx = slot - 1;
-      // v5.5.11: 對齊 v4.47 互鎖 2 格 — 只有號碼 9-10/14-15/19-20/24-25/29-30 被鎖,對應 rowStart 7,12,17,22,27
-      const rowStart = (idx >= 8 && (idx - 8) % 5 < 2) ? Math.floor((idx - 8) / 5) * 5 + 7 : null;
+      // v5.5.12: 對齊 v4.48 npRowStart +1 — 號碼 9-10/14-15/19-20/24-25/29-30 被鎖,對應 rowStart 8,13,18,23,28
+      const rowStart = (idx >= 8 && (idx - 8) % 5 < 2) ? Math.floor((idx - 8) / 5) * 5 + 8 : null;
       if (rowStart !== null && npRowStarts.has(rowStart)) {
         conflictList.push(b);
         conflictNpRowStarts.add(rowStart); // 標記這個初診列有衝突
@@ -3735,7 +3758,7 @@ function renderSessionContent(session, isClosed) {
             conflictList.push({ name: existing.name, slot: existing.slot, checkInTime: existing.checkInTime, bookingId: existing.bookingId });
           }
           cells[rowStart] = { type: "conflict", num: rowStart + 1, isNpConflict: true };
-          for (let k = 1; k < 3; k++) {
+          for (let k = 1; k < 2; k++) { // v5.5.12: 對齊 v4.48 鎖 2 格,np_skip 只標 1 格(原 2 格)
             if (rowStart + k < 30) cells[rowStart + k] = { type: "np_skip" };
           }
         }
@@ -3746,9 +3769,9 @@ function renderSessionContent(session, isClosed) {
         return;
       }
 
-      // 初診塞入前：掃描 rowStart+1~rowStart+2（v5.5.11: 對齊 v4.47 互鎖 2 格,跳過初診本身的格子）
+      // 初診塞入前:掃描 rowStart+1（v5.5.12: 對齊 v4.48 鎖 2 格 + npRowStart +1,只掃 1 格 = 鎖定範圍中的另 1 格,跳過初診本身的格子）
       let hasRtConflict = false;
-      for (let k = 1; k < 3; k++) {
+      for (let k = 1; k < 2; k++) {
         const idx = rowStart + k;
         if (idx < 30 && cells[idx].type === "rt") {
           if (!conflictList.find(function(c) { return c.bookingId === cells[idx].bookingId; })) {
@@ -3786,8 +3809,8 @@ function renderSessionContent(session, isClosed) {
         npRowStart: rowStart,
         hasRtConflict: hasRtConflict  // 有複診佔位時，橫幅顯示 ⚠️
       };
-      // 把 rowStart+1 ~ rowStart+2 標記為 np_skip（渲染時略過，橫幅佔3格）
-      for (let k = 1; k < 3; k++) {
+      // 把 rowStart+1 標記為 np_skip(v5.5.12: 對齊 v4.48 鎖 2 格 — 橫幅佔 2 格,只 skip 1 格)
+      for (let k = 1; k < 2; k++) {
         if (rowStart + k < 30) cells[rowStart + k] = { type: "np_skip" };
       }
     }
