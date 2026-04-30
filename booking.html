@@ -23,9 +23,11 @@
      Version:   v5.8.0 (2026-04-30)
      ──────────────────────────────────────────────────────────
      v5.8.0 (2026-04-30) Loading 動畫 — 5 朵接力 logo(取代 v5.7.x 單朵呼吸):
-     · 動畫機制(已在 demo 驗證):
-       - 5 朵 33px logo 並排,左到右逐一浮現(0.5s 間隔,每朵 fade in + scale up 0.4s)
+     · 動畫機制(已在 demo 驗證,粟醫師看完實機微調尺寸/間距/接力起始):
+       - 5 朵 28px logo 並排(間距 12px,5 朵總寬 188px),左到右逐一浮現(0.5s 間隔,每朵 fade in + scale up 0.4s)
        - 第二輪起每 0.5s 替換最左一朵(scale down 0.2s 退場 → scale up 0.3s 進場,丙時序)
+       - 接力第一次從 t=2.4s 開始(朵 5 浮現完成瞬間,無全亮停留,粟醫師調整,讓節奏更流暢)
+       - 接力自成節拍(t=2.4/2.9/3.4/...,跟集合節拍錯開,集合結束後不再對齊)
        - 永遠 4-5 朵在畫面,接力替換無斷點
      · 模式(由前端 hardcode 時段判斷):
        - open(門診時段):週一~五 09-12 / 14-17 / 17:30-20:30 + 週六 09-12 → 5 朵彩色亂數
@@ -1358,14 +1360,14 @@
      等 GAS 回應切換會視覺斷層,所以這個 feature 的 Script Property 暫不實作) */
   .logo-row {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     align-items: center;
     justify-content: center;
-    height: 37px;
+    height: 32px;
   }
   .lotus {
-    width: 33px;
-    height: 33px;
+    width: 28px;
+    height: 28px;
     flex-shrink: 0;
     opacity: 0;
     transform: scale(0.4);
@@ -2610,7 +2612,10 @@ function startLoadingAnimation() {
     }, i * 500);
   });
 
-  // 第二輪起:每 0.5s 接力替換最左一朵(從 t=2500ms 開始)
+  // 第二輪起:每 0.5s 接力替換最左一朵
+  // v5.8.0 調整:接力第一次從 t=2400ms 開始(朵 5 浮現完成瞬間,消除全亮停留)
+  // 之後每 500ms 一次 → t=2400/2900/3400/3900/4400/4900/...
+  // 接力自成節拍(跟集合節拍 0/500/1000/1500/2000 錯開 400ms,集合結束後不再對齊)
   let relayPointer = 0;
   _scheduleLotus(function() {
     _lotusInterval = setInterval(function() {
@@ -2628,7 +2633,7 @@ function startLoadingAnimation() {
       }, 200);
       relayPointer = (relayPointer + 1) % 5;
     }, 500);
-  }, 2500);
+  }, 2400);
 
   // 保底 1500ms(對齊原 v5.7.x 行為,不阻塞流程)
   return new Promise(function(resolve) { setTimeout(resolve, 1500); });
