@@ -24,7 +24,7 @@
      ──────────────────────────────────────────────────────────
      v5.8.0 (2026-04-30) Loading 動畫 — 5 朵接力 logo(取代 v5.7.x 單朵呼吸):
      · 動畫機制(已在 demo 驗證,粟醫師看完實機微調尺寸/間距/接力起始):
-       - 5 朵 28px logo 並排(間距 12px,5 朵總寬 188px),左到右逐一浮現(0.5s 間隔,每朵 fade in + scale up 0.4s)
+       - 5 朵 24px logo 並排(間距 16px,5 朵總寬 184px),左到右逐一浮現(0.5s 間隔,每朵 fade in + scale up 0.4s)
        - 第二輪起每 0.5s 替換最左一朵(scale down 0.2s 退場 → scale up 0.3s 進場,丙時序)
        - 接力第一次從 t=2.4s 開始(朵 5 浮現完成瞬間,無全亮停留,粟醫師調整,讓節奏更流暢)
        - 接力自成節拍(t=2.4/2.9/3.4/...,跟集合節拍錯開,集合結束後不再對齊)
@@ -1360,14 +1360,14 @@
      等 GAS 回應切換會視覺斷層,所以這個 feature 的 Script Property 暫不實作) */
   .logo-row {
     display: flex;
-    gap: 12px;
+    gap: 16px;
     align-items: center;
     justify-content: center;
-    height: 32px;
+    height: 28px;
   }
   .lotus {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     flex-shrink: 0;
     opacity: 0;
     transform: scale(0.4);
