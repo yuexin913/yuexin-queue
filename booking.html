@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.7.2">
+  <meta name="version" content="5.8.0">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,8 +20,37 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.7.2 (2026-04-29)
+     Version:   v5.8.0 (2026-04-30)
      ──────────────────────────────────────────────────────────
+     v5.8.0 (2026-04-30) Loading 動畫 — 5 朵接力 logo(取代 v5.7.x 單朵呼吸):
+     · 動畫機制(已在 demo 驗證):
+       - 5 朵 33px logo 並排,左到右逐一浮現(0.5s 間隔,每朵 fade in + scale up 0.4s)
+       - 第二輪起每 0.5s 替換最左一朵(scale down 0.2s 退場 → scale up 0.3s 進場,丙時序)
+       - 永遠 4-5 朵在畫面,接力替換無斷點
+     · 模式(由前端 hardcode 時段判斷):
+       - open(門診時段):週一~五 09-12 / 14-17 / 17:30-20:30 + 週六 09-12 → 5 朵彩色亂數
+       - close(非門診時段):其他所有時段 → 5 朵全綠 grounding(對齊 v5.7.1 取消綠靄、診所 ambient 綠語言)
+     · 純亂數設計:每朵獨立隨機抽 5 色,允許重複(兩朵同色是彩蛋,粟醫師設計直覺)
+     · 設計脈絡(取代理由):
+       - 原 logoBreath 是單朵 55px 呼吸動畫(scale 1.0→1.08 + opacity 1.0→0.6 / 2.5s)
+       - 5 色 logo 資產(粟紫/郭藍/王麟祥黃/王伯元紅/代診綠 / sage 綠)早就在 production 用於預約完成圖卡
+       - 這次把這 5 色資源延伸到 loading 場景:5 朵彩色 = 「五位醫師團隊在場」的視覺暗示
+       - 全綠 grounding = 「診所安靜地等你」(對齊取消後 sage 6% 綠靄、心理治療磚 sage)
+       - 兩個模式氣質呼應病患心理:門診時間病患(穩定)→ 接受彩色;非門診時間病患(可能焦慮)→ 需要 grounding
+     · scope 鎖死:只動 A1 pageLoading;B 類遮罩(送出預約中、查詢中等)/ C 類 spinner(取消按鈕等)維持現狀
+     · 不實作項目(reality check 後決定):
+       - GAS Script Property 即時切換:t=0 動畫已開始,GAS 回應在 t=2-3s,中途切會視覺斷層
+         → 對齊 v5.7.0 維護模式同類問題(loading 2-3 秒 → 才切到維護頁),不強行修
+       - 節慶日曆(母親節 / 春節 / 情人節):scope 收斂,留下次擴展
+     · 改動範圍:
+       - CSS L1322-1338:logoBreath 替換為 lotusEnter / lotusExit + .logo-row / .lotus 樣式
+       - HTML L1626-1637:單朵 .logo-anim 改為 5 朵 .lotus
+       - JS:新增 isClinicHoursAuto / pickLotusColor / setLotusImage / startLoadingAnimation 重寫
+       - JS showPage:加 1 段切離 pageLoading 時清理 timer 的 hook
+       - meta version:5.7.2 → 5.8.0
+     · Rollback:回到 v5.7.2 原檔(uploads / work 兩處備份)
+     · GAS 不需動(本階段 Script Property 不實作)
+
      v5.7.2 (2026-04-29) 文案改寫 — 不指定時段「現場排號」+ 額滿訊息收斂:
      · 不指定時段標題:「不指定時段」→「現場排號:不指定時段」
        - 「現場排號」是病患語言(機構視角的「不指定」變成病患體感的「現場排隊」)
@@ -1319,22 +1348,45 @@
     gap: 18px;
   }
 
-  .logo-anim {
-    width: 55px;
-    height: auto;       /* 保持 logo 原比例 (512×525) */
-    animation: logoBreath 2.5s ease-in-out infinite;
-    will-change: transform, opacity;
+  /* ── 5 朵接力 logo 動畫(v5.8.0)──────────────────
+     設計:5 朵 33px logo 並排,左到右逐一浮現(每朵間隔 0.5s),
+     全亮後第二輪起接力替換(每 0.5s 替換最左一朵)。
+     模式:open(門診時段彩色亂數)/ close(非門診時段全綠 grounding)
+     由 JS 端 hardcode 時段判斷:週一~五 09-12/14-17/17:30-20:30 + 週六 09-12 = open,其他 = close
+     (本階段不做 Script Property 即時切換 — 對齊 v5.7.0 維護模式哲學:
+     Script Property 改了「下次打開的病患」生效;但 loading 動畫 t=0 就播,
+     等 GAS 回應切換會視覺斷層,所以這個 feature 的 Script Property 暫不實作) */
+  .logo-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    height: 37px;
   }
-  .logo-anim-img {
+  .lotus {
+    width: 33px;
+    height: 33px;
+    flex-shrink: 0;
+    opacity: 0;
+    transform: scale(0.4);
+    will-change: opacity, transform;
+  }
+  .lotus img {
     width: 100%;
-    height: auto;
+    height: 100%;
     display: block;
+    object-fit: contain;
   }
 
-  /* 呼吸動畫:幅度加大、節奏更明顯 */
-  @keyframes logoBreath {
-    0%, 100% { transform: scale(1.0);  opacity: 1;   }
-    50%      { transform: scale(1.08); opacity: 0.6; }
+  /* 第一輪浮現:fade in + scale up,0.4s ease-out */
+  @keyframes lotusEnter {
+    0%   { opacity: 0; transform: scale(0.4); }
+    100% { opacity: 1; transform: scale(1.0); }
+  }
+  /* 接力退場(丙方案前段):scale down + fade out,0.2s ease-in */
+  @keyframes lotusExit {
+    0%   { opacity: 1; transform: scale(1.0); }
+    100% { opacity: 0; transform: scale(0.8); }
   }
 
   /* 載入文字:中文主、英文輔 */
@@ -1625,9 +1677,13 @@
   <!-- 載入頁 -->
   <div class="page active visible" id="pageLoading">
     <div class="loading-stage">
-      <div class="logo-anim" id="loadingLogoImg">
-        <img src="assets/doctors/yuexinlogo-large.png" alt="悅心診所" class="logo-anim-img"
-             onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/yuexin913/yuexin-queue/main/assets/doctors/yuexinlogo-large.png';">
+      <div class="logo-row" id="loadingLogoRow">
+        <!-- 5 朵 logo,JS 動態管理 src 與動畫(v5.8.0)-->
+        <span class="lotus" data-idx="0"></span>
+        <span class="lotus" data-idx="1"></span>
+        <span class="lotus" data-idx="2"></span>
+        <span class="lotus" data-idx="3"></span>
+        <span class="lotus" data-idx="4"></span>
       </div>
       <div class="loading-text" id="loadingText">
         <div class="loading-text-zh">載入中請稍候</div>
@@ -2450,13 +2506,132 @@ function formatBirthROCDisplay(birthStr) {
 //   · 完全靜默,不動任何 UI
 //   · 失敗靜默,不阻止後續正常流程(loadPatientList 會 fallback 打 API)
 //   · 同樣 10 秒 timeout 防止卡太久
-// v5.x 啟動 Loading 動畫:logo 呼吸 loop 由 CSS 處理
-// JS 的責任是保底「最少顯示 1.5 秒」,避免 backend 太快時畫面一閃而過
-// 若 backend 慢於 1.5 秒,呼吸 loop 會持續播、等到 backend 回來才進首頁
+// ────────────────────────────────────────────────
+// v5.8.0 — 5 朵接力 logo 動畫
+// ────────────────────────────────────────────────
+// 設計脈絡:取代 v5.7.x logoBreath 單朵呼吸動畫
+// · 5 朵 33px logo 並排 → 第一輪逐一浮現(0.5s 間隔,每朵 fade in + scale up 0.4s)
+//   → 第二輪起每 0.5s 替換最左一朵(scale down 0.2s + scale up 0.3s,丙時序)
+// · 模式:open(門診時段)= 5 朵彩色亂數;close(非門診)= 5 朵全綠 grounding
+// · 模式由前端 hardcode 時段判斷(週一~五 09-12/14-17/17:30-20:30 + 週六 09-12 = open,其他 = close)
+// · 無 Script Property 即時切換:對齊 v5.7.0 維護模式哲學,但 loading 動畫 t=0 就播,
+//   等 GAS 回應切換會視覺斷層,所以本階段 Script Property feature 不實作
+// · 5 朵 logo 已被 preloadDoctorAvatars 預載(L2820~),不會看到載入閃爍
+//   但保險起見動畫啟動時再次預載一次(冪等,若已 cache 不會重發 request)
+
+const LOTUS_BASE = 'assets/doctors/';
+const LOTUS_FALLBACK_BASE = 'https://raw.githubusercontent.com/yuexin913/yuexin-queue/main/assets/doctors/';
+const LOTUS_FILES = {
+  purple: 'yuexinlogo_finalpage_purple.png',
+  blue:   'yuexinlogo_finalpage_blue.png',
+  yellow: 'yuexinlogo_finalpage_yellow.png',
+  red:    'yuexinlogo_finalpage_red.png',
+  green:  'yuexinlogo_finalpage_green.png',
+};
+const LOTUS_OPEN_POOL = ['purple', 'blue', 'yellow', 'red', 'green']; // 門診時段:5 色亂數抽
+const LOTUS_CLOSE_POOL = ['green'];                                    // 非門診:全綠
+
+// hardcode 時段判斷
+function isClinicHoursAuto() {
+  const d = new Date();
+  const day = d.getDay();
+  const minutes = d.getHours() * 60 + d.getMinutes();
+  if (day === 0) return false;                                  // 週日休
+  if (day === 6) return minutes >= 9*60 && minutes < 12*60;     // 週六上午
+  // 週一~五:09:00-12:00 / 14:00-17:00 / 17:30-20:30
+  return (minutes >= 9*60     && minutes < 12*60) ||
+         (minutes >= 14*60    && minutes < 17*60) ||
+         (minutes >= 17*60+30 && minutes < 20*60+30);
+}
+
+function pickLotusColor(mode) {
+  const pool = (mode === 'open') ? LOTUS_OPEN_POOL : LOTUS_CLOSE_POOL;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function setLotusImage(span, colorKey) {
+  const file = LOTUS_FILES[colorKey] || LOTUS_FILES.green;
+  span.innerHTML = '';
+  const img = document.createElement('img');
+  img.src = LOTUS_BASE + file;
+  img.alt = '悅心';
+  img.onerror = function() {
+    this.onerror = null;
+    this.src = LOTUS_FALLBACK_BASE + file;
+  };
+  span.appendChild(img);
+  span.dataset.color = colorKey;
+}
+
+// 動畫狀態
+let _lotusTimeouts = [];
+let _lotusInterval = null;
+let _lotusStarted = false;
+
+function _scheduleLotus(fn, delay) {
+  const t = setTimeout(fn, delay);
+  _lotusTimeouts.push(t);
+}
+
+function _stopLotusAnimation() {
+  _lotusTimeouts.forEach(clearTimeout);
+  _lotusTimeouts = [];
+  if (_lotusInterval) { clearInterval(_lotusInterval); _lotusInterval = null; }
+  _lotusStarted = false;
+}
+
+// v5.8.0 啟動 Loading 動畫:5 朵接力(取代 v5.7.x logoBreath 單朵呼吸)
+// JS 同前版本仍提供 1500ms 保底,讓動畫至少播完第一輪集合(t=0~2.0s 含浮現)的核心
+// 但 1500ms 內第一輪會跑到第 4 朵附近,GAS 通常 2-3s 回應 → 病患會看到完整第一輪 + 一點接力
 function startLoadingAnimation() {
-  return new Promise(function(resolve) {
-    setTimeout(resolve, 1500);
+  if (_lotusStarted) return new Promise(function(resolve) { setTimeout(resolve, 1500); });
+  _lotusStarted = true;
+
+  const lotuses = Array.from(document.querySelectorAll('#loadingLogoRow .lotus'));
+  if (lotuses.length !== 5) {
+    // 安全 fallback:DOM 異常時 resolve 1500ms 不阻塞流程
+    return new Promise(function(resolve) { setTimeout(resolve, 1500); });
+  }
+
+  // hardcode 判斷模式
+  const mode = isClinicHoursAuto() ? 'open' : 'close';
+
+  // 第一輪:5 朵逐一浮現(間隔 0.5s,每朵動畫 0.4s)
+  lotuses.forEach(function(span, i) {
+    span.style.opacity = '0';
+    span.style.transform = 'scale(0.4)';
+    span.style.animation = 'none';
+    setLotusImage(span, pickLotusColor(mode));
+
+    _scheduleLotus(function() {
+      // force reflow 讓 animation 重啟
+      void span.offsetHeight;
+      span.style.animation = 'lotusEnter 0.4s ease-out forwards';
+    }, i * 500);
   });
+
+  // 第二輪起:每 0.5s 接力替換最左一朵(從 t=2500ms 開始)
+  let relayPointer = 0;
+  _scheduleLotus(function() {
+    _lotusInterval = setInterval(function() {
+      const target = lotuses[relayPointer];
+      // 退場:scale down + fade out 0.2s
+      target.style.animation = 'lotusExit 0.2s ease-in forwards';
+      // 0.2s 後換色 + 進場:scale up + fade in 0.3s
+      setTimeout(function() {
+        setLotusImage(target, pickLotusColor(mode));
+        target.style.opacity = '0';
+        target.style.transform = 'scale(0.4)';
+        target.style.animation = 'none';
+        void target.offsetHeight;
+        target.style.animation = 'lotusEnter 0.3s ease-out forwards';
+      }, 200);
+      relayPointer = (relayPointer + 1) % 5;
+    }, 500);
+  }, 2500);
+
+  // 保底 1500ms(對齊原 v5.7.x 行為,不阻塞流程)
+  return new Promise(function(resolve) { setTimeout(resolve, 1500); });
 }
 
 function prewarmPatientList() {
@@ -3851,6 +4026,11 @@ function showPage(id) {
   const current = document.querySelector(".page.active");
   const next = document.getElementById(id);
   if (!next) return;
+
+  // v5.8.0:離開 pageLoading 時清理 5 朵接力動畫 timer(避免記憶體洩漏 + 切走後 timer 仍在跑)
+  if (current && current.id === "pageLoading" && id !== "pageLoading") {
+    if (typeof _stopLotusAnimation === "function") _stopLotusAnimation();
+  }
 
   // 清除錯誤訊息
   document.querySelectorAll(".alert-error").forEach(function(el) {
