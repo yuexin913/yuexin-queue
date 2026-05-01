@@ -22,7 +22,7 @@
      ----------------------------------------------------------
      Version:   v5.8.5 (2026-05-01) Placeholder B2 + 英文姓名訊息 reframe + 首頁加多語 hint
      ──────────────────────────────────────────────────────────
-     v5.8.5 (2026-05-01) 三項小改:
+     v5.8.5 (2026-05-01) 三項小改 + 雙 LLM 審查修正:
      · [1] Placeholder 從 v5.8.4 B3 (#d0c9bd) 退一階回 B2 (#c8c2b6):
        - 動機:粟醫師實機看 B3 後覺得「想看看 B2」(美感 vs 長者可讀的平衡點)
        - 改動:`--ink-placeholder: #d0c9bd` → `#c8c2b6`
@@ -35,17 +35,35 @@
          · 動詞「不支援」→「尚未開放」(柔軟、留餘地)
          · 「若為英文姓名」→「若有需要」(普遍化求助管道)
        - 結構:1 個句號分句(系統規則 / 求助管道 兩個訊息獨立讀)
-     · [3] 首頁底部 alert 加多語 hint(L1895-1908):
+     · [3] 首頁底部 alert 加多語 hint(L1927-1944):
        - 原:單行「若需協助,請於門診時間來電:07-363-1313」
        - 新:兩行結構
          · 第一行:中文(原樣)
-         · 第二行:lucide languages icon + "For English service, please message us on LINE."
+         · 第二行:lucide languages icon + "For English service, please contact us via LINE chat."
        - 動機:粟醫師客群分析 — 主要是菲律賓籍移工 / 越南幫傭 / 偶發英美主管 + 印度博士生
          (英文是他們 second language,LINE 在東南亞普及,翻譯也容易)
-       - icon 選擇歷程:emoji 🌐(可愛但破壞 booking 設計語言)→ Lucide languages icon
+       - icon 選擇歷程:emoji 🌐 → Lucide languages icon
          (跟 booking 既有 lucide-style stroke icon 系統一致 + 語意精準 = Google Translate 同款)
-       - 文案探索:用「For English service, please message us on LINE.」(粟醫師指出是
-         台灣銀行 IVR 慣用語 — Claude 前面誤用英美 idiomatic 「assistance」)
+       - 文案探索:
+         · 初版「For English service, please message us on LINE.」(粟醫師指出是台灣銀行 IVR 慣用語)
+         · reviewer 提出「LIFF 悖論」(user 在 LIFF 裡叫他「on LINE」是悖論)→ 提議 close this page
+         · 粟醫師反 push back:「return to LINE / close this page 累贅」— 因為悅心 booking 入口
+           100% 是 LINE 圖文選單,user 早已加好友、進來時就在 LINE 內,引導反向誤導
+         · 最終選「For English service, please contact us via LINE chat.」
+           - "via LINE chat" 明確指向聊天視窗(非 booking 系統)
+           - 對熟悉 LIFF 流程的 user 完全 actionable
+           - 比 "on LINE" 更 idiomatic(via 指 channel,LINE chat 指 modality)
+     · 雙 LLM 審查 + self-audit 整合修正(7 項 Important + 2 項 Minor):
+       (A) `font-size: 12.5px` → `12px`(對齊 booking design system 整數 px)
+       (B) `border-top: rgba(60,50,30,0.08)` → `rgba(74,74,68,0.15)`(對齊 booking 既有 ink-mid 色族)
+       (C) SVG 加 `class="icon"`(繼承 booking 既有 .icon styles)
+       (D) SVG 加 `aria-hidden="true"`(screen reader 不亂讀 SVG path)
+       (E) SVG 移除冗餘 `fill="none"` `stroke="currentColor"`(.icon 已定義)
+       (F) SVG 保留 `stroke-width="2" stroke-linecap="round" stroke-linejoin="round"`
+           (.icon 沒定義,booking 其他 .icon SVG 也是 inline 寫,維持 pattern 一致)
+       (G) `align-items: center` → `flex-start` + svg `margin-top:2px`(小螢幕斷行不破版)
+       (H) 移除 `color: var(--ink-mid)` override → 改用 `opacity: 0.85`(不破壞 alert-info sage 語意)
+       (I) 移除 svg inline `style="flex-shrink:0;"`(.icon 已定義)
      · meta 教訓(本次累積):
        - 35: **Claude 評英文 idiomatic 時要區分「英美 native context」vs「台灣使用 context」**
              台灣銀行 IVR / 政府慣用「For English service」,Claude 用英美 idiomatic 評是錯
@@ -53,6 +71,27 @@
              改文案前要考慮多語族群,不只中文母語使用者
        - 37: **Claude 想到「視覺輔助」就跳 emoji,沒先 grep booking 既有 icon library**
              應該:做設計建議前 grep 既有設計 system,順著既有風格走
+       - 38: **Claude 部署前必須主動 surface「是否需雙 LLM 審查」**
+             即使是小改動,也應該由 user 決定省不省。粟醫師 SOP 第 8 條「不省」,
+             Claude 不該替使用者省。
+       - 39: **雙 LLM 審查 request 應該結構化**
+             鎖定 scope + 提供既有 design system context + 明列 Claude 自己擔心的點 +
+             要求 Critical/Important/Minor 結構化 output(本次 v5.8.5 review request 樣本可作為模板)
+       - 40: **Self-audit 應該對比 codebase 既有 pattern,不只看 code 邏輯**
+             「Claude 用 general best practice 評估,沒對比 booking 既有 pattern」
+             真實 issue 在「設計細節對不對齊既有色族 / 字級 / a11y」
+       - 41: **Claude 設計時忘記 user 物理上下文 — LIFF 悖論教訓(reviewer 看到的)**
+             我多次評估「英文文案 idiomatic / 美學」沒想過 user 此刻物理上在哪個 app
+             不是字面錯,是 actionable 上下文錯
+       - 42: **Self-audit 跟雙 LLM 審查的 marginal 收益不重疊**
+             Self-audit 看細節(font-size 不對齊),reviewer 看大方向(LIFF 悖論、wrap 響應式)
+             兩個都不能省
+       - 43: **reviewer 的審查也會錯,user 對自己 user base 的理解才是 ground truth**
+             reviewer 抓到 LIFF 悖論值得讚許,但他不知道悅心 LINE 圖文選單是 booking 100%
+             入口,推導的 mitigation(close this page)過度反應。粟醫師反 push back 對 —
+             user 早已在 LINE 內,「return to LINE / close this page」反向誤導。
+
+     v5.8.4 (2026-05-01) Placeholder 再淺化 — B3 #d0c9bd(被 v5.8.5 退階改成 B2):
 
      v5.8.4 (2026-05-01) Placeholder 再淺化 — B3 #d0c9bd(被 v5.8.5 退階改成 B2):
      · 動機:v5.8.3 部署 ink-light(#8a8878)後,粟醫師覺得仍偏深(跟瀏覽器預設色差不夠明顯)
@@ -1926,8 +1965,8 @@
     </div>
     <div class="alert alert-info" style="display:flex;flex-direction:column;gap:6px;">
       <div>若需協助，請於門診時間來電：<strong>07-363-1313</strong></div>
-      <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-mid);padding-top:2px;border-top:0.5px solid rgba(60,50,30,0.08);">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+      <div style="display:flex;align-items:flex-start;gap:8px;font-size:12px;opacity:0.85;padding-top:2px;border-top:0.5px solid rgba(74,74,68,0.15);">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px;">
           <path d="m5 8 6 6"/>
           <path d="m4 14 6-6 2-3"/>
           <path d="M2 5h12"/>
@@ -1935,7 +1974,7 @@
           <path d="m22 22-5-10-5 10"/>
           <path d="M14 18h6"/>
         </svg>
-        <span>For English service, please message us on LINE.</span>
+        <span>For English service, please contact us via LINE chat.</span>
       </div>
     </div>
   </div>
