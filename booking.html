@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.8.3">
+  <meta name="version" content="5.8.4">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,9 +20,33 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.8.3 (2026-05-01) Placeholder 樣式淺色化
+     Version:   v5.8.4 (2026-05-01) Placeholder 再淺化 — B3 #d0c9bd
      ──────────────────────────────────────────────────────────
-     v5.8.3 (2026-05-01) Placeholder 樣式淺色化:
+     v5.8.4 (2026-05-01) Placeholder 再淺化:
+     · 動機:v5.8.3 部署 ink-light(#8a8878)後,粟醫師覺得仍偏深(跟瀏覽器預設色差不夠明顯)
+     · 修改:--ink-placeholder 從 #8a8878(v5.8.3)→ #d0c9bd(B3,比 #8a8878 淺 3 階)
+       + 把 placeholder 用色從 var(--ink-light) 改用專屬變數 var(--ink-placeholder)
+     · 為什麼用專屬變數:
+       - placeholder 跟 ink-light 文字(loading text、image caption)目前用同色,但用途不同
+       - 未來可能再分別調整 → 拆開避免 cascade pollution
+       - 跟 booking 既有 design system 的「ink 一族」命名一致(ink / ink-mid / ink-light / ink-placeholder)
+     · 設計探索歷程(reality check 級別):
+       - 第一輪 demo 我用錯 baseline 寫成 #b8b1a3(誤以為是 booking 的 ink-light)
+       - 粟醫師選 A2(#c8c2b6)後動工,我才 grep 發現實際 booking ink-light 是 #8a8878
+       - 重做 demo 用真實 baseline #8a8878,展示 5 個梯度(B0-B4)
+       - 粟醫師看完真實梯度,選 B3 #d0c9bd(美感優先,跳三階)
+     · meta 教訓(本次累積):
+       - 33: **Demo baseline 必須用 production 真實值,不是憑 Claude 記憶或常見值**
+             錯誤 baseline → user 決策基於假資訊 → 即使選 X 也是「比假 X 的 X」
+             應該:做 demo 前先 grep production 真實 CSS 變數值
+       - 34: **第二次 catch 同類錯誤** — 粟醫師今天兩次 catch「Claude 工作時自己腦中假設沒驗證」
+             (上次標點符號半形/全形 view 工具呈現,這次 demo baseline)
+             共通 pattern:Claude 看到問題立刻動手,沒先驗證自己的 baseline 假設
+     · 影響範圍:booking 23 個 input placeholder 全部一次套用(姓名/電話/生日/查詢等)
+     · 改動工程量:1 行 hex 值 + 1 個註解更新
+     · Rollback:可改回 v5.8.3 #8a8878 或更早的瀏覽器預設
+
+     v5.8.3 (2026-05-01) Placeholder 樣式淺色化(被 v5.8.4 取代):
      · 動機:粟醫師反應「**有些病患會以為 placeholder 已經填好了**」(把示例文字當成實際值)
        — 瀏覽器預設 placeholder 色約 #757575,跟 ink 黑(#2b261d)色差不夠,
          加上 #757575 是冷灰,跟 booking 暖米色背景有色相衝突
@@ -31,8 +55,7 @@
        - reality check italic:中文 italic 是 synthetic(機械傾斜),美感差 → 排除
        - reality check 字小:font-size 在 placeholder 瀏覽器支援不一致 → 排除
        - 收斂到「純色淺」方向(A 系列)
-       - A 方向 5 個淺度梯度比較:A1 #b8b1a3 / A2 #c8c2b6 / A3 #d0c9bd / A4 #dcd6ca / A5 #e6e0d3
-       - 粟醫師看 demo 後選 A1 — 跟既有 CSS 變數 ink-light 一致,改用零成本
+       - A 方向 5 個淺度梯度比較(粟醫師選 A1,但 baseline 後來證實是錯的)
      · 改動:加 1 條 CSS rule(`input::placeholder { color: var(--ink-light); opacity: 1; }`)
        影響範圍:booking 23 個 input(姓名 / 電話 / 生日 / 取消預約天數 / 查詢姓名等全部一次套用)
        為什麼 opacity: 1 必加:Firefox 預設 placeholder opacity 0.54,不明確設 1 會變更淺
@@ -278,6 +301,7 @@
     --ink:         #2b2b28;
     --ink-mid:     #4a4a44;
     --ink-light:   #8a8878;
+    --ink-placeholder: #d0c9bd;  /* v5.8.4: form input placeholder 專用,比 ink-light 更淺 3 階(B3),確保病患不誤認示例為實際值,優先美感(Japandi) */
     --cream:       #faf8f2;
     --parchment:   #f4f2ec;
     --gold:        #c8a84b;
@@ -476,12 +500,14 @@
     color: var(--ink); background: var(--cream);
     transition: border-color 0.2s, box-shadow 0.2s; outline: none; appearance: none;
   }
-  /* v5.8.3 Placeholder 樣式 — 色淺(暖灰 #b8b1a3 = ink-light)+ opacity 1
-     動機:病患反應「以為已經填好了」,瀏覽器預設 placeholder 色 #757575 跟實際輸入字
-     色差不夠 → 病患誤解。改用 booking 既有 ink-light 暖灰,跟 cream 背景同色族,
-     跟實際輸入 ink 黑色色差變大,病患更直覺感覺「這是提示不是值」 */
+  /* v5.8.4 Placeholder 樣式 — 用專屬變數 --ink-placeholder #d0c9bd(B3,跳三階)
+     v5.8.3 用 --ink-light(#8a8878)實機後粟醫師覺得仍偏深(跟瀏覽器預設色差不夠)
+     v5.8.4 改用更淺的 #d0c9bd(B3,比 #8a8878 淺三階,Japandi 美感優先)
+       決策過程:demo 第一輪用錯 baseline(誤把 ink-light 當 #b8b1a3),粟醫師 catch 後重做
+       demo 用真實 baseline #8a8878,讓粟醫師看「跟現狀比淺幾階」,最終選 B3
+     opacity 1 必加:Firefox 預設 placeholder opacity 0.54,不明確設 1 會變更淺 */
   input::placeholder {
-    color: var(--ink-light);
+    color: var(--ink-placeholder);
     opacity: 1;
   }
   input:focus {
