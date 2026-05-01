@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.13">
+  <meta name="version" content="5.5.14">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,9 +17,68 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.5.13 (2026-04-30) confirmForceAdd Bug 修正 — 複製預約通知變「您 您好 / NaN 號」
+     Version:   v5.5.14 (2026-05-01) State 統一物件重構 — lastCompletedBooking
      ──────────────────────────────────────────────────────────
-     v5.5.13 (2026-04-30) confirmForceAdd Bug 修正(修法 C — state 職責分離):
+     v5.5.14 (2026-05-01) State 統一物件重構 + Spinner 視覺改善:
+     · [主] State 統一物件重構(reviewer + self-audit 合併修):
+       動機:v5.5.13 修法 C 是 partial fix,只修了 confirmForceAdd 一個 entry
+       reviewer 抓到 Critical:其他 forced modal entry(L4148 主路徑 + L4252 confirmMatchBooking)
+       沒設 forcedBooking* 欄位 → 同事連續操作會讓 ID 殘留 → 病患可能綁定到別人預約
+       (資安/隱私洩漏:乙的 LINE 綁到甲的預約)
+     · 修法:State 統一物件 lastCompletedBooking
+       - 移除 v5.5.13 的 4 個分散 fields(forcedBookingId/Name/Slot/IsUnspec)
+       - 新增單一 state.lastCompletedBooking = { id, name, slot, isUnspec } | null
+       - 3 個 write entry 一次寫對:
+         · L4148 主路徑(LINE 沒找到 silent forced)
+         · L4263 confirmMatchBooking manual 路徑(reviewer 抓到的 Critical)
+         · L4506 confirmForceAdd(我 v5.5.13 修的)
+       - 2 個 reader 一次讀對:
+         · L4339 copyBindLink:讀 lcb.id + lcb.name(綁定連結 + 訊息姓名)
+         · L4677 copyLineMsgForAdd:讀 lcb.{name, slot, isUnspec}(複製預約通知)
+     · Fail-loud 取代 fallback:
+       - 之前:reader 拿不到資料 fallback 到「您」+「NaN 號」(silent 錯誤訊息)
+       - 現在:reader 看到 lastCompletedBooking === null → 直接顯示錯誤 toast/alert,阻止送出
+       - 理由(reviewer):醫療系統 Fail-loud > Fail-silent,寧可中斷讓同事重做也不能送出錯資料
+     · 為什麼這個重構比 v5.5.13 partial fix 好:
+       - v5.5.13 哲學「state 名字傳達 lifecycle」對,但 4 個分散 fields 違反「攤平式擴充易漏」
+       - 統一物件 → 任何 reader 只讀一個 field → 任何 entry 漏寫立刻爆,不會 silent 殘留
+       - 6 個月後維護者看到 lastCompletedBooking 一秒理解「上一筆完成的預約」,不需 grep
+     · 設計選擇歷程:
+       - reviewer 提 Y(state 重構) vs Z(Y + race condition 修)
+       - 粟醫師選 Y:race condition 是理論機率(同事手速沒這麼快),Y 解決真實高頻 bug
+       - race condition 議題進 handoff 待辦(下次新對話冷靜處理,不疲勞動 async race)
+     · 設計脈絡:
+       - 跟 v5.4.2 / v5.5.13 修補同一類問題(forced 路徑的 state lifecycle 殘留)
+       - v5.4.2:局部補位(L4147 主路徑加 pendingForceAdd 賦值)
+       - v5.5.13:state 職責分離,但只修 confirmForceAdd 一個 entry(partial)
+       - v5.5.14:state 統一物件,3 個 entry + 2 個 reader 一次到位(complete)
+     · Meta 教訓:
+       - **修 bug 時要從 reader 出發追溯所有 entry,而不是只順 user 描述的 1 條 path**
+         應該 grep showAdminAddResult("forced") 找全部 caller,而不是只看「我看到的那條」
+         對應 P5 「改 backend 規則時要 grep 所有 caller」教訓的 frontend 版本
+       - **Fail-loud 比 Fail-silent 安全**(尤其醫療場景)
+         寧可中斷讓使用者重做,也不能 silent 送出錯誤訊息
+       - **State 攤平式擴充易漏**:4 個分散 fields → 任何 entry 漏寫不會立刻爆
+         統一物件 → 漏寫立刻爆 → 強迫每個 entry 都顧到完整資料
+     · ⚠️ 待辦(進 handoff):**pendingAdminAddParams race condition**(reviewer Important)
+       - 同事手速快可能讓 pendingAdminAddParams 被覆蓋,confirmMatchBooking 拿到錯參數
+       - 機率低(實際手速不夠快),但理論存在
+       - 修法需要 request ID / abort controller(60-100 行,async race 推理)
+       - 下次新對話冷靜處理,不疲勞下動 async
+     · [次] Spinner 視覺改善(L5961):
+       - 動機:粟醫師反應 admin overlay spinner 像「橘色螢光棒在轉」(看不到完整方框)
+       - root cause:1.5px 邊框 + 三邊 rgba(255,255,255,0.12) 過淡 → dark overlay 上幾乎看不見
+       - 修法(C 方案,粟醫師選):28px → 32px 加大 + 1.5px → 2.5px 加粗 + 0.12 → 0.25 三邊加深
+       - 視覺改善:完整方框可見 + 整體更顯眼,不會誤認為「螢光棒」
+       - 工程量:1 行 inline style 改動
+
+     · [評估後不動] JOIN auth loading 動畫色彩(維持原狀):
+       - 議題:JOIN 用 8 個飽滿原色(metro 8 色)跟現在 admin tile 半透明風格氣質不一致
+       - 評估方向:A `*-bd` 變數 / B 70% opacity / A+ 新增 `*-auth` 變數
+       - 決定:**維持原狀**(YAGNI + auth 是「進入儀式」moment,飽滿色有存在感)
+       - 詳見 handoff「JOIN auth loading 視覺一致性」記錄
+
+     v5.5.13 (2026-04-30) confirmForceAdd Bug 修正(被 v5.5.14 重構,partial fix 紀錄保留):
      · 症狀:強制代掛(病患無 LINE) → 跳出「代掛完成」modal → 立刻按「複製預約通知」
        → 訊息變成「您 您好,號碼:NaN 號」(姓名 fallback 到「您」、slot fallback 後 parseInt("") = NaN)
      · workaround(舊):重新點 tile → 進入 contact modal → 複製通知 → 正常(走 openContactModal 路徑)
@@ -2795,7 +2854,13 @@ const DEFAULT_DOCTOR_SCHEDULE = {
   6: { "早上": "粟寧",   "下午": "",       "晚上": ""        }
 };
 const API_URL = "https://script.google.com/macros/s/AKfycbxfbtWB6tyWUvFY1r_d26yxdm3Iz6zVALuZgUwLYyqIOHkJrn7TJJADkUE8VPkKOkZkqw/exec";
-let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, pendingForceAdd: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false, contactType: "", contactDoctor: "", contactDate: "", contactSession: "", pendingAdminAddParams: null, _matchCandidates: [], _selectedMatchIdx: -1, forcedBookingId: "", forcedBookingName: "", forcedBookingSlot: "", forcedBookingIsUnspec: false };
+let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, pendingForceAdd: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false, contactType: "", contactDoctor: "", contactDate: "", contactSession: "", pendingAdminAddParams: null, _matchCandidates: [], _selectedMatchIdx: -1, lastCompletedBooking: null };
+// v5.5.14: lastCompletedBooking 取代 v5.5.13 的 forcedBookingId/Name/Slot/IsUnspec 4 個分散 fields
+// 結構:{ id, name, slot, isUnspec } 或 null
+// 動機:v5.5.13 修法 C 只修了 confirmForceAdd 一個 entry,L4148(主路徑)跟 L4252(confirmMatchBooking)
+//      仍漏 → 同事連續操作會讓 forcedBookingId 殘留,綁定連結指向上一筆病患 = 資安隱私 bug
+// v5.5.14 把 4 個 field 統一成單一物件,3 個 entry 一次寫對,2 個 reader 一次讀對
+// 任何 entry 都必須完整賦值此物件,否則 reader 拿到 null → fail loud(不再 fallback「您」+ NaN)
 let allBookings = [], activeSession = "";
 let _scheduleLoadId = 0; // 防止多次快速切換日期時，舊請求覆蓋新結果
 
@@ -4145,7 +4210,14 @@ async function doAdminAddBooking(forceSlot) {
         // 讓後續「預約通知」按鈕點擊時 copyLineMsgForAdd 能讀到正確的 slot
         // (原本缺這行,導致 parseInt(undefined || "") = NaN,訊息變成「號碼:NaN 號」)
         state.pendingForceAdd = { name, phone, birth, slot: String(slot), isUnspec };
-        state.forcedBookingId = data.bookingId || "";
+        // v5.5.14:統一寫 lastCompletedBooking(取代 v5.5.13 只設 forcedBookingId)
+        // 這條 path = 主路徑代掛成功(LINE 沒找到時 silent forced)
+        state.lastCompletedBooking = {
+          id: data.bookingId || "",
+          name: name,
+          slot: String(slot),
+          isUnspec: isUnspec
+        };
         showAdminAddResult("forced");
       }
     }
@@ -4248,6 +4320,15 @@ async function confirmMatchBooking(isManual) {
     });
     const data = await xhrPost(API_URL, payload);
     if (data.success && data.booked) {
+      // v5.5.14:reviewer 抓到的 Critical bug — confirmMatchBooking 之前完全沒設 forcedBooking* 欄位
+      // 導致連續處理 2 個代掛時,第 2 個的「複製綁定連結」會拿到第 1 個的 ID(資安/隱私洩漏)
+      // 統一寫 lastCompletedBooking,確保 reader 永遠拿對的資料
+      state.lastCompletedBooking = {
+        id: data.bookingId || "",
+        name: p.name || "",
+        slot: String(p.timeSlot || ""),
+        isUnspec: (p.timeSlot === "不指定")
+      };
       closeAdminAddResult();
       showAdminAddResult(isManual ? "forced" : "found");
     } else {
@@ -4317,8 +4398,15 @@ async function copyBindLinkFromContact(followUp) {
 async function copyBindLink(followUp) {
   const errEl = document.getElementById("bindLinkError");
   errEl.style.display = "none";
-  const bookingId = state.forcedBookingId;
-  if (!bookingId) { errEl.textContent = "找不到預約編號，請重新代掛。"; errEl.style.display = "block"; return; }
+  // v5.5.14:讀 lastCompletedBooking 統一物件(取代 v5.5.13 的 forcedBookingId)
+  // fail loud:如果 null 直接停,不再 fallback「您」(reviewer 建議:醫療系統 Fail-loud 比 Fail-silent 安全)
+  const lcb = state.lastCompletedBooking;
+  if (!lcb || !lcb.id) {
+    errEl.textContent = "找不到預約資料，請重新代掛。";
+    errEl.style.display = "block";
+    return;
+  }
+  const bookingId = lcb.id;
   showAdminOverlay("產生連結中...");
   try {
     const data = await xhrPost(API_URL, {
@@ -4330,7 +4418,7 @@ async function copyBindLink(followUp) {
     });
     if (!data.success) throw new Error(data.error || "產生失敗");
     const bindUrl = "https://yuexin913.github.io/yuexin-queue/booking.html?bind=" + data.bindToken;
-    const patientName = state.forcedBookingName || (state.pendingForceAdd && state.pendingForceAdd.name) || "您";
+    const patientName = lcb.name || "您";  // v5.5.14:讀 lastCompletedBooking.name(原 forcedBookingName + 雙保險 fallback)
     const dateStr = state.contactDate || dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1/$2/$3");
     const sessionDisplayMap = { "早上": "上午診", "下午": "下午診", "晚上": "晚上診" };
     const displayName = sessionDisplayMap[activeSession] || activeSession + "診";
@@ -4482,14 +4570,14 @@ async function confirmForceAdd() {
       forceAdd: true
     });
     if (!data.success) throw new Error(data.error);
-    state.forcedBookingId = data.bookingId || "";
-    // v5.5.13:state 職責分離 — pendingForceAdd 是「進行中」操作,代掛成功後拷貝快照到 forcedBooking*「已完成」欄位
-    // 之後 modal 內「複製預約通知」按鈕(copyLineMsgForAdd)讀 forcedBooking* 而非 pendingForceAdd,
-    // 即使 pendingForceAdd 被清掉也不會 fallback 到「您」+「NaN 號」
-    const _p = state.pendingForceAdd || {};
-    state.forcedBookingName = _p.name || "";
-    state.forcedBookingSlot = _p.slot || "";
-    state.forcedBookingIsUnspec = _p.isUnspec || false;
+    // v5.5.14:統一寫 lastCompletedBooking(取代 v5.5.13 的分散 4 個 fields)
+    // 直接用上面解構好的 name/slot/isUnspec(L4483-4488),不需重新讀 state.pendingForceAdd
+    state.lastCompletedBooking = {
+      id: data.bookingId || "",
+      name: name,
+      slot: slot,
+      isUnspec: isUnspec
+    };
     state.pendingForceAdd = null;
     closeAdminAddResult();
     showAdminAddResult("forced");
@@ -4646,15 +4734,20 @@ function copyLineMsg(isReminder) {
 }
 
 function copyLineMsgForAdd(isReminder) {
-  // v5.5.13:讀 forcedBooking*(代掛已完成快照)而非 pendingForceAdd(進行中操作,confirmForceAdd 後已清)
-  // 修正 bug:代掛完成 modal 立刻按「預約通知」變「您 您好 / NaN 號」(因為 pendingForceAdd 已 null)
+  // v5.5.14:讀 lastCompletedBooking 統一物件(取代 v5.5.13 的 forcedBookingName/Slot/IsUnspec)
+  // fail loud:如果 null 直接 toast 警示,不再 fallback「您」+「NaN 號」(避免送出錯誤訊息)
+  const lcb = state.lastCompletedBooking;
+  if (!lcb) {
+    showToast("⚠️ 找不到預約資料,請重新代掛");
+    return;
+  }
   const session = activeSession;
   const date = dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1/$2/$3");
   // 取當前時段醫師(從畫面上的醫師磚讀取)
   const doctorEl = document.getElementById("sessionDoctorText");
   const doctor = doctorEl ? doctorEl.textContent.trim() : "";
-  const type = state.forcedBookingIsUnspec ? "不指定" : "複診";
-  const msg = buildLineMsg(type, isReminder, state.forcedBookingName || "您", date, session, state.forcedBookingSlot || "", doctor);
+  const type = lcb.isUnspec ? "不指定" : "複診";
+  const msg = buildLineMsg(type, isReminder, lcb.name || "您", date, session, lcb.slot || "", doctor);
   navigator.clipboard.writeText(msg).then(function() {
     showToast("✓ 已複製" + (isReminder ? "回診提醒" : "預約通知"));
   }).catch(function() {
@@ -5878,7 +5971,8 @@ initLiff();
 </div>
 <!-- Toast 通知 -->
 <div id="adminOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
-  <div style="width:28px;height:28px;border:1.5px solid rgba(255,255,255,0.12);border-top-color:var(--marigold);animation:spin 0.8s linear infinite;"></div>
+  <!-- v5.5.14: Spinner 改良(避免「橘色螢光棒」感)— 加粗 1.5→2.5px + 加大 28→32px + 三邊加深 0.12→0.25 -->
+  <div style="width:32px;height:32px;border:2.5px solid rgba(255,255,255,0.25);border-top-color:var(--marigold);animation:spin 0.8s linear infinite;"></div>
   <div id="adminOverlayText" style="font-family:'JetBrains Mono', monospace;font-size:11.5px;font-weight:400;color:var(--cloud);letter-spacing:3px;"></div>
 </div>
 <div id="toast"></div>
