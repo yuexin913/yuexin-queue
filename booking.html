@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.8.2">
+  <meta name="version" content="5.8.3">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,7 +20,35 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.8.2 (2026-05-01) 中文標點全形化 — user-facing 文字 22 處
+     Version:   v5.8.3 (2026-05-01) Placeholder 樣式淺色化
+     ──────────────────────────────────────────────────────────
+     v5.8.3 (2026-05-01) Placeholder 樣式淺色化:
+     · 動機:粟醫師反應「**有些病患會以為 placeholder 已經填好了**」(把示例文字當成實際值)
+       — 瀏覽器預設 placeholder 色約 #757575,跟 ink 黑(#2b261d)色差不夠,
+         加上 #757575 是冷灰,跟 booking 暖米色背景有色相衝突
+     · 設計選擇歷程:
+       - 探索 5 方向:純色淺 / 色淺+italic / 色淺+字小 / 三重區分 / 極淺
+       - reality check italic:中文 italic 是 synthetic(機械傾斜),美感差 → 排除
+       - reality check 字小:font-size 在 placeholder 瀏覽器支援不一致 → 排除
+       - 收斂到「純色淺」方向(A 系列)
+       - A 方向 5 個淺度梯度比較:A1 #b8b1a3 / A2 #c8c2b6 / A3 #d0c9bd / A4 #dcd6ca / A5 #e6e0d3
+       - 粟醫師看 demo 後選 A1 — 跟既有 CSS 變數 ink-light 一致,改用零成本
+     · 改動:加 1 條 CSS rule(`input::placeholder { color: var(--ink-light); opacity: 1; }`)
+       影響範圍:booking 23 個 input(姓名 / 電話 / 生日 / 取消預約天數 / 查詢姓名等全部一次套用)
+       為什麼 opacity: 1 必加:Firefox 預設 placeholder opacity 0.54,不明確設 1 會變更淺
+     · 排除的方向:
+       - italic(中文 synthetic 不美)
+       - 字小(瀏覽器支援不一致)
+       - 極淺 #e6e0d3(長者可能完全看不到)
+       - rgba 透明度(在 cream 背景上跟 A 系列定值灰幾乎無差)
+     · meta 教訓:
+       - 31: **Placeholder 是 web 慣例陷阱** — 病患看不出「示例 vs 實際值」是 web form 通病
+             不是 booking 特有。CSS 局部改可以緩解,但根本解法是 floating label 模式
+             (本次不做,scope 鎖在 placeholder color)
+       - 32: **「淺度」不是單一變數** — 明度 / 透明度 / 色相 三個維度都會影響感受。
+             demo 做 A 系列(明度) + T 系列(透明度) 對比,讓粟醫師看到完整光譜
+
+     v5.8.2 (2026-05-01) 中文標點全形化 — user-facing 文字 22 處
      ──────────────────────────────────────────────────────────
      v5.8.2 (2026-05-01) 中文標點全形化:
      · 動機:粟醫師發現很多 user-facing 文字的中文標點是半形(例如「,」「:」「?」)
@@ -447,6 +475,14 @@
     font-size: 16px; font-family: 'Noto Sans TC', sans-serif;
     color: var(--ink); background: var(--cream);
     transition: border-color 0.2s, box-shadow 0.2s; outline: none; appearance: none;
+  }
+  /* v5.8.3 Placeholder 樣式 — 色淺(暖灰 #b8b1a3 = ink-light)+ opacity 1
+     動機:病患反應「以為已經填好了」,瀏覽器預設 placeholder 色 #757575 跟實際輸入字
+     色差不夠 → 病患誤解。改用 booking 既有 ink-light 暖灰,跟 cream 背景同色族,
+     跟實際輸入 ink 黑色色差變大,病患更直覺感覺「這是提示不是值」 */
+  input::placeholder {
+    color: var(--ink-light);
+    opacity: 1;
   }
   input:focus {
     border-color: var(--sage);
