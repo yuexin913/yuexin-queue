@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.8.1">
+  <meta name="version" content="5.8.2">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,8 +20,41 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.8.1 (2026-04-30 晚)
+     Version:   v5.8.2 (2026-05-01) 中文標點全形化 — user-facing 文字 22 處
      ──────────────────────────────────────────────────────────
+     v5.8.2 (2026-05-01) 中文標點全形化:
+     · 動機:粟醫師發現很多 user-facing 文字的中文標點是半形(例如「,」「:」「?」)
+       — 應該是全形「,」「:」「?」才符合中文排版慣例,影響整體 brand 細緻感
+     · scope:**只修 user-facing 文字 22 處**(HTML 文字節點 + JS user-text 字串)
+       不動:註解 / console.log / URL query string / JS 三元運算子 / Loading 文字的「...」
+     · 改動 22 處:
+       - L1613 modal 取消確認:「確定要取消此預約嗎?」→「確定要取消此預約嗎?」
+       - L1698-1699 黑名單錯誤頁(若需協助、來電)
+       - L1717-1718 網路錯誤頁(系統暫時無法回應、若持續無法連線、來電)
+       - L1737-1738 維護頁(線上預約系統暫停、若需協助、來電)
+       - L1801 LIFF 錯誤頁(若需協助、來電)
+       - L1811 載入提示「網路較慢,請稍候片刻。」
+       - L2343/L2408 連結過期(請於門診時間聯繫診所重新取得連結)
+       - L2359-2360 確認頁日期/時段標籤
+       - L2362 確認頁說明「點選確認後,系統將發送預約通知給您。」
+       - L2365 確認頁警告「若您並未預約,請直接關閉本頁,勿點選確認。」
+       - L2412/L2428 錯誤訊息(確認失敗、系統連線異常)
+       - L2807 刪除預填清單失敗 toast
+       - L3012/L3015 姓名 validation(數字、英文)
+       - L3826 modal 取消確認(JS 動態設定)
+       - L3859 取消失敗訊息「系統連線異常,請再試一次。」
+     · 不動的 13 處 loading 文字「...」:確認中... / 載入中... / 送出中... 等
+       理由:粟醫師判斷 dot 差異不大,且半形「...」跟下方 dotFade「· · ·」動畫**不在同視覺位置**
+     · meta 教訓(本次累積):
+       - 28: **str_replace 半形/全形標點 ambiguity** — Claude 用工具 view 看半形 `?` 跟全形 `?` 在
+             視覺呈現幾乎一樣,容易把 old_str 跟 new_str 都打成半形,結果「無改動 replace」
+             看起來成功實際沒做事。應該:用 byte-level 確認(`hexdump` 或 `python3 ord()`)
+             或用 `\uFF1F` 等 unicode escape 寫 new_str
+       - 29: **Bash heredoc / shell 環境的字符編碼風險** — 在 bash 字串內打全形標點,可能被
+             shell 預處理或 encoding 影響變半形。**寫 Python script 時用 unicode escape**
+       - 30: **「視覺確認 ≠ 真實確認」** — 即使 view 工具呈現「改了」,實際 byte 可能未變。
+             **驗證一律 byte-level / regex strict pattern**
+
      v5.8.1 (2026-04-30 晚) Loading 動畫設計重分配 — logo revert + dot 五色:
      · 動機:v5.8.0 5 朵接力 logo 上線後,粟醫師發現「跟下方 dot fade 動畫氣質衝突」
        — 兩者都是「多元素輪流變化」家族,放在同畫面互相稀釋儀式感
@@ -1610,7 +1643,7 @@
 <div class="modal-overlay" id="cancelModal">
   <div class="modal-box">
     <div class="modal-title">取消預約</div>
-    <div class="modal-msg" id="cancelModalMsg">確定要取消此預約嗎?</div>
+    <div class="modal-msg" id="cancelModalMsg">確定要取消此預約嗎？</div>
     <div class="modal-btns" id="cancelModalBtns">
       <button class="modal-btn modal-btn-cancel" onclick="closeCancelModal()">返回</button>
       <button class="modal-btn modal-btn-confirm" id="modalConfirmBtn">確定取消</button>
@@ -1695,8 +1728,8 @@
       </div>
       <div class="status-title status-error-text">無法使用線上預約</div>
       <div class="status-sub" style="max-width:340px;">
-        若需協助,請傳訊息至官方 LINE,<br>
-        或於門診時間來電:<strong style="color:var(--sage-dark)">07-363-1313</strong>
+        若需協助，請傳訊息至官方 LINE,<br>
+        或於門診時間來電：<strong style="color:var(--sage-dark)">07-363-1313</strong>
       </div>
     </div>
   </div>
@@ -1714,8 +1747,8 @@
         </svg>
       </div>
       <div class="status-sub" style="max-width:340px;margin-top:8px;">
-        系統暫時無法回應,請稍後再試。<br>
-        若持續無法連線,請來電:<strong style="color:var(--sage-dark)">07-363-1313</strong>
+        系統暫時無法回應，請稍後再試。<br>
+        若持續無法連線，請來電：<strong style="color:var(--sage-dark)">07-363-1313</strong>
       </div>
       <button class="btn btn-primary" style="max-width:220px;margin-top:12px;" onclick="location.reload()">重新載入</button>
     </div>
@@ -1734,8 +1767,8 @@
       </div>
       <div class="status-title status-info-text">系統維護中</div>
       <div class="status-sub" style="max-width:340px;">
-        線上預約系統暫停服務,造成不便敬請見諒。<br>
-        若需協助,請於門診時間來電:<strong style="color:var(--sage-dark)">07-363-1313</strong>
+        線上預約系統暫停服務，造成不便敬請見諒。<br>
+        若需協助，請於門診時間來電：<strong style="color:var(--sage-dark)">07-363-1313</strong>
       </div>
     </div>
   </div>
@@ -1798,7 +1831,7 @@
       </div>
     </div>
     <div class="alert alert-info">
-      若需協助,請於門診時間來電:<strong>07-363-1313</strong>
+      若需協助，請於門診時間來電：<strong>07-363-1313</strong>
     </div>
   </div>
 
@@ -1808,7 +1841,7 @@
       <div id="pageBindContent">
         <div class="loading"><div class="spinner"></div>讀取中...</div>
         <div id="pageBindSlowHint" style="display:none;margin-top:20px;padding:14px 16px;background:rgba(255,200,0,0.12);border-left:3px solid #d4a017;font-size:13px;color:var(--ink);line-height:1.7;text-align:center;">
-          網路較慢,請稍候片刻。
+          網路較慢，請稍候片刻。
         </div>
       </div>
     </div>
@@ -2340,7 +2373,7 @@ async function handleBindToken(bindToken) {
             </svg>
           </div>
           <div class="status-title status-warning-text">連結已過期</div>
-          <div class="status-sub">請於門診時間聯繫診所重新取得連結:<br><a href="tel:073631313" style="color:var(--sage-dark);font-weight:600;text-decoration:none;">07-363-1313</a></div>
+          <div class="status-sub">請於門診時間聯繫診所重新取得連結：<br><a href="tel:073631313" style="color:var(--sage-dark);font-weight:600;text-decoration:none;">07-363-1313</a></div>
         </div>`;
       return;
     }
@@ -2356,13 +2389,13 @@ async function handleBindToken(bindToken) {
         <div class="status-title status-info-text">確認您的預約</div>
       </div>
       <div style="text-align:left;background:var(--bg-2);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:14px;line-height:2;">
-        <div>· 日期:${data.date}(週${data.weekday})</div>
-        <div>· 時段:${data.displayName}</div>
+        <div>· 日期：${data.date}(週${data.weekday})</div>
+        <div>· 時段：${data.displayName}</div>
       </div>
-      <div style="font-size:12px;color:var(--text-light);margin-bottom:16px;line-height:1.6;text-align:center;">點選確認後,系統將發送預約通知給您。</div>
+      <div style="font-size:12px;color:var(--text-light);margin-bottom:16px;line-height:1.6;text-align:center;">點選確認後，系統將發送預約通知給您。</div>
       <div id="bindConfirmError" class="alert alert-error" style="display:none;margin-bottom:12px;"></div>
       <button class="btn btn-primary" id="btnBindConfirm" onclick="submitBind('${bindToken}')">確認預約</button>
-      <div style="font-size:12px;color:var(--text-light);margin-top:12px;text-align:center;line-height:1.6;">若您並未預約,請直接關閉本頁,勿點選確認。</div>`;
+      <div style="font-size:12px;color:var(--text-light);margin-top:12px;text-align:center;line-height:1.6;">若您並未預約，請直接關閉本頁，勿點選確認。</div>`;
   } catch(e) {
     el.innerHTML = `
       <div class="status-container">
@@ -2405,11 +2438,11 @@ async function submitBind(bindToken) {
               </svg>
             </div>
             <div class="status-title status-warning-text">連結已過期</div>
-            <div class="status-sub">請於門診時間聯繫診所重新取得連結:<br><a href="tel:073631313" style="color:var(--sage-dark);font-weight:600;text-decoration:none;">07-363-1313</a></div>
+            <div class="status-sub">請於門診時間聯繫診所重新取得連結：<br><a href="tel:073631313" style="color:var(--sage-dark);font-weight:600;text-decoration:none;">07-363-1313</a></div>
           </div>`;
         return;
       }
-      errEl.textContent = data.error || "確認失敗,請稍後再試。";
+      errEl.textContent = data.error || "確認失敗，請稍後再試。";
       errEl.style.display = "block";
       btn.disabled = false; btn.textContent = "確認預約";
       return;
@@ -2425,7 +2458,7 @@ async function submitBind(bindToken) {
         <div class="status-sub">系統將發送預約通知給您。</div>
       </div>`;
   } catch(e) {
-    errEl.textContent = "系統連線異常,請稍後再試。";
+    errEl.textContent = "系統連線異常，請稍後再試。";
     errEl.style.display = "block";
     btn.disabled = false; btn.textContent = "確認預約";
   } finally {
@@ -2804,7 +2837,7 @@ async function removePatient(rowIndex, cardEl, delBtn) {
     });
     allDelBtns.forEach(function(b) { b.disabled = false; b.textContent = "刪除"; });
     nextBtns.forEach(function(b) { b.disabled = false; });
-    showPlToast("刪除失敗,請再試");
+    showPlToast("刪除失敗，請再試");
   } finally {
     patientListDeleting = false;
   }
@@ -3009,10 +3042,10 @@ async function goToPageTime() {
   if (!name) return showError("errorPage1", "請輸入您的姓名。");
   if (name.length < 2) return showError("errorPage1", "姓名請至少輸入 2 個字。");
   // 禁阿拉伯數字(半形+全形)— 防止電話號碼誤輸入到姓名欄位
-  if (/[0-9０-９]/.test(name)) return showError("errorPage1", "姓名不可包含數字,若為電話號碼請輸入到下方的手機欄位。");
+  if (/[0-9０-９]/.test(name)) return showError("errorPage1", "姓名不可包含數字，若為電話號碼請輸入到下方的手機欄位。");
   // 禁英文字母 — 若為英文姓名,請於門診時間來電預約
   // v5.5.3 [M1]: 加全形英文 Ａ-Ｚ / ａ-ｚ,與數字防呆一致(原本只擋半形)
-  if (/[a-zA-Zａ-ｚＡ-Ｚ]/.test(name)) return showError("errorPage1", "姓名暫不支援英文,若為英文姓名請於門診時間來電預約:07-363-1313");
+  if (/[a-zA-Zａ-ｚＡ-Ｚ]/.test(name)) return showError("errorPage1", "姓名暫不支援英文，若為英文姓名請於門診時間來電預約：07-363-1313");
   if (!phone || !/^09\d{8}$/.test(phone)) return showError("errorPage1", "手機號碼格式不正確，請重新確認（須為 09 開頭的 10 碼）。");
   const birth = parseBirthROC(birthY, birthM, birthD);
   if (!birth) return showError("errorPage1", "生日格式不正確，請重新確認（民國年，如 80/05/20）。");
@@ -3823,7 +3856,7 @@ async function cancelBooking(bookingId, btn) {
   // v5.6.6.2: 重置 modal 狀態(避免上次失敗的 error 訊息殘留)
   const msgEl = document.getElementById("cancelModalMsg");
   const btnsEl = document.getElementById("cancelModalBtns");
-  msgEl.textContent = "確定要取消此預約嗎?";
+  msgEl.textContent = "確定要取消此預約嗎？";
   msgEl.style.color = "";
   btnsEl.style.display = "";
 
@@ -3856,7 +3889,7 @@ async function cancelBooking(bookingId, btn) {
       }, 1500);
     } catch(e) {
       // 失敗 → modal 內顯示錯誤,讓使用者選擇重試或返回
-      msgEl.textContent = "系統連線異常,請再試一次。";
+      msgEl.textContent = "系統連線異常，請再試一次。";
       msgEl.style.color = "var(--error)";
       btnsEl.style.display = "";  // 重新顯示按鈕(可重試或返回)
       btn.disabled = false;  // 解鎖列表卡按鈕(不還原文案,因為文案沒變)
