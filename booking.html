@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.8.4">
+  <meta name="version" content="5.8.5">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,9 +20,41 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
-     Version:   v5.8.4 (2026-05-01) Placeholder 再淺化 — B3 #d0c9bd
+     Version:   v5.8.5 (2026-05-01) Placeholder B2 + 英文姓名訊息 reframe + 首頁加多語 hint
      ──────────────────────────────────────────────────────────
-     v5.8.4 (2026-05-01) Placeholder 再淺化:
+     v5.8.5 (2026-05-01) 三項小改:
+     · [1] Placeholder 從 v5.8.4 B3 (#d0c9bd) 退一階回 B2 (#c8c2b6):
+       - 動機:粟醫師實機看 B3 後覺得「想看看 B2」(美感 vs 長者可讀的平衡點)
+       - 改動:`--ink-placeholder: #d0c9bd` → `#c8c2b6`
+       - 學到 meta:placeholder 淺度的最終決定靠**實機體感**,不能光看 demo
+     · [2] 英文姓名 validation 訊息 reframe(L3110):
+       - 原:「姓名暫不支援英文,若為英文姓名請於門診時間來電預約:07-363-1313」
+       - 新:「尚未開放輸入英文姓名。若有需要請於門診時間來電:07-363-1313」
+       - 改善 3 個層面:
+         · 主詞從「姓名」(物的層級)→「(系統)」(機構承擔,不指責病患)
+         · 動詞「不支援」→「尚未開放」(柔軟、留餘地)
+         · 「若為英文姓名」→「若有需要」(普遍化求助管道)
+       - 結構:1 個句號分句(系統規則 / 求助管道 兩個訊息獨立讀)
+     · [3] 首頁底部 alert 加多語 hint(L1895-1908):
+       - 原:單行「若需協助,請於門診時間來電:07-363-1313」
+       - 新:兩行結構
+         · 第一行:中文(原樣)
+         · 第二行:lucide languages icon + "For English service, please message us on LINE."
+       - 動機:粟醫師客群分析 — 主要是菲律賓籍移工 / 越南幫傭 / 偶發英美主管 + 印度博士生
+         (英文是他們 second language,LINE 在東南亞普及,翻譯也容易)
+       - icon 選擇歷程:emoji 🌐(可愛但破壞 booking 設計語言)→ Lucide languages icon
+         (跟 booking 既有 lucide-style stroke icon 系統一致 + 語意精準 = Google Translate 同款)
+       - 文案探索:用「For English service, please message us on LINE.」(粟醫師指出是
+         台灣銀行 IVR 慣用語 — Claude 前面誤用英美 idiomatic 「assistance」)
+     · meta 教訓(本次累積):
+       - 35: **Claude 評英文 idiomatic 時要區分「英美 native context」vs「台灣使用 context」**
+             台灣銀行 IVR / 政府慣用「For English service」,Claude 用英美 idiomatic 評是錯
+       - 36: **Booking 不只給中文台灣人用** — 客群有菲律賓 / 越南 / 印度等多國族裔
+             改文案前要考慮多語族群,不只中文母語使用者
+       - 37: **Claude 想到「視覺輔助」就跳 emoji,沒先 grep booking 既有 icon library**
+             應該:做設計建議前 grep 既有設計 system,順著既有風格走
+
+     v5.8.4 (2026-05-01) Placeholder 再淺化 — B3 #d0c9bd(被 v5.8.5 退階改成 B2):
      · 動機:v5.8.3 部署 ink-light(#8a8878)後,粟醫師覺得仍偏深(跟瀏覽器預設色差不夠明顯)
      · 修改:--ink-placeholder 從 #8a8878(v5.8.3)→ #d0c9bd(B3,比 #8a8878 淺 3 階)
        + 把 placeholder 用色從 var(--ink-light) 改用專屬變數 var(--ink-placeholder)
@@ -301,7 +333,7 @@
     --ink:         #2b2b28;
     --ink-mid:     #4a4a44;
     --ink-light:   #8a8878;
-    --ink-placeholder: #d0c9bd;  /* v5.8.4: form input placeholder 專用,比 ink-light 更淺 3 階(B3),確保病患不誤認示例為實際值,優先美感(Japandi) */
+    --ink-placeholder: #c8c2b6;  /* v5.8.5: B2 — 從 v5.8.4 的 #d0c9bd 退一階,粟醫師實機後覺得更平衡(美感 vs 長者可讀) */
     --cream:       #faf8f2;
     --parchment:   #f4f2ec;
     --gold:        #c8a84b;
@@ -1892,8 +1924,19 @@
         </div>
       </div>
     </div>
-    <div class="alert alert-info">
-      若需協助，請於門診時間來電：<strong>07-363-1313</strong>
+    <div class="alert alert-info" style="display:flex;flex-direction:column;gap:6px;">
+      <div>若需協助，請於門診時間來電：<strong>07-363-1313</strong></div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-mid);padding-top:2px;border-top:0.5px solid rgba(60,50,30,0.08);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+          <path d="m5 8 6 6"/>
+          <path d="m4 14 6-6 2-3"/>
+          <path d="M2 5h12"/>
+          <path d="M7 2h1"/>
+          <path d="m22 22-5-10-5 10"/>
+          <path d="M14 18h6"/>
+        </svg>
+        <span>For English service, please message us on LINE.</span>
+      </div>
     </div>
   </div>
 
@@ -3107,7 +3150,7 @@ async function goToPageTime() {
   if (/[0-9０-９]/.test(name)) return showError("errorPage1", "姓名不可包含數字，若為電話號碼請輸入到下方的手機欄位。");
   // 禁英文字母 — 若為英文姓名,請於門診時間來電預約
   // v5.5.3 [M1]: 加全形英文 Ａ-Ｚ / ａ-ｚ,與數字防呆一致(原本只擋半形)
-  if (/[a-zA-Zａ-ｚＡ-Ｚ]/.test(name)) return showError("errorPage1", "姓名暫不支援英文，若為英文姓名請於門診時間來電預約：07-363-1313");
+  if (/[a-zA-Zａ-ｚＡ-Ｚ]/.test(name)) return showError("errorPage1", "尚未開放輸入英文姓名。若有需要請於門診時間來電：07-363-1313");
   if (!phone || !/^09\d{8}$/.test(phone)) return showError("errorPage1", "手機號碼格式不正確，請重新確認（須為 09 開頭的 10 碼）。");
   const birth = parseBirthROC(birthY, birthM, birthD);
   if (!birth) return showError("errorPage1", "生日格式不正確，請重新確認（民國年，如 80/05/20）。");
