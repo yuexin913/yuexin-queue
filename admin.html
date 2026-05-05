@@ -17,7 +17,16 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.5.14 (2026-05-01) State 統一物件重構 — lastCompletedBooking
+     Version:   v5.5.15 (2026-05-05) [H12] sessionStorage → localStorage,登入持久化 12 小時
+     ──────────────────────────────────────────────────────────
+     v5.5.15 (2026-05-05) [H12] Session 持久化升級:
+     · sessionStorage → localStorage,改善 LINE in-app browser 反覆掉登入問題
+     · iOS 上 LINE 切回前台時 sessionStorage 經常被清,造成一天踢登入 5-10 次
+     · 改 localStorage 後,12 小時內 LIFF 重開不用重輸密碼(與後端 TTL 對齊)
+     · key 升版(v1→v2)避免新舊機制混淆;清理時順手清掉 v1 舊殘留
+     · 取捨:設備被借走 12 小時內可被使用 → 評估後接受(風險極低)
+
+     v5.5.14 (2026-05-01) State 統一物件重構 — lastCompletedBooking
      ──────────────────────────────────────────────────────────
      v5.5.14 (2026-05-01) State 統一物件重構 + Spinner 視覺改善:
      · [主] State 統一物件重構(reviewer + self-audit 合併修):
@@ -158,7 +167,7 @@
      · v5.2.2 - UI 小調整(登入動畫分行、今日/明日左邊條移除)
      · v5.3 - 櫃檯 keyin 小抄(35 天預覽內嵌 [今日][明日])
                搭配 backend v4.35(無異動,沿用既有 adminGetTodaySchedule)
-     · v5.3.1 - Session 持久化(sessionStorage),減少反覆登入
+     · v5.3.1 - Session 持久化(sessionStorage),減少反覆登入 [v5.5.15 改 localStorage]
      · v5.3.2 - UI 小改版包:
                      · 驗證動畫改循環式(. → .. → ... → 空)
                      · LINE 按鈕加「聯繫方式」子標籤
@@ -2866,26 +2875,29 @@ let _scheduleLoadId = 0; // 防止多次快速切換日期時，舊請求覆蓋�
 
 // ══════════════════════════════════════════════════════════
 // v5.3.1 Session 持久化 helper
-// 存 sessionStorage(分頁關閉就清掉,比 localStorage 安全)
-// 切到 LINE 聊天、切別的 App 再回來,只要分頁還在就不用重登
+// [H12] (v5.5.15) sessionStorage → localStorage
+// 改動原因:LINE in-app browser 在 iOS 上經常重啟分頁,sessionStorage 一天被清 5-10 次
+// 安全考量:本地 + 後端 都有 12 小時 TTL,設備被借走 12 小時內可被使用是已知取捨
+// 實際風險:櫃台/醫師個人裝置被借走的機率極低,且攻擊者真要看資料可直接看 sheet
+// 切換 key 版本(v1→v2)確保升級時舊 sessionStorage 殘留不會與新 localStorage 混淆
 // ══════════════════════════════════════════════════════════
-const SESSION_STORAGE_KEY = "yuexinAdminSession_v1";
+const SESSION_STORAGE_KEY = "yuexinAdminSession_v2";
 
 function saveSessionToStorage() {
   try {
-    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
       lineId: state.lineId,
       sessionToken: state.sessionToken,
       adminName: state.adminName,
       loginTime: state.loginTime,
       savedAt: Date.now()
     }));
-  } catch (e) { /* sessionStorage 失敗不影響既有流程 */ }
+  } catch (e) { /* localStorage 失敗不影響既有流程 */ }
 }
 
 function loadSessionFromStorage() {
   try {
-    const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
     if (!raw) return null;
     const saved = JSON.parse(raw);
     // 基本防呆:必要欄位都要在
@@ -2902,7 +2914,9 @@ function loadSessionFromStorage() {
 }
 
 function clearSessionFromStorage() {
-  try { sessionStorage.removeItem(SESSION_STORAGE_KEY); } catch (e) {}
+  try { localStorage.removeItem(SESSION_STORAGE_KEY); } catch (e) {}
+  // [H12] 順手清舊版 sessionStorage 殘留(從 v1 升級的 user)
+  try { sessionStorage.removeItem("yuexinAdminSession_v1"); } catch (e) {}
 }
 
 // 複診號碼 → 預計報到時段（對應 booking.html 和 GAS 的 RETURN_TIME_SLOT_CONFIG）
@@ -3101,7 +3115,7 @@ async function initLiff() {
     }
     // check.error === "需要密碼" 表示白名單，才播動畫
 
-    // v5.3.1:白名單通過後,先看 sessionStorage 有沒有可用的 session
+    // v5.3.1:白名單通過後,先看 storage 有沒有可用的 session [v5.5.15 改 localStorage]
     // 有的話直接恢復登入狀態,跳過密碼頁(token 若已過期,第一個 API 呼叫會被踢回登入)
     const savedSession = loadSessionFromStorage();
     if (savedSession && savedSession.lineId === state.lineId) {
@@ -3175,7 +3189,7 @@ async function doLogin() {
       state.sessionToken = data.token;
       state.adminName = data.name;
       state.loginTime = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
-      // v5.3.1:session 持久化到 sessionStorage,分頁重新整理 / 切 App 回來不用再登
+      // v5.3.1:session 持久化到 storage,分頁重新整理 / 切 App 回來不用再登 [v5.5.15 localStorage 12h]
       saveSessionToStorage();
       document.getElementById("loginPassword").value = "";
       enterMainPage();
@@ -3449,7 +3463,7 @@ async function doLogout() {
   xhrPost(API_URL, { action: "adminLogout", lineId: state.lineId, token: state.sessionToken })
     .catch(function(e) { /* 即使失敗也繼續登出 */ });
 
-  // 清 state + sessionStorage(這些與後端無關,可先清)
+  // 清 state + storage(這些與後端無關,可先清)
   state.sessionToken = "";
   state.adminName = "";
   state.loginTime = "";
@@ -3505,7 +3519,7 @@ async function doLogout() {
 function handleSessionExpired() {
   hideAdminOverlay(); // 確保所有 loading 狀態都被清除
   state.sessionToken = "";
-  // v5.3.1:backend 說 session 死了 → 清 sessionStorage,避免下次進來用失效 token
+  // v5.3.1:backend 說 session 死了 → 清 storage,避免下次進來用失效 token
   clearSessionFromStorage();
   document.getElementById("pageMain").style.display = "none";
   const pageLogin = document.getElementById("pageLogin");
