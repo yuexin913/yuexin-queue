@@ -3570,18 +3570,26 @@ function xhrGet(url) {
   });
 }
 
-function xhrPost(url, payload) {
+function xhrPost(url, payload, options) {
   // payload 若未包含 token，自動注入 state.sessionToken
   // 因此呼叫端不需要手動傳入 token（傳了也不會重複，Object.assign 以後者優先）
   // 例外：登入前的 requestSession 請求不帶 token，sessionToken 為空字串，條件不成立，正常略過
   if (state.sessionToken && !payload.token) {
     payload = Object.assign({}, payload, { token: state.sessionToken });
   }
+  // [v5.5.15] 局部延長 timeout 機制(Gemini 審查發現的 XHR Timeout 風暴)
+  // 場景:群發/停診走 sendAnnouncement / notifyAndCancelSession,後端 sleep(300)迴圈逐筆推播
+  //       50-90 人時可能突破 30 秒 timeout → 前端誤判失敗,但後端仍繼續推播
+  //       admin 重複點擊 → 雙重執行 → 病患被洗版災難
+  // 治標:呼叫端傳 options.timeout(120000)局部延長,**只用在群發/停診**,其他維持 30 秒
+  // 治本(P1 立項):sendAnnouncement 改 multicast API
+  options = options || {};
+  var timeout = options.timeout || XHR_TIMEOUT;
   return new Promise(function(resolve, reject) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-Type", "text/plain");
-    xhr.timeout = XHR_TIMEOUT;
+    xhr.timeout = timeout;
     xhr.onload = function() {
       try {
         const data = xhrParseResponse(xhr.responseText);
@@ -5153,14 +5161,16 @@ async function doSubstitute() {
     async function() {
       const btn = document.getElementById('btnSub');
       btn.disabled = true; btn.textContent = '更新中...';
-      document.getElementById('substituteOverlayText').innerHTML = '發送代診通知中<br>請勿關閉頁面...';
+      document.getElementById('substituteOverlayText').innerHTML = '正在通知病患，最多需 2 分鐘<br>請耐心保持頁面開啟，勿重複點擊。';
       document.getElementById('substituteOverlay').classList.add('active');
       try {
-        // 先設定門診異動
+        // 先設定門診異動(瞬間完成,不需延長 timeout)
         const data = await xhrPost(API_URL, { action: 'updateSubstituteDoctor', date: date.replace(/-/g,'/'), session, doctor, type: '代診', lineId: state.lineId });
         if (!data.success) throw new Error(data.error || '設定未完成');
         // 再發代診通知
-        const notifyData = await xhrPost(API_URL, { action: 'notifySubstituteSession', date: date.replace(/-/g,'/'), session, doctor, lineId: state.lineId });
+        // [v5.5.15] 局部延長 timeout 至 120 秒:notifySubstituteSession 內部 sleep(300)迴圈逐筆推播,
+        // 50 人代診可能突破 30 秒 timeout → 前端誤判失敗 → admin 重發 → 病患被洗版災難
+        const notifyData = await xhrPost(API_URL, { action: 'notifySubstituteSession', date: date.replace(/-/g,'/'), session, doctor, lineId: state.lineId }, { timeout: 120000 });
         sucEl.textContent = `✓ 已更新：${date} ${session}診 → ${doctor}，已通知 ${notifyData.sentCount || 0} 位病患`;
         sucEl.style.display = 'block';
         document.getElementById('subDate').value = '';
@@ -5189,14 +5199,16 @@ async function doClosed() {
     async function() {
       const btn = document.getElementById('btnClosed');
       btn.disabled = true; btn.textContent = '設定中...';
-      document.getElementById('substituteOverlayText').innerHTML = '取消預約並發送通知中<br>請勿關閉頁面...';
+      document.getElementById('substituteOverlayText').innerHTML = '正在通知病患，最多需 2 分鐘<br>請耐心保持頁面開啟，勿重複點擊。';
       document.getElementById('substituteOverlay').classList.add('active');
       try {
-        // 先設定停診
+        // 先設定停診(瞬間完成,不需延長 timeout)
         const data = await xhrPost(API_URL, { action: 'updateSubstituteDoctor', date: date.replace(/-/g,'/'), session, doctor: reason || '停診', type: '停診', reason: reason, lineId: state.lineId });
         if (!data.success) throw new Error(data.error || '設定未完成');
         // 再取消預約 + 發通知
-        const notifyData = await xhrPost(API_URL, { action: 'notifyAndCancelSession', date: date.replace(/-/g,'/'), session, reason: reason || '停診', lineId: state.lineId });
+        // [v5.5.15] 局部延長 timeout 至 120 秒:notifyAndCancelSession 內部 sleep(300)迴圈逐筆推播,
+        // 50 人停診可能突破 30 秒 timeout → 前端誤判失敗 → admin 重發 → 病患被洗版災難
+        const notifyData = await xhrPost(API_URL, { action: 'notifyAndCancelSession', date: date.replace(/-/g,'/'), session, reason: reason || '停診', lineId: state.lineId }, { timeout: 120000 });
         sucEl.textContent = `✓ 已設定停診：${date} ${session}診，已取消並通知 ${notifyData.cancelledCount || 0} 位病患`;
         sucEl.style.display = 'block';
         document.getElementById('closedDate').value = '';
@@ -5415,7 +5427,8 @@ async function doBroadcastSend() {
   document.getElementById("broadcastOverlay").classList.add("active");
   try {
     const params = Object.assign({ action: "sendAnnouncement", message, lineId: state.lineId }, getBcParams());
-    const data = await xhrPost(API_URL, params);
+    // [v5.5.15] 局部延長 timeout 至 120 秒(防 30 秒誤判失敗 + admin 重發災難)
+    const data = await xhrPost(API_URL, params, { timeout: 120000 });
     if (data.success) {
       // v5.4.5 [I4]: 顯示失敗數與連續中止狀態（backend 已分 sentCount / failedCount / aborted）
       const hasFailed = (data.failedCount || 0) > 0;
@@ -5977,11 +5990,11 @@ initLiff();
 <!-- Loading Overlay：群發發送中 -->
 <div class="loading-overlay" id="broadcastOverlay">
   <div class="loading-overlay-bar"><div class="loading-overlay-bar-inner"></div></div>
-  <div class="loading-overlay-text">訊息發送中<br>請勿關閉頁面...</div>
+  <div class="loading-overlay-text">正在通知病患，最多需 2 分鐘<br>請耐心保持頁面開啟，勿重複點擊。</div>
 </div>
 <div class="loading-overlay" id="substituteOverlay">
   <div class="loading-overlay-bar"><div class="loading-overlay-bar-inner"></div></div>
-  <div class="loading-overlay-text" id="substituteOverlayText">發送代診通知中<br>請勿關閉頁面...</div>
+  <div class="loading-overlay-text" id="substituteOverlayText">正在通知病患，最多需 2 分鐘<br>請耐心保持頁面開啟，勿重複點擊。</div>
 </div>
 <!-- Toast 通知 -->
 <div id="adminOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
