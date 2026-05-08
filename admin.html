@@ -5780,14 +5780,17 @@ async function doMarkSecurityRead() {
 let _eqCurrentNumber = null; // 暫存當前號碼,給 +1/-1 計算用
 
 // admin 主畫面 tile subtitle 用,獨立 helper(不開 modal,只更新 subtitle)
+// 同時更新 _eqCurrentNumber,讓 modal 開啟時能立刻顯示(避免 flash 「—」)
 async function loadEqTileSubtitle() {
   try {
     const data = await xhrGet(API_URL + "?action=getEmergencyQueueNumber");
     const subEl = document.getElementById("eqTileSubtitle");
     if (!subEl) return;
     if (data && data.success && data.number !== null && data.number !== undefined) {
-      subEl.textContent = "目前 " + data.number + " 號";
+      _eqCurrentNumber = parseInt(data.number, 10);
+      subEl.textContent = "目前 " + _eqCurrentNumber + " 號";
     } else {
+      _eqCurrentNumber = null;
       subEl.textContent = "尚未啟用";
     }
   } catch(e) {
@@ -5796,12 +5799,21 @@ async function loadEqTileSubtitle() {
 }
 
 async function openEmergencyQueueModal() {
-  // 重置 UI
-  document.getElementById("eqBigNumber").textContent = "—";
-  document.getElementById("eqLastUpdate").textContent = "讀取中...";
+  // 預先顯示已知號碼(從 tile 那次 fetch 拿到的),避免 modal 打開時 flash 「—」
+  const eqBig = document.getElementById("eqBigNumber");
+  const eqLast = document.getElementById("eqLastUpdate");
+  if (_eqCurrentNumber !== null) {
+    eqBig.textContent = _eqCurrentNumber;
+    // 「上次」欄位若還沒拿過(僅 tile fetch),先顯示「更新中...」
+    eqLast.textContent = eqLast.textContent || "更新中...";
+  } else {
+    eqBig.textContent = "—";
+    eqLast.textContent = "讀取中...";
+  }
   document.getElementById("eqDirectInput").value = "";
   document.getElementById("eqError").style.display = "none";
   openModal("modalEmergencyQueue");
+  // 背景 fetch 一次,更新「上次更新者 + 時間」(這些只在 modal 內顯示)
   await loadEqNumber();
 }
 
