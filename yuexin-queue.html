@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>悅心診所 · 看診進度</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&family=DM+Sans:wght@200;300;400&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -15,6 +17,7 @@
     --gray: #A8A8A0;
     --text: #3A3A35;
     --bg: #F5F7F2;
+    --warn: #C8893E;
   }
 
   body {
@@ -53,7 +56,7 @@
 
   .header {
     text-align: center;
-    margin-bottom: 36px;
+    margin-bottom: 32px;
     animation: fadeDown 0.7s ease both;
   }
 
@@ -72,114 +75,116 @@
     margin-top: 6px;
   }
 
-  .cards {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    width: 100%;
-    max-width: 320px;
-    animation: fadeUp 0.7s ease 0.15s both;
-  }
-
-  .card {
+  .notice-card {
     background: #fff;
     border-radius: 24px 8px 24px 8px;
-    padding: 28px 12px 22px;
-    text-align: center;
+    padding: 32px 28px 28px;
+    width: 100%;
+    max-width: 320px;
     box-shadow: 0 3px 16px rgba(122,171,90,0.12);
     position: relative;
     overflow: hidden;
+    animation: fadeUp 0.7s ease 0.15s both;
   }
 
-  .card::before {
+  .notice-card::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 4px;
-    background: var(--green);
+    background: var(--warn);
     border-radius: 4px 4px 0 0;
   }
 
-  .card-blob {
-    width: 44px; height: 44px;
-    background: var(--green-light);
+  .icon-blob {
+    width: 56px; height: 56px;
+    background: #fdf3e4;
     border-radius: 58% 42% 62% 38% / 44% 56% 44% 56%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 12px;
+    margin: 0 auto 18px;
   }
 
-  .card-blob svg {
-    width: 22px; height: 22px;
-    stroke: var(--green);
+  .icon-blob svg {
+    width: 28px; height: 28px;
+    stroke: var(--warn);
     fill: none;
     stroke-width: 1.8;
     stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
-  .card-label {
-    font-size: 12px;
+  .notice-title {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.08em;
+    margin-bottom: 18px;
+  }
+
+  .notice-body {
+    font-size: 14px;
+    line-height: 1.85;
+    color: var(--text);
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+
+  .notice-body .accent {
+    color: var(--warn);
+    font-weight: 500;
+  }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, #e0e0d8, transparent);
+    margin: 22px 0 18px;
+  }
+
+  .contact {
+    text-align: center;
+  }
+
+  .contact-label {
+    font-size: 11px;
     color: var(--gray);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.15em;
+    margin-bottom: 4px;
+  }
+
+  .contact-sub {
+    font-size: 11px;
+    color: var(--gray);
+    letter-spacing: 0.15em;
     margin-bottom: 10px;
   }
 
-  .card-number {
+  .phone {
+    display: inline-block;
     font-family: 'DM Sans', sans-serif;
-    font-size: 60px;
-    font-weight: 200;
-    color: var(--text);
-    line-height: 1;
-    display: block;
+    font-size: 22px;
+    font-weight: 300;
+    color: var(--warn);
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    padding: 6px 16px;
+    border: 1px solid #e8c89a;
+    border-radius: 999px;
+    background: #fdf3e4;
+    transition: transform 0.15s ease;
+  }
+  .phone:active {
+    transform: scale(0.97);
   }
 
-  .card-number.updated {
-    animation: pop 0.4s ease;
-  }
-
-  @keyframes pop {
-    0%  { transform: scale(1); }
-    50% { transform: scale(1.12); color: var(--green); }
-    100%{ transform: scale(1); }
-  }
-
-  .status-bar {
-    margin-top: 24px;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    animation: fadeIn 0.8s ease 0.3s both;
-  }
-
-  .dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: #ccc;
-    transition: background 0.3s;
-    flex-shrink: 0;
-  }
-  .dot.connected {
-    background: var(--green);
-    animation: pulse 2.5s ease infinite;
-  }
-  .dot.error { background: #E07070; }
-
-  @keyframes pulse {
-    0%,100%{ opacity:1 } 50%{ opacity:0.3 }
-  }
-
-  .status-text {
-    font-size: 11px;
-    color: var(--gray);
-    letter-spacing: 0.08em;
-  }
-
-  .last-update {
-    margin-top: 6px;
+  .footer {
+    margin-top: 28px;
     font-size: 10px;
     color: #C0C0BA;
     letter-spacing: 0.06em;
+    animation: fadeIn 0.8s ease 0.3s both;
   }
 
   @keyframes fadeDown {
@@ -202,104 +207,32 @@
   <div class="page-title">即時看診進度</div>
 </div>
 
-<div class="cards">
-  <div class="card">
-    <div class="card-blob">
-      <svg viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="9"/>
-        <polyline points="12 7 12 12 15 15"/>
-      </svg>
-    </div>
-    <div class="card-label">1 診</div>
-    <span class="card-number" id="call_num_3060">—</span>
+<div class="notice-card">
+  <div class="icon-blob">
+    <!-- wrench / 維修扳手 (lucide-style,乾淨對稱) -->
+    <svg viewBox="0 0 24 24">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
   </div>
-  <div class="card">
-    <div class="card-blob">
-      <svg viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="9"/>
-        <polyline points="12 7 12 12 15 15"/>
-      </svg>
-    </div>
-    <div class="card-label">2 診</div>
-    <span class="card-number" id="call_num_3061">—</span>
+
+  <div class="notice-title">叫號系統維修中</div>
+
+  <div class="notice-body">
+    現場叫號設備故障無法使用,<br>
+    已聯絡廠商維修。<br>
+    造成不便,敬請見諒。
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="contact">
+    <div class="contact-label">如需詢問看診進度</div>
+    <div class="contact-sub">請於門診時間來電</div>
+    <a href="tel:0736313130" class="phone">07-363-1313</a>
   </div>
 </div>
 
-<div class="status-bar">
-  <div class="dot" id="status-dot"></div>
-  <span class="status-text" id="status-text">連線中…</span>
-</div>
-<div class="last-update" id="last-update"></div>
+<div class="footer">EST. 2024 YUEXIN PSYCHIATRIC CLINIC</div>
 
-<script>
-  var ws_socket = null;
-  var WS_CLOSED = 3;
-
-  function setStatus(state) {
-    var dot = document.getElementById('status-dot');
-    var txt = document.getElementById('status-text');
-    dot.className = 'dot ' + state;
-    txt.textContent = state === 'connected' ? '即時連線中' : '連線中斷，重試中…';
-  }
-
-  function updateTime() {
-    var now = new Date();
-    var h = String(now.getHours()).padStart(2,'0');
-    var m = String(now.getMinutes()).padStart(2,'0');
-    var s = String(now.getSeconds()).padStart(2,'0');
-    document.getElementById('last-update').textContent = '最後更新 ' + h + ':' + m + ':' + s;
-  }
-
-  function ws_onmessage(e) {
-    try {
-      var callers = JSON.parse(e.data);
-      callers.forEach(function(item) {
-        var el = document.getElementById('call_num_' + item.id);
-        if (el && item.call_nums) {
-          try {
-            var nums = JSON.parse(item.call_nums);
-            var newVal = String(nums[0]);
-            if (el.textContent !== newVal) {
-              el.textContent = newVal;
-              el.classList.remove('updated');
-              void el.offsetWidth;
-              el.classList.add('updated');
-            }
-          } catch(e) {}
-        }
-      });
-      setStatus('connected');
-      updateTime();
-    } catch(err) {}
-  }
-
-  function wsQueryCaller() {
-    ws_socket.send(JSON.stringify({ type: "query", text: "3060,3061" }));
-  }
-
-  function ws_onopen()  { wsQueryCaller(); }
-  function ws_onclose() { ws_socket = null; setStatus('error'); }
-  function ws_onerror() { ws_socket = null; setStatus('error'); }
-
-  function chkWsSocket() {
-    try {
-      if (!ws_socket || ws_socket.readyState === WS_CLOSED) {
-        ws_socket = new WebSocket("wss://www.mainpi.com/.ws_mainpi/?token=ykqk:824a0de7c09c45ee83b515e0d1c4fe87");
-        ws_socket.onopen    = ws_onopen;
-        ws_socket.onmessage = ws_onmessage;
-        ws_socket.onclose   = ws_onclose;
-        ws_socket.onerror   = ws_onerror;
-      }
-    } catch(e) {}
-  }
-
-  function QueryCaller() {
-    if (ws_socket && ws_socket.readyState === 1) wsQueryCaller();
-    else chkWsSocket();
-  }
-
-  QueryCaller();
-  setInterval(QueryCaller, 30000);
-</script>
 </body>
 </html>
