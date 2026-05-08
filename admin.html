@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.14-mothersday">
+  <meta name="version" content="5.5.15-mothersday-eq">
   <!-- v5.5.14-mothersday: 防 LIFF 端緩存,加速 5/9 上線與 5/10 退場時的更新到位 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -2330,8 +2330,9 @@
   <div class="tile tile-1 tile-nav today-btn" onclick="goToToday()" style="position:relative;">
     <div class="tile-title" style="font-size:16px;">今日</div>
   </div>
-  <div class="tile tile-1 tile-nav today-btn" onclick="goToNextWorkday()" style="position:relative;">
-    <div class="tile-title" style="font-size:16px;">明日</div>
+  <div class="tile tile-1 tile-marigold" onclick="openEmergencyQueueModal()" style="position:relative;">
+    <div class="tile-title" style="font-size:16px;">叫號</div>
+    <div class="tile-subtitle" id="eqTileSubtitle" style="font-size:11px;color:rgba(255,134,1,0.65);">—</div>
   </div>
   <div class="tile tile-1 tile-nav" id="btnPrev" onclick="changeDate(-1)" style="position:relative;">
     <div class="tile-title" style="font-size:18px;color:var(--text-light);">＜</div>
@@ -2862,6 +2863,51 @@
       <div id="closedSuccess" class="alert alert-success" style="display:none;margin-bottom:8px"></div>
       <button class="btn btn-danger" style="font-size:13px;padding:10px;width:100%;" id="btnClosed" onclick="doClosed()">確認停診</button>
     </div>
+  </div>
+</div>
+
+<!-- Modal: 應急叫號控制台(v5.18) -->
+<div class="modal-overlay" id="modalEmergencyQueue">
+  <div class="modal">
+    <div class="m-topbar">
+      <div class="m-stripe"></div>
+      <div class="m-topbar-main">應急叫號控制台</div>
+      <div class="m-topbar-title">queue.control</div>
+      <button class="modal-close" onclick="closeModal('modalEmergencyQueue')">✕</button>
+    </div>
+
+    <!-- 大字當前號碼 -->
+    <div style="text-align:center;padding:24px 0 18px;">
+      <div style="font-size:11px;color:var(--text-light);letter-spacing:3px;margin-bottom:8px;">CURRENT</div>
+      <div id="eqBigNumber" style="font-family:'JetBrains Mono', monospace;font-size:72px;font-weight:300;color:var(--marigold);line-height:1;letter-spacing:2px;">—</div>
+    </div>
+
+    <!-- -1 / +1 主操作(+1 是大按鈕,放右邊主視覺位置) -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button class="btn" onclick="bumpEq(-1)" style="flex:1;padding:18px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-light);font-size:18px;letter-spacing:2px;font-weight:400;">－1</button>
+      <button class="btn" onclick="bumpEq(1)" style="flex:2;padding:18px;background:var(--marigold);color:#111;font-size:20px;letter-spacing:3px;font-weight:700;">＋1 推進下一號</button>
+    </div>
+
+    <!-- 直接輸入 + 歸零 -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <input type="tel" id="eqDirectInput" placeholder="直接輸入" inputmode="numeric"
+        style="flex:1;text-align:center;font-size:16px;padding:12px;"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();setEqDirect();}"
+        oninput="this.value=this.value.replace(/\D/g,'')">
+      <button class="btn" onclick="setEqDirect()" style="width:auto;padding:12px 18px;background:var(--btn-mid-bg);border:1px solid var(--btn-mid-bd);color:var(--text);font-size:13px;margin:0;letter-spacing:1px;">送出</button>
+      <button class="btn" onclick="resetEq()" style="width:auto;padding:12px 18px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-bd);color:var(--text-light);font-size:13px;margin:0;letter-spacing:1px;">歸零</button>
+    </div>
+
+    <!-- 上次更新者 + 時間 -->
+    <div class="m-section" style="border-top:1px solid var(--border-soft);padding-top:14px;margin-top:4px;">
+      <div class="m-row">
+        <span class="m-row-key">上次</span>
+        <span class="m-row-value dim" id="eqLastUpdate">—</span>
+      </div>
+    </div>
+
+    <!-- 錯誤訊息 -->
+    <div id="eqError" class="alert alert-error" style="display:none;margin-top:12px;"></div>
   </div>
 </div>
 
@@ -3474,6 +3520,7 @@ function enterMainPage() {
   updateDateNav();
   loadSchedule();
   checkSecurityCaution();
+  loadEqTileSubtitle(); // v5.18: 進主畫面主動載入叫號 tile 數字
 }
 
 function openLogoutModal() {
@@ -5720,6 +5767,136 @@ async function doMarkSecurityRead() {
   } catch(e) {
     if (e.isSessionExpired) return;
     btn.disabled = false; btn.textContent = "✓ 標記全部已讀";
+  }
+}
+
+/* ══════════════════════════════════════════════
+   v5.18 應急叫號(Emergency Queue)
+   ──────────────────────────────────────────────
+   情境:5/8 叫號機故障,5/12 廠商修好。
+   設計:純 spreadsheet 更新,無 LINE 推播,病人端 90 秒 polling。
+   ══════════════════════════════════════════════ */
+
+let _eqCurrentNumber = null; // 暫存當前號碼,給 +1/-1 計算用
+
+// admin 主畫面 tile subtitle 用,獨立 helper(不開 modal,只更新 subtitle)
+async function loadEqTileSubtitle() {
+  try {
+    const data = await xhrGet(API_URL + "?action=getEmergencyQueueNumber");
+    const subEl = document.getElementById("eqTileSubtitle");
+    if (!subEl) return;
+    if (data && data.success && data.number !== null && data.number !== undefined) {
+      subEl.textContent = "目前 " + data.number + " 號";
+    } else {
+      subEl.textContent = "尚未啟用";
+    }
+  } catch(e) {
+    // 失敗靜默,subtitle 維持「—」即可,不影響主流程
+  }
+}
+
+async function openEmergencyQueueModal() {
+  // 重置 UI
+  document.getElementById("eqBigNumber").textContent = "—";
+  document.getElementById("eqLastUpdate").textContent = "讀取中...";
+  document.getElementById("eqDirectInput").value = "";
+  document.getElementById("eqError").style.display = "none";
+  openModal("modalEmergencyQueue");
+  await loadEqNumber();
+}
+
+async function loadEqNumber() {
+  try {
+    const data = await xhrGet(API_URL + "?action=getEmergencyQueueNumber");
+    if (data.success && data.number !== null && data.number !== undefined) {
+      _eqCurrentNumber = parseInt(data.number, 10);
+      document.getElementById("eqBigNumber").textContent = _eqCurrentNumber;
+      const updateText = data.updatedBy
+        ? data.updatedBy + " · " + (data.updatedAt || "")
+        : (data.updatedAt || "—");
+      document.getElementById("eqLastUpdate").textContent = updateText;
+      // 同步 admin 主畫面 tile subtitle
+      const subEl = document.getElementById("eqTileSubtitle");
+      if (subEl) subEl.textContent = "目前 " + _eqCurrentNumber + " 號";
+    } else {
+      _eqCurrentNumber = null;
+      document.getElementById("eqBigNumber").textContent = "—";
+      document.getElementById("eqLastUpdate").textContent = "尚未啟用";
+    }
+  } catch(e) {
+    if (e.isSessionExpired) return;
+    document.getElementById("eqError").textContent = "載入號碼失敗,請稍後再試。";
+    document.getElementById("eqError").style.display = "block";
+  }
+}
+
+async function bumpEq(delta) {
+  // 防呆:當前號碼為 null 時不能 +/-1(尚未啟用)
+  if (_eqCurrentNumber === null) {
+    document.getElementById("eqError").textContent = "請先用「直接輸入」設定起始號碼。";
+    document.getElementById("eqError").style.display = "block";
+    return;
+  }
+  const target = _eqCurrentNumber + delta;
+  if (target < 0) {
+    document.getElementById("eqError").textContent = "號碼不能小於 0。";
+    document.getElementById("eqError").style.display = "block";
+    return;
+  }
+  if (target > 999) {
+    document.getElementById("eqError").textContent = "號碼上限為 999。";
+    document.getElementById("eqError").style.display = "block";
+    return;
+  }
+  await sendEqUpdate(target, "set");
+}
+
+async function setEqDirect() {
+  const input = document.getElementById("eqDirectInput");
+  const val = parseInt(input.value, 10);
+  if (isNaN(val) || val < 0 || val > 999) {
+    document.getElementById("eqError").textContent = "請輸入 0-999 之間的號碼。";
+    document.getElementById("eqError").style.display = "block";
+    return;
+  }
+  await sendEqUpdate(val, "set");
+  input.value = "";
+}
+
+async function resetEq() {
+  await sendEqUpdate(null, "reset");
+}
+
+async function sendEqUpdate(number, op) {
+  document.getElementById("eqError").style.display = "none";
+  showAdminOverlay("更新中...");
+  try {
+    const payload = {
+      action: op === "reset" ? "resetEmergencyQueueNumber" : "setEmergencyQueueNumber",
+      lineId: state.lineId,
+      token: state.sessionToken
+    };
+    if (op === "set") payload.number = number;
+
+    const data = await xhrPost(API_URL, payload);
+    if (!data.success) throw new Error(data.error || "更新失敗");
+
+    // 成功 → 同步 UI
+    _eqCurrentNumber = parseInt(data.number, 10);
+    document.getElementById("eqBigNumber").textContent = _eqCurrentNumber;
+    const updateText = (data.updatedBy || "") + " · " + (data.updatedAt || "");
+    document.getElementById("eqLastUpdate").textContent = updateText;
+    // 同步 tile subtitle
+    const subEl = document.getElementById("eqTileSubtitle");
+    if (subEl) subEl.textContent = "目前 " + _eqCurrentNumber + " 號";
+
+    showToast("✓ 已更新為 " + _eqCurrentNumber + " 號");
+  } catch(e) {
+    if (e.isSessionExpired) return;
+    document.getElementById("eqError").textContent = e.message || "更新失敗,請稍後再試。";
+    document.getElementById("eqError").style.display = "block";
+  } finally {
+    hideAdminOverlay();
   }
 }
 
