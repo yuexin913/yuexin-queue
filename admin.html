@@ -5788,7 +5788,7 @@ async function loadEqTileSubtitle() {
     if (!subEl) return;
     if (data && data.success && data.number !== null && data.number !== undefined) {
       _eqCurrentNumber = parseInt(data.number, 10);
-      subEl.textContent = "目前 " + _eqCurrentNumber + " 號";
+      subEl.textContent = _eqCurrentNumber;
     } else {
       _eqCurrentNumber = null;
       subEl.textContent = "尚未啟用";
@@ -5829,7 +5829,7 @@ async function loadEqNumber() {
       document.getElementById("eqLastUpdate").textContent = updateText;
       // 同步 admin 主畫面 tile subtitle
       const subEl = document.getElementById("eqTileSubtitle");
-      if (subEl) subEl.textContent = "目前 " + _eqCurrentNumber + " 號";
+      if (subEl) subEl.textContent = _eqCurrentNumber;
     } else {
       _eqCurrentNumber = null;
       document.getElementById("eqBigNumber").textContent = "—";
@@ -5900,7 +5900,7 @@ async function sendEqUpdate(number, op) {
     document.getElementById("eqLastUpdate").textContent = updateText;
     // 同步 tile subtitle
     const subEl = document.getElementById("eqTileSubtitle");
-    if (subEl) subEl.textContent = "目前 " + _eqCurrentNumber + " 號";
+    if (subEl) subEl.textContent = _eqCurrentNumber;
 
     showToast("✓ 已更新為 " + _eqCurrentNumber + " 號");
   } catch(e) {
