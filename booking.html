@@ -7,7 +7,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.8.5">
+  <meta name="version" content="5.8.5-mothersday">
+  <!-- v5.8.5-mothersday: 防 LIFF 端緩存,加速 5/9 上線與 5/10 退場時的更新到位 -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,6 +23,41 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
+     Version:   v5.8.5-mothersday (2026-05-10 限定) — 母親節主題版,獨立檔案,手動切換上下線
+     ──────────────────────────────────────────────────────────
+     v5.8.5-mothersday (2026-05-10) 母親節單日限定版:
+     · 部署方式:5/9 晚手動把 booking.html 改名 .bak,本檔改名為 booking.html;5/10 晚反向操作
+     · 改動範圍(僅本檔,主檔不污染):
+       1. CSS :root sage 三階綠 → 三階粉(sage-light/sage-mist 極淡層保留不動)
+          - --sage-deep #3e5a25 → #a04858 (玫瑰深酒,主標)
+          - --sage-dark #5a7a38 → #c0606e (康乃馨深粉,重點)
+          - --sage      #8aaa55 → #e08e9c (康乃馨中粉,主色)
+       2. CSS :root gold → rose pink
+          - --gold       #c8a84b → #c0606e (康乃馨深粉)
+          - --gold-light #fdf6e3 → #fdf0f2 (極淡粉)
+       3. 醫師色 → 康乃馨粉五階(供 loading dot 使用,不影響其他 UI)
+          - --doc-su 紫 → #fae0e2 最淺粉
+          - --doc-kuo 藍 → #f0c3ca 淺粉
+          - --doc-wlx 黃 → #e08e9c 中粉
+          - --doc-wby 紅 → #c0606e 深粉
+       4. 別名 --green/--green-dark 同步換粉(--green-light 保留)
+       5. Loading dot DOT_COLORS_OPEN 第五色寫死 #a04858(避免 var(--sage)→中粉與 --doc-wlx 撞色)
+       6. Loading dot _dotMode 強制 'open'(5/10 為週日,原邏輯會走 close 單色,母親節版讓五色粉輪播全天運作)
+       7. Loading logo src yuexinlogo-large.png → yuexinlogo-mothersday.png
+          (含 onerror fallback URL 一併更新,需上傳對應檔案至 GitHub assets/doctors/)
+       8. Footer 加後綴:· FOR ALL MOTHERS & INFANTS
+          (沿用原 v5.8.4 之前 BETA EDITION 慣例的 · middle dot 分隔符;字型/大小/顏色不變)
+       9. 暗門 _handleTap() 完整保留
+     · 設計理由:
+       - sage-light/sage-mist 保留:底層空間感不變,避免淡粉底配粉字視覺暈糊
+       - dot 第五色寫死(非 var):一日特例不引入新變數,純 hardcode 最乾淨
+       - 強制 open 模式:母親節版的視覺亮點之一是粉色五階流動,不為了「對齊原時段邏輯」犧牲
+       - footer 文字「FOR ALL MOTHERS & INFANTS」:
+         · 精神分析(object relations)用語,Winnicott 的 mother-infant dyad
+         · 對應 banner 的「致 所有溫柔的承擔」;banner 是 manifest content,footer 是 latent content
+     · 退場:5/10 結束後手動 swap 回原 booking.html,本檔不上線
+
+     ==========================================================
      Version:   v5.8.5 (2026-05-01) Placeholder B2 + 英文姓名訊息 reframe + 首頁加多語 hint
      ──────────────────────────────────────────────────────────
      v5.8.5 (2026-05-01) 三項小改 + 雙 LLM 審查修正:
@@ -364,19 +402,22 @@
      ========================================================== */
   :root {
     /* 新色階 */
-    --sage:        #8aaa55;
-    --sage-dark:   #5a7a38;
-    --sage-deep:   #3e5a25;
-    --sage-light:  #e8ede0;
-    --sage-mist:   #eef2e6;
+    /* v5.8.5-mothersday: sage 三階綠 → 三階粉(極淡層 sage-light/sage-mist 保留) */
+    --sage:        #e08e9c;  /* 原 #8aaa55 → 康乃馨中粉(主色) */
+    --sage-dark:   #c0606e;  /* 原 #5a7a38 → 康乃馨深粉(重點) */
+    --sage-deep:   #a04858;  /* 原 #3e5a25 → 玫瑰深酒(主標) */
+    --sage-light:  #e8ede0;  /* 不動,保留極淡綠 */
+    --sage-mist:   #eef2e6;  /* 不動,保留極淡綠 */
+    /* v5.8.5-mothersday: 新增最深粉變數,供 dot 第五色與其他需要更深粉的位置使用 */
+    --carnation-deepest: #a04858;
     --ink:         #2b2b28;
     --ink-mid:     #4a4a44;
     --ink-light:   #8a8878;
     --ink-placeholder: #c8c2b6;  /* v5.8.5: B2 — 從 v5.8.4 的 #d0c9bd 退一階,粟醫師實機後覺得更平衡(美感 vs 長者可讀) */
     --cream:       #faf8f2;
     --parchment:   #f4f2ec;
-    --gold:        #c8a84b;
-    --gold-light:  #fdf6e3;
+    --gold:        #c0606e;  /* v5.8.5-mothersday: 原 #c8a84b → 康乃馨深粉 */
+    --gold-light:  #fdf0f2;  /* v5.8.5-mothersday: 原 #fdf6e3 → 極淡粉 */
     --warn-border: #e8d090;
     --error:       #c0392b;
     --shadow-sm:   none;
@@ -384,16 +425,18 @@
     --shadow-lg:   0 1px 0 rgba(43,43,40,0.06);
 
     /* v5.6 圖卡 — 醫師主題色 */
-    --doc-su:      #a793ac;  /* 粟寧醫師 紫 */
-    --doc-kuo:     #7ab6d8;  /* 郭玉柱醫師 藍 */
-    --doc-wlx:     #d6cd94;  /* 王麟祥醫師 黃 */
-    --doc-wby:     #e28e84;  /* 王伯元醫師 紅 */
+    /* v5.8.5-mothersday: 醫師色 → 康乃馨粉五階(loading dot 用) */
+    --doc-su:      #fae0e2;  /* 原紫 #a793ac → 最淺粉 */
+    --doc-kuo:     #f0c3ca;  /* 原藍 #7ab6d8 → 淺粉 */
+    --doc-wlx:     #e08e9c;  /* 原黃 #d6cd94 → 中粉 */
+    --doc-wby:     #c0606e;  /* 原紅 #e28e84 → 深粉 */
     --line:        #d8d4c4;  /* 圖卡邊框/分隔線 */
 
     /* 舊變數別名（保留相容，JS 內 innerHTML 使用這些變數） */
-    --green:       #8aaa55;
-    --green-light: #e8ede0;
-    --green-dark:  #5a7a38;
+    /* v5.8.5-mothersday: green 系一併換粉,green-light 極淡綠保留 */
+    --green:       #e08e9c;  /* 原 #8aaa55 → 康乃馨中粉 */
+    --green-light: #e8ede0;  /* 不動,保留極淡綠 */
+    --green-dark:  #c0606e;  /* 原 #5a7a38 → 康乃馨深粉 */
     --text:        #2b2b28;
     --text-light:  #8a8878;
     --border:      rgba(74,74,68,0.15);
@@ -475,8 +518,8 @@
     font-family: 'Noto Serif TC', serif;
     font-size: 10px; font-weight: 600;
     font-style: italic;
-    color: #8a5f0a; background: transparent;
-    border: 0.5px solid rgba(194,134,10,0.4);
+    color: #a04858; background: transparent;
+    border: 0.5px solid rgba(192,96,110,0.4);
     padding: 2px 11px; border-radius: 2px;
     letter-spacing: 3px; margin-top: 4px;
   }
@@ -583,7 +626,7 @@
   }
   input:focus {
     border-color: var(--sage);
-    box-shadow: 0 0 0 2px rgba(138,170,85,0.15);
+    box-shadow: 0 0 0 2px rgba(224,142,156,0.15);
   }
 
   /* ── 入口 ENTRY BUTTONS ── */
@@ -601,7 +644,7 @@
     border-top: 0.5px solid rgba(74,74,68,0.15);
   }
   .entry-btn:hover {
-    background: rgba(138,170,85,0.06);
+    background: rgba(224,142,156,0.06);
   }
   .entry-btn-disabled { opacity: 0.45; pointer-events: none; cursor: not-allowed; }
   .entry-icon {
@@ -627,7 +670,7 @@
     font-size: 14px; display: flex; align-items: center; justify-content: center;
     color: var(--ink-mid); transition: all 0.2s;
   }
-  .cal-nav:hover { border-color: var(--sage); color: var(--sage-dark); background: rgba(138,170,85,0.06); }
+  .cal-nav:hover { border-color: var(--sage); color: var(--sage-dark); background: rgba(224,142,156,0.06); }
   .cal-title { font-family: 'Noto Serif TC', serif; font-size: 15px; font-weight: 500; color: var(--sage-deep); letter-spacing: 4px; }
   .cal-weekdays {
     display: grid; grid-template-columns: repeat(7, 1fr);
@@ -641,8 +684,8 @@
     border: 0.5px solid transparent;
   }
   .cal-day:hover:not(.disabled):not(.empty) {
-    background: rgba(138,170,85,0.08);
-    border-color: rgba(138,170,85,0.4);
+    background: rgba(224,142,156,0.08);
+    border-color: rgba(224,142,156,0.4);
   }
   .cal-day.selected {
     background: var(--sage-dark); color: white; font-weight: 400;
@@ -650,14 +693,14 @@
     box-shadow: none;
   }
   .cal-day.disabled { color: rgba(74,74,68,0.25); cursor: not-allowed; }
-  .cal-day.today { font-weight: 500; color: var(--sage-dark); border-color: rgba(138,170,85,0.5); }
+  .cal-day.today { font-weight: 500; color: var(--sage-dark); border-color: rgba(224,142,156,0.5); }
   .cal-day.empty { cursor: default; }
 
   /* ── 時段 session ── */
   .session-block { margin-bottom: 16px; }
   .session-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 14px; background: rgba(138,170,85,0.06);
+    padding: 10px 14px; background: rgba(224,142,156,0.06);
     border-radius: 3px 3px 0 0; border: 0.5px solid rgba(74,74,68,0.15); border-bottom: none;
   }
   .session-name { font-family: 'Noto Serif TC', serif; font-size: 14px; font-weight: 500; color: var(--sage-deep); letter-spacing: 2px; }
@@ -679,7 +722,7 @@
   }
   .slot-btn:hover:not(.unavailable) {
     border-color: var(--sage);
-    background: rgba(138,170,85,0.06);
+    background: rgba(224,142,156,0.06);
     box-shadow: none;
   }
   .slot-btn.selected {
@@ -703,7 +746,7 @@
   }
   .time-card:hover:not(.time-card-disabled) {
     border-color: var(--sage);
-    background: rgba(138,170,85,0.06);
+    background: rgba(224,142,156,0.06);
     box-shadow: none;
   }
   .time-card.selected {
@@ -723,7 +766,7 @@
   .time-card-label { font-size: 12px; color: var(--ink-light); margin-top: 4px; letter-spacing: 0.3px; }
   .time-card-badge {
     font-size: 11px; font-weight: 400; padding: 3px 10px;
-    background: rgba(138,170,85,0.12); color: var(--sage-dark);
+    background: rgba(224,142,156,0.12); color: var(--sage-dark);
     border-radius: 2px; white-space: nowrap; margin-left: 12px;
     letter-spacing: 0.5px;
   }
@@ -747,7 +790,7 @@
   }
   .radio-option:hover {
     border-color: var(--sage);
-    background: rgba(138,170,85,0.06);
+    background: rgba(224,142,156,0.06);
   }
   .radio-option.selected {
     border-color: var(--sage-dark);
@@ -760,7 +803,7 @@
   /* ── 已選日期摘要 ── */
   .selected-date-bar {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 11px 16px; background: rgba(138,170,85,0.06);
+    padding: 11px 16px; background: rgba(224,142,156,0.06);
     border: 0.5px solid rgba(74,74,68,0.15); border-radius: 3px;
     margin-bottom: 12px; font-size: 15px; font-weight: 400; color: var(--sage-deep);
     letter-spacing: 2px; font-family: 'Noto Serif TC', serif;
@@ -794,11 +837,11 @@
     background: transparent; cursor: pointer; transition: all 0.2s; text-align: left;
   }
   .session-select-btn:hover:not(.session-select-disabled) {
-    border-color: var(--sage); background: rgba(138,170,85,0.06);
+    border-color: var(--sage); background: rgba(224,142,156,0.06);
   }
   .session-select-btn.session-select-active {
     border-color: var(--sage-dark);
-    background: rgba(138,170,85,0.1);
+    background: rgba(224,142,156,0.1);
     box-shadow: inset 0 0 0 0.5px var(--sage-dark);
   }
   .session-select-btn.session-select-disabled { background: transparent; cursor: not-allowed; opacity: 0.4; }
@@ -890,7 +933,7 @@
   }
   .alert-error { background: transparent; color: var(--error); border: 0.5px solid rgba(192,57,43,0.35); border-left-width: 2px; }
   .alert-info { background: transparent; color: var(--sage-deep); border: 0.5px solid rgba(74,74,68,0.15); border-left: 2px solid var(--sage); }
-  .alert-warn { background: transparent; color: #7a6020; border: 0.5px solid rgba(200,168,75,0.35); border-left-width: 2px; }
+  .alert-warn { background: transparent; color: #7a3838; border: 0.5px solid rgba(192,96,110,0.35); border-left-width: 2px; }
 
   /* ══════════════════════════════════════════════
      v5.4 複診預約家庭友善預填清單
@@ -939,7 +982,7 @@
   }
   /* 按壓「卡片主區」(帶入) */
   .patient-card.active {
-    background: rgba(138,170,85,0.08);
+    background: rgba(224,142,156,0.08);
     border-color: var(--sage-dark);
     box-shadow: none;
   }
@@ -992,7 +1035,7 @@
   .patient-skeleton {
     height: 36px;
     border-radius: 2px;
-    background: linear-gradient(90deg, rgba(74,74,68,0.04) 0%, rgba(138,170,85,0.1) 50%, rgba(74,74,68,0.04) 100%);
+    background: linear-gradient(90deg, rgba(74,74,68,0.04) 0%, rgba(224,142,156,0.1) 50%, rgba(74,74,68,0.04) 100%);
     background-size: 200% 100%;
     animation: plPulse 1.3s ease-in-out infinite;
     border: 0.5px solid rgba(74,74,68,0.1);
@@ -1114,7 +1157,7 @@
   .success-icon {
     width: 68px; height: 68px; border-radius: 50%;
     background: transparent;
-    border: 0.5px solid rgba(138,170,85,0.5);
+    border: 0.5px solid rgba(224,142,156,0.5);
     display: flex; align-items: center; justify-content: center;
     margin: 0 auto 20px;
     box-shadow: none;
@@ -1348,19 +1391,19 @@
   }
   /* 成功(綠) */
   .status-icon.status-success {
-    border: 0.5px solid rgba(138,170,85,0.5);
+    border: 0.5px solid rgba(224,142,156,0.5);
     box-shadow: none;
   }
   .status-icon.status-success svg { stroke: var(--sage-dark); }
   /* 資訊 / 待確認(sage 深綠) */
   .status-icon.status-info {
-    border: 0.5px solid rgba(138,170,85,0.45);
+    border: 0.5px solid rgba(224,142,156,0.45);
     box-shadow: none;
   }
   .status-icon.status-info svg { stroke: var(--sage-dark); }
   /* 警告 / 過期(琥珀黃) */
   .status-icon.status-warning {
-    border: 0.5px solid rgba(194,134,10,0.45);
+    border: 0.5px solid rgba(192,96,110,0.45);
     box-shadow: none;
   }
   .status-icon.status-warning svg { stroke: #a6730a; }
@@ -1381,7 +1424,7 @@
   }
   .status-title.status-success-text { color: var(--sage-deep); }
   .status-title.status-info-text    { color: var(--ink); }
-  .status-title.status-warning-text { color: #8a5f0a; }
+  .status-title.status-warning-text { color: #a04858; }
   .status-title.status-error-text   { color: #8a2a22; }
   .status-sub {
     text-align: center; font-size: 13.5px;
@@ -1401,7 +1444,7 @@
     padding: 14px 16px; margin-bottom: 10px; background: transparent;
     transition: background 0.2s, opacity 0.2s;
   }
-  .booking-item:hover { background: rgba(138,170,85,0.04); }
+  .booking-item:hover { background: rgba(224,142,156,0.04); }
   .booking-item-header {
     display: flex; justify-content: space-between; align-items: center;
     gap: 12px;
@@ -1427,8 +1470,8 @@
     letter-spacing: 1px;
     flex-shrink: 0;
   }
-  .status-pending { background: transparent; color: #8a5f0a; border: 0.5px solid rgba(194,134,10,0.35); }
-  .status-confirmed { background: transparent; color: var(--sage-dark); border: 0.5px solid rgba(138,170,85,0.45); }
+  .status-pending { background: transparent; color: #a04858; border: 0.5px solid rgba(192,96,110,0.35); }
+  .status-confirmed { background: transparent; color: var(--sage-dark); border: 0.5px solid rgba(224,142,156,0.45); }
   .status-cancelled { background: transparent; color: var(--ink-light); border: 0.5px solid rgba(74,74,68,0.18); }
   /* v5.6.4 已取消改 inline 灰字(去 boxed),呼應整張卡視覺降級 */
   .booking-cancelled-inline {
@@ -1457,8 +1500,8 @@
     animation: justCancelledFade 1.5s cubic-bezier(0.22, 1, 0.36, 1);
   }
   @keyframes justCancelledFade {
-    0%   { background: rgba(138,170,85,0.06); transform: scale(1);    opacity: 1;    }
-    25%  { background: rgba(138,170,85,0.06); transform: scale(0.98); opacity: 0.85; }
+    0%   { background: rgba(224,142,156,0.06); transform: scale(1);    opacity: 1;    }
+    25%  { background: rgba(224,142,156,0.06); transform: scale(0.98); opacity: 0.85; }
     100% { background: rgba(74,74,68,0.02);   transform: scale(1);    opacity: 0.55; }
   }
   .booking-detail { font-size: 13px; color: var(--ink-mid); line-height: 1.9; letter-spacing: 0.5px; }
@@ -1479,7 +1522,7 @@
     letter-spacing: 2px;
   }
   .booking-detail-btn:hover {
-    background: rgba(138,170,85,0.05);
+    background: rgba(224,142,156,0.05);
     border-color: var(--sage-deep);
   }
   /* v5.6.5: 取消預約按鈕(次按鈕,紅 outline 0.5px + sans + 寬度 flex:1) */
@@ -1619,7 +1662,7 @@
   }
   .announcement-title {
     font-family: 'Noto Serif TC', serif;
-    font-size: 13px; font-weight: 500; color: #8a5f0a;
+    font-size: 13px; font-weight: 500; color: #a04858;
     display: flex; align-items: center; gap: 6px;
     margin-bottom: 10px; letter-spacing: 3px;
   }
@@ -1644,7 +1687,7 @@
   .announcement-text { color: var(--ink); letter-spacing: 0.5px; }
   .announcement-reason { color: var(--ink-light); font-size: 12px; letter-spacing: 0.3px; }
   .announcement-toggle {
-    font-size: 12px; color: #8a5f0a; text-align: center;
+    font-size: 12px; color: #a04858; text-align: center;
     padding-top: 8px; cursor: pointer; font-weight: 400; letter-spacing: 1px;
   }
 
@@ -1682,8 +1725,8 @@
      ────────────────────────────────────────────── */
   /* 整張卡可點(已確認狀態) */
   .booking-item.is-clickable { cursor: pointer; }
-  .booking-item.is-clickable:hover { background: rgba(138,170,85,0.06); }
-  .booking-item.is-clickable:active { background: rgba(138,170,85,0.10); }
+  .booking-item.is-clickable:hover { background: rgba(224,142,156,0.06); }
+  .booking-item.is-clickable:active { background: rgba(224,142,156,0.10); }
 
   /* v5.6.1 的 .booking-detail-cta(inline 「查看詳情 →」CTA)
      v5.6.5 改為 button(.booking-detail-btn),inline CTA 樣式已移除 */
@@ -1840,8 +1883,8 @@
   <div class="page active visible" id="pageLoading">
     <div class="loading-stage">
       <div class="logo-anim" id="loadingLogoImg">
-        <img src="assets/doctors/yuexinlogo-large.png" alt="悅心診所" class="logo-anim-img"
-             onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/yuexin913/yuexin-queue/main/assets/doctors/yuexinlogo-large.png';">
+        <img src="assets/doctors/yuexinlogo-mothersday.png" alt="悅心診所" class="logo-anim-img"
+             onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/yuexin913/yuexin-queue/main/assets/doctors/yuexinlogo-mothersday.png';">
       </div>
       <div class="loading-text" id="loadingText">
         <div class="loading-text-zh">載入中請稍候</div>
@@ -2693,11 +2736,11 @@ function formatBirthROCDisplay(birthStr) {
 // · Loading 字維持 ink-light 灰(不染色,點才是色彩承載)
 
 const DOT_COLORS_OPEN = [
-  'var(--doc-su)',    // 紫
-  'var(--doc-kuo)',   // 藍
-  'var(--doc-wlx)',   // 黃
-  'var(--doc-wby)',   // 紅
-  'var(--sage)'       // 綠
+  'var(--doc-su)',    // v5.8.5-mothersday: 最淺粉 #fae0e2 (原紫)
+  'var(--doc-kuo)',   // 淺粉 #f0c3ca (原藍)
+  'var(--doc-wlx)',   // 中粉 #e08e9c (原黃)
+  'var(--doc-wby)',   // 深粉 #c0606e (原紅)
+  'var(--carnation-deepest)'  // v5.8.5-mothersday: 玫瑰深酒 #a04858 (原 var(--sage),替換後會與 --doc-wlx 撞中粉,故改用獨立變數)
 ];
 const DOT_COLOR_CLOSE = 'var(--sage)';
 
@@ -2735,7 +2778,7 @@ function _stopDotColorCycle() {
 function startLoadingAnimation() {
   if (!_dotStarted) {
     _dotStarted = true;
-    _dotMode = isClinicHoursAuto() ? 'open' : 'close';
+    _dotMode = 'open';  // v5.8.5-mothersday: 5/10 為週日,原 isClinicHoursAuto() 會走 close,母親節版強制 open 讓五色粉色輪播全天運作
 
     const dots = document.querySelectorAll('#pageLoading .loading-dots span');
     if (dots.length === 3) {
@@ -4312,6 +4355,6 @@ function _handleTap() {
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
 <div id="adminSecretEl"
   style="text-align:center;padding:24px 0 12px;font-size:10px;color:#bbb;letter-spacing:0.08em;cursor:default;user-select:none;-webkit-user-select:none;"
-  onclick="_handleTap()">EST. 2024 YUEXIN PSYCHIATRIC CLINIC</div>
+  onclick="_handleTap()">EST. 2024 YUEXIN PSYCHIATRIC CLINIC · FOR ALL MOTHERS &amp; INFANTS</div>
 </body>
 </html>
