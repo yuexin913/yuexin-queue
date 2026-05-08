@@ -6,7 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.14">
+  <meta name="version" content="5.5.14-mothersday">
+  <!-- v5.5.14-mothersday: 防 LIFF 端緩存,加速 5/9 上線與 5/10 退場時的更新到位 -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,16 +20,43 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
-     Version:   v5.5.15 (2026-05-05) [H12] sessionStorage → localStorage,登入持久化 12 小時
+     Version:   v5.5.14-mothersday (2026-05-10 限定) — 母親節主題版,獨立檔案,手動切換上下線
      ──────────────────────────────────────────────────────────
-     v5.5.15 (2026-05-05) [H12] Session 持久化升級:
-     · sessionStorage → localStorage,改善 LINE in-app browser 反覆掉登入問題
-     · iOS 上 LINE 切回前台時 sessionStorage 經常被清,造成一天踢登入 5-10 次
-     · 改 localStorage 後,12 小時內 LIFF 重開不用重輸密碼(與後端 TTL 對齊)
-     · key 升版(v1→v2)避免新舊機制混淆;清理時順手清掉 v1 舊殘留
-     · 取捨:設備被借走 12 小時內可被使用 → 評估後接受(風險極低)
+     v5.5.14-mothersday (2026-05-10) 母親節單日限定版:
+     · 部署方式:5/9 晚手動把 admin.html 改名 .bak,本檔改名為 admin.html;5/10 晚反向操作
+     · 改動範圍(僅本檔,主檔不污染):
+       1. AUTH_COLORS metro 8 色 → 康乃馨粉系 8 色(亂數抽色,登入時 JOIN 字母點亮)
+          - 1-5 階對齊 booking 母親節版的康乃馨粉五階
+          - 6-8 額外色相微擴張(玫瑰金粉/莓粉/嬰兒粉)避免單調
+       2. .keypad-dot.filled 三處橙 → 康乃馨深粉
+          - 邊框 var(--marigold-bd) → var(--keypad-accent-bd)
+          - 內圓 var(--marigold) → var(--keypad-accent-color)
+          - 驗證脈動 var(--marigold) → var(--keypad-accent-color)
+          - 採用區域變數策略(Gemini cross-validate 建議):
+            * 變數宣告在 .keypad-display scope,不污染 :root metro 體系
+            * 命名 --keypad-accent-color / --keypad-accent-bd 採通用語意,不綁節日名
+            * 未來其他節日(端午/中秋)可直接覆寫此處,不需重複改 3 處 selector
+       3. 登出過場「JOIN System」加副標「Ver. 5.10」(粉色小字)
+          - HTML 拆兩 span:.logout-main 維持原 letter-spacing 動畫;.logout-version 靜態字距
+          - margin-left 14px 視覺分離,vertical-align 2px 對齊 baseline
+     · 不動的東西(刻意保留):
+       - --marigold 主變數定義(53 處用途中只有 keypad 三處要改)
+       - .login-input:focus / .login-btn / 登入頁其他 marigold 應用
+       - admin 主介面 8 色 tile (marigold/lagoon/capri/kiwi/sunny/yellow/pink/orchid)
+       - JOIN_LETTERS 內定義的單色(實際動畫色用 AUTH_COLORS,單色定義未被引用)
+     · 設計理由:
+       - 八色用「同家族色相微擴張」而非「五階複製」:亂數抽色看到單一色階會像進度條,
+         八色色相微擴張像「灑落的康乃馨花瓣」更有節日感
+       - keypad 改粉是「進入儀式」的核心(輸入密碼是員工每天進到 admin 的觸發點,
+         那個粉色脈動是給少數人的小彩蛋)
+       - admin 主介面不動:metro 8 色是 admin 工作 identity,
+         節日感滲透到主介面會干擾日常操作判斷
+       - Ver. 5.10 排版:同行不加分隔符,主標動畫不被打斷,
+         副標靜態粉色像版本號註腳(其實是日期的 trompe l'oeil:5/10 母親節)
+     · 退場:5/10 結束後手動 swap 回原 admin.html,本檔不上線
 
-     v5.5.14 (2026-05-01) State 統一物件重構 — lastCompletedBooking
+     ════════════════════════════════════════════════════════
+     Version:   v5.5.14 (2026-05-01) State 統一物件重構 — lastCompletedBooking
      ──────────────────────────────────────────────────────────
      v5.5.14 (2026-05-01) State 統一物件重構 + Spinner 視覺改善:
      · [主] State 統一物件重構(reviewer + self-audit 合併修):
@@ -167,7 +197,7 @@
      · v5.2.2 - UI 小調整(登入動畫分行、今日/明日左邊條移除)
      · v5.3 - 櫃檯 keyin 小抄(35 天預覽內嵌 [今日][明日])
                搭配 backend v4.35(無異動,沿用既有 adminGetTodaySchedule)
-     · v5.3.1 - Session 持久化(sessionStorage),減少反覆登入 [v5.5.15 改 localStorage]
+     · v5.3.1 - Session 持久化(sessionStorage),減少反覆登入
      · v5.3.2 - UI 小改版包:
                      · 驗證動畫改循環式(. → .. → ... → 空)
                      · LINE 按鈕加「聯繫方式」子標籤
@@ -557,6 +587,16 @@
     opacity: 0;
     letter-spacing: 12px;
   }
+  /* v5.5.14-mothersday: Ver. 5.10 副標(獨立 span,不參與 letter-spacing 動畫) */
+  .logout-transition-text .logout-version {
+    display: inline-block;
+    margin-left: 14px;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 1px;       /* 不繼承父層 letter-spacing 動畫,維持靜態字距 */
+    color: #c0606e;            /* 康乃馨深粉 */
+    vertical-align: 2px;       /* 微調 baseline,讓小字視覺對齊 22px 主標中軸 */
+  }
   /* 淡出狀態(admin 主畫面淡出) */
   #pageMain.fading-out {
     opacity: 0;
@@ -731,6 +771,10 @@
     gap: 10px;
     padding: 14px 0 8px 0;
     margin-bottom: 8px;
+    /* v5.5.14-mothersday: 區域變數,只在 .keypad-display scope 內生效,不污染 :root metro 體系
+       命名採通用語意(accent-color/accent-bd),不綁節日名;若未來其他節日要客製可直接覆寫此處 */
+    --keypad-accent-color: #c0606e;            /* 原 var(--marigold) → 康乃馨深粉 */
+    --keypad-accent-bd:    rgba(192,96,110,0.45); /* 原 var(--marigold-bd) → 康乃馨深粉透明 */
   }
   .keypad-dot {
     width: 45px;
@@ -745,13 +789,13 @@
   }
   .keypad-dot.filled {
     background: var(--bg-3);
-    border-color: var(--marigold-bd);
+    border-color: var(--keypad-accent-bd);  /* v5.5.14-mothersday: 區域變數 */
   }
   .keypad-dot.filled::before {
     content: "";
     width: 12px;
     height: 12px;
-    background: var(--marigold);
+    background: var(--keypad-accent-color);  /* v5.5.14-mothersday: 區域變數 */
     border-radius: 50%;
     animation: keypadDotIn 0.18s ease;
   }
@@ -779,7 +823,7 @@
   /* v5.5.6: 驗證中狀態 — 6 格星點橘色脈動
      v5.5.9: class 從 loading 改名 keypad-loading,避免跟全域 .loading(載入中文字 padding:20px)衝突 */
   .keypad-display.keypad-loading .keypad-dot.filled::before {
-    background: var(--marigold);
+    background: var(--keypad-accent-color);  /* v5.5.14-mothersday: 區域變數 */
     animation: keypadDotPulse 1.2s ease-in-out infinite;
   }
   @keyframes keypadDotPulse {
@@ -2271,8 +2315,9 @@
 </div>
 
 <!-- v5.3.2:登出過場層(JOIN System 電源循環式) -->
+<!-- v5.5.14-mothersday: 加上 Ver. 5.10 粉色小字副標 -->
 <div id="logoutTransition">
-  <div class="logout-transition-text">JOIN System</div>
+  <div class="logout-transition-text"><span class="logout-main">JOIN System</span><span class="logout-version">Ver. 5.10</span></div>
 </div>
 
 <!-- Main -->
@@ -2875,29 +2920,26 @@ let _scheduleLoadId = 0; // 防止多次快速切換日期時，舊請求覆蓋�
 
 // ══════════════════════════════════════════════════════════
 // v5.3.1 Session 持久化 helper
-// [H12] (v5.5.15) sessionStorage → localStorage
-// 改動原因:LINE in-app browser 在 iOS 上經常重啟分頁,sessionStorage 一天被清 5-10 次
-// 安全考量:本地 + 後端 都有 12 小時 TTL,設備被借走 12 小時內可被使用是已知取捨
-// 實際風險:櫃台/醫師個人裝置被借走的機率極低,且攻擊者真要看資料可直接看 sheet
-// 切換 key 版本(v1→v2)確保升級時舊 sessionStorage 殘留不會與新 localStorage 混淆
+// 存 sessionStorage(分頁關閉就清掉,比 localStorage 安全)
+// 切到 LINE 聊天、切別的 App 再回來,只要分頁還在就不用重登
 // ══════════════════════════════════════════════════════════
-const SESSION_STORAGE_KEY = "yuexinAdminSession_v2";
+const SESSION_STORAGE_KEY = "yuexinAdminSession_v1";
 
 function saveSessionToStorage() {
   try {
-    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
       lineId: state.lineId,
       sessionToken: state.sessionToken,
       adminName: state.adminName,
       loginTime: state.loginTime,
       savedAt: Date.now()
     }));
-  } catch (e) { /* localStorage 失敗不影響既有流程 */ }
+  } catch (e) { /* sessionStorage 失敗不影響既有流程 */ }
 }
 
 function loadSessionFromStorage() {
   try {
-    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
     if (!raw) return null;
     const saved = JSON.parse(raw);
     // 基本防呆:必要欄位都要在
@@ -2914,9 +2956,7 @@ function loadSessionFromStorage() {
 }
 
 function clearSessionFromStorage() {
-  try { localStorage.removeItem(SESSION_STORAGE_KEY); } catch (e) {}
-  // [H12] 順手清舊版 sessionStorage 殘留(從 v1 升級的 user)
-  try { sessionStorage.removeItem("yuexinAdminSession_v1"); } catch (e) {}
+  try { sessionStorage.removeItem(SESSION_STORAGE_KEY); } catch (e) {}
 }
 
 // 複診號碼 → 預計報到時段（對應 booking.html 和 GAS 的 RETURN_TIME_SLOT_CONFIG）
@@ -3008,15 +3048,16 @@ function onDatePick(e) {
 }
 
 // ── Auth 磚塊動畫 ──
+// v5.5.14-mothersday: 8 色 metro → 8 色康乃馨粉系(5 階主粉 + 玫瑰金/莓粉/嬰兒粉)
 const AUTH_COLORS = [
-  "#ff8601", // marigold
-  "#0096D6", // lagoon
-  "#00B5E2", // capri
-  "#bacb00", // kiwi
-  "#dbef76", // sunny
-  "#fee800", // yellow
-  "#f93259", // pink
-  "#b362a7"  // orchid
+  "#fae0e2", // 1. 康乃馨高光(最淺粉)
+  "#f0c3ca", // 2. 康乃馨淺粉
+  "#e08e9c", // 3. 康乃馨中粉
+  "#c0606e", // 4. 康乃馨深粉
+  "#a04858", // 5. 玫瑰深酒(最深粉)
+  "#e8b4b8", // 6. 玫瑰金粉(偏暖)
+  "#d97a87", // 7. 莓粉(偏紫紅)
+  "#f4c2c2"  // 8. 嬰兒粉(偏白桃)
 ];
 
 // JOI-N 九宮格動畫
@@ -3115,7 +3156,7 @@ async function initLiff() {
     }
     // check.error === "需要密碼" 表示白名單，才播動畫
 
-    // v5.3.1:白名單通過後,先看 storage 有沒有可用的 session [v5.5.15 改 localStorage]
+    // v5.3.1:白名單通過後,先看 sessionStorage 有沒有可用的 session
     // 有的話直接恢復登入狀態,跳過密碼頁(token 若已過期,第一個 API 呼叫會被踢回登入)
     const savedSession = loadSessionFromStorage();
     if (savedSession && savedSession.lineId === state.lineId) {
@@ -3189,7 +3230,7 @@ async function doLogin() {
       state.sessionToken = data.token;
       state.adminName = data.name;
       state.loginTime = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
-      // v5.3.1:session 持久化到 storage,分頁重新整理 / 切 App 回來不用再登 [v5.5.15 localStorage 12h]
+      // v5.3.1:session 持久化到 sessionStorage,分頁重新整理 / 切 App 回來不用再登
       saveSessionToStorage();
       document.getElementById("loginPassword").value = "";
       enterMainPage();
@@ -3463,7 +3504,7 @@ async function doLogout() {
   xhrPost(API_URL, { action: "adminLogout", lineId: state.lineId, token: state.sessionToken })
     .catch(function(e) { /* 即使失敗也繼續登出 */ });
 
-  // 清 state + storage(這些與後端無關,可先清)
+  // 清 state + sessionStorage(這些與後端無關,可先清)
   state.sessionToken = "";
   state.adminName = "";
   state.loginTime = "";
@@ -3519,7 +3560,7 @@ async function doLogout() {
 function handleSessionExpired() {
   hideAdminOverlay(); // 確保所有 loading 狀態都被清除
   state.sessionToken = "";
-  // v5.3.1:backend 說 session 死了 → 清 storage,避免下次進來用失效 token
+  // v5.3.1:backend 說 session 死了 → 清 sessionStorage,避免下次進來用失效 token
   clearSessionFromStorage();
   document.getElementById("pageMain").style.display = "none";
   const pageLogin = document.getElementById("pageLogin");
@@ -3570,26 +3611,18 @@ function xhrGet(url) {
   });
 }
 
-function xhrPost(url, payload, options) {
+function xhrPost(url, payload) {
   // payload 若未包含 token，自動注入 state.sessionToken
   // 因此呼叫端不需要手動傳入 token（傳了也不會重複，Object.assign 以後者優先）
   // 例外：登入前的 requestSession 請求不帶 token，sessionToken 為空字串，條件不成立，正常略過
   if (state.sessionToken && !payload.token) {
     payload = Object.assign({}, payload, { token: state.sessionToken });
   }
-  // [v5.5.15] 局部延長 timeout 機制(Gemini 審查發現的 XHR Timeout 風暴)
-  // 場景:群發/停診走 sendAnnouncement / notifyAndCancelSession,後端 sleep(300)迴圈逐筆推播
-  //       50-90 人時可能突破 30 秒 timeout → 前端誤判失敗,但後端仍繼續推播
-  //       admin 重複點擊 → 雙重執行 → 病患被洗版災難
-  // 治標:呼叫端傳 options.timeout(120000)局部延長,**只用在群發/停診**,其他維持 30 秒
-  // 治本(P1 立項):sendAnnouncement 改 multicast API
-  options = options || {};
-  var timeout = options.timeout || XHR_TIMEOUT;
   return new Promise(function(resolve, reject) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-Type", "text/plain");
-    xhr.timeout = timeout;
+    xhr.timeout = XHR_TIMEOUT;
     xhr.onload = function() {
       try {
         const data = xhrParseResponse(xhr.responseText);
@@ -5161,16 +5194,14 @@ async function doSubstitute() {
     async function() {
       const btn = document.getElementById('btnSub');
       btn.disabled = true; btn.textContent = '更新中...';
-      document.getElementById('substituteOverlayText').innerHTML = '正在通知病患，最多需 2 分鐘<br>請耐心保持頁面開啟，勿重複點擊。';
+      document.getElementById('substituteOverlayText').innerHTML = '發送代診通知中<br>請勿關閉頁面...';
       document.getElementById('substituteOverlay').classList.add('active');
       try {
-        // 先設定門診異動(瞬間完成,不需延長 timeout)
+        // 先設定門診異動
         const data = await xhrPost(API_URL, { action: 'updateSubstituteDoctor', date: date.replace(/-/g,'/'), session, doctor, type: '代診', lineId: state.lineId });
         if (!data.success) throw new Error(data.error || '設定未完成');
         // 再發代診通知
-        // [v5.5.15] 局部延長 timeout 至 120 秒:notifySubstituteSession 內部 sleep(300)迴圈逐筆推播,
-        // 50 人代診可能突破 30 秒 timeout → 前端誤判失敗 → admin 重發 → 病患被洗版災難
-        const notifyData = await xhrPost(API_URL, { action: 'notifySubstituteSession', date: date.replace(/-/g,'/'), session, doctor, lineId: state.lineId }, { timeout: 120000 });
+        const notifyData = await xhrPost(API_URL, { action: 'notifySubstituteSession', date: date.replace(/-/g,'/'), session, doctor, lineId: state.lineId });
         sucEl.textContent = `✓ 已更新：${date} ${session}診 → ${doctor}，已通知 ${notifyData.sentCount || 0} 位病患`;
         sucEl.style.display = 'block';
         document.getElementById('subDate').value = '';
@@ -5199,16 +5230,14 @@ async function doClosed() {
     async function() {
       const btn = document.getElementById('btnClosed');
       btn.disabled = true; btn.textContent = '設定中...';
-      document.getElementById('substituteOverlayText').innerHTML = '正在通知病患，最多需 2 分鐘<br>請耐心保持頁面開啟，勿重複點擊。';
+      document.getElementById('substituteOverlayText').innerHTML = '取消預約並發送通知中<br>請勿關閉頁面...';
       document.getElementById('substituteOverlay').classList.add('active');
       try {
-        // 先設定停診(瞬間完成,不需延長 timeout)
+        // 先設定停診
         const data = await xhrPost(API_URL, { action: 'updateSubstituteDoctor', date: date.replace(/-/g,'/'), session, doctor: reason || '停診', type: '停診', reason: reason, lineId: state.lineId });
         if (!data.success) throw new Error(data.error || '設定未完成');
         // 再取消預約 + 發通知
-        // [v5.5.15] 局部延長 timeout 至 120 秒:notifyAndCancelSession 內部 sleep(300)迴圈逐筆推播,
-        // 50 人停診可能突破 30 秒 timeout → 前端誤判失敗 → admin 重發 → 病患被洗版災難
-        const notifyData = await xhrPost(API_URL, { action: 'notifyAndCancelSession', date: date.replace(/-/g,'/'), session, reason: reason || '停診', lineId: state.lineId }, { timeout: 120000 });
+        const notifyData = await xhrPost(API_URL, { action: 'notifyAndCancelSession', date: date.replace(/-/g,'/'), session, reason: reason || '停診', lineId: state.lineId });
         sucEl.textContent = `✓ 已設定停診：${date} ${session}診，已取消並通知 ${notifyData.cancelledCount || 0} 位病患`;
         sucEl.style.display = 'block';
         document.getElementById('closedDate').value = '';
@@ -5427,8 +5456,7 @@ async function doBroadcastSend() {
   document.getElementById("broadcastOverlay").classList.add("active");
   try {
     const params = Object.assign({ action: "sendAnnouncement", message, lineId: state.lineId }, getBcParams());
-    // [v5.5.15] 局部延長 timeout 至 120 秒(防 30 秒誤判失敗 + admin 重發災難)
-    const data = await xhrPost(API_URL, params, { timeout: 120000 });
+    const data = await xhrPost(API_URL, params);
     if (data.success) {
       // v5.4.5 [I4]: 顯示失敗數與連續中止狀態（backend 已分 sentCount / failedCount / aborted）
       const hasFailed = (data.failedCount || 0) > 0;
@@ -5990,11 +6018,11 @@ initLiff();
 <!-- Loading Overlay：群發發送中 -->
 <div class="loading-overlay" id="broadcastOverlay">
   <div class="loading-overlay-bar"><div class="loading-overlay-bar-inner"></div></div>
-  <div class="loading-overlay-text">正在通知病患，最多需 2 分鐘<br>請耐心保持頁面開啟，勿重複點擊。</div>
+  <div class="loading-overlay-text">訊息發送中<br>請勿關閉頁面...</div>
 </div>
 <div class="loading-overlay" id="substituteOverlay">
   <div class="loading-overlay-bar"><div class="loading-overlay-bar-inner"></div></div>
-  <div class="loading-overlay-text" id="substituteOverlayText">正在通知病患，最多需 2 分鐘<br>請耐心保持頁面開啟，勿重複點擊。</div>
+  <div class="loading-overlay-text" id="substituteOverlayText">發送代診通知中<br>請勿關閉頁面...</div>
 </div>
 <!-- Toast 通知 -->
 <div id="adminOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
