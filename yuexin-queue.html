@@ -2,260 +2,340 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" href="assets/doctors/yuexinlogo.png" type="image/png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>悅心診所 看診進度</title>
-<meta name="description" content="悅心診所看診進度查詢">
-<meta name="version" content="queue-1.0">
+<title>悅心診所 · 看診進度</title>
+<meta name="version" content="queue-1.2">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta name="author" content="Dr. Su Ning">
+<link rel="icon" href="assets/doctors/yuexinlogo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&family=DM+Sans:wght@200;300;400&display=swap" rel="stylesheet">
 <style>
   /*
     ════════════════════════════════════════════════════════════
-    悅心診所 看診進度頁(應急版)
+    悅心診所 看診進度頁(應急版 v1.2)
     ────────────────────────────────────────────────────────────
-    Version: queue v1.0 (2026-05-08)
+    Date:    2026-05-08
     背景:    叫號機(mainpi.com)硬體故障,廠商週一(5/12)才能修
     用途:    取代原 mainpi.com WebSocket 進度頁
     機制:    90 秒 polling GAS getEmergencyQueueNumber endpoint
     退場:    5/12 廠商修好後 swap 回原 mainpi.com 進度頁
 
-    設計選擇:
-    · 純號碼顯示(粟醫師指定),不混合公告
-    · 「最後更新 X 秒前」即時計時器(緩解病人焦慮)
-    · 連線狀態指示燈(綠=正常 / 橘=載入中或斷線)
-    · 底部小字「叫號系統維修中・人員手動更新」
-    · 不依賴 mainpi.com WebSocket
+    UI 設計:
+    · 復刻原 yuexin-queue 美學(綠色品牌色 + blob + card)
+    · 雙卡 → 單卡(應急只有一個號碼,不分診)
+    · 保留入場動畫、pop 號碼更新動畫、blob 裝飾、連線狀態
+    · 移除 WebSocket,改 90 秒 fetch + visibilitychange refresh
+
+    v1.2 (2026-05-08):
+    · 加倒數計時(「最後更新 X 秒前 · 下次 Y 秒」)
+    · 不做 manual refresh 按鈕(粟醫師決定):資訊吸收焦慮,不靠按鈕釋放
+    · fetching 中顯示「更新中…」、error 中不顯示倒數
     ════════════════════════════════════════════════════════════
   */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
   :root {
-    --cream:       #faf8f2;
-    --parchment:   #f4f2ec;
-    --ink:         #2b2b28;
-    --ink-mid:     #4a4a44;
-    --ink-light:   #8a8878;
-    --ink-dim:     #a8a89a;
-    --sage:        #8aaa55;
-    --sage-dark:   #5a7a38;
-    --sage-deep:   #3e5a25;
-    --warn:        #c2860a;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html, body {
-    height: 100%;
-    background: var(--parchment);
+    --green:        #7AAB5A;
+    --green-deep:   #5A8A3F;
+    --green-light:  #EBF3E4;
+    --green-mid:    #C5DEB0;
+    --gray:         #A8A8A0;
+    --gray-light:   #C0C0BA;
+    --text:         #3A3A35;
+    --bg:           #F5F7F2;
+    --warn:         #C2860A;
+    --error:        #E07070;
   }
 
   body {
+    background: var(--bg);
     font-family: 'Noto Sans TC', sans-serif;
-    color: var(--ink);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    display: flex;
-    flex-direction: column;
     min-height: 100vh;
-  }
-
-  /* ── Header ── */
-  .header {
-    text-align: center;
-    padding: 28px 20px 16px;
-    border-bottom: 0.5px solid rgba(74,74,68,0.15);
-    background: var(--cream);
-  }
-  .header h1 {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 17px;
-    font-weight: 500;
-    color: var(--sage-deep);
-    letter-spacing: 8px;
-    padding-left: 8px;
-  }
-  .header-sub {
-    font-size: 11px;
-    color: var(--ink-light);
-    letter-spacing: 3px;
-    margin-top: 4px;
-    text-transform: uppercase;
-  }
-
-  /* ── Main 號碼區 ── */
-  .main {
-    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 40px 24px;
+    position: relative;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  .label {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 14px;
+  /* 角落裝飾 blob(復刻原版) */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -120px; right: -100px;
+    width: 300px; height: 300px;
+    background: var(--green-mid);
+    opacity: 0.25;
+    border-radius: 61% 39% 70% 30% / 45% 55% 45% 55%;
+    pointer-events: none;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -100px; left: -80px;
+    width: 260px; height: 260px;
+    background: var(--green-mid);
+    opacity: 0.2;
+    border-radius: 42% 58% 35% 65% / 55% 42% 58% 45%;
+    pointer-events: none;
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+    animation: fadeDown 0.7s ease both;
+    z-index: 1;
+  }
+
+  .clinic-name {
+    font-size: 17px;
     font-weight: 500;
-    color: var(--ink-light);
-    letter-spacing: 6px;
-    margin-bottom: 24px;
-    padding-left: 6px;
+    color: var(--text);
+    letter-spacing: 0.25em;
+    padding-left: 0.25em;
   }
 
-  .number-wrap {
+  .page-title {
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--gray);
+    letter-spacing: 0.2em;
+    margin-top: 6px;
+  }
+
+  /* ── 單卡(放大強化視覺) ── */
+  .card {
+    background: #fff;
+    border-radius: 28px 10px 28px 10px;
+    padding: 36px 28px 32px;
+    text-align: center;
+    box-shadow: 0 4px 22px rgba(122,171,90,0.14);
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 320px;
+    animation: fadeUp 0.7s ease 0.15s both;
+    z-index: 1;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    background: var(--green);
+    border-radius: 5px 5px 0 0;
+  }
+
+  .card-blob {
+    width: 56px; height: 56px;
+    background: var(--green-light);
+    border-radius: 58% 42% 62% 38% / 44% 56% 44% 56%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+  }
+
+  .card-blob svg {
+    width: 28px; height: 28px;
+    stroke: var(--green);
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+  }
+
+  .card-label {
+    font-size: 13px;
+    color: var(--gray);
+    letter-spacing: 0.18em;
+    margin-bottom: 14px;
+  }
+
+  .card-number-wrap {
     display: flex;
     align-items: baseline;
     justify-content: center;
-    margin-bottom: 18px;
-    transition: opacity 0.25s ease;
-  }
-  .number-wrap.fading {
-    opacity: 0.45;
-  }
-
-  .number {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 180px;
-    font-weight: 500;
-    color: var(--sage-deep);
+    gap: 8px;
     line-height: 1;
-    letter-spacing: 4px;
   }
-  .number-suffix {
+
+  .card-number {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 110px;
+    font-weight: 200;
+    color: var(--text);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .card-number-suffix {
     font-family: 'Noto Sans TC', sans-serif;
-    font-size: 36px;
-    font-weight: 400;
-    color: var(--sage-dark);
-    margin-left: 14px;
-    letter-spacing: 4px;
+    font-size: 24px;
+    font-weight: 300;
+    color: var(--green-deep);
+    letter-spacing: 0.1em;
   }
 
-  /* 尚未啟用 / 載入中 / 錯誤狀態的中間文字 */
-  .number.placeholder {
+  /* placeholder 狀態(尚未啟用 / 連線異常) */
+  .card-number.placeholder {
     font-size: 32px;
-    font-weight: 400;
-    color: var(--ink-light);
-    letter-spacing: 4px;
+    font-weight: 300;
+    color: var(--gray);
+    letter-spacing: 0.06em;
   }
 
-  /* ── 最後更新時間 + 連線狀態 ── */
-  .meta {
+  /* 號碼更新時的 pop 動畫(復刻原版) */
+  .card-number.updated {
+    animation: pop 0.45s ease;
+  }
+
+  @keyframes pop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.10); color: var(--green); }
+    100% { transform: scale(1); color: var(--text); }
+  }
+
+  /* ── Status bar(連線狀態) ── */
+  .status-bar {
+    margin-top: 28px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 10px;
-    font-size: 12px;
-    color: var(--ink-light);
-    letter-spacing: 1px;
-    margin-bottom: 32px;
-  }
-  .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--sage);
-    transition: background 0.25s ease;
-    box-shadow: 0 0 0 2px rgba(138,170,85,0.15);
-  }
-  .status-dot.warn {
-    background: var(--warn);
-    box-shadow: 0 0 0 2px rgba(194,134,10,0.15);
+    gap: 8px;
+    animation: fadeIn 0.8s ease 0.3s both;
+    z-index: 1;
   }
 
-  /* ── 載入動畫(初始狀態) ── */
-  @keyframes pulse {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 1; }
-  }
-  .loading-dots {
-    display: inline-flex;
-    gap: 6px;
-    align-items: center;
-  }
-  .loading-dots span {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
+  .dot {
+    width: 7px; height: 7px;
     border-radius: 50%;
-    background: var(--ink-light);
-    animation: pulse 1.4s ease-in-out infinite;
+    background: #ccc;
+    transition: background 0.3s;
+    flex-shrink: 0;
   }
-  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
-  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  .dot.connected {
+    background: var(--green);
+    animation: pulse 2.5s ease infinite;
+  }
+  .dot.error { background: var(--error); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.3; }
+  }
+
+  .status-text {
+    font-size: 11px;
+    color: var(--gray);
+    letter-spacing: 0.08em;
+  }
+
+  .last-update {
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--gray-light);
+    letter-spacing: 0.06em;
+    z-index: 1;
+  }
+
+  /* ── 入場動畫 ── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
 
   /* ── 響應式 ── */
   @media (max-width: 360px) {
-    .number { font-size: 140px; }
-    .number-suffix { font-size: 28px; }
+    .card-number { font-size: 88px; }
+    .card { max-width: 280px; padding: 30px 22px 26px; }
   }
   @media (min-height: 720px) {
-    .number { font-size: 220px; }
+    .card-number { font-size: 128px; }
   }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>悅心診所</h1>
-  <div class="header-sub">看診進度</div>
+  <div class="clinic-name">悅心診所</div>
+  <div class="page-title">即時看診進度</div>
 </div>
 
-<div class="main">
-  <div class="label">目前看診號</div>
-  <div class="number-wrap" id="numberWrap">
-    <div class="number placeholder" id="numberDisplay">
-      <span class="loading-dots"><span></span><span></span><span></span></span>
-    </div>
-    <span class="number-suffix" id="numberSuffix" style="display:none;">號</span>
+<div class="card">
+  <div class="card-blob">
+    <svg viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9"/>
+      <polyline points="12 7 12 12 15 15"/>
+    </svg>
   </div>
-  <div class="meta">
-    <span class="status-dot" id="statusDot"></span>
-    <span id="lastUpdate">載入中</span>
+  <div class="card-label">目前看診號</div>
+  <div class="card-number-wrap">
+    <span class="card-number placeholder" id="callNumber">—</span>
+    <span class="card-number-suffix" id="callSuffix" style="display:none;">號</span>
   </div>
 </div>
 
-
+<div class="status-bar">
+  <div class="dot" id="statusDot"></div>
+  <span class="status-text" id="statusText">連線中…</span>
+</div>
+<div class="last-update" id="lastUpdate"></div>
 
 <script>
 /*
   ──────────────────────────────────────────────────────────
   Polling 設計:
-  · 主時鐘:每 90 秒 fetch 一次 GAS endpoint
-  · 副時鐘:每 1 秒更新「最後更新 X 秒前」文字(讓 UI 活著)
-  · 不在 LIFF 內,純粹是公開頁,無登入
-  · GAS endpoint 是 public(handoff 規格,getEmergencyQueueNumber)
+  · 主時鐘:每 90 秒 fetch GAS endpoint
+  · 副時鐘:每 1 秒更新「最後更新 X 秒前」(原版是時:分:秒)
+    這次改成相對時間,在應急情境更直觀
+  · 不在 LIFF 內,純粹是公開頁(從 LINE 圖文選單開啟)
+  · GAS endpoint 是 public(getEmergencyQueueNumber 不需 token)
   ──────────────────────────────────────────────────────────
 */
 
-// ⚠️ GAS endpoint 跟 booking.html / admin.html 共用同一個 deployment
-//    部署 v5.18 後此 URL 不變,因為 GAS 同一個 deployment 增加新 action 不會改 URL
 const API_URL = "https://script.google.com/macros/s/AKfycbxfbtWB6tyWUvFY1r_d26yxdm3Iz6zVALuZgUwLYyqIOHkJrn7TJJADkUE8VPkKOkZkqw/exec";
-const POLL_INTERVAL_MS = 90 * 1000;  // 90 秒
-const TICK_INTERVAL_MS = 1000;        // 1 秒(更新「X 秒前」文字)
+const POLL_INTERVAL_MS = 90 * 1000;
+const TICK_INTERVAL_MS = 1000;
 
-let _lastFetchedAt = null;     // 最後成功 fetch 的時間(Date object)
-let _lastUpdatedAt = ""        // GAS 回傳的 updatedAt(字串)
-let _consecutiveFails = 0;
-let _isFetching = false;       // 防止 polling 與手動觸發互相重疊
+let _lastFetchedAt = null;
+let _lastUpdatedAt = "";  // GAS 回傳的 updatedAt
+let _lastNumber = null;   // 上一次的號碼,用來判斷是否變化(觸發 pop)
+let _isFetching = false;
+let _status = "connecting"; // connecting | connected | error
 
 function setStatus(state) {
+  _status = state;
   const dot = document.getElementById("statusDot");
-  if (state === "ok") dot.classList.remove("warn");
-  else dot.classList.add("warn");
-}
-
-function setLastUpdateText(text) {
-  document.getElementById("lastUpdate").textContent = text;
+  const txt = document.getElementById("statusText");
+  dot.className = "dot " + state;
+  if (state === "connected") {
+    txt.textContent = "即時連線中";
+  } else if (state === "error") {
+    txt.textContent = "連線中斷,重試中…";
+  } else {
+    txt.textContent = "連線中…";
+  }
 }
 
 // 把 updatedAt 字串(yyyy/MM/dd HH:mm:ss)轉成 Date
-// GAS 回傳格式固定是這樣
 function parseUpdatedAt(str) {
   if (!str) return null;
-  // 把 "yyyy/MM/dd HH:mm:ss" 轉成 ISO-like "yyyy-MM-ddTHH:mm:ss"
   const m = str.match(/^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
   if (!m) return null;
   return new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]),
@@ -263,7 +343,7 @@ function parseUpdatedAt(str) {
 }
 
 function formatRelative(updatedDate) {
-  if (!updatedDate) return "—";
+  if (!updatedDate) return "";
   const now = new Date();
   const diffSec = Math.max(0, Math.floor((now - updatedDate) / 1000));
   if (diffSec < 60) return "最後更新 " + diffSec + " 秒前";
@@ -275,36 +355,67 @@ function formatRelative(updatedDate) {
 }
 
 function tickUpdateText() {
-  const updatedDate = parseUpdatedAt(_lastUpdatedAt);
-  if (updatedDate) {
-    setLastUpdateText(formatRelative(updatedDate));
-  } else if (_lastFetchedAt) {
-    // 若 GAS 回了但 updatedAt 為空(尚未啟用),用 fetch 時間當 fallback
-    setLastUpdateText("最後查詢 " + formatRelative(_lastFetchedAt).replace("最後更新 ", ""));
+  const el = document.getElementById("lastUpdate");
+  if (!el) return;
+
+  // 若一次都還沒成功 fetch,維持空白(避免顯示「下次 NaN 秒」)
+  if (!_lastFetchedAt) return;
+
+  // fetching 中:顯示「更新中…」取代倒數,避免出現「下次 -1 秒」
+  if (_isFetching) {
+    el.textContent = "更新中…";
+    return;
   }
+
+  const updatedDate = parseUpdatedAt(_lastUpdatedAt);
+  const left = updatedDate ? formatRelative(updatedDate) : "";
+
+  // error 狀態:不顯示倒數(連線異常時繼續倒數沒意義,polling 會自己重試)
+  // 只顯示「最後更新」,讓使用者看到資料的「上次新鮮度」
+  if (_status === "error") {
+    el.textContent = left;
+    return;
+  }
+
+  // 倒數:從上次成功 fetch 算起,POLL_INTERVAL_MS 後會自動再 fetch
+  const elapsedMs = Date.now() - _lastFetchedAt.getTime();
+  const remainSec = Math.max(0, Math.ceil((POLL_INTERVAL_MS - elapsedMs) / 1000));
+  const right = "下次 " + remainSec + " 秒";
+
+  el.textContent = left ? (left + " · " + right) : right;
 }
 
 function renderNumber(num) {
-  const display = document.getElementById("numberDisplay");
-  const suffix = document.getElementById("numberSuffix");
+  const el = document.getElementById("callNumber");
+  const suffix = document.getElementById("callSuffix");
   if (num === null || num === undefined) {
-    display.classList.add("placeholder");
-    display.textContent = "尚未啟用";
+    el.classList.add("placeholder");
+    el.classList.remove("updated");
+    el.textContent = "尚未啟用";
     suffix.style.display = "none";
-  } else {
-    display.classList.remove("placeholder");
-    display.textContent = num;
-    suffix.style.display = "";
+    _lastNumber = null;
+    return;
   }
+  // placeholder → 數字,或數字變化 → 觸發 pop 動畫
+  const newVal = String(num);
+  const oldText = el.textContent;
+  el.classList.remove("placeholder");
+  if (oldText !== newVal) {
+    el.textContent = newVal;
+    suffix.style.display = "";
+    // 觸發 pop 動畫(只有當已經有舊號碼 + 號碼真的變化時)
+    if (_lastNumber !== null && _lastNumber !== num) {
+      el.classList.remove("updated");
+      void el.offsetWidth; // 強制 reflow,讓動畫重新觸發
+      el.classList.add("updated");
+    }
+  }
+  _lastNumber = num;
 }
 
 async function fetchNumber() {
   if (_isFetching) return;
   _isFetching = true;
-
-  // 進入 fetching 狀態:燈號變橘、號碼區淡化(避免「假裝有資料」誤導)
-  setStatus("warn");
-  document.getElementById("numberWrap").classList.add("fading");
 
   try {
     const res = await fetch(API_URL + "?action=getEmergencyQueueNumber", {
@@ -318,31 +429,24 @@ async function fetchNumber() {
       renderNumber(data.number);
       _lastUpdatedAt = data.updatedAt || "";
       _lastFetchedAt = new Date();
-      _consecutiveFails = 0;
-      setStatus("ok");
+      setStatus("connected");
       tickUpdateText();
     } else {
       throw new Error(data && data.error ? data.error : "unknown");
     }
   } catch(e) {
-    _consecutiveFails++;
-    setStatus("warn");
-    if (_consecutiveFails >= 2) {
-      // 連續失敗 → 顯示警告(不改 number,讓使用者仍看到上次的值,只是知道「資料可能舊」)
-      // 但若一次都還沒成功過,改顯示「連線異常」
-      if (!_lastFetchedAt) {
-        const display = document.getElementById("numberDisplay");
-        display.classList.add("placeholder");
-        display.textContent = "連線異常";
-        document.getElementById("numberSuffix").style.display = "none";
-        setLastUpdateText("請稍後再試");
-      } else {
-        setLastUpdateText("連線異常,顯示最後一次資料");
-      }
+    setStatus("error");
+    // 若一次都還沒成功過,顯示「連線異常」
+    if (!_lastFetchedAt) {
+      const el = document.getElementById("callNumber");
+      el.classList.add("placeholder");
+      el.textContent = "連線異常";
+      document.getElementById("callSuffix").style.display = "none";
+      document.getElementById("lastUpdate").textContent = "請稍後再試";
     }
+    // 否則保留上次的號碼,只是 dot 變紅,讓使用者知道資料可能不是最新
   } finally {
     _isFetching = false;
-    document.getElementById("numberWrap").classList.remove("fading");
   }
 }
 
@@ -352,7 +456,6 @@ setInterval(fetchNumber, POLL_INTERVAL_MS);
 setInterval(tickUpdateText, TICK_INTERVAL_MS);
 
 // 頁面從背景回來時(切回 LINE chat 又切回來)立刻 refresh 一次
-// 這對診所的 LIFF 情境很重要:病人切走再切回來會期待看到最新值
 document.addEventListener("visibilitychange", function() {
   if (document.visibilityState === "visible") {
     fetchNumber();
