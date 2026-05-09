@@ -2879,7 +2879,7 @@
     <!-- 大字當前號碼 -->
     <div style="text-align:center;padding:24px 0 18px;">
       <div style="font-size:11px;color:var(--text-light);letter-spacing:3px;margin-bottom:8px;">CURRENT</div>
-      <div id="eqBigNumber" style="font-family:'JetBrains Mono', monospace;font-size:72px;font-weight:300;color:var(--marigold);line-height:1;letter-spacing:2px;">—</div>
+      <div id="eqBigNumber" style="font-family:'JetBrains Mono', monospace;font-size:96px;font-weight:400;color:var(--marigold);line-height:1;letter-spacing:2px;">—</div>
     </div>
 
     <!-- -1 / +1 / +2 主操作(+1 實心主動作、+2 透明輔助動作) -->
@@ -5800,22 +5800,24 @@ async function loadEqTileSubtitle() {
 }
 
 async function openEmergencyQueueModal() {
-  // v1.2-atomic:loading 期間 disable 全部按鈕、輸入框,避免 race condition
+  // v1.3-atomic:loading 期間 disable 全部按鈕、輸入框,避免 race condition
   // (即使 atomic increment 後 +1/+2/-1 不再依賴前端值,disable 仍給使用者明確的「資料未到位」訊號)
   _eqSetButtonsDisabled(true);
 
+  // v1.3-atomic:每次開 modal 先清掉前次可能殘留的 loading 狀態
+  _eqStopLoadingAnim();
+
   // 預先顯示已知號碼(從 tile 那次 fetch 拿到的),避免 modal 打開時 flash 「—」
   const eqBig = document.getElementById("eqBigNumber");
-  const eqLast = document.getElementById("eqLastUpdate");
   if (_eqCurrentNumber !== null) {
     eqBig.textContent = _eqCurrentNumber;
-    // 已有預顯值就不啟動打字機(避免大字數字被覆蓋)
-    eqLast.textContent = "更新中...";
   } else {
-    // 沒有預顯值 → 啟動打字機動畫到 eqBigNumber 區
-    _eqStartLoadingAnim();
-    eqLast.textContent = "讀取中...";
+    eqBig.textContent = "—";
   }
+
+  // loading 動畫一律跑在「上次」那行(不蓋大字),保證使用者一定看得到「更新中」的暗示
+  _eqStartLoadingAnim();
+
   document.getElementById("eqDirectInput").value = "";
   document.getElementById("eqError").style.display = "none";
   openModal("modalEmergencyQueue");
@@ -5824,33 +5826,42 @@ async function openEmergencyQueueModal() {
   // loadEqNumber 完成後會 stop animation + 重新啟用按鈕(見其 finally)
 }
 
-// v1.2-atomic:打字機 loading 動畫(更新中. → .. → ... 循環跳)
+// v1.3-atomic:打字機 loading 動畫,跑在「上次」那行(不蓋大字)
+// 「更新中.」→「更新中..」→「更新中...」每 500ms 跳一次
 let _eqLoadingTimer = null;
+let _eqLoadingStartTime = 0;
+const EQ_LOADING_MIN_MS = 800; // 動畫至少持續 800ms,避免 fetch 太快一閃而過
+
 function _eqStartLoadingAnim() {
-  const el = document.getElementById("eqBigNumber");
+  const el = document.getElementById("eqLastUpdate");
   if (!el) return;
-  // 用 placeholder 樣式(較小字、暗色),避免大字「更新中.」很搶戲
-  el.style.fontSize = "32px";
-  el.style.opacity = "0.55";
+  _eqLoadingStartTime = Date.now();
   let frame = 0;
   const frames = ["更新中.", "更新中..", "更新中..."];
   el.textContent = frames[0];
+  el.style.opacity = "0.6";
   if (_eqLoadingTimer) clearInterval(_eqLoadingTimer);
   _eqLoadingTimer = setInterval(function() {
     frame = (frame + 1) % frames.length;
     el.textContent = frames[frame];
   }, 500);
 }
+
 function _eqStopLoadingAnim() {
   if (_eqLoadingTimer) {
     clearInterval(_eqLoadingTimer);
     _eqLoadingTimer = null;
   }
-  const el = document.getElementById("eqBigNumber");
-  if (el) {
-    // 還原大字樣式
-    el.style.fontSize = "";
-    el.style.opacity = "";
+  const el = document.getElementById("eqLastUpdate");
+  if (el) el.style.opacity = "";
+}
+
+// loadEqNumber finally 用:確保動畫至少跑 EQ_LOADING_MIN_MS
+async function _eqWaitMinLoadingTime() {
+  const elapsed = Date.now() - _eqLoadingStartTime;
+  const remain = EQ_LOADING_MIN_MS - elapsed;
+  if (remain > 0) {
+    await new Promise(function(resolve) { setTimeout(resolve, remain); });
   }
 }
 
@@ -5876,9 +5887,21 @@ function _eqSetButtonsDisabled(disabled) {
 }
 
 async function loadEqNumber() {
+  let fetchData = null;
+  let fetchErr = null;
   try {
-    const data = await xhrGet(API_URL + "?action=getEmergencyQueueNumber");
-    _eqStopLoadingAnim(); // 不論成功失敗都停動畫
+    fetchData = await xhrGet(API_URL + "?action=getEmergencyQueueNumber");
+  } catch(e) {
+    fetchErr = e;
+  }
+
+  // v1.3-atomic:確保 loading 動畫至少顯示 800ms,避免 fetch 太快一閃而過
+  await _eqWaitMinLoadingTime();
+  _eqStopLoadingAnim();
+
+  try {
+    if (fetchErr) throw fetchErr;
+    const data = fetchData;
     if (data.success && data.number !== null && data.number !== undefined) {
       _eqCurrentNumber = parseInt(data.number, 10);
       document.getElementById("eqBigNumber").textContent = _eqCurrentNumber;
@@ -5895,10 +5918,10 @@ async function loadEqNumber() {
       document.getElementById("eqLastUpdate").textContent = "尚未啟用";
     }
   } catch(e) {
-    _eqStopLoadingAnim();
     if (e.isSessionExpired) return;
     document.getElementById("eqError").textContent = "載入號碼失敗,請稍後再試。";
     document.getElementById("eqError").style.display = "block";
+    document.getElementById("eqLastUpdate").textContent = "讀取失敗";
   } finally {
     // 不論成功失敗,fetch 完成就解鎖按鈕
     _eqSetButtonsDisabled(false);
