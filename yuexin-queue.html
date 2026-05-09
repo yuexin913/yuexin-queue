@@ -48,9 +48,9 @@
       (0 是 admin 歸零後的「準備中 / 休診」狀態,不是真的「0 號」病人)
 
     v1.5 (2026-05-09):
-    · 取消每秒跳動的相對時間 + 倒數(實測太吵,病人盯著反而焦慮)
-    · 改顯示 admin 上次更新的絕對時間 hh:mm,平常靜止
-    · 移除 TICK_INTERVAL setInterval(零後台 tick,純省電)
+    · 左邊改絕對時間 hh:mm(從相對時間「X 秒前」改過來,實測那個跳動太吵)
+    · 右邊倒數保留(維持原設計,病人看到下次更新還要多久)
+    · 結果:左靜右動 — 左邊看資料新鮮度、右邊看更新節奏
     ════════════════════════════════════════════════════════════
   */
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -330,7 +330,7 @@
 
 const API_URL = "https://script.google.com/macros/s/AKfycbxfbtWB6tyWUvFY1r_d26yxdm3Iz6zVALuZgUwLYyqIOHkJrn7TJJADkUE8VPkKOkZkqw/exec";
 const POLL_INTERVAL_MS = 100 * 1000;
-// v1.5:移除 TICK_INTERVAL_MS — 不再每秒 tick
+const TICK_INTERVAL_MS = 1000; // v1.5:右邊倒數每秒跳動;左邊 hh:mm 不變動
 
 let _lastFetchedAt = null;
 let _lastUpdatedAt = "";  // GAS 回傳的 updatedAt
@@ -361,8 +361,9 @@ function parseUpdatedAt(str) {
                   parseInt(m[4]), parseInt(m[5]), parseInt(m[6]));
 }
 
-// v1.5:不再顯示相對時間 + 倒數(那設計 5/9 上線後實測太吵)
-// 改顯示 admin 上次更新的絕對時間 hh:mm,只在 fetch 完成時更新一次,平常靜止
+// v1.5:左邊「最後更新 hh:mm」靜態(只在 fetch 完成時更新)
+//       右邊「下次 X 秒」倒數,每秒跳動
+//       這個分工:左邊看到資料新鮮度、右邊看到下次更新還要多久
 function formatHHMM(updatedDate) {
   if (!updatedDate) return "";
   const hh = String(updatedDate.getHours()).padStart(2, "0");
@@ -374,7 +375,7 @@ function updateLastUpdateText() {
   const el = document.getElementById("lastUpdate");
   if (!el) return;
 
-  // 若一次都還沒成功 fetch,維持空白
+  // 若一次都還沒成功 fetch,維持空白(避免顯示「下次 NaN 秒」)
   if (!_lastFetchedAt) {
     el.textContent = "";
     return;
@@ -386,10 +387,22 @@ function updateLastUpdateText() {
     return;
   }
 
-  // 正常 / error 狀態都顯示絕對時間
-  // (error 時保留上次成功 fetch 的時間,讓使用者看到「資料新鮮度」)
   const updatedDate = parseUpdatedAt(_lastUpdatedAt);
-  el.textContent = formatHHMM(updatedDate);
+  const left = formatHHMM(updatedDate);
+
+  // error 狀態:不顯示倒數(連線異常時繼續倒數沒意義,polling 會自己重試)
+  // 只顯示「最後更新 hh:mm」,讓使用者看到資料的「上次新鮮度」
+  if (_status === "error") {
+    el.textContent = left;
+    return;
+  }
+
+  // 倒數:從上次成功 fetch 算起,POLL_INTERVAL_MS 後會自動再 fetch
+  const elapsedMs = Date.now() - _lastFetchedAt.getTime();
+  const remainSec = Math.max(0, Math.ceil((POLL_INTERVAL_MS - elapsedMs) / 1000));
+  const right = "下次 " + remainSec + " 秒";
+
+  el.textContent = left ? (left + " · " + right) : right;
 }
 
 function renderNumber(num) {
@@ -476,11 +489,11 @@ async function fetchNumber() {
   }
 }
 
-// 啟動:立刻 fetch + 100 秒一次 polling
-// v1.5:不再每秒 tick(原本是相對時間 + 倒數,實測太吵)
-//       現在是絕對時間 hh:mm,只在 fetch 完成時更新
+// 啟動:立刻 fetch + 100 秒一次 polling + 每秒 tick(只刷新右邊倒數)
+// v1.5:左邊 hh:mm 靜態、右邊「下次 X 秒」每秒跳動 — 分工明確
 fetchNumber();
 setInterval(fetchNumber, POLL_INTERVAL_MS);
+setInterval(updateLastUpdateText, TICK_INTERVAL_MS);
 
 // 頁面從背景回來時(切回 LINE chat 又切回來)立刻 refresh 一次
 document.addEventListener("visibilitychange", function() {
