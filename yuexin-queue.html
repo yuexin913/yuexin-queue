@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 · 看診進度</title>
-<meta name="version" content="queue-1.4-mothersday">
+<meta name="version" content="queue-1.5-mothersday">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta name="author" content="Dr. Su Ning">
@@ -15,7 +15,7 @@
 <style>
   /*
     ════════════════════════════════════════════════════════════
-    悅心診所 看診進度頁(應急版 v1.4 · 母親節限定)
+    悅心診所 看診進度頁(應急版 v1.5 · 母親節限定)
     ────────────────────────────────────────────────────────────
     Date:    2026-05-08
     背景:    叫號機(mainpi.com)硬體故障,廠商週一(5/12)才能修
@@ -46,6 +46,11 @@
     v1.4 (2026-05-08):
     · 0 號特例處理:大字顯示「—」、label 改成「準備中」、不顯示「號」字
       (0 是 admin 歸零後的「準備中 / 休診」狀態,不是真的「0 號」病人)
+
+    v1.5 (2026-05-09):
+    · 取消每秒跳動的相對時間 + 倒數(實測太吵,病人盯著反而焦慮)
+    · 改顯示 admin 上次更新的絕對時間 hh:mm,平常靜止
+    · 移除 TICK_INTERVAL setInterval(零後台 tick,純省電)
     ════════════════════════════════════════════════════════════
   */
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -325,7 +330,7 @@
 
 const API_URL = "https://script.google.com/macros/s/AKfycbxfbtWB6tyWUvFY1r_d26yxdm3Iz6zVALuZgUwLYyqIOHkJrn7TJJADkUE8VPkKOkZkqw/exec";
 const POLL_INTERVAL_MS = 100 * 1000;
-const TICK_INTERVAL_MS = 1000;
+// v1.5:移除 TICK_INTERVAL_MS — 不再每秒 tick
 
 let _lastFetchedAt = null;
 let _lastUpdatedAt = "";  // GAS 回傳的 updatedAt
@@ -356,47 +361,35 @@ function parseUpdatedAt(str) {
                   parseInt(m[4]), parseInt(m[5]), parseInt(m[6]));
 }
 
-function formatRelative(updatedDate) {
+// v1.5:不再顯示相對時間 + 倒數(那設計 5/9 上線後實測太吵)
+// 改顯示 admin 上次更新的絕對時間 hh:mm,只在 fetch 完成時更新一次,平常靜止
+function formatHHMM(updatedDate) {
   if (!updatedDate) return "";
-  const now = new Date();
-  const diffSec = Math.max(0, Math.floor((now - updatedDate) / 1000));
-  if (diffSec < 60) return "最後更新 " + diffSec + " 秒前";
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return "最後更新 " + diffMin + " 分鐘前";
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return "最後更新 " + diffHr + " 小時前";
-  return "最後更新 " + Math.floor(diffHr / 24) + " 天前";
+  const hh = String(updatedDate.getHours()).padStart(2, "0");
+  const mm = String(updatedDate.getMinutes()).padStart(2, "0");
+  return "最後更新 " + hh + ":" + mm;
 }
 
-function tickUpdateText() {
+function updateLastUpdateText() {
   const el = document.getElementById("lastUpdate");
   if (!el) return;
 
-  // 若一次都還沒成功 fetch,維持空白(避免顯示「下次 NaN 秒」)
-  if (!_lastFetchedAt) return;
+  // 若一次都還沒成功 fetch,維持空白
+  if (!_lastFetchedAt) {
+    el.textContent = "";
+    return;
+  }
 
-  // fetching 中:顯示「更新中…」取代倒數,避免出現「下次 -1 秒」
+  // fetching 中:顯示「更新中…」(只在實際 fetching 期間,通常 < 1 秒一閃而過)
   if (_isFetching) {
     el.textContent = "更新中…";
     return;
   }
 
+  // 正常 / error 狀態都顯示絕對時間
+  // (error 時保留上次成功 fetch 的時間,讓使用者看到「資料新鮮度」)
   const updatedDate = parseUpdatedAt(_lastUpdatedAt);
-  const left = updatedDate ? formatRelative(updatedDate) : "";
-
-  // error 狀態:不顯示倒數(連線異常時繼續倒數沒意義,polling 會自己重試)
-  // 只顯示「最後更新」,讓使用者看到資料的「上次新鮮度」
-  if (_status === "error") {
-    el.textContent = left;
-    return;
-  }
-
-  // 倒數:從上次成功 fetch 算起,POLL_INTERVAL_MS 後會自動再 fetch
-  const elapsedMs = Date.now() - _lastFetchedAt.getTime();
-  const remainSec = Math.max(0, Math.ceil((POLL_INTERVAL_MS - elapsedMs) / 1000));
-  const right = "下次 " + remainSec + " 秒";
-
-  el.textContent = left ? (left + " · " + right) : right;
+  el.textContent = formatHHMM(updatedDate);
 }
 
 function renderNumber(num) {
@@ -461,7 +454,7 @@ async function fetchNumber() {
       _lastUpdatedAt = data.updatedAt || "";
       _lastFetchedAt = new Date();
       setStatus("connected");
-      tickUpdateText();
+      updateLastUpdateText();
     } else {
       throw new Error(data && data.error ? data.error : "unknown");
     }
@@ -475,16 +468,19 @@ async function fetchNumber() {
       document.getElementById("callSuffix").style.display = "none";
       document.getElementById("lastUpdate").textContent = "請稍後再試";
     }
-    // 否則保留上次的號碼,只是 dot 變紅,讓使用者知道資料可能不是最新
+    // 否則保留上次的號碼 + 上次更新時間,只是 dot 變紅
   } finally {
     _isFetching = false;
+    // v1.5:fetch 結束後再更新一次,確保「更新中…」狀態不殘留
+    updateLastUpdateText();
   }
 }
 
-// 啟動:立刻 fetch + 設定主/副時鐘
+// 啟動:立刻 fetch + 100 秒一次 polling
+// v1.5:不再每秒 tick(原本是相對時間 + 倒數,實測太吵)
+//       現在是絕對時間 hh:mm,只在 fetch 完成時更新
 fetchNumber();
 setInterval(fetchNumber, POLL_INTERVAL_MS);
-setInterval(tickUpdateText, TICK_INTERVAL_MS);
 
 // 頁面從背景回來時(切回 LINE chat 又切回來)立刻 refresh 一次
 document.addEventListener("visibilitychange", function() {
@@ -493,6 +489,10 @@ document.addEventListener("visibilitychange", function() {
   }
 });
 </script>
+
+
+
+
 
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
 </body>
