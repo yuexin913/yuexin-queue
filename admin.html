@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.15-mothersday-eq">
+  <meta name="version" content="5.5.15-mothersday-eq-atomic">
   <!-- v5.5.14-mothersday: 防 LIFF 端緩存,加速 5/9 上線與 5/10 退場時的更新到位 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -2882,15 +2882,16 @@
       <div id="eqBigNumber" style="font-family:'JetBrains Mono', monospace;font-size:72px;font-weight:300;color:var(--marigold);line-height:1;letter-spacing:2px;">—</div>
     </div>
 
-    <!-- -1 / +1 主操作(+1 是大按鈕,放右邊主視覺位置) -->
+    <!-- -1 / +1 / +2 主操作(+1 實心主動作、+2 透明輔助動作) -->
     <div style="display:flex;gap:8px;margin-bottom:14px;">
       <button class="btn" onclick="bumpEq(-1)" style="flex:1;padding:18px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-light);font-size:18px;letter-spacing:2px;font-weight:400;">－1</button>
-      <button class="btn" onclick="bumpEq(1)" style="flex:2;padding:18px;background:var(--marigold);color:#111;font-size:20px;letter-spacing:3px;font-weight:700;">＋1 推進下一號</button>
+      <button class="btn" onclick="bumpEq(1)" style="flex:1;padding:18px;background:var(--marigold);color:#111;font-size:22px;letter-spacing:3px;font-weight:700;">＋1</button>
+      <button class="btn" onclick="bumpEq(2)" style="flex:1;padding:18px;background:var(--marigold-bg);border:1px solid var(--marigold-bd);color:#111;font-size:20px;letter-spacing:3px;font-weight:400;">＋2</button>
     </div>
 
     <!-- 直接輸入 + 歸零 -->
     <div style="display:flex;gap:8px;margin-bottom:14px;">
-      <input type="tel" id="eqDirectInput" placeholder="直接輸入" inputmode="numeric"
+      <input type="tel" id="eqDirectInput" placeholder="直接輸入數字" inputmode="numeric"
         style="flex:1;text-align:center;font-size:16px;padding:12px;"
         onkeydown="if(event.key==='Enter'){event.preventDefault();setEqDirect();}"
         oninput="this.value=this.value.replace(/\D/g,'')">
@@ -5777,7 +5778,7 @@ async function doMarkSecurityRead() {
    設計:純 spreadsheet 更新,無 LINE 推播,病人端 90 秒 polling。
    ══════════════════════════════════════════════ */
 
-let _eqCurrentNumber = null; // 暫存當前號碼,給 +1/-1 計算用
+let _eqCurrentNumber = null; // v1.2-atomic:純 View-Model,僅用於 UI 顯示(不再給 +1/-1 計算)
 
 // admin 主畫面 tile subtitle 用,獨立 helper(不開 modal,只更新 subtitle)
 // 同時更新 _eqCurrentNumber,讓 modal 開啟時能立刻顯示(避免 flash 「—」)
@@ -5799,27 +5800,85 @@ async function loadEqTileSubtitle() {
 }
 
 async function openEmergencyQueueModal() {
+  // v1.2-atomic:loading 期間 disable 全部按鈕、輸入框,避免 race condition
+  // (即使 atomic increment 後 +1/+2/-1 不再依賴前端值,disable 仍給使用者明確的「資料未到位」訊號)
+  _eqSetButtonsDisabled(true);
+
   // 預先顯示已知號碼(從 tile 那次 fetch 拿到的),避免 modal 打開時 flash 「—」
   const eqBig = document.getElementById("eqBigNumber");
   const eqLast = document.getElementById("eqLastUpdate");
   if (_eqCurrentNumber !== null) {
     eqBig.textContent = _eqCurrentNumber;
-    // 「上次」欄位若還沒拿過(僅 tile fetch),先顯示「更新中...」
-    eqLast.textContent = eqLast.textContent || "更新中...";
+    // 已有預顯值就不啟動打字機(避免大字數字被覆蓋)
+    eqLast.textContent = "更新中...";
   } else {
-    eqBig.textContent = "—";
+    // 沒有預顯值 → 啟動打字機動畫到 eqBigNumber 區
+    _eqStartLoadingAnim();
     eqLast.textContent = "讀取中...";
   }
   document.getElementById("eqDirectInput").value = "";
   document.getElementById("eqError").style.display = "none";
   openModal("modalEmergencyQueue");
-  // 背景 fetch 一次,更新「上次更新者 + 時間」(這些只在 modal 內顯示)
+  // 背景 fetch 一次,更新「上次更新者 + 時間」
   await loadEqNumber();
+  // loadEqNumber 完成後會 stop animation + 重新啟用按鈕(見其 finally)
+}
+
+// v1.2-atomic:打字機 loading 動畫(更新中. → .. → ... 循環跳)
+let _eqLoadingTimer = null;
+function _eqStartLoadingAnim() {
+  const el = document.getElementById("eqBigNumber");
+  if (!el) return;
+  // 用 placeholder 樣式(較小字、暗色),避免大字「更新中.」很搶戲
+  el.style.fontSize = "32px";
+  el.style.opacity = "0.55";
+  let frame = 0;
+  const frames = ["更新中.", "更新中..", "更新中..."];
+  el.textContent = frames[0];
+  if (_eqLoadingTimer) clearInterval(_eqLoadingTimer);
+  _eqLoadingTimer = setInterval(function() {
+    frame = (frame + 1) % frames.length;
+    el.textContent = frames[frame];
+  }, 500);
+}
+function _eqStopLoadingAnim() {
+  if (_eqLoadingTimer) {
+    clearInterval(_eqLoadingTimer);
+    _eqLoadingTimer = null;
+  }
+  const el = document.getElementById("eqBigNumber");
+  if (el) {
+    // 還原大字樣式
+    el.style.fontSize = "";
+    el.style.opacity = "";
+  }
+}
+
+// v1.2-atomic:統一控制 modal 內所有操作元素的 disable/enable
+function _eqSetButtonsDisabled(disabled) {
+  const ids = ["eqDirectInput"];
+  ids.forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.disabled = disabled;
+  });
+  // modal 內所有 button(除了 modal-close 的 ✕)
+  const modal = document.getElementById("modalEmergencyQueue");
+  if (!modal) return;
+  const btns = modal.querySelectorAll("button");
+  btns.forEach(function(btn) {
+    // modal-close 永遠保留可點(使用者隨時能跳出)
+    if (btn.classList.contains("modal-close")) return;
+    btn.disabled = disabled;
+    // 視覺暗示:disabled 時降低 opacity
+    btn.style.opacity = disabled ? "0.5" : "";
+    btn.style.cursor = disabled ? "not-allowed" : "";
+  });
 }
 
 async function loadEqNumber() {
   try {
     const data = await xhrGet(API_URL + "?action=getEmergencyQueueNumber");
+    _eqStopLoadingAnim(); // 不論成功失敗都停動畫
     if (data.success && data.number !== null && data.number !== undefined) {
       _eqCurrentNumber = parseInt(data.number, 10);
       document.getElementById("eqBigNumber").textContent = _eqCurrentNumber;
@@ -5836,31 +5895,21 @@ async function loadEqNumber() {
       document.getElementById("eqLastUpdate").textContent = "尚未啟用";
     }
   } catch(e) {
+    _eqStopLoadingAnim();
     if (e.isSessionExpired) return;
     document.getElementById("eqError").textContent = "載入號碼失敗,請稍後再試。";
     document.getElementById("eqError").style.display = "block";
+  } finally {
+    // 不論成功失敗,fetch 完成就解鎖按鈕
+    _eqSetButtonsDisabled(false);
   }
 }
 
+// v1.2-atomic:bumpEq 改用後端 atomic increment endpoint
+// 不再依賴前端 _eqCurrentNumber 計算 target,改傳純粹的 delta
+// 後端在 LockService 內讀真實當前值再加 delta,真正消除「同事撞號」/「手太快撞舊值」隱患
 async function bumpEq(delta) {
-  // 防呆:當前號碼為 null 時不能 +/-1(尚未啟用)
-  if (_eqCurrentNumber === null) {
-    document.getElementById("eqError").textContent = "請先用「直接輸入」設定起始號碼。";
-    document.getElementById("eqError").style.display = "block";
-    return;
-  }
-  const target = _eqCurrentNumber + delta;
-  if (target < 0) {
-    document.getElementById("eqError").textContent = "號碼不能小於 0。";
-    document.getElementById("eqError").style.display = "block";
-    return;
-  }
-  if (target > 999) {
-    document.getElementById("eqError").textContent = "號碼上限為 999。";
-    document.getElementById("eqError").style.display = "block";
-    return;
-  }
-  await sendEqUpdate(target, "set");
+  await sendEqUpdate({ op: "increment", delta: delta });
 }
 
 async function setEqDirect() {
@@ -5871,24 +5920,45 @@ async function setEqDirect() {
     document.getElementById("eqError").style.display = "block";
     return;
   }
-  await sendEqUpdate(val, "set");
+  await sendEqUpdate({ op: "set", number: val });
   input.value = "";
 }
 
 async function resetEq() {
-  await sendEqUpdate(null, "reset");
+  await sendEqUpdate({ op: "reset" });
 }
 
-async function sendEqUpdate(number, op) {
+// v1.2-atomic:sendEqUpdate 改成接收 op 物件,支援三種 op:
+//   { op: "increment", delta: +1/+2/-1 }  → atomic 後端讀-改-寫
+//   { op: "set", number: N }              → 寫絕對值(直接輸入)
+//   { op: "reset" }                       → 寫 0(歸零)
+async function sendEqUpdate(req) {
   document.getElementById("eqError").style.display = "none";
+  _eqSetButtonsDisabled(true);
   showAdminOverlay("更新中...");
   try {
-    const payload = {
-      action: op === "reset" ? "resetEmergencyQueueNumber" : "setEmergencyQueueNumber",
-      lineId: state.lineId,
-      token: state.sessionToken
-    };
-    if (op === "set") payload.number = number;
+    let payload;
+    if (req.op === "increment") {
+      payload = {
+        action: "incrementEmergencyQueueNumber",
+        lineId: state.lineId,
+        token: state.sessionToken,
+        delta: req.delta
+      };
+    } else if (req.op === "set") {
+      payload = {
+        action: "setEmergencyQueueNumber",
+        lineId: state.lineId,
+        token: state.sessionToken,
+        number: req.number
+      };
+    } else if (req.op === "reset") {
+      payload = {
+        action: "resetEmergencyQueueNumber",
+        lineId: state.lineId,
+        token: state.sessionToken
+      };
+    }
 
     const data = await xhrPost(API_URL, payload);
     if (!data.success) throw new Error(data.error || "更新失敗");
@@ -5909,6 +5979,7 @@ async function sendEqUpdate(number, op) {
     document.getElementById("eqError").style.display = "block";
   } finally {
     hideAdminOverlay();
+    _eqSetButtonsDisabled(false);
   }
 }
 

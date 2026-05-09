@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 · 看診進度</title>
-<meta name="version" content="queue-1.3">
+<meta name="version" content="queue-1.4-mothersday">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta name="author" content="Dr. Su Ning">
@@ -15,18 +15,19 @@
 <style>
   /*
     ════════════════════════════════════════════════════════════
-    悅心診所 看診進度頁(應急版 v1.3)
+    悅心診所 看診進度頁(應急版 v1.4 · 母親節限定)
     ────────────────────────────────────────────────────────────
     Date:    2026-05-08
     背景:    叫號機(mainpi.com)硬體故障,廠商週一(5/12)才能修
     用途:    取代原 mainpi.com WebSocket 進度頁
     機制:    100 秒 polling GAS getEmergencyQueueNumber endpoint
-    退場:    5/12 廠商修好後 swap 回原 mainpi.com 進度頁
+    退場:    5/10 母親節後切回 queue.html(LINE rich menu 改連結)
 
     UI 設計:
-    · 復刻原 yuexin-queue 美學(綠色品牌色 + blob + card)
+    · 復刻原 yuexin-queue 美學(blob + card + 入場動畫 + pop 動畫)
     · 雙卡 → 單卡(應急只有一個號碼,不分診)
-    · 保留入場動畫、pop 號碼更新動畫、blob 裝飾、連線狀態
+    · 母親節限定:綠色品牌色 → 康乃馨粉色系(深粉 #c0606e 主色)
+    · 不加 SVG 裝飾或表情符號 — 配色傳達母親節氛圍即可
     · 移除 WebSocket,改 100 秒 fetch + visibilitychange refresh
 
     v1.2 (2026-05-08):
@@ -36,19 +37,29 @@
 
     v1.3 (2026-05-08):
     · Polling 間隔 90 → 100 秒(配額更安全 + 倒數從整百開始更直觀)
+
+    v1.3-mothersday (2026-05-08):
+    · 配色全面換成康乃馨粉系統(c0606e / a04858 / fae0e2 / f0c3ca)
+    · 背景米色帶粉調(F8F4F2)
+    · 其他邏輯與 v1.3 完全一致
+
+    v1.4 (2026-05-08):
+    · 0 號特例處理:大字顯示「—」、label 改成「準備中」、不顯示「號」字
+      (0 是 admin 歸零後的「準備中 / 休診」狀態,不是真的「0 號」病人)
     ════════════════════════════════════════════════════════════
   */
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
-    --green:        #7AAB5A;
-    --green-deep:   #5A8A3F;
-    --green-light:  #EBF3E4;
-    --green-mid:    #C5DEB0;
+    /* v1.3-mothersday: 康乃馨粉色系統(對應 admin mothersday 的 8 階康乃馨色) */
+    --pink:         #c0606e;  /* 主色:康乃馨深粉(第 4 階) */
+    --pink-deep:    #a04858;  /* 玫瑰深酒(第 5 階) */
+    --pink-light:   #fae0e2;  /* 康乃馨高光(第 1 階) */
+    --pink-mid:     #f0c3ca;  /* 康乃馨淺粉(第 2 階) */
     --gray:         #A8A8A0;
     --gray-light:   #C0C0BA;
     --text:         #3A3A35;
-    --bg:           #F5F7F2;
+    --bg:           #F8F4F2;  /* 暖奶白(原 #F5F7F2 換成帶粉調) */
     --warn:         #C2860A;
     --error:        #E07070;
   }
@@ -74,7 +85,7 @@
     position: fixed;
     top: -120px; right: -100px;
     width: 300px; height: 300px;
-    background: var(--green-mid);
+    background: var(--pink-mid);
     opacity: 0.25;
     border-radius: 61% 39% 70% 30% / 45% 55% 45% 55%;
     pointer-events: none;
@@ -84,7 +95,7 @@
     position: fixed;
     bottom: -100px; left: -80px;
     width: 260px; height: 260px;
-    background: var(--green-mid);
+    background: var(--pink-mid);
     opacity: 0.2;
     border-radius: 42% 58% 35% 65% / 55% 42% 58% 45%;
     pointer-events: none;
@@ -120,7 +131,7 @@
     border-radius: 28px 10px 28px 10px;
     padding: 36px 28px 32px;
     text-align: center;
-    box-shadow: 0 4px 22px rgba(122,171,90,0.14);
+    box-shadow: 0 4px 22px rgba(192,96,110,0.16);
     position: relative;
     overflow: hidden;
     width: 100%;
@@ -134,13 +145,13 @@
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 5px;
-    background: var(--green);
+    background: var(--pink);
     border-radius: 5px 5px 0 0;
   }
 
   .card-blob {
     width: 56px; height: 56px;
-    background: var(--green-light);
+    background: var(--pink-light);
     border-radius: 58% 42% 62% 38% / 44% 56% 44% 56%;
     display: flex;
     align-items: center;
@@ -150,7 +161,7 @@
 
   .card-blob svg {
     width: 28px; height: 28px;
-    stroke: var(--green);
+    stroke: var(--pink);
     fill: none;
     stroke-width: 1.8;
     stroke-linecap: round;
@@ -184,7 +195,7 @@
     font-family: 'Noto Sans TC', sans-serif;
     font-size: 24px;
     font-weight: 300;
-    color: var(--green-deep);
+    color: var(--pink-deep);
     letter-spacing: 0.1em;
   }
 
@@ -203,7 +214,7 @@
 
   @keyframes pop {
     0%   { transform: scale(1); }
-    50%  { transform: scale(1.10); color: var(--green); }
+    50%  { transform: scale(1.10); color: var(--pink); }
     100% { transform: scale(1); color: var(--text); }
   }
 
@@ -225,7 +236,7 @@
     flex-shrink: 0;
   }
   .dot.connected {
-    background: var(--green);
+    background: var(--pink);
     animation: pulse 2.5s ease infinite;
   }
   .dot.error { background: var(--error); }
@@ -287,7 +298,7 @@
       <polyline points="12 7 12 12 15 15"/>
     </svg>
   </div>
-  <div class="card-label">目前看診號</div>
+  <div class="card-label" id="callLabel">目前看診號</div>
   <div class="card-number-wrap">
     <span class="card-number placeholder" id="callNumber">—</span>
     <span class="card-number-suffix" id="callSuffix" style="display:none;">號</span>
@@ -391,18 +402,35 @@ function tickUpdateText() {
 function renderNumber(num) {
   const el = document.getElementById("callNumber");
   const suffix = document.getElementById("callSuffix");
+  const label = document.getElementById("callLabel");
+
+  // 1. null:GAS 回 number=null,工作表沒資料(尚未啟用)
   if (num === null || num === undefined) {
     el.classList.add("placeholder");
     el.classList.remove("updated");
     el.textContent = "尚未啟用";
     suffix.style.display = "none";
+    label.textContent = "目前看診號";
     _lastNumber = null;
     return;
   }
-  // placeholder → 數字,或數字變化 → 觸發 pop 動畫
+
+  // 2. 0:admin 點過「歸零」(準備中,還沒叫第一位 / 休診中)
+  if (num === 0) {
+    el.classList.add("placeholder");
+    el.classList.remove("updated");
+    el.textContent = "—";
+    suffix.style.display = "none";
+    label.textContent = "準備中";
+    _lastNumber = 0;
+    return;
+  }
+
+  // 3. 1-999:正常叫號中
   const newVal = String(num);
   const oldText = el.textContent;
   el.classList.remove("placeholder");
+  label.textContent = "目前看診號";
   if (oldText !== newVal) {
     el.textContent = newVal;
     suffix.style.display = "";
