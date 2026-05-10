@@ -245,7 +245,8 @@ body {
   transition: background 0.15s;
 }
 .login-btn:disabled {
-  background: var(--ash);
+  /* v0.6 r2:對齊方案 C「按鈕保持實體」— 移除原本的 ash 灰背景,讓三點脈動在 slate 黑底上顯眼
+     原本只 disabled 變灰,但搭配 .form-busy + 三點時應維持深色,白點才看得見 */
   cursor: not-allowed;
 }
 .login-btn:not(:disabled):hover { background: var(--ink); }
@@ -1204,8 +1205,10 @@ body {
   pointer-events: none;
   transition: opacity 0.15s ease;
 }
-/* 但 submit 按鈕保持實體不淡化(語意:「form frozen,但按鈕正在動」) */
+/* 但 submit 按鈕保持實體不淡化(語意:「form frozen,但按鈕正在動」)
+   v0.6 r2:加入 .login-btn,讓登入流程也對齊方案 C */
 .form-busy .btn-primary,
+.form-busy .login-btn,
 .form-busy .btn-busy-keep {
   opacity: 1 !important;
 }
@@ -2060,6 +2063,7 @@ async function doTherapistLogin() {
   const errEl = document.getElementById("loginError");
   const infoEl = document.getElementById("loginInfo");
   const btn = document.getElementById("btnLogin");
+  const loginBox = document.querySelector(".login-box");
   errEl.style.display = "none";
   infoEl.style.display = "none";
   const password = pwEl.value;
@@ -2069,7 +2073,21 @@ async function doTherapistLogin() {
     return;
   }
   isLoggingIn = true;
-  btn.disabled = true; btn.textContent = "驗證中";
+  // v0.6 r2:對齊方案 C — form 整體淡化(input、副標等都灰),按鈕保持實體 + 三點脈動 + 「驗證中」文字
+  if (loginBox) loginBox.classList.add("form-busy");
+  btn.disabled = true;
+  btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:10px;justify-content:center;">'
+                + '<span class="btn-dots"><span></span><span></span><span></span></span>'
+                + '<span>驗證中</span>'
+                + '</span>';
+
+  // 失敗時恢復 form 狀態的 helper
+  function restoreForm(label) {
+    if (loginBox) loginBox.classList.remove("form-busy");
+    btn.disabled = false;
+    btn.innerHTML = label || "登入";
+  }
+
   try {
     const data = await xhrPost(API_URL, {
       action: "requestTherapistSession",
@@ -2083,27 +2101,29 @@ async function doTherapistLogin() {
       state.loginTime = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
       saveSessionToStorage();
       pwEl.value = "";
+      // 成功不 restoreForm — 直接進主頁(避免「淡化解除」一閃造成視覺雜訊)
       enterMainPage();
     } else if (data.error === "locked") {
       errEl.textContent = "登入失敗次數過多,請稍後再試。";
       errEl.style.display = "block";
-      btn.disabled = false; btn.textContent = "登入";
+      restoreForm();
     } else if (data.error === "wrong_password") {
+      // v0.6 r2:先 restoreForm(解除 pointer-events 鎖),再 focus + show error
+      restoreForm();
       pwEl.value = ""; pwEl.focus();
       const rem = data.remaining || 0;
       errEl.textContent = "密碼錯誤(剩餘 " + rem + " 次)";
       errEl.style.display = "block";
-      btn.disabled = false; btn.textContent = "登入";
     } else {
       errEl.textContent = data.error || "登入失敗,請稍後再試。";
       errEl.style.display = "block";
-      btn.disabled = false; btn.textContent = "登入";
+      restoreForm();
     }
   } catch (e) {
     if (e.isSessionExpired) return;
     errEl.textContent = "連線異常,請稍後再試。";
     errEl.style.display = "block";
-    btn.disabled = false; btn.textContent = "登入";
+    restoreForm();
   } finally {
     isLoggingIn = false;
   }
