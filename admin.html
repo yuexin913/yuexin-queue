@@ -2369,7 +2369,7 @@
     <div style="font-size:12px;font-weight:300;color:rgba(186,203,0,0.75);margin-top:auto;letter-spacing:0.5px;" id="unspecCount"></div>
     <div id="unspecPendingDot" style="display:none;position:absolute;bottom:7px;right:7px;width:8px;height:8px;background:var(--marigold);"></div>
   </div>
-  <div class="tile tile-2 tile-dark" id="therapyTile" onclick="openTherapyModal()" style="position:relative;cursor:pointer;background:var(--bg-4);">
+  <div class="tile tile-2 tile-dark" id="therapyTile" onclick="openTherapyModal()" style="position:relative;cursor:pointer;background:#3a3a3a;border-color:#4a4a4a;">
     <div class="tile-title" style="font-size:18px;">心理治療</div>
     <div id="therapyTodayDot" style="display:none;position:absolute;bottom:7px;right:7px;width:8px;height:8px;background:var(--lagoon);"></div>
   </div>
@@ -5837,7 +5837,9 @@ async function loadEqTileSubtitle() {
 // 載入 tile 角標(跟著主排程 viewDate 走;v0.2 由「永遠今天」改為「跟診表日期」)
 async function loadTherapyTileDot() {
   try {
-    const ymd = dateToYMD(state.viewDate);
+    // v0.3 fix: backend 預期 YYYY/MM/DD(slash),不是 dateToYMD 的 YYYYMMDD
+    const d = state.viewDate;
+    const ymd = d.getFullYear() + "/" + String(d.getMonth()+1).padStart(2,"0") + "/" + String(d.getDate()).padStart(2,"0");
     const data = await xhrPost(API_URL, {
       action: "getTherapyCases",
       lineId: state.lineId,
@@ -5850,6 +5852,7 @@ async function loadTherapyTileDot() {
     if (data && data.success && Array.isArray(data.cases) && data.cases.length > 0) {
       dot.style.display = "block";
     } else {
+      if (data && !data.success) console.warn("[therapy tile]", data.error || "unknown");
       dot.style.display = "none";
     }
   } catch(e) {
@@ -5862,8 +5865,9 @@ function openTherapyModal() {
   // 先打開 modal 讓使用者看到 loading,fetch 在背景跑
   openModal("modalTherapy");
   // 更新 modal 標題日期(跟 viewDate;格式對齊 D 設計 line 271:2026/05/04 星期一)
+  // v0.3 fix: dateToYMD 回的是 YYYYMMDD 沒分隔符,標籤要 slash 格式
   const viewDate = state.viewDate;
-  const ymd = dateToYMD(viewDate);
+  const ymd = viewDate.getFullYear() + "/" + String(viewDate.getMonth()+1).padStart(2,"0") + "/" + String(viewDate.getDate()).padStart(2,"0");
   const weekdays = ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"];
   const dateLabel = ymd + " " + weekdays[viewDate.getDay()];
   const dateEl = document.getElementById("therapyModalDateLine");
@@ -5877,7 +5881,9 @@ function openTherapyModal() {
 // 載入 modal 內容(讀 viewDate 那一天的 case)
 async function loadTherapyModalContent() {
   try {
-    const ymd = dateToYMD(state.viewDate);
+    // v0.3 fix: backend 預期 YYYY/MM/DD(slash),不是 dateToYMD 的 YYYYMMDD
+    const d = state.viewDate;
+    const ymd = d.getFullYear() + "/" + String(d.getMonth()+1).padStart(2,"0") + "/" + String(d.getDate()).padStart(2,"0");
     const data = await xhrPost(API_URL, {
       action: "getTherapyCases",
       lineId: state.lineId,
@@ -5887,6 +5893,7 @@ async function loadTherapyModalContent() {
     });
     if (!data || !data.success) {
       // session 失效或其他錯誤:跟既有 admin pattern 一樣,顯示空 + 不警告
+      if (data && !data.success) console.warn("[therapy modal]", data.error || "unknown");
       renderTherapyList([]);
       return;
     }
