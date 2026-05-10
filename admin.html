@@ -2371,7 +2371,7 @@
   </div>
   <div class="tile tile-2 tile-dark" id="therapyTile" onclick="openTherapyModal()" style="position:relative;cursor:pointer;background:#3a3a3a;border-color:#4a4a4a;">
     <div class="tile-title" style="font-size:18px;">心理治療</div>
-    <div id="therapyTodayDot" style="display:none;position:absolute;bottom:7px;right:7px;width:8px;height:8px;background:var(--lagoon);"></div>
+    <div id="therapyTodayDot" style="display:none;position:absolute;bottom:7px;right:7px;width:8px;height:8px;background:var(--text-light);"></div>
   </div>
   <div class="tile tile-1 tile-teal" style="position:relative;cursor:pointer;" onclick="openPreviewModal()">
     <div class="tile-title" style="font-size:18px;">預覽</div>
@@ -3529,8 +3529,8 @@ function enterMainPage() {
   loadSchedule();
   checkSecurityCaution();
   loadEqTileSubtitle(); // v5.18: 進主畫面主動載入叫號 tile 數字
-  // v6.0 Step 4-A:loadTherapyTileDot 不在這裡呼叫,統一由 loadSchedule 成功後 fire,
-  // 確保 tile 永遠跟著 viewDate 同步(包括首次進 admin、換日期、按重新整理)
+  // v6.0 Step 4-A v0.4:loadTherapyTileDot 在 loadSchedule 內並行 fire(await 之前),
+  // 確保 tile 永遠跟著 viewDate 同步,且兩個 API 並行不互等
 }
 
 function openLogoutModal() {
@@ -3731,13 +3731,16 @@ async function loadSchedule(preferredSession) {
   document.getElementById("scheduleContent").innerHTML = skeletonHtml;
   const loadingBar = document.getElementById("scheduleLoading");
   if (loadingBar) loadingBar.style.display = "none";
+  // v6.0 Step 4-A v0.4:心理治療 tile 角標並行載入(不等主排程,讓 dot 跟主排程「幾乎同時」出現)
+  // 先清掉舊狀態避免換日期時看到上一天的 dot 殘留
+  const _therapyDotEl = document.getElementById("therapyTodayDot");
+  if (_therapyDotEl) _therapyDotEl.style.display = "none";
+  loadTherapyTileDot();
   try {
     const data = await xhrPost(API_URL, { action: "adminGetTodaySchedule", date: dateToYMD(state.viewDate), lineId: state.lineId });
     if (myLoadId !== _scheduleLoadId) return; // 已有更新的請求，忽略此結果
     renderSchedule(data.bookings || [], preferredSession, data.openSessions || null);
     hideAdminOverlay();
-    // v6.0 Step 4-A:診表載入成功後,讓心理治療 tile 角標跟著 viewDate 同步
-    loadTherapyTileDot();
   } catch(e) {
     if (e.isSessionExpired) return;
     if (myLoadId !== _scheduleLoadId) return;
