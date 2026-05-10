@@ -1274,29 +1274,41 @@ body {
   position: relative;
 }
 
-/* v0.5:section stagger fade-in(進分頁時 sections 由上往下漸入) */
+/* v0.5:section stagger fade-in(進分頁時 sections 由上往下漸入)
+   v0.6 r1:改為「預設透明 + JS 觸發」,確保跟 local-overlay 同步淡入(不再有「先 stagger 後 overlay」)
+*/
 @keyframes sectionFadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+/* 預設透明,等資料載入完成 + overlay 即將消失才觸發 */
 #paneDisplay > .section,
 #paneOperation > .section {
-  animation: sectionFadeIn 0.4s ease-out backwards;
+  opacity: 0;
 }
-#paneDisplay > .section:nth-child(1),
-#paneOperation > .section:nth-child(1) { animation-delay: 0.00s; }
-#paneDisplay > .section:nth-child(2),
-#paneOperation > .section:nth-child(2) { animation-delay: 0.05s; }
-#paneDisplay > .section:nth-child(3),
-#paneOperation > .section:nth-child(3) { animation-delay: 0.10s; }
-#paneDisplay > .section:nth-child(4),
-#paneOperation > .section:nth-child(4) { animation-delay: 0.15s; }
-#paneDisplay > .section:nth-child(5),
-#paneOperation > .section:nth-child(5) { animation-delay: 0.20s; }
+/* 加上 .is-staggered class 才跑動畫(由 triggerStagger() JS 觸發) */
+#paneDisplay > .section.is-staggered,
+#paneOperation > .section.is-staggered {
+  animation: sectionFadeIn 0.4s ease-out forwards;
+}
+#paneDisplay > .section.is-staggered:nth-child(1),
+#paneOperation > .section.is-staggered:nth-child(1) { animation-delay: 0.00s; }
+#paneDisplay > .section.is-staggered:nth-child(2),
+#paneOperation > .section.is-staggered:nth-child(2) { animation-delay: 0.05s; }
+#paneDisplay > .section.is-staggered:nth-child(3),
+#paneOperation > .section.is-staggered:nth-child(3) { animation-delay: 0.10s; }
+#paneDisplay > .section.is-staggered:nth-child(4),
+#paneOperation > .section.is-staggered:nth-child(4) { animation-delay: 0.15s; }
+#paneDisplay > .section.is-staggered:nth-child(5),
+#paneOperation > .section.is-staggered:nth-child(5) { animation-delay: 0.20s; }
 /* readonly-hint 跟 addSectionWrap 也要漸入,但延遲在最前 */
+#paneOperation > .readonly-hint.is-staggered,
+#paneOperation > #addSectionWrap.is-staggered {
+  animation: sectionFadeIn 0.4s ease-out forwards;
+}
 #paneOperation > .readonly-hint,
 #paneOperation > #addSectionWrap {
-  animation: sectionFadeIn 0.4s ease-out backwards;
+  opacity: 0;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -2212,16 +2224,10 @@ function switchSubtab(name) {
   document.getElementById("paneDisplay").style.display = (name === "display") ? "" : "none";
   document.getElementById("paneOperation").style.display = (name === "operation") ? "" : "none";
 
-  // v0.5:切換到目標分頁時,重觸發 stagger fade-in 動畫
-  // (CSS animation 只在元素首次出現時跑,display none↔block 不會重觸發)
+  // v0.6 r1:切換到目標分頁時,觸發 stagger fade-in
+  // (取代 v0.5 inline 重觸發邏輯,改用 triggerStagger helper 統一)
   const visiblePane = (name === "display") ? "paneDisplay" : "paneOperation";
-  const sections = document.querySelectorAll("#" + visiblePane + " > .section");
-  sections.forEach(function(sec, i) {
-    sec.style.animation = "none";
-    // 強制 reflow 讓 animation 重置
-    void sec.offsetWidth;
-    sec.style.animation = "sectionFadeIn 0.4s ease-out " + (i * 0.05) + "s backwards";
-  });
+  triggerStagger(visiblePane);
 
   if (name === "display") {
     // 切回 [顯示] 時收乾淨所有 expandable 表單(對齊 abstinence:不誘導頻繁動)
@@ -2273,6 +2279,10 @@ async function loadAndRenderEntries() {
     document.getElementById("todayList").innerHTML =
       '<div class="empty-hint">載入失敗:' + esc(e.message || "未知錯誤") + '</div>';
   } finally {
+    // v0.6 r1:在 overlay 消失前觸發目標 pane 的 stagger fade-in,讓兩個動畫同步
+    // (覆蓋兩個 panes 確保切分頁時都有動畫)
+    triggerStagger("paneDisplay");
+    triggerStagger("paneOperation");
     hideLocalOverlay("paneDisplay");
   }
 }
@@ -2883,6 +2893,29 @@ function hideLocalOverlay(containerId) {
   // 不移除 has-local-overlay class(維持 position:relative,下次顯示時不需重設)
 }
 
+/**
+ * v0.6 r1:觸發 stagger fade-in 動畫
+ *   - 給 paneId 內所有 .section / .readonly-hint / #addSectionWrap 加 .is-staggered class
+ *   - 預設這些元素 opacity:0,加 class 後 CSS animation 跑 0→1 + translateY
+ *   - 對齊「local overlay 即將消失」那一刻觸發,避免 stagger 跑得比 overlay 還早
+ *
+ *   用法:
+ *     - loadAndRenderEntries 結束時:triggerStagger("paneDisplay") 或 "paneOperation"
+ *     - switchSubtab 切到目標分頁時也觸發
+ */
+function triggerStagger(paneId) {
+  const pane = document.getElementById(paneId);
+  if (!pane) return;
+  // 收集需要動畫的子元素(直接子節點 .section / .readonly-hint / #addSectionWrap)
+  const targets = pane.querySelectorAll(":scope > .section, :scope > .readonly-hint, :scope > #addSectionWrap");
+  targets.forEach(function(el) {
+    // 先移除舊 class,reflow,再加上 — 確保動畫重跑
+    el.classList.remove("is-staggered");
+    void el.offsetWidth;
+    el.classList.add("is-staggered");
+  });
+}
+
 // 拿時段(從 select 或 custom input)
 function readSlot(prefix) {
   const customWrap = document.getElementById(prefix + "_customStartWrap");
@@ -3387,6 +3420,17 @@ window.addEventListener("DOMContentLoaded", function() {
   } catch (e) { /* sticky 偵測失敗不影響核心功能 */ }
 
   bootstrap();
+
+  // v0.6 r1:fallback safety net — 5 秒後若 sections 還沒被觸發 stagger
+  // (例:LIFF init 失敗、bootstrap throw 在進主頁前),強制 trigger 避免 sections 永遠透明
+  // 注意:5 秒是個寬限期,正常 bootstrap + loadAndRenderEntries 通常 1-2 秒就完成
+  setTimeout(function() {
+    document.querySelectorAll("#paneDisplay > .section, #paneOperation > .section").forEach(function(el) {
+      if (!el.classList.contains("is-staggered")) {
+        el.classList.add("is-staggered");
+      }
+    });
+  }, 5000);
 });
 </script>
 </body>
