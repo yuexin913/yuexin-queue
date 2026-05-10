@@ -2142,7 +2142,7 @@ function doTherapistLogout() {
   clearSessionFromStorage();
   if (state.idleTimerId) clearTimeout(state.idleTimerId);
   showPage("pageLogin");
-  document.getElementById("loginPassword").value = "";
+  resetLoginForm(); // v0.6 r3:重置 login form 殘留狀態(form-busy、按鈕內容)
   document.getElementById("loginError").style.display = "none";
   document.getElementById("loginInfo").style.display = "none";
   setTimeout(function() {
@@ -2150,17 +2150,36 @@ function doTherapistLogout() {
   }, 100);
 }
 
+/**
+ * v0.6 r3:重置 login form 到「乾淨」狀態
+ *   - 清掉 form-busy class(讓 input 從淡化恢復)
+ *   - 清掉按鈕內三點脈動 + 「驗證中」,恢復「登入」
+ *   - 清空密碼欄
+ *   - 清掉 isLoggingIn flag
+ * 用於:登出、session expired、進入登入頁等需要重置 UI 的場景
+ */
+function resetLoginForm() {
+  const loginBox = document.querySelector(".login-box");
+  const btn = document.getElementById("btnLogin");
+  const pwEl = document.getElementById("loginPassword");
+  if (loginBox) loginBox.classList.remove("form-busy");
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = "登入";
+  }
+  if (pwEl) pwEl.value = "";
+  isLoggingIn = false;
+}
+
 function handleSessionExpired() {
   state.sessionToken = "";
   clearSessionFromStorage();
   if (state.idleTimerId) clearTimeout(state.idleTimerId);
   showPage("pageLogin");
+  resetLoginForm(); // v0.6 r3:重置 form 殘留狀態
   const errEl = document.getElementById("loginError");
   errEl.textContent = "登入已過期,請重新登入。";
   errEl.style.display = "block";
-  document.getElementById("loginPassword").value = "";
-  document.getElementById("btnLogin").disabled = false;
-  document.getElementById("btnLogin").textContent = "登入";
   setTimeout(function() {
     document.getElementById("loginPassword").focus();
   }, 100);
@@ -2174,6 +2193,11 @@ async function enterMainPage() {
   document.getElementById("meName").textContent = state.myName + (state.isOwner ? " · OWNER" : "");
   resetIdleTimer();
 
+  // v0.6 r3:立刻蓋上 overlay,避免「顯示主頁 → 跑 getMyVisibleTherapists → loadAndRender」之間
+  // 那一段空白讓使用者看到 section-num 浮在外層的視覺殘影(問題:先區域後全域)
+  // overlay 蓋住整個 paneDisplay,getMyVisibleTherapists + loadAndRenderEntries 都在 overlay 下執行
+  showLocalOverlay("paneDisplay", "載入中", "loading · " + (state.myName || "therapist"));
+
   try {
     const data = await xhrPost(API_URL, {
       action: "getMyVisibleTherapists",
@@ -2185,11 +2209,17 @@ async function enterMainPage() {
     state.visibleTherapists = data.visibleTherapists || [];
     state.selectedTherapist = data.myName || (state.visibleTherapists[0] || "");
     renderTherapistTabs();
+    // loadAndRenderEntries 內部會自己 showLocalOverlay,但本來就已蓋上,它不會重複 — 等它執行完
     await loadAndRenderEntries();
+    // loadAndRenderEntries 的 finally 會 hideLocalOverlay + triggerStagger,正確收尾
   } catch (e) {
     if (e.isSessionExpired) return;
+    // 失敗時也要 hide overlay + trigger stagger,避免使用者卡在 loading 畫面 / sections 永遠透明
+    hideLocalOverlay("paneDisplay");
     document.getElementById("todayList").innerHTML =
       '<div class="empty-hint">載入失敗:' + esc(e.message || "未知錯誤") + '</div>';
+    triggerStagger("paneDisplay");
+    triggerStagger("paneOperation");
   }
 }
 
