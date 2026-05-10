@@ -1078,6 +1078,88 @@ body {
   0%, 80%, 100% { opacity: 0.2; }
   40% { opacity: 1; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   v6.0 Step 4-A · therapy loading 系統(方案 C 混合)
+   - submit:form 淡化 + 按鈕內三點(輕量,1-2s 場景,不打斷節奏)
+   - load:容器套 local overlay + 中央三點 + mono 副標(2-5s 場景,清楚轉場)
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* form 進入 busy 狀態:整體淡化 + 阻擋 pointer */
+.form-busy {
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+/* 但 submit 按鈕保持實體不淡化(語意:「form frozen,但按鈕正在動」) */
+.form-busy .btn-primary,
+.form-busy .btn-busy-keep {
+  opacity: 1 !important;
+}
+
+/* 按鈕內三點(submit 中):取代按鈕文字 */
+.btn-dots {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+}
+.btn-dots span {
+  width: 4px;
+  height: 4px;
+  background: #ffffff; /* 黑底按鈕配白點 */
+  animation: dot-pulse 1.4s infinite ease-in-out;
+}
+.btn-dots span:nth-child(2) { animation-delay: 0.2s; }
+.btn-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+/* local overlay:覆蓋於 load 區塊上方,白色半透明 + 中央 dots + mono 副標 */
+.local-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 5;
+  pointer-events: auto; /* 阻擋下層互動 */
+  animation: localOverlayFadeIn 0.18s ease-out;
+}
+@keyframes localOverlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.local-overlay-dots {
+  display: inline-flex;
+  gap: 5px;
+}
+.local-overlay-dots span {
+  width: 5px;
+  height: 5px;
+  background: var(--steel);
+  animation: dot-pulse 1.4s infinite ease-in-out;
+}
+.local-overlay-dots span:nth-child(2) { animation-delay: 0.2s; }
+.local-overlay-dots span:nth-child(3) { animation-delay: 0.4s; }
+.local-overlay-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--concrete);
+  letter-spacing: 3px;
+}
+.local-overlay-sub {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--ash);
+  letter-spacing: 2px;
+}
+
+/* 容器需 position:relative 才能讓 local-overlay absolute inset 正確定位 */
+.has-local-overlay {
+  position: relative;
+}
 </style>
 </head>
 <body>
@@ -1905,11 +1987,17 @@ function switchSubtab(name) {
    讀資料 + 算今天/本週/候補
    ══════════════════════════════════════════════════════════════════════════════ */
 async function loadAndRenderEntries() {
-  document.getElementById("todayList").innerHTML =
-    '<div class="empty-hint">載入中<span class="loading-dots"><span></span><span></span><span></span></span></div>';
+  // v6.0 Step 4-A 方案 C:用 local overlay 取代 inline「載入中...」
+  // 副標顯示當前切到哪位治療師,給「轉場」清楚暗示
+  const subText = state.selectedTherapist
+    ? "loading · " + state.selectedTherapist
+    : "loading entries";
+  showLocalOverlay("paneDisplay", "載入中", subText);
+
+  // 清空底層內容(被 overlay 蓋住,但避免殘留前次資料閃現)
+  document.getElementById("todayList").innerHTML = "";
   document.getElementById("weekGrid").innerHTML = "";
-  document.getElementById("waitlistSummary").innerHTML =
-    '<div class="empty-hint">載入中<span class="loading-dots"><span></span><span></span><span></span></span></div>';
+  document.getElementById("waitlistSummary").innerHTML = "";
 
   try {
     const data = await xhrPost(API_URL, {
@@ -1929,6 +2017,8 @@ async function loadAndRenderEntries() {
     if (e.isSessionExpired) return;
     document.getElementById("todayList").innerHTML =
       '<div class="empty-hint">載入失敗:' + esc(e.message || "未知錯誤") + '</div>';
+  } finally {
+    hideLocalOverlay("paneDisplay");
   }
 }
 
@@ -2456,17 +2546,87 @@ function showFormError(layer, msg) {
   }
 }
 
-function setFormBusy(btnId, busy) {
+/**
+ * v6.0 Step 4-A 方案 C:submit busy 狀態
+ *   - btnId:送出按鈕的 id(L1: btnSubmitL1, L1.5: btnSubmitL15, L2: btnSubmitL2, L3: btnSubmitL3)
+ *   - busy: true=進入送出中 / false=結束
+ *   - formId(可選):若提供,form 容器同步淡化 + 阻擋互動。預設用 btnId 反推
+ *
+ * 升級點(對齊 v0.5 mock 方案 C):
+ *   1. form 容器 .form-busy → opacity 0.4 + pointer-events:none
+ *   2. 按鈕保持實體不淡化,內容換成「● ● ●」三點脈動
+ *   3. 結束時恢復原狀
+ */
+function setFormBusy(btnId, busy, formId) {
   const btn = document.getElementById(btnId);
   if (!btn) return;
+
+  // formId 自動推導(對齊既有命名:btnSubmitL1 → addFormLayer1)
+  if (!formId) {
+    if (btnId === "btnSubmitL1")  formId = "addFormLayer1";
+    if (btnId === "btnSubmitL15") formId = "addFormLayer1_5";
+    if (btnId === "btnSubmitL2")  formId = "addFormLayer2";
+    if (btnId === "btnSubmitL3")  formId = "addFormLayer3";
+  }
+  const form = formId ? document.getElementById(formId) : null;
+
   if (busy) {
     btn.disabled = true;
     btn.dataset.label = btn.textContent;
-    btn.textContent = "送出中";
+    // 三點脈動取代「送出中」文字
+    btn.innerHTML = '<span class="btn-dots"><span></span><span></span><span></span></span>';
+    if (form) form.classList.add("form-busy");
   } else {
     btn.disabled = false;
     btn.textContent = btn.dataset.label || "新增";
+    if (form) form.classList.remove("form-busy");
   }
+}
+
+/**
+ * v6.0 Step 4-A 方案 C:load 場景的 local overlay
+ *   - 把指定容器設為 has-local-overlay(position:relative),內部插入一層 .local-overlay
+ *   - text:中央顯示文字,例「載入中」
+ *   - subText(可選):副標 mono italic,例「switching therapist · 王」
+ *   - 用法:showLocalOverlay("paneDisplay", "載入中", "switching therapist · 王")
+ */
+function showLocalOverlay(containerId, text, subText) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  // 防重複插入:先清掉舊的
+  hideLocalOverlay(containerId);
+  container.classList.add("has-local-overlay");
+
+  const overlay = document.createElement("div");
+  overlay.className = "local-overlay";
+  overlay.dataset.localOverlay = "1"; // 給 hideLocalOverlay 找
+
+  const dots = document.createElement("div");
+  dots.className = "local-overlay-dots";
+  dots.innerHTML = "<span></span><span></span><span></span>";
+  overlay.appendChild(dots);
+
+  if (text) {
+    const t = document.createElement("div");
+    t.className = "local-overlay-text";
+    t.textContent = text;
+    overlay.appendChild(t);
+  }
+  if (subText) {
+    const s = document.createElement("div");
+    s.className = "local-overlay-sub";
+    s.textContent = subText;
+    overlay.appendChild(s);
+  }
+  container.appendChild(overlay);
+}
+
+function hideLocalOverlay(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const existing = container.querySelector('[data-local-overlay="1"]');
+  if (existing) existing.remove();
+  // 不移除 has-local-overlay class(維持 position:relative,下次顯示時不需重設)
 }
 
 // 拿時段(從 select 或 custom input)

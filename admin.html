@@ -5875,9 +5875,11 @@ function openTherapyModal() {
   const dateLabel = ymd + " " + weekdays[viewDate.getDay()];
   const dateEl = document.getElementById("therapyModalDateLine");
   if (dateEl) dateEl.textContent = dateLabel;
-  // 顯示 loading,然後 fetch
+  // v0.5:對齊 admin 既有 pattern(modalQuery / loadSchedule),用全螢幕 overlay + 進度條
+  // 取代原本 inline 「載入中...」文字
   const contentEl = document.getElementById("therapyModalContent");
-  if (contentEl) contentEl.innerHTML = '<div class="loading">載入中...</div>';
+  if (contentEl) contentEl.innerHTML = "";
+  showAdminOverlay("載入名單中...");
   loadTherapyModalContent();
 }
 
@@ -5905,7 +5907,11 @@ async function loadTherapyModalContent() {
     const dot = document.getElementById("therapyTodayDot");
     if (dot) dot.style.display = (data.cases && data.cases.length > 0) ? "block" : "none";
   } catch(e) {
+    if (e.isSessionExpired) return; // session 失效已被 xhrPost 內部處理
     renderTherapyList([]);
+  } finally {
+    // v0.5:無論成功失敗都收起 overlay(對齊 modalQuery / loadSchedule pattern)
+    hideAdminOverlay();
   }
 }
 
