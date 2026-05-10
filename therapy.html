@@ -117,7 +117,16 @@ body {
    頁面狀態切換
    ══════════════════════════════════════════════════════════════════════════════ */
 .page { display: none; }
-.page.active { display: block; }
+.page.active {
+  display: block;
+  /* v0.6 r4:page 切換時微 fade-in(0.2s),所有 page 都受惠
+     包括 login → main、logout → login、auth → login 等場景 */
+  animation: pageFadeIn 0.2s ease-out;
+}
+@keyframes pageFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 
 /* ══════════════════════════════════════════════════════════════════════════════
    pageAuth — LIFF init / 權限不足 / 連線錯誤
@@ -1405,8 +1414,8 @@ body {
      ════════════════════════════════════════════════════════════════════════════ -->
 <div id="pageLogin" class="page">
   <div class="login-box">
-    <div class="login-title">心理治療系統</div>
-    <div class="login-sub" id="loginGreeting">— THERAPIST —</div>
+    <div class="login-title">心理治療登錄系統</div>
+    <div class="login-sub" id="loginGreeting">— Squiggle Page —</div>
     <input type="password" id="loginPassword" class="login-input" placeholder="密碼" autocomplete="current-password">
     <button id="btnLogin" class="login-btn" onclick="doTherapistLogin()">登入</button>
     <div class="login-error" id="loginError"></div>
@@ -2129,22 +2138,38 @@ async function doTherapistLogin() {
   }
 }
 
-function doTherapistLogout() {
-  // 後台清 cache(不等 response)
-  if (state.lineId && state.sessionToken) {
-    xhrPost(API_URL, { action: "therapistLogout", lineId: state.lineId })
-      .catch(function() {});
+async function doTherapistLogout() {
+  // v0.6 r4:登出動畫 — 用 overlay 蓋住整個主頁,跑完才切到登入頁
+  // 對齊 enterMainPage 的 overlay pattern,讓登入 / 登出體感一致
+  showLocalOverlay("pageMain", "登出中", "logging out");
+
+  // 等 xhrPost therapistLogout 完成(改 await,不再 fire-and-forget)
+  // 失敗也繼續走流程 — 登出對使用者來說是本地動作,不應因網路失敗阻擋
+  try {
+    if (state.lineId && state.sessionToken) {
+      await xhrPost(API_URL, { action: "therapistLogout", lineId: state.lineId });
+    }
+  } catch (e) {
+    // 靜默 — 即使後端清 cache 失敗,使用者仍應能離開
   }
+
+  // 清本地狀態
   state.sessionToken = "";
   state.myName = "";
   state.isOwner = false;
   state.loginTime = "";
   clearSessionFromStorage();
   if (state.idleTimerId) clearTimeout(state.idleTimerId);
+
+  // 切到登入頁(此時 overlay 仍蓋在 pageMain 上,使用者看不到切換瞬間)
   showPage("pageLogin");
-  resetLoginForm(); // v0.6 r3:重置 login form 殘留狀態(form-busy、按鈕內容)
+  resetLoginForm();
   document.getElementById("loginError").style.display = "none";
   document.getElementById("loginInfo").style.display = "none";
+
+  // 拿掉 pageMain 上的 overlay(因為 pageMain 已 display:none,overlay 看不見但 DOM 還在,清掉)
+  hideLocalOverlay("pageMain");
+
   setTimeout(function() {
     document.getElementById("loginPassword").focus();
   }, 100);
