@@ -2369,7 +2369,7 @@
     <div style="font-size:12px;font-weight:300;color:rgba(186,203,0,0.75);margin-top:auto;letter-spacing:0.5px;" id="unspecCount"></div>
     <div id="unspecPendingDot" style="display:none;position:absolute;bottom:7px;right:7px;width:8px;height:8px;background:var(--marigold);"></div>
   </div>
-  <div class="tile tile-2 tile-dark" id="therapyTile" onclick="openTherapyModal()" style="position:relative;cursor:pointer;">
+  <div class="tile tile-2 tile-dark" id="therapyTile" onclick="openTherapyModal()" style="position:relative;cursor:pointer;background:var(--bg-4);">
     <div class="tile-title" style="font-size:18px;">心理治療</div>
     <div id="therapyTodayDot" style="display:none;position:absolute;bottom:7px;right:7px;width:8px;height:8px;background:var(--lagoon);"></div>
   </div>
@@ -2431,7 +2431,8 @@
 <!-- Modal: 心理治療今日名單(v6.0 Step 4-A) -->
 <div class="modal-overlay" id="modalTherapy">
   <div class="modal">
-    <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">心理治療</div><div class="m-topbar-title" id="therapyModalDate">therapy.today</div><button class="modal-close" onclick="closeModal('modalTherapy')">✕</button></div>
+    <div class="m-topbar"><div class="m-stripe"></div><div class="m-topbar-main">心理治療</div><div class="m-topbar-title">therapy.today</div><button class="modal-close" onclick="closeModal('modalTherapy')">✕</button></div>
+    <div id="therapyModalDateLine" style="font-size:12px;color:var(--text-light);letter-spacing:1px;margin-bottom:10px;text-align:center;font-weight:300;"></div>
     <div id="therapyModalContent"><div class="loading">載入中...</div></div>
   </div>
 </div>
@@ -3528,7 +3529,8 @@ function enterMainPage() {
   loadSchedule();
   checkSecurityCaution();
   loadEqTileSubtitle(); // v5.18: 進主畫面主動載入叫號 tile 數字
-  loadTherapyTileDot(); // v6.0 Step 4-A: 進主畫面載入心理治療 tile 角標
+  // v6.0 Step 4-A:loadTherapyTileDot 不在這裡呼叫,統一由 loadSchedule 成功後 fire,
+  // 確保 tile 永遠跟著 viewDate 同步(包括首次進 admin、換日期、按重新整理)
 }
 
 function openLogoutModal() {
@@ -3734,6 +3736,8 @@ async function loadSchedule(preferredSession) {
     if (myLoadId !== _scheduleLoadId) return; // 已有更新的請求，忽略此結果
     renderSchedule(data.bookings || [], preferredSession, data.openSessions || null);
     hideAdminOverlay();
+    // v6.0 Step 4-A:診表載入成功後,讓心理治療 tile 角標跟著 viewDate 同步
+    loadTherapyTileDot();
   } catch(e) {
     if (e.isSessionExpired) return;
     if (myLoadId !== _scheduleLoadId) return;
@@ -5830,16 +5834,16 @@ async function loadEqTileSubtitle() {
    - 點 tile refresh modal(進 admin 載入一次,符合「心理治療數字無臨時變動」場景)
    ───────────────────────────────────────────────────────────── */
 
-// 進主畫面時載入 tile 角標(只決定 dot 要不要亮)
+// 載入 tile 角標(跟著主排程 viewDate 走;v0.2 由「永遠今天」改為「跟診表日期」)
 async function loadTherapyTileDot() {
   try {
-    const today = getTodayStr();
+    const ymd = dateToYMD(state.viewDate);
     const data = await xhrPost(API_URL, {
       action: "getTherapyCases",
       lineId: state.lineId,
       token: state.sessionToken,
-      startDate: today,
-      endDate: today
+      startDate: ymd,
+      endDate: ymd
     });
     const dot = document.getElementById("therapyTodayDot");
     if (!dot) return;
@@ -5853,16 +5857,16 @@ async function loadTherapyTileDot() {
   }
 }
 
-// 點 tile 開 modal(同時 re-fetch,實現「點 tile refresh」)
+// 點 tile 開 modal(同時 re-fetch 當前 viewDate 的資料)
 function openTherapyModal() {
   // 先打開 modal 讓使用者看到 loading,fetch 在背景跑
   openModal("modalTherapy");
-  // 更新 modal 標題日期(對齊 D 設計 line 271 格式:2026/05/04 星期一)
-  const today = new Date();
-  const ymd = getTodayStr();
+  // 更新 modal 標題日期(跟 viewDate;格式對齊 D 設計 line 271:2026/05/04 星期一)
+  const viewDate = state.viewDate;
+  const ymd = dateToYMD(viewDate);
   const weekdays = ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"];
-  const dateLabel = ymd + " " + weekdays[today.getDay()];
-  const dateEl = document.getElementById("therapyModalDate");
+  const dateLabel = ymd + " " + weekdays[viewDate.getDay()];
+  const dateEl = document.getElementById("therapyModalDateLine");
   if (dateEl) dateEl.textContent = dateLabel;
   // 顯示 loading,然後 fetch
   const contentEl = document.getElementById("therapyModalContent");
@@ -5870,16 +5874,16 @@ function openTherapyModal() {
   loadTherapyModalContent();
 }
 
-// 載入 modal 內容(可被「重新整理」觸發,但本版 v0.1 沒做手動 refresh 按鈕)
+// 載入 modal 內容(讀 viewDate 那一天的 case)
 async function loadTherapyModalContent() {
   try {
-    const today = getTodayStr();
+    const ymd = dateToYMD(state.viewDate);
     const data = await xhrPost(API_URL, {
       action: "getTherapyCases",
       lineId: state.lineId,
       token: state.sessionToken,
-      startDate: today,
-      endDate: today
+      startDate: ymd,
+      endDate: ymd
     });
     if (!data || !data.success) {
       // session 失效或其他錯誤:跟既有 admin pattern 一樣,顯示空 + 不警告
