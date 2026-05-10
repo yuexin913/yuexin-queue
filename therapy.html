@@ -401,7 +401,7 @@ body {
    [顯示] 分頁:三區塊 — 今天 / 本週 / 候補
    ══════════════════════════════════════════════════════════════════════════════ */
 .section {
-  margin-bottom: var(--space-xl);
+  margin-bottom: 40px; /* v0.4-loading-c r2:60→40 縮小 section 間距(粟醫師回報太空曠) */
 }
 .section:last-child { margin-bottom: 0; }
 
@@ -466,7 +466,7 @@ body {
 /* v0.3:整個 addSectionWrap 跟下方資料區塊的分隔(P1-1)*/
 #addSectionWrap {
   border-bottom: 2px solid var(--line);
-  margin-bottom: var(--space-xl);
+  margin-bottom: 40px; /* v0.4-loading-c r2:60→40 對齊 section 新間距 */
   padding-bottom: var(--space-md);
 }
 /* 唯讀模式下 #addSectionWrap 整區 hide,連同分隔線一起消失 */
@@ -1160,6 +1160,75 @@ body {
 .has-local-overlay {
   position: relative;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   v0.4-loading-c r2 · 移除動畫(對齊 demo)
+   - entry 淡出 + 高度收合(500ms,40% fade + 60% collapse)
+   - modal fade in/out(200ms)
+   - toast(下方滑入,1.8s 自動消失)
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* entry 從清單移除時的動畫 */
+.entry-removing {
+  animation: entryFadeCollapse 0.5s ease-out forwards;
+  pointer-events: none;
+  overflow: hidden;
+}
+@keyframes entryFadeCollapse {
+  0%   { opacity: 1; }
+  40%  { opacity: 0; max-height: 200px; padding-top: var(--space-md); padding-bottom: var(--space-md); }
+  100% { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0;
+         border-bottom-width: 0; margin: 0; }
+}
+
+/* modal fade in/out(改造既有 .modal-overlay,維持向下相容) */
+.modal-overlay {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.modal-overlay.visible { opacity: 1; }
+.modal-overlay.closing { opacity: 0; }
+
+/* modal 內容輕微位移(增強 fade-in 動感) */
+.modal-overlay .modal-box {
+  transform: translateY(8px);
+  transition: transform 0.2s ease;
+}
+.modal-overlay.visible .modal-box { transform: translateY(0); }
+.modal-overlay.closing .modal-box { transform: translateY(8px); }
+
+/* modal busy 狀態:整體淡化但確認按鈕保持實體(對齊方案 C) */
+.modal-overlay.busy .modal-box {
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.modal-overlay.busy .btn-primary {
+  opacity: 1 !important;
+  pointer-events: auto;
+}
+
+/* toast 工業風(下方滑入,中英並列 mono) */
+.toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--ink);
+  color: var(--paper);
+  padding: 10px 24px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+.toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
 </style>
 </head>
 <body>
@@ -1524,6 +1593,9 @@ body {
     </div>
   </div>
 </div>
+
+<!-- v0.4-loading-c r2:Toast(配合移除動畫做反饋) -->
+<div class="toast" id="therapyToast"></div>
 
 <script>
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -2847,7 +2919,7 @@ function _renderEntriesGeneric(opts) {
       : '<button class="btn-action" '
         + (readonly ? 'disabled title="OWNER 唯讀檢視,不可操作他人 case"' : 'onclick="confirmStage1(\'' + opts.stage1Action + '\',\'' + encLayerId + '\',\'' + encLabel + '\',\'' + encStage1Label + '\')"')
         + '>' + esc(opts.stage1Label) + '</button>';
-    html += '<div class="entry-row' + (isStaged ? ' is-staged' : '') + '">'
+    html += '<div class="entry-row' + (isStaged ? ' is-staged' : '') + '" data-layer-id="' + esc(e.layerId) + '">'
          +    '<div class="entry-info">'
          +      '<div class="entry-line-1">' + info.line1 + '</div>'
          +      (info.line2 ? '<div class="entry-line-2">' + info.line2 + '</div>' : '')
@@ -3004,40 +3076,96 @@ function confirmStage2(action, layerIdEnc, labelEnc) {
 }
 
 function closeConfirmModal() {
-  document.getElementById("modalConfirm").classList.remove("visible");
+  const overlay = document.getElementById("modalConfirm");
+  // v0.4-loading-c r2:加 fade-out 過渡
+  overlay.classList.add("closing");
+  overlay.classList.remove("visible");
+  setTimeout(function() {
+    overlay.classList.remove("closing", "busy");
+  }, 200);
   _pendingConfirm = null;
 }
 
 async function executeConfirmAction() {
   if (!_pendingConfirm) return;
-  const { action, layerId } = _pendingConfirm;
+  const { action, layerId, label } = _pendingConfirm;
+  const overlay = document.getElementById("modalConfirm");
   const btn = document.getElementById("btnConfirmGo");
   const errEl = document.getElementById("modalConfirmError");
   errEl.style.display = "none";
+
+  // v0.4-loading-c r2:進入 busy 狀態(modal 整體淡化 + 按鈕內三點脈動)
+  overlay.classList.add("busy");
   btn.disabled = true;
-  btn.textContent = "送出中";
+  btn.dataset.label = btn.textContent;
+  btn.innerHTML = '<span class="btn-dots"><span></span><span></span><span></span></span>';
+
+  // v0.4-loading-c r2:min-duration 600ms,確保動畫感
+  const start = Date.now();
+  const MIN_DURATION_MS = 600;
+
   try {
     const data = await xhrPost(API_URL, {
       action: action,
       lineId: state.lineId,
       layerId: layerId
     });
+
     if (data.success) {
+      // v0.4-loading-c r2:成功路徑才補齊 min-duration(失敗應該立即顯 error)
+      const elapsed = Date.now() - start;
+      if (elapsed < MIN_DURATION_MS) {
+        await new Promise(function(r) { setTimeout(r, MIN_DURATION_MS - elapsed); });
+      }
+      // 1. 找到對應 entry,加 .entry-removing 觸發收合動畫
+      const entryEl = document.querySelector('.entry-row[data-layer-id="' + layerId.replace(/"/g, '\\"') + '"]');
+      if (entryEl) {
+        entryEl.classList.add("entry-removing");
+      }
+      // 2. 同步關 modal(fade-out 200ms,跟收合動畫並行)
       closeConfirmModal();
-      await loadAndRenderEntries();
+      // 3. 顯示 toast(對齊兩階段語意:stage 1=暫存,stage 2=移除)
+      const isStage2 = (action === "removeLayer1" || action === "removeLayer1_5" || action === "removeLayer2" || action === "removeLayer3");
+      showToast(isStage2 ? "已移除 · removed" : "已暫存 · staged");
+      // 4. 等收合動畫近結束(450ms)再 reload(讓動畫看得完整)
+      //    若 entryEl 不存在,直接 reload(保險,避免 stuck)
+      const animDelay = entryEl ? 450 : 0;
+      setTimeout(async function() {
+        try { await loadAndRenderEntries(); } catch(e) { /* loadAndRenderEntries 內部已處理 */ }
+      }, animDelay);
     } else {
+      // 失敗:恢復 busy 狀態,顯示 error
+      overlay.classList.remove("busy");
       errEl.textContent = data.error || "操作失敗";
       errEl.style.display = "block";
       btn.disabled = false;
-      btn.textContent = "確定";
+      btn.innerHTML = btn.dataset.label || "確定";
     }
   } catch (e) {
     if (e.isSessionExpired) return;
+    overlay.classList.remove("busy");
     errEl.textContent = e.message || "連線異常";
     errEl.style.display = "block";
     btn.disabled = false;
-    btn.textContent = "確定";
+    btn.innerHTML = btn.dataset.label || "確定";
   }
+}
+
+/**
+ * v0.4-loading-c r2:Toast(中英並列 mono,工業風)
+ *   showToast("已移除 · removed");
+ */
+function showToast(msg, duration) {
+  duration = duration || 1800;
+  const el = document.getElementById("therapyToast");
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add("visible");
+  // 防止連續觸發殘留:用 dataset 記 timer id
+  if (el._toastTimer) clearTimeout(el._toastTimer);
+  el._toastTimer = setTimeout(function() {
+    el.classList.remove("visible");
+  }, duration);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
