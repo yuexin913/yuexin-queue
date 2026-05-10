@@ -1,0 +1,2795 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="format-detection" content="telephone=no">
+<title>悅心 心理治療</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<!--
+═══════════════════════════════════════════════════════════════════════════════
+悅心診所 心理治療系統 — therapy.html v0.2
+版本:v0.2(2026-05-10 v6.0 Step 3-B:[操作] 分頁完整實作 + 跨治療師 OWNER 唯讀)
+作者:粟寧醫師(架構主導) × Claude(實作)
+設計 anchor:v6_0_therapy_D_design.md (Lock 1-19) + v6_0_therapy_step1_schema.md v4
+Backend:v6.0-step3a-r0(Step 3-A 已加 verifyTherapistLogin / requestTherapistSession 等)
+
+【v0.1 → v0.2 改動】
+- ✅ [操作] 分頁完整實作(替換 placeholder)
+  - 上半:4 個 expandable 新增表單(L1 / L1.5 / L2 / L3)
+    - L1 / L2 排班內時段下拉 + [使用非排班時段] 切換鈕(對齊 schema v4 line 453)
+    - L1.5 病患從現有 L1 active 病患下拉 + 時段從該病患 L1 entries 撈
+    - L3 期待時段從排班動態生成 checkbox(只列有排班的格)
+  - 下半:4 層資料展示 + 兩階段刪除
+    - active → 第一階段按鈕([終止治療]/[恢復]/[取消])→ entry 加刪除線+淡色
+    - staged(terminated/restored/canceled)→ [移除] → entry 從畫面消失
+- ✅ 跨治療師 OWNER 唯讀模式(粟醫師切到王麟祥 tab)
+  - 上半「新增動作區」整區 hide
+  - 下半「資料展示」完整顯示
+  - 各列操作鈕 disabled + tooltip
+- ✅ confirm modal(兩階段刪除前確認,純 OK/取消,不像 admin 那種「打 GO」)
+- ✅ 切回 [顯示] 自動 collapse 所有展開表單(對齊 abstinence)
+- ✅ 切治療師清 schedule cache(換人排班不一樣)
+
+【設計哲學:世界 2 = 手寫筆記本】
+- 最小介入:不替治療師思考、不防呆、不警告
+- 衝堂用 1px 灰線連結兩列(L14),不加符號、不變色
+- 兩階段刪除([終止]/[取消]/[恢復] → [移除])給反悔空間
+- 永遠不做的:衝堂警告、勸阻文案、提示提醒、總人數、自動通知病患
+
+【視覺風格:純白 + 水泥灰 + 工業字型 + 大量留白(C5)】
+
+【入口】
+- 直接 URL 訪問 + LIFF 登入(B3 第一階段:URL 路徑)
+- 額外密道(B3 第二階段)由後續輪次補
+
+【session】
+- 後端 TTL 7200 秒(2 小時)
+- 前端 idle 15 分鐘自動登出
+- localStorage 持久化(對齊 admin v5.5.15 H12 模式,但 key 不同)
+
+【Step 3-B 完成度】
+✅ 全部完成,等粟醫師驗收 + 雙 LLM 審查
+🚧 LIFF ID:目前 placeholder,粟醫師申請後手動填入
+🚧 額外密道入口:Step 3-B 後續輪次補
+🚧 部署:雙 LLM 審查通過後一次部署 backend + therapy.html
+
+═══════════════════════════════════════════════════════════════════════════════
+-->
+<style>
+/* ══════════════════════════════════════════════════════════════════════════════
+   設計 tokens — C5 純白 + 水泥灰 + 工業字型
+   ══════════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* 底色與灰階(純白 + 水泥灰漸層) */
+  --paper:      #ffffff;       /* 純白底,主背景 */
+  --paper-2:    #fafafa;       /* 微微下沉的二階白 */
+  --line:       #e8e8e8;       /* 細分隔線(對齊純白) */
+  --line-2:     #d0d0d0;       /* 衝堂用的灰線(L14 1px) */
+
+  --ash:        #b8b8b8;       /* 淡灰 — 第二訊息 */
+  --concrete:   #6a6a6a;       /* 中灰 — 標籤 / 元資料 */
+  --slate:      #2c2c2c;       /* 深灰 — 主文字(不用純黑,工業色感) */
+  --ink:        #1a1a1a;       /* 標題 / 焦點 */
+
+  /* 強調色(極少用,只在 active 狀態 / 焦點輸入框) */
+  --steel:      #3d4a5a;       /* 工業鋼藍灰,active tab 用 */
+
+  /* 狀態色(治療師端不警告,只用於登入頁 / 提示) */
+  --warn:       #c46b3e;       /* 鏽橘(密碼錯誤) */
+
+  /* 字型 */
+  --font-sans:  -apple-system, "SF Pro Text", "Segoe UI", "Helvetica Neue",
+                "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --font-mono:  "JetBrains Mono", "SF Mono", "Consolas", "Courier New", monospace;
+
+  /* 留白尺度(比 admin / booking 大,工業 + abstinence 哲學) */
+  --space-xs:   6px;
+  --space-sm:   12px;
+  --space-md:   20px;
+  --space-lg:   36px;
+  --space-xl:   60px;
+
+  /* 圓角(極小,工業感不要 round) */
+  --r-sm:       2px;
+  --r-md:       3px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--paper);
+  color: var(--slate);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  min-height: 100vh;
+  padding: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   頁面狀態切換
+   ══════════════════════════════════════════════════════════════════════════════ */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   pageAuth — LIFF init / 權限不足 / 連線錯誤
+   ══════════════════════════════════════════════════════════════════════════════ */
+#pageAuth {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+}
+#pageAuth.active { display: flex; }
+
+.auth-box {
+  text-align: center;
+  max-width: 420px;
+}
+
+.auth-mark {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto var(--space-md);
+  border: 1px solid var(--line-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 24px;
+  letter-spacing: 2px;
+  color: var(--concrete);
+}
+
+.auth-title {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--ink);
+  margin-bottom: var(--space-xs);
+}
+
+.auth-sub {
+  font-size: 14px;
+  color: var(--concrete);
+  line-height: 1.7;
+}
+
+.auth-btn {
+  margin-top: var(--space-md);
+  padding: 10px 28px;
+  background: var(--paper);
+  color: var(--slate);
+  border: 1px solid var(--line-2);
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.auth-btn:hover { border-color: var(--slate); }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   pageLogin — 密碼輸入
+   ══════════════════════════════════════════════════════════════════════════════ */
+#pageLogin {
+  min-height: 100vh;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+}
+#pageLogin.active { display: flex; }
+
+.login-box {
+  width: 100%;
+  max-width: 360px;
+}
+
+.login-title {
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  color: var(--ink);
+  margin-bottom: var(--space-xs);
+  text-align: center;
+}
+
+.login-sub {
+  font-size: 13px;
+  color: var(--concrete);
+  text-align: center;
+  margin-bottom: var(--space-lg);
+  letter-spacing: 0.5px;
+}
+
+.login-input {
+  width: 100%;
+  padding: 14px var(--space-sm);
+  background: var(--paper);
+  color: var(--slate);
+  border: 1px solid var(--line-2);
+  border-radius: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  letter-spacing: 2px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.login-input:focus { border-color: var(--steel); }
+
+.login-btn {
+  width: 100%;
+  margin-top: var(--space-md);
+  padding: 14px;
+  background: var(--slate);
+  color: var(--paper);
+  border: none;
+  border-radius: 0;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.login-btn:disabled {
+  background: var(--ash);
+  cursor: not-allowed;
+}
+.login-btn:not(:disabled):hover { background: var(--ink); }
+
+.login-error {
+  display: none;
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--paper-2);
+  border-left: 2px solid var(--warn);
+  font-size: 13px;
+  color: var(--warn);
+  letter-spacing: 0.5px;
+}
+.login-info {
+  display: none;
+  margin-top: var(--space-sm);
+  font-size: 12px;
+  color: var(--ash);
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   pageMain — 主頁
+   ══════════════════════════════════════════════════════════════════════════════ */
+#pageMain {
+  display: none;
+  min-height: 100vh;
+  background: var(--paper);
+}
+#pageMain.active { display: block; }
+
+/* Header — 上方治療師分頁列 + 元資料 */
+.header {
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  padding: var(--space-md) var(--space-lg) 0;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--ash);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: var(--space-md);
+}
+
+.meta-row .brand {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--concrete);
+}
+
+.meta-row .me {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+}
+
+.btn-logout {
+  background: transparent;
+  border: none;
+  color: var(--ash);
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.btn-logout:hover { color: var(--slate); }
+
+/* 治療師分頁列(L1 OWNER 跨治療師檢視) */
+.therapist-tabs {
+  display: flex;
+  gap: 0;
+  padding-bottom: 0;
+}
+
+.therapist-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--concrete);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  padding: 10px var(--space-md) 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.therapist-tab.active {
+  color: var(--ink);
+  border-bottom-color: var(--steel);
+  font-weight: 500;
+}
+.therapist-tab:hover:not(.active) {
+  color: var(--slate);
+}
+
+/* readonly 提示條 */
+.readonly-banner {
+  display: none;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--concrete);
+  letter-spacing: 1px;
+}
+.readonly-banner.visible { display: block; }
+
+/* sub-tab [顯示] / [操作] */
+.subtabs {
+  display: flex;
+  gap: var(--space-md);
+  padding: 0 var(--space-lg);
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+
+.subtab {
+  background: transparent;
+  border: none;
+  color: var(--ash);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  padding: var(--space-sm) 0;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+  margin-bottom: -1px; /* 蓋住 .subtabs 底邊線 */
+  transition: color 0.15s, border-color 0.15s;
+}
+.subtab.active {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+/* 主要內容區 */
+.content {
+  padding: var(--space-lg);
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   [顯示] 分頁:三區塊 — 今天 / 本週 / 候補
+   ══════════════════════════════════════════════════════════════════════════════ */
+.section {
+  margin-bottom: var(--space-xl);
+}
+.section:last-child { margin-bottom: 0; }
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--line);
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 3px;
+  color: var(--ink);
+  text-transform: uppercase;
+}
+
+.section-meta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ash);
+  letter-spacing: 1px;
+}
+
+/* 今天 case 列表 */
+.case-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0; /* 用 row separator,不用 gap 拉開 */
+}
+
+.case-row {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  align-items: baseline;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  border-top: 1px solid var(--line);
+  position: relative;
+}
+.case-list .case-row:first-child { border-top: none; }
+
+/* 衝堂 1px 灰線連結兩列(L14)— 只在今天區塊 */
+.case-row.conflict-with-next::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px; /* 蓋在下一列的 border-top 上方 */
+  height: 1px;
+  background: var(--line-2);
+  z-index: 1;
+}
+
+.case-time {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  letter-spacing: 1px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.case-name {
+  font-size: 16px;
+  color: var(--slate);
+  font-weight: 400;
+}
+
+.case-tag {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--ash);
+  text-transform: uppercase;
+  white-space: nowrap;
+  border: 1px solid var(--line);
+  padding: 2px 8px;
+}
+.case-tag.tag-l2 { color: var(--concrete); border-color: var(--line-2); }
+
+.case-room {
+  display: inline-block;
+  margin-left: var(--space-xs);
+  font-size: 12px;
+  color: var(--ash);
+  letter-spacing: 0.5px;
+}
+
+.empty-hint {
+  padding: var(--space-md) 0;
+  font-size: 13px;
+  color: var(--ash);
+  letter-spacing: 1px;
+}
+
+/* 本週月曆 — Responsive(桌機 6 欄並列、手機直式堆疊) */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+
+.week-day {
+  background: var(--paper);
+  padding: var(--space-sm);
+  min-height: 140px;
+}
+
+.week-day.is-today {
+  background: var(--paper-2);
+}
+
+.week-day-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-sm);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.week-day-name {
+  font-size: 11px;
+  color: var(--concrete);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.week-day-date {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ash);
+}
+
+.week-day.is-today .week-day-date { color: var(--steel); font-weight: 500; }
+
+.week-case {
+  font-size: 12px;
+  color: var(--slate);
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+.week-case .week-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ash);
+  margin-right: 4px;
+}
+
+@media (max-width: 720px) {
+  /* 手機:本週改直式堆疊 */
+  .week-grid {
+    grid-template-columns: 1fr;
+    border: none;
+    background: transparent;
+    gap: var(--space-sm);
+  }
+  .week-day {
+    border: 1px solid var(--line);
+    min-height: auto;
+  }
+  .content { padding: var(--space-md); }
+  .header { padding: var(--space-md) var(--space-md) 0; }
+  .subtabs { padding: 0 var(--space-md); }
+  .case-row { grid-template-columns: 80px 1fr auto; gap: var(--space-sm); }
+  .case-time { font-size: 14px; }
+  .case-name { font-size: 14px; }
+}
+
+/* 候補摘要 */
+.waitlist-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.waitlist-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--space-sm) 0;
+  border-top: 1px solid var(--line);
+  cursor: pointer;
+}
+.waitlist-row:first-child { border-top: none; }
+.waitlist-row:hover .waitlist-name { color: var(--ink); }
+
+.waitlist-name {
+  font-size: 15px;
+  color: var(--slate);
+  transition: color 0.15s;
+}
+
+.waitlist-meta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ash);
+  letter-spacing: 1px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   modal — 候補列表詳情
+   ══════════════════════════════════════════════════════════════════════════════ */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(20, 20, 20, 0.5);
+  z-index: 100;
+  padding: var(--space-lg);
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.visible { display: flex; }
+
+.modal-box {
+  background: var(--paper);
+  border: 1px solid var(--line-2);
+  max-width: 480px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--line);
+}
+.modal-title {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 3px;
+  color: var(--ink);
+  text-transform: uppercase;
+}
+.modal-close {
+  background: transparent;
+  border: none;
+  color: var(--ash);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.modal-close:hover { color: var(--slate); }
+.modal-body {
+  padding: var(--space-md) var(--space-lg);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   [操作] 分頁 placeholder
+   ══════════════════════════════════════════════════════════════════════════════ */
+.placeholder-box {
+  padding: var(--space-xl) var(--space-md);
+  text-align: center;
+  background: var(--paper-2);
+  border: 1px dashed var(--line-2);
+}
+.placeholder-title {
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--concrete);
+  margin-bottom: var(--space-sm);
+}
+.placeholder-sub {
+  font-size: 12px;
+  color: var(--ash);
+  letter-spacing: 1px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   [操作] 分頁:expandable 新增區塊 + 表單 + 資料項目 + 兩階段刪除
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* expandable 新增區塊 */
+.add-block {
+  border-bottom: 1px solid var(--line);
+}
+.add-block:last-child { border-bottom: none; }
+.add-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) 0;
+  cursor: pointer;
+  user-select: none;
+}
+.add-block-head:hover .add-block-title { color: var(--ink); }
+
+.add-block-title {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  color: var(--slate);
+  transition: color 0.15s;
+}
+.add-block-icon {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--ash);
+  transition: transform 0.2s;
+}
+.add-block.expanded .add-block-icon {
+  transform: rotate(45deg);
+}
+
+.add-block-form {
+  display: none;
+  padding: 0 0 var(--space-lg);
+}
+.add-block.expanded .add-block-form { display: block; }
+
+/* 表單 grid */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.form-grid.full { grid-template-columns: 1fr; }
+.form-field { display: flex; flex-direction: column; }
+.form-field.span-2 { grid-column: 1 / -1; }
+
+.form-label {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--concrete);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.form-input,
+.form-select {
+  padding: 10px 12px;
+  background: var(--paper);
+  color: var(--slate);
+  border: 1px solid var(--line-2);
+  border-radius: 0;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.form-input:focus,
+.form-select:focus { border-color: var(--steel); }
+.form-input[type="number"] { font-family: var(--font-mono); }
+.form-input[type="time"],
+.form-input[type="date"] { font-family: var(--font-mono); }
+
+.form-select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M0 0l5 6 5-6z' fill='%236a6a6a'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+/* checkbox group(layer3 期待時段用) */
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--slate);
+  cursor: pointer;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  letter-spacing: 0.5px;
+  user-select: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.checkbox-item:hover { border-color: var(--line-2); }
+.checkbox-item.checked {
+  border-color: var(--steel);
+  background: var(--paper-2);
+}
+.checkbox-item input { margin: 0; cursor: pointer; }
+
+/* 切換鈕(自由輸入時段) */
+.field-toggle {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ash);
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  user-select: none;
+}
+.field-toggle:hover { color: var(--concrete); }
+
+/* 表單錯誤訊息 */
+.form-error {
+  display: none;
+  padding: var(--space-sm);
+  background: var(--paper-2);
+  border-left: 2px solid var(--warn);
+  font-size: 12px;
+  color: var(--warn);
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-md);
+}
+
+/* 表單動作列 */
+.form-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+.btn-primary,
+.btn-secondary {
+  padding: 10px 24px;
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border-radius: 0;
+  transition: all 0.15s;
+}
+.btn-primary {
+  background: var(--slate);
+  color: var(--paper);
+  border: 1px solid var(--slate);
+}
+.btn-primary:disabled {
+  background: var(--ash);
+  border-color: var(--ash);
+  cursor: not-allowed;
+}
+.btn-primary:not(:disabled):hover { background: var(--ink); border-color: var(--ink); }
+.btn-secondary {
+  background: var(--paper);
+  color: var(--concrete);
+  border: 1px solid var(--line-2);
+}
+.btn-secondary:hover { color: var(--slate); border-color: var(--slate); }
+
+/* 4 層資料展示:每筆 entry */
+.entry-list {
+  display: flex;
+  flex-direction: column;
+}
+.entry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.entry-list .entry-row:first-child { border-top: none; }
+
+.entry-row.is-staged {
+  /* 第一階段已執行(terminated/restored/canceled),視覺刪除線+淡色 */
+  opacity: 0.45;
+}
+.entry-row.is-staged .entry-info {
+  text-decoration: line-through;
+  text-decoration-color: var(--ash);
+}
+
+.entry-info {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0; /* 讓 flex 子項可縮 */
+}
+.entry-line-1 {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--slate);
+}
+.entry-line-1 .entry-meta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--concrete);
+}
+.entry-line-2 {
+  font-size: 11px;
+  color: var(--ash);
+  letter-spacing: 1px;
+}
+
+.entry-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.btn-action {
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  background: var(--paper);
+  color: var(--concrete);
+  border: 1px solid var(--line-2);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-action:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--slate);
+}
+.btn-action.btn-action-stage2 {
+  /* 第二階段 [移除] — 工業風,稍微比第一階段重 */
+  color: var(--slate);
+  border-color: var(--slate);
+}
+.btn-action.btn-action-stage2:hover:not(:disabled) {
+  background: var(--slate);
+  color: var(--paper);
+}
+.btn-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+  color: var(--ash);
+}
+
+/* 唯讀檢視:整區 hide(上半新增區)*/
+.readonly-view #addSectionWrap { display: none; }
+
+/* 唯讀提示(下半 entries 上方) */
+.readonly-hint {
+  display: none;
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+  background: var(--paper-2);
+  border-left: 2px solid var(--ash);
+  font-size: 11px;
+  color: var(--concrete);
+  letter-spacing: 1px;
+}
+.readonly-view .readonly-hint { display: block; }
+
+/* confirm modal */
+.confirm-msg {
+  font-size: 14px;
+  color: var(--slate);
+  line-height: 1.7;
+  margin-bottom: var(--space-md);
+}
+.confirm-msg strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+.confirm-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+/* loading overlay 局部覆蓋(送單中) */
+.local-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ash);
+  letter-spacing: 1px;
+}
+
+/* 手機版:form grid 改單欄、checkbox-grid 維持 3 欄(手機 3 個 checkbox 一行還可) */
+@media (max-width: 720px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .entry-row { flex-direction: column; align-items: flex-start; gap: var(--space-sm); }
+  .entry-actions { width: 100%; justify-content: flex-end; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   loading dots(極簡工業風)
+   ══════════════════════════════════════════════════════════════════════════════ */
+.loading-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+.loading-dots span {
+  width: 4px;
+  height: 4px;
+  background: var(--ash);
+  animation: dot-pulse 1.4s infinite ease-in-out;
+}
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot-pulse {
+  0%, 80%, 100% { opacity: 0.2; }
+  40% { opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     pageAuth — LIFF init / 權限不足 / 錯誤
+     ════════════════════════════════════════════════════════════════════════════ -->
+<div id="pageAuth" class="page active">
+  <div class="auth-box">
+    <div class="auth-mark" id="authMark">YX</div>
+    <div class="auth-title" id="authTitle">驗證中</div>
+    <div class="auth-sub" id="authSub"><span class="loading-dots"><span></span><span></span><span></span></span></div>
+    <div id="authActions" style="display:none;">
+      <button class="auth-btn" onclick="location.reload()">重新載入</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     pageLogin — 密碼輸入
+     ════════════════════════════════════════════════════════════════════════════ -->
+<div id="pageLogin" class="page">
+  <div class="login-box">
+    <div class="login-title">心理治療系統</div>
+    <div class="login-sub" id="loginGreeting">— THERAPIST —</div>
+    <input type="password" id="loginPassword" class="login-input" placeholder="密碼" autocomplete="current-password">
+    <button id="btnLogin" class="login-btn" onclick="doTherapistLogin()">登入</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-info" id="loginInfo">閒置已自動登出,請重新登入</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     pageMain — 主頁(治療師分頁列 + sub-tab + 內容)
+     ════════════════════════════════════════════════════════════════════════════ -->
+<div id="pageMain" class="page">
+  <div class="header">
+    <div class="meta-row">
+      <span class="brand">YUEXIN · THERAPY</span>
+      <span class="me">
+        <span id="meName"></span>
+        <button class="btn-logout" onclick="doTherapistLogout()">登出</button>
+      </span>
+    </div>
+    <div class="therapist-tabs" id="therapistTabs">
+      <!-- 動態渲染 -->
+    </div>
+  </div>
+
+  <div class="readonly-banner" id="readonlyBanner">
+    <!-- 動態填入「目前為唯讀檢視:王麟祥的 case」 -->
+  </div>
+
+  <div class="subtabs">
+    <button class="subtab active" data-subtab="display" onclick="switchSubtab('display')">顯示</button>
+    <button class="subtab" data-subtab="operation" onclick="switchSubtab('operation')">操作</button>
+  </div>
+
+  <div class="content">
+    <!-- ━━━ [顯示] 分頁 ━━━ -->
+    <div id="paneDisplay">
+      <!-- 今天 -->
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">今天</div>
+          <div class="section-meta" id="todayMeta"></div>
+        </div>
+        <div class="case-list" id="todayList">
+          <div class="empty-hint">載入中<span class="loading-dots"><span></span><span></span><span></span></span></div>
+        </div>
+      </div>
+
+      <!-- 本週 -->
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">本週</div>
+          <div class="section-meta" id="weekMeta"></div>
+        </div>
+        <div class="week-grid" id="weekGrid">
+          <!-- 動態渲染 6 個 .week-day -->
+        </div>
+      </div>
+
+      <!-- 候補 -->
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">候補</div>
+          <div class="section-meta" id="waitlistMeta"></div>
+        </div>
+        <div class="waitlist-summary" id="waitlistSummary">
+          <div class="empty-hint">載入中<span class="loading-dots"><span></span><span></span><span></span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ━━━ [操作] 分頁 ━━━ -->
+    <div id="paneOperation" style="display:none;">
+
+      <!-- 唯讀提示(僅 OWNER 看別人 case 時顯示) -->
+      <div class="readonly-hint" id="opReadonlyHint">
+        OWNER 唯讀檢視 — 不可新增 / 操作他人 case
+      </div>
+
+      <!-- 上半:新增動作區(唯讀模式整區 hide) -->
+      <div id="addSectionWrap">
+        <div class="section">
+          <div class="section-head">
+            <div class="section-title">新增</div>
+          </div>
+
+          <!-- expandable: 新增長期治療(layer1) -->
+          <div class="add-block" data-add="layer1">
+            <div class="add-block-head" onclick="toggleAddBlock('layer1')">
+              <span class="add-block-title">新增長期治療</span>
+              <span class="add-block-icon">+</span>
+            </div>
+            <div class="add-block-form" id="addFormLayer1">
+              <div class="form-error" id="addErrorLayer1"></div>
+              <div class="form-grid">
+                <div class="form-field span-2">
+                  <label class="form-label">姓名</label>
+                  <input type="text" class="form-input" id="l1_name" maxlength="50">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">星期幾</label>
+                  <select class="form-select" id="l1_weekday" onchange="onL1WeekdayChange()">
+                    <option value="1">週一</option>
+                    <option value="2">週二</option>
+                    <option value="3">週三</option>
+                    <option value="4">週四</option>
+                    <option value="5">週五</option>
+                    <option value="6">週六</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">時段</label>
+                  <select class="form-select" id="l1_slot"></select>
+                  <span class="field-toggle" onclick="toggleCustomSlot('l1')">使用非排班時段</span>
+                </div>
+                <div class="form-field" id="l1_customStartWrap" style="display:none;">
+                  <label class="form-label">開始時間(自訂)</label>
+                  <input type="time" class="form-input" id="l1_customStart">
+                </div>
+                <div class="form-field" id="l1_customEndWrap" style="display:none;">
+                  <label class="form-label">結束時間(自訂)</label>
+                  <input type="time" class="form-input" id="l1_customEnd">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">每週次數</label>
+                  <input type="number" class="form-input" id="l1_freq" min="1" max="7" value="1">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">單次費用</label>
+                  <input type="number" class="form-input" id="l1_fee" min="0" step="100" placeholder="3000">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">治療室</label>
+                  <select class="form-select" id="l1_room">
+                    <option value="">(留白)</option>
+                    <option value="大">大</option>
+                    <option value="中">中</option>
+                    <option value="小">小</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">開始治療日</label>
+                  <input type="date" class="form-input" id="l1_startDate">
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn-secondary" onclick="closeAddBlock('layer1')">取消</button>
+                <button class="btn-primary" onclick="submitAddLayer1()" id="btnSubmitL1">新增</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- expandable: 新增暫停(layer1.5) -->
+          <div class="add-block" data-add="layer1_5">
+            <div class="add-block-head" onclick="toggleAddBlock('layer1_5')">
+              <span class="add-block-title">新增暫停</span>
+              <span class="add-block-icon">+</span>
+            </div>
+            <div class="add-block-form" id="addFormLayer1_5">
+              <div class="form-error" id="addErrorLayer1_5"></div>
+              <div class="form-grid">
+                <div class="form-field span-2">
+                  <label class="form-label">病患姓名(從長期病人選)</label>
+                  <select class="form-select" id="l15_name" onchange="onL15NameChange()">
+                    <option value="">— 請先選病患 —</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">暫停日期</label>
+                  <input type="date" class="form-input" id="l15_date" onchange="updateL15DateHint()">
+                  <span class="field-toggle" id="l15_dateHint" style="cursor:default;"></span>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">時段(從該病患固定時段選)</label>
+                  <select class="form-select" id="l15_slot">
+                    <option value="">— 請先選病患 —</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn-secondary" onclick="closeAddBlock('layer1_5')">取消</button>
+                <button class="btn-primary" onclick="submitAddLayer1_5()" id="btnSubmitL15">新增</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- expandable: 新增單次治療(layer2) -->
+          <div class="add-block" data-add="layer2">
+            <div class="add-block-head" onclick="toggleAddBlock('layer2')">
+              <span class="add-block-title">新增單次治療</span>
+              <span class="add-block-icon">+</span>
+            </div>
+            <div class="add-block-form" id="addFormLayer2">
+              <div class="form-error" id="addErrorLayer2"></div>
+              <div class="form-grid">
+                <div class="form-field span-2">
+                  <label class="form-label">姓名</label>
+                  <input type="text" class="form-input" id="l2_name" maxlength="50">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">日期</label>
+                  <input type="date" class="form-input" id="l2_date" onchange="onL2DateChange()">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">時段</label>
+                  <select class="form-select" id="l2_slot"></select>
+                  <span class="field-toggle" onclick="toggleCustomSlot('l2')">使用非排班時段</span>
+                </div>
+                <div class="form-field" id="l2_customStartWrap" style="display:none;">
+                  <label class="form-label">開始時間(自訂)</label>
+                  <input type="time" class="form-input" id="l2_customStart">
+                </div>
+                <div class="form-field" id="l2_customEndWrap" style="display:none;">
+                  <label class="form-label">結束時間(自訂)</label>
+                  <input type="time" class="form-input" id="l2_customEnd">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">費用</label>
+                  <input type="number" class="form-input" id="l2_fee" min="0" step="100" placeholder="3500">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">治療室</label>
+                  <select class="form-select" id="l2_room">
+                    <option value="">(留白)</option>
+                    <option value="大">大</option>
+                    <option value="中">中</option>
+                    <option value="小">小</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn-secondary" onclick="closeAddBlock('layer2')">取消</button>
+                <button class="btn-primary" onclick="submitAddLayer2()" id="btnSubmitL2">新增</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- expandable: 新增預約候補(layer3) -->
+          <div class="add-block" data-add="layer3">
+            <div class="add-block-head" onclick="toggleAddBlock('layer3')">
+              <span class="add-block-title">新增預約候補</span>
+              <span class="add-block-icon">+</span>
+            </div>
+            <div class="add-block-form" id="addFormLayer3">
+              <div class="form-error" id="addErrorLayer3"></div>
+              <div class="form-grid">
+                <div class="form-field">
+                  <label class="form-label">姓名</label>
+                  <input type="text" class="form-input" id="l3_name" maxlength="50">
+                </div>
+                <div class="form-field">
+                  <label class="form-label">期待次數(每週)</label>
+                  <input type="number" class="form-input" id="l3_freq" min="1" max="7" value="1">
+                </div>
+                <div class="form-field span-2">
+                  <label class="form-label">期待時段(可複選,僅顯示有排班的格)</label>
+                  <div class="checkbox-grid" id="l3_slots"></div>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn-secondary" onclick="closeAddBlock('layer3')">取消</button>
+                <button class="btn-primary" onclick="submitAddLayer3()" id="btnSubmitL3">新增</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 下半:四層資料展示 -->
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">長期治療</div>
+          <div class="section-meta" id="opLayer1Meta"></div>
+        </div>
+        <div class="entry-list" id="opLayer1List"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">暫停</div>
+          <div class="section-meta" id="opLayer1_5Meta"></div>
+        </div>
+        <div class="entry-list" id="opLayer1_5List"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">單次治療</div>
+          <div class="section-meta" id="opLayer2Meta"></div>
+        </div>
+        <div class="entry-list" id="opLayer2List"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">候補</div>
+          <div class="section-meta" id="opLayer3Meta"></div>
+        </div>
+        <div class="entry-list" id="opLayer3List"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     候補詳情 modal
+     ════════════════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalWaitlist">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="modalWaitlistTitle">候補</div>
+      <button class="modal-close" onclick="closeWaitlistModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalWaitlistBody"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     兩階段刪除 confirm modal
+     ════════════════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalConfirm">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="modalConfirmTitle">確認</div>
+      <button class="modal-close" onclick="closeConfirmModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-msg" id="modalConfirmMsg"></div>
+      <div class="form-error" id="modalConfirmError"></div>
+      <div class="confirm-actions">
+        <button class="btn-secondary" onclick="closeConfirmModal()">取消</button>
+        <button class="btn-primary" id="btnConfirmGo" onclick="executeConfirmAction()">確定</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════════════
+   設定
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+// LIFF ID(2026-05-10 申請)
+// LINE Developers Channel: 2009340533(跟 admin / booking 同 channel)
+// Endpoint URL: https://yuexin913.github.io/yuexin-queue/therapy.html
+// 完整 LIFF URL(可給治療師存書籤): https://liff.line.me/2009340533-DTb5StXq
+const LIFF_ID = "2009340533-DTb5StXq";
+
+// API URL(對齊 admin.html line 2912 的 API_URL,治療師端跟 admin 同一個 GAS endpoint)
+const API_URL = "https://script.google.com/macros/s/AKfycbxfbtWB6tyWUvFY1r_d26yxdm3Iz6zVALuZgUwLYyqIOHkJrn7TJJADkUE8VPkKOkZkqw/exec";
+
+const XHR_TIMEOUT = 30000; // 30 秒(對齊 admin)
+const IDLE_TIMEOUT_MS = 15 * 60 * 1000; // A3:閒置 15 分鐘自動登出
+const SESSION_STORAGE_KEY = "yuexinTherapySession_v1";
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   狀態
+   ══════════════════════════════════════════════════════════════════════════════ */
+const state = {
+  lineId: "",
+  sessionToken: "",
+  myName: "",          // 自己中文名(粟寧 / 王麟祥)
+  isOwner: false,      // OWNER = 粟醫師
+  visibleTherapists: [], // 我能看的治療師清單
+  selectedTherapist: "", // 目前選中的治療師(預設自己)
+  loginTime: "",
+  rawEntries: null,    // getTherapistRawEntries 的快取(切分頁時重新拿)
+  subtab: "display",   // 'display' | 'operation'
+  idleTimerId: null
+};
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   localStorage session 持久化(對齊 admin v5.5.15 H12 pattern,但 key 不同)
+   ══════════════════════════════════════════════════════════════════════════════ */
+function saveSessionToStorage() {
+  try {
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+      lineId: state.lineId,
+      sessionToken: state.sessionToken,
+      myName: state.myName,
+      isOwner: state.isOwner,
+      loginTime: state.loginTime,
+      savedAt: Date.now()
+    }));
+  } catch (e) { /* 失敗不影響流程 */ }
+}
+
+function loadSessionFromStorage() {
+  try {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    if (!saved.lineId || !saved.sessionToken || !saved.myName) return null;
+    // 本地 2 小時 TTL(對齊 backend tsess_ TTL 7200 秒)
+    if (saved.savedAt && (Date.now() - saved.savedAt) > 2 * 60 * 60 * 1000) {
+      clearSessionFromStorage();
+      return null;
+    }
+    return saved;
+  } catch (e) { return null; }
+}
+
+function clearSessionFromStorage() {
+  try { localStorage.removeItem(SESSION_STORAGE_KEY); } catch (e) {}
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   xhr helpers(對齊 admin xhrPost / xhrGet pattern,自動帶 token + 處理 session_expired)
+   ══════════════════════════════════════════════════════════════════════════════ */
+function xhrParseResponse(text) {
+  if (typeof text === "string" && text.trimStart().charAt(0) === "<") {
+    throw new Error("SERVER_HTML");
+  }
+  const data = JSON.parse(text);
+  if (data && data.error === "session_expired") {
+    handleSessionExpired();
+    const err = new Error("session_expired");
+    err.isSessionExpired = true;
+    throw err;
+  }
+  return data;
+}
+
+function xhrGet(url) {
+  if (state.sessionToken) {
+    const sep = url.includes("?") ? "&" : "?";
+    url += sep + "token=" + encodeURIComponent(state.sessionToken);
+  }
+  return new Promise(function(resolve, reject) {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", url, true);
+    xhr.timeout = XHR_TIMEOUT;
+    xhr.onload = function() {
+      try { resolve(xhrParseResponse(xhr.responseText)); }
+      catch (e) { reject(e); }
+    };
+    xhr.onerror = function() { reject(new Error("Network error")); };
+    xhr.ontimeout = function() { reject(new Error("Timeout")); };
+    xhr.send();
+  });
+}
+
+function xhrPost(url, payload, options) {
+  if (state.sessionToken && !payload.token) {
+    payload = Object.assign({}, payload, { token: state.sessionToken });
+  }
+  options = options || {};
+  const timeout = options.timeout || XHR_TIMEOUT;
+  // API call 也算「活著」,重置 idle 計時器
+  resetIdleTimer();
+  return new Promise(function(resolve, reject) {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Content-Type", "text/plain");
+    xhr.timeout = timeout;
+    xhr.onload = function() {
+      try { resolve(xhrParseResponse(xhr.responseText)); }
+      catch (e) { reject(e); }
+    };
+    xhr.onerror = function() { reject(new Error("Network error")); };
+    xhr.ontimeout = function() { reject(new Error("Timeout")); };
+    xhr.send(JSON.stringify(payload));
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   idle 計時器(A3:閒置 15 分鐘自動登出)
+   ══════════════════════════════════════════════════════════════════════════════ */
+function resetIdleTimer() {
+  if (state.idleTimerId) clearTimeout(state.idleTimerId);
+  // 只在 main 頁面啟用 idle 計時(login / auth 頁不用)
+  if (!document.getElementById("pageMain").classList.contains("active")) return;
+  state.idleTimerId = setTimeout(function() {
+    handleIdleTimeout();
+  }, IDLE_TIMEOUT_MS);
+}
+
+function bindIdleListeners() {
+  // 任何使用者操作都重置計時(對齊 A3:(i)+(ii) 結合)
+  ["mousedown", "touchstart", "keydown", "scroll"].forEach(function(evt) {
+    window.addEventListener(evt, resetIdleTimer, { passive: true });
+  });
+}
+
+function handleIdleTimeout() {
+  // 後台 logout(不等 response)
+  if (state.lineId) {
+    xhrPost(API_URL, { action: "therapistLogout", lineId: state.lineId })
+      .catch(function() {});
+  }
+  // 清狀態 + 顯示登入頁附說明
+  state.sessionToken = "";
+  clearSessionFromStorage();
+  showPage("pageLogin");
+  document.getElementById("loginInfo").style.display = "block";
+  document.getElementById("loginError").style.display = "none";
+  document.getElementById("loginPassword").value = "";
+  setTimeout(function() {
+    document.getElementById("loginPassword").focus();
+  }, 100);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   頁面切換 + utility
+   ══════════════════════════════════════════════════════════════════════════════ */
+function showPage(id) {
+  document.querySelectorAll(".page").forEach(function(p) {
+    p.classList.remove("active");
+    if (p.id === "pageLogin" || p.id === "pageMain") p.style.display = "";
+  });
+  const target = document.getElementById(id);
+  if (target) {
+    target.classList.add("active");
+    if (id === "pageLogin") target.style.display = "flex";
+    if (id === "pageMain") target.style.display = "block";
+  }
+}
+
+function esc(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function todayYMD() {
+  const d = new Date();
+  return d.getFullYear() + "/" + String(d.getMonth() + 1).padStart(2, "0") + "/" + String(d.getDate()).padStart(2, "0");
+}
+
+function ymdParts(d) {
+  return d.getFullYear() + "/" + String(d.getMonth() + 1).padStart(2, "0") + "/" + String(d.getDate()).padStart(2, "0");
+}
+
+function weekdayName(jsDay) {
+  // JS getDay(): 0=Sun, 1=Mon, ..., 6=Sat
+  // L17 月曆顯示週一到週六(週日休)
+  const names = ["日", "一", "二", "三", "四", "五", "六"];
+  return names[jsDay];
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   LIFF init + 啟動流程
+   ══════════════════════════════════════════════════════════════════════════════ */
+async function bootstrap() {
+  try {
+    // 警示 placeholder LIFF ID(粟醫師上線前必填)
+    if (LIFF_ID === "REPLACE_WITH_THERAPY_LIFF_ID") {
+      // 開發階段允許跳過 LIFF(用 URL ?devLineId=Uxxx 直接測)
+      const params = new URLSearchParams(location.search);
+      const devLineId = params.get("devLineId");
+      if (devLineId) {
+        state.lineId = devLineId;
+        proceedAfterLineId();
+        return;
+      }
+      authShowError("尚未設定 LIFF", "請先在 LINE Developers 申請 LIFF 並填入 LIFF_ID。或用 ?devLineId=Uxxx 開發測試。");
+      return;
+    }
+
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const profile = await liff.getProfile();
+    state.lineId = profile.userId;
+    proceedAfterLineId();
+  } catch (e) {
+    authShowError("連線錯誤", "無法初始化 LIFF。請檢查網路連線後重新載入。");
+  }
+}
+
+async function proceedAfterLineId() {
+  try {
+    // 第一關:白名單快速檢查(不帶密碼)
+    const check = await xhrGet(API_URL + "?action=verifyTherapistLogin&lineId=" + encodeURIComponent(state.lineId) + "&password=");
+    if (check.error === "權限不足") {
+      authShowError("權限不足", "您不在心理治療系統的治療師名單內。");
+      return;
+    }
+    // check.error === "需要密碼" → 白名單通過,看有沒有 session 可恢復
+    const saved = loadSessionFromStorage();
+    if (saved && saved.lineId === state.lineId) {
+      state.sessionToken = saved.sessionToken;
+      state.myName = saved.myName;
+      state.isOwner = saved.isOwner;
+      state.loginTime = saved.loginTime;
+      enterMainPage();
+      return;
+    }
+    // 沒 session,顯示登入頁
+    showPage("pageLogin");
+    setTimeout(function() {
+      document.getElementById("loginPassword").focus();
+    }, 100);
+  } catch (e) {
+    if (e.isSessionExpired) return;
+    authShowError("連線錯誤", "無法驗證身份,請稍後再試。");
+  }
+}
+
+function authShowError(title, sub) {
+  document.getElementById("authMark").textContent = "—";
+  document.getElementById("authTitle").textContent = title;
+  document.getElementById("authSub").textContent = sub;
+  document.getElementById("authActions").style.display = "block";
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   登入 / 登出
+   ══════════════════════════════════════════════════════════════════════════════ */
+let isLoggingIn = false;
+async function doTherapistLogin() {
+  if (isLoggingIn) return;
+  const pwEl = document.getElementById("loginPassword");
+  const errEl = document.getElementById("loginError");
+  const infoEl = document.getElementById("loginInfo");
+  const btn = document.getElementById("btnLogin");
+  errEl.style.display = "none";
+  infoEl.style.display = "none";
+  const password = pwEl.value;
+  if (!password) {
+    errEl.textContent = "請輸入密碼";
+    errEl.style.display = "block";
+    return;
+  }
+  isLoggingIn = true;
+  btn.disabled = true; btn.textContent = "驗證中";
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "requestTherapistSession",
+      lineId: state.lineId,
+      password: password
+    });
+    if (data.success) {
+      state.sessionToken = data.token;
+      state.myName = data.name || "";
+      state.isOwner = !!data.isOwner;
+      state.loginTime = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+      saveSessionToStorage();
+      pwEl.value = "";
+      enterMainPage();
+    } else if (data.error === "locked") {
+      errEl.textContent = "登入失敗次數過多,請稍後再試。";
+      errEl.style.display = "block";
+      btn.disabled = false; btn.textContent = "登入";
+    } else if (data.error === "wrong_password") {
+      pwEl.value = ""; pwEl.focus();
+      const rem = data.remaining || 0;
+      errEl.textContent = "密碼錯誤(剩餘 " + rem + " 次)";
+      errEl.style.display = "block";
+      btn.disabled = false; btn.textContent = "登入";
+    } else {
+      errEl.textContent = data.error || "登入失敗,請稍後再試。";
+      errEl.style.display = "block";
+      btn.disabled = false; btn.textContent = "登入";
+    }
+  } catch (e) {
+    if (e.isSessionExpired) return;
+    errEl.textContent = "連線異常,請稍後再試。";
+    errEl.style.display = "block";
+    btn.disabled = false; btn.textContent = "登入";
+  } finally {
+    isLoggingIn = false;
+  }
+}
+
+function doTherapistLogout() {
+  // 後台清 cache(不等 response)
+  if (state.lineId && state.sessionToken) {
+    xhrPost(API_URL, { action: "therapistLogout", lineId: state.lineId })
+      .catch(function() {});
+  }
+  state.sessionToken = "";
+  state.myName = "";
+  state.isOwner = false;
+  state.loginTime = "";
+  clearSessionFromStorage();
+  if (state.idleTimerId) clearTimeout(state.idleTimerId);
+  showPage("pageLogin");
+  document.getElementById("loginPassword").value = "";
+  document.getElementById("loginError").style.display = "none";
+  document.getElementById("loginInfo").style.display = "none";
+  setTimeout(function() {
+    document.getElementById("loginPassword").focus();
+  }, 100);
+}
+
+function handleSessionExpired() {
+  state.sessionToken = "";
+  clearSessionFromStorage();
+  if (state.idleTimerId) clearTimeout(state.idleTimerId);
+  showPage("pageLogin");
+  const errEl = document.getElementById("loginError");
+  errEl.textContent = "登入已過期,請重新登入。";
+  errEl.style.display = "block";
+  document.getElementById("loginPassword").value = "";
+  document.getElementById("btnLogin").disabled = false;
+  document.getElementById("btnLogin").textContent = "登入";
+  setTimeout(function() {
+    document.getElementById("loginPassword").focus();
+  }, 100);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   主頁進入(載入治療師分頁列 + 預設選自己 + 拉資料)
+   ══════════════════════════════════════════════════════════════════════════════ */
+async function enterMainPage() {
+  showPage("pageMain");
+  document.getElementById("meName").textContent = state.myName + (state.isOwner ? " · OWNER" : "");
+  resetIdleTimer();
+
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "getMyVisibleTherapists",
+      lineId: state.lineId
+    });
+    if (!data.success) {
+      throw new Error(data.error || "未知錯誤");
+    }
+    state.visibleTherapists = data.visibleTherapists || [];
+    state.selectedTherapist = data.myName || (state.visibleTherapists[0] || "");
+    renderTherapistTabs();
+    await loadAndRenderEntries();
+  } catch (e) {
+    if (e.isSessionExpired) return;
+    document.getElementById("todayList").innerHTML =
+      '<div class="empty-hint">載入失敗:' + esc(e.message || "未知錯誤") + '</div>';
+  }
+}
+
+function renderTherapistTabs() {
+  const wrap = document.getElementById("therapistTabs");
+  wrap.innerHTML = "";
+  state.visibleTherapists.forEach(function(name) {
+    const btn = document.createElement("button");
+    btn.className = "therapist-tab" + (name === state.selectedTherapist ? " active" : "");
+    btn.textContent = name;
+    btn.onclick = function() { switchTherapist(name); };
+    wrap.appendChild(btn);
+  });
+}
+
+async function switchTherapist(name) {
+  if (name === state.selectedTherapist) return;
+  state.selectedTherapist = name;
+  // 換治療師排班不一樣,清 schedule cache
+  _scheduleCache = null;
+  // 收乾淨所有展開的表單(避免在錯誤治療師 context 下殘留)
+  collapseAllAddBlocks();
+  document.querySelectorAll(".therapist-tab").forEach(function(b) {
+    b.classList.toggle("active", b.textContent === name);
+  });
+  // 唯讀提示條
+  const banner = document.getElementById("readonlyBanner");
+  if (state.isOwner && name !== state.myName) {
+    banner.textContent = "目前為唯讀檢視:" + name;
+    banner.classList.add("visible");
+  } else {
+    banner.classList.remove("visible");
+  }
+  await loadAndRenderEntries();
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   sub-tab 切換
+   ══════════════════════════════════════════════════════════════════════════════ */
+function switchSubtab(name) {
+  state.subtab = name;
+  document.querySelectorAll(".subtab").forEach(function(b) {
+    b.classList.toggle("active", b.dataset.subtab === name);
+  });
+  document.getElementById("paneDisplay").style.display = (name === "display") ? "" : "none";
+  document.getElementById("paneOperation").style.display = (name === "operation") ? "" : "none";
+  if (name === "display") {
+    // 切回 [顯示] 時收乾淨所有 expandable 表單(對齊 abstinence:不誘導頻繁動)
+    collapseAllAddBlocks();
+  } else if (name === "operation") {
+    renderOperationPane();
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   讀資料 + 算今天/本週/候補
+   ══════════════════════════════════════════════════════════════════════════════ */
+async function loadAndRenderEntries() {
+  document.getElementById("todayList").innerHTML =
+    '<div class="empty-hint">載入中<span class="loading-dots"><span></span><span></span><span></span></span></div>';
+  document.getElementById("weekGrid").innerHTML = "";
+  document.getElementById("waitlistSummary").innerHTML =
+    '<div class="empty-hint">載入中<span class="loading-dots"><span></span><span></span><span></span></span></div>';
+
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "getTherapistRawEntries",
+      lineId: state.lineId,
+      targetTherapist: state.selectedTherapist
+    });
+    if (!data.success) {
+      throw new Error(data.error || "未知錯誤");
+    }
+    state.rawEntries = data;
+    renderToday();
+    renderWeek();
+    renderWaitlist();
+    renderOperationPane();
+  } catch (e) {
+    if (e.isSessionExpired) return;
+    document.getElementById("todayList").innerHTML =
+      '<div class="empty-hint">載入失敗:' + esc(e.message || "未知錯誤") + '</div>';
+  }
+}
+
+/**
+ * 算指定日期該治療師會發生的 case
+ * 演算法精簡版(對齊 backend getTherapyCases line 6850 區段):
+ *   1. layer1 active 列,若 weekday 對 + date >= startDate → 候選
+ *   2. layer1_5 active 蓋掉(同 date + 同 startTime)
+ *   3. layer2 active 直接加(若 date 一致)
+ * 排序:startTime asc
+ */
+function expandCasesForDate(targetYMD) {
+  if (!state.rawEntries) return [];
+  const cases = [];
+  const targetDate = parseYMD(targetYMD);
+  if (!targetDate) return [];
+  const targetWeekday = targetDate.getDay() === 0 ? 7 : targetDate.getDay(); // 週日 0→7,週一 1
+  // L9 / sheet schema:weekday 1-6 = 週一到週六
+
+  // layer1 展開
+  (state.rawEntries.layer1 || []).forEach(function(entry) {
+    if (entry.status !== "active") return;
+    if (parseInt(entry.weekday, 10) !== targetWeekday) return;
+    const start = parseYMD(entry.startDate);
+    if (!start || targetDate < start) return;
+    // 檢查 layer1_5 shadow
+    const shadowed = (state.rawEntries.layer1_5 || []).some(function(s) {
+      return s.status === "active"
+        && s.name === entry.name
+        && s.date === targetYMD
+        && s.startTime === entry.startTime;
+    });
+    if (shadowed) return;
+    cases.push({
+      startTime: entry.startTime,
+      endTime: entry.endTime,
+      name: entry.name,
+      tag: "L1",
+      room: entry.room || "",
+      layerId: entry.layerId
+    });
+  });
+
+  // layer2 加入
+  (state.rawEntries.layer2 || []).forEach(function(entry) {
+    if (entry.status !== "active") return;
+    if (entry.date !== targetYMD) return;
+    cases.push({
+      startTime: entry.startTime,
+      endTime: entry.endTime,
+      name: entry.name,
+      tag: "L2",
+      room: entry.room || "",
+      layerId: entry.layerId
+    });
+  });
+
+  // 排序 startTime asc(HH:MM 字串可直接比對)
+  cases.sort(function(a, b) {
+    return a.startTime < b.startTime ? -1 : (a.startTime > b.startTime ? 1 : 0);
+  });
+  return cases;
+}
+
+function parseYMD(ymd) {
+  if (!ymd || typeof ymd !== "string") return null;
+  const m = ymd.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  if (!m) return null;
+  const d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/**
+ * 衝堂判斷:同治療師同一天兩個 case 的時段重疊就是衝堂
+ * 用於今天區塊的 1px 灰線連結(L14)
+ */
+function isOverlap(caseA, caseB) {
+  // 時段格式 "HH:MM" 字串可直接比較
+  return caseA.startTime < caseB.endTime && caseB.startTime < caseA.endTime;
+}
+
+/* ── 渲染今天區塊 ───────────────────────────── */
+function renderToday() {
+  const todayStr = todayYMD();
+  const todayDate = new Date();
+  document.getElementById("todayMeta").textContent =
+    todayStr + " · 週" + weekdayName(todayDate.getDay());
+
+  const cases = expandCasesForDate(todayStr);
+  const list = document.getElementById("todayList");
+  if (cases.length === 0) {
+    list.innerHTML = '<div class="empty-hint">今天沒有 case</div>';
+    return;
+  }
+  let html = "";
+  cases.forEach(function(c, idx) {
+    const next = cases[idx + 1];
+    const conflict = next && isOverlap(c, next);
+    html += '<div class="case-row' + (conflict ? ' conflict-with-next' : '') + '">'
+         +    '<div class="case-time">' + esc(c.startTime) + '–' + esc(c.endTime) + '</div>'
+         +    '<div class="case-name">' + esc(c.name)
+         +      (c.room ? '<span class="case-room">· ' + esc(c.room) + '室</span>' : '')
+         +    '</div>'
+         +    '<div class="case-tag tag-' + c.tag.toLowerCase() + '">' + esc(c.tag) + '</div>'
+         +  '</div>';
+  });
+  list.innerHTML = html;
+}
+
+/* ── 渲染本週月曆 ───────────────────────────── */
+function renderWeek() {
+  // L17:本週週一到週六(週日休不顯示)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ...
+  const monday = new Date(today);
+  // 算這週的週一(若今天是週日,顯示**下週**的週一?還是本週剛過?)
+  // 簡化:dayOfWeek==0 視為本週的尾巴 → 顯示這週週一(已過)到週六(已過)
+  // 實際情境:粟醫師休週日,週日打開應該看下週,但 v6.0 第一版不做跨週切換
+  // 折中:dayOfWeek==0 顯示下週 一~六(粟醫師週日打開都是看下週準備用)
+  const offset = (dayOfWeek === 0) ? 1 : (1 - dayOfWeek);
+  monday.setDate(today.getDate() + offset);
+
+  document.getElementById("weekMeta").textContent =
+    ymdParts(monday) + " ─ " + ymdParts(new Date(monday.getTime() + 5 * 86400000));
+
+  let html = "";
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(monday.getTime() + i * 86400000);
+    const dStr = ymdParts(d);
+    const isToday = (dStr === todayYMD());
+    const cases = expandCasesForDate(dStr);
+    let inner = "";
+    cases.forEach(function(c) {
+      inner += '<div class="week-case">'
+            +    '<span class="week-time">' + esc(c.startTime) + '</span>'
+            +    esc(c.name)
+            +  '</div>';
+    });
+    if (cases.length === 0) inner = '<div class="empty-hint" style="padding:0;font-size:11px;">—</div>';
+    html += '<div class="week-day' + (isToday ? ' is-today' : '') + '">'
+         +    '<div class="week-day-head">'
+         +      '<span class="week-day-name">週' + weekdayName(d.getDay()) + '</span>'
+         +      '<span class="week-day-date">' + (d.getMonth() + 1) + '/' + d.getDate() + '</span>'
+         +    '</div>'
+         +    inner
+         +  '</div>';
+  }
+  document.getElementById("weekGrid").innerHTML = html;
+}
+
+/* ── 渲染候補區塊 ───────────────────────────── */
+function renderWaitlist() {
+  const layer3 = (state.rawEntries.layer3 || []).filter(function(e) {
+    return e.status === "active";
+  });
+  document.getElementById("waitlistMeta").textContent =
+    layer3.length + " 筆候補";
+  const wrap = document.getElementById("waitlistSummary");
+  if (layer3.length === 0) {
+    wrap.innerHTML = '<div class="empty-hint">目前沒有候補</div>';
+    return;
+  }
+  let html = "";
+  layer3.forEach(function(entry, idx) {
+    let slotsCount = 0;
+    try {
+      const slots = JSON.parse(entry.slots || "[]");
+      slotsCount = slots.length;
+    } catch (e) { /* JSON 異常顯示 0 */ }
+    html += '<div class="waitlist-row" onclick="openWaitlistDetail(' + idx + ')">'
+         +    '<span class="waitlist-name">' + esc(entry.name) + ' · 期待 ' + esc(entry.freq) + ' 次</span>'
+         +    '<span class="waitlist-meta">' + slotsCount + ' 個時段</span>'
+         +  '</div>';
+  });
+  wrap.innerHTML = html;
+}
+
+function openWaitlistDetail(idx) {
+  const entry = (state.rawEntries.layer3 || []).filter(function(e) {
+    return e.status === "active";
+  })[idx];
+  if (!entry) return;
+  let slots = [];
+  try { slots = JSON.parse(entry.slots || "[]"); } catch (e) {}
+  const periodMap = { morning: "早上", afternoon: "下午", evening: "晚上" };
+  const weekdayMap = ["", "一", "二", "三", "四", "五", "六", "日"];
+  let slotsHtml = "";
+  if (slots.length === 0) {
+    slotsHtml = '<div class="empty-hint">沒有期待時段</div>';
+  } else {
+    slotsHtml = '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+    slots.forEach(function(s) {
+      slotsHtml += '<span style="border:1px solid var(--line-2);padding:4px 10px;font-size:12px;letter-spacing:1px;color:var(--concrete);">'
+                +  '週' + (weekdayMap[s.weekday] || "?") + ' ' + (periodMap[s.period] || s.period)
+                +  '</span>';
+    });
+    slotsHtml += '</div>';
+  }
+  const created = entry.createdDate || "—";
+  document.getElementById("modalWaitlistTitle").textContent = entry.name + " · 候補";
+  document.getElementById("modalWaitlistBody").innerHTML =
+    '<div style="font-size:12px;color:var(--ash);letter-spacing:1px;margin-bottom:12px;">'
+    + '登記:' + esc(created) + ' · 期待 ' + esc(entry.freq) + ' 次/週'
+    + '</div>'
+    + '<div style="font-size:12px;color:var(--concrete);letter-spacing:1px;margin-bottom:8px;">期待時段</div>'
+    + slotsHtml;
+  document.getElementById("modalWaitlist").classList.add("visible");
+}
+
+function closeWaitlistModal() {
+  document.getElementById("modalWaitlist").classList.remove("visible");
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   [操作] 分頁邏輯
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+// 是否為唯讀檢視:OWNER 切到別人 tab
+function isReadonlyView() {
+  return state.isOwner && state.selectedTherapist !== state.myName;
+}
+
+/* ── expandable 新增區塊 ──────────────────────────────────────── */
+function toggleAddBlock(layer) {
+  const block = document.querySelector('.add-block[data-add="' + layer + '"]');
+  if (!block) return;
+  const wasOpen = block.classList.contains("expanded");
+  // 全收(只允許一個展開,避免畫面太雜)
+  document.querySelectorAll(".add-block").forEach(function(b) { b.classList.remove("expanded"); });
+  if (!wasOpen) {
+    block.classList.add("expanded");
+    initAddForm(layer);
+  }
+}
+
+function closeAddBlock(layer) {
+  const block = document.querySelector('.add-block[data-add="' + layer + '"]');
+  if (block) block.classList.remove("expanded");
+}
+
+// 全收(切回 [顯示] 或切治療師時用)
+function collapseAllAddBlocks() {
+  document.querySelectorAll(".add-block").forEach(function(b) { b.classList.remove("expanded"); });
+}
+
+// 表單初始化:預填合理 default + 載入下拉
+function initAddForm(layer) {
+  // 清錯誤
+  const errEl = document.getElementById("addError" + (layer === "layer1_5" ? "Layer1_5" : layer === "layer1" ? "Layer1" : layer === "layer2" ? "Layer2" : "Layer3"));
+  if (errEl) errEl.style.display = "none";
+
+  if (layer === "layer1") {
+    initLayer1SlotDropdown();
+    document.getElementById("l1_name").value = "";
+    // 預填開始治療日 = 今天
+    const today = new Date();
+    document.getElementById("l1_startDate").value = today.toISOString().slice(0, 10);
+    // 重置自訂時段切換
+    resetCustomSlot("l1");
+  } else if (layer === "layer1_5") {
+    initLayer1_5NameDropdown();
+    document.getElementById("l15_date").value = "";
+  } else if (layer === "layer2") {
+    document.getElementById("l2_name").value = "";
+    document.getElementById("l2_date").value = "";
+    document.getElementById("l2_fee").value = "";
+    document.getElementById("l2_room").value = "";
+    document.getElementById("l2_slot").innerHTML = '<option value="">— 請先選日期 —</option>';
+    resetCustomSlot("l2");
+  } else if (layer === "layer3") {
+    document.getElementById("l3_name").value = "";
+    document.getElementById("l3_freq").value = "1";
+    initLayer3SlotsCheckboxes();
+  }
+}
+
+/* ── 排班下拉 helpers ─────────────────────────────────────────── */
+
+// THERAPIST_SCHEDULE 在前端是空的(排班從 backend 來),demo 模式可從 DEMO_SCHEDULE 注入
+// 真實環境:Step 3-B 載入 therapy.html 時呼叫 getTherapistSchedule 拿
+let _scheduleCache = null;
+
+async function loadScheduleIfNeeded() {
+  if (_scheduleCache) return _scheduleCache;
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "getTherapistSchedule",
+      therapistName: state.selectedTherapist
+    });
+    if (data && data.success) {
+      _scheduleCache = data.schedule || [];
+    } else {
+      _scheduleCache = [];
+    }
+  } catch (e) {
+    _scheduleCache = [];
+  }
+  return _scheduleCache;
+}
+
+// 拿某 weekday 的排班 slots
+function scheduleSlotsForWeekday(weekday) {
+  if (!_scheduleCache) return [];
+  const day = _scheduleCache.find(function(d) { return parseInt(d.weekday, 10) === parseInt(weekday, 10); });
+  return day ? (day.slots || []) : [];
+}
+
+// L1 時段下拉
+async function initLayer1SlotDropdown() {
+  await loadScheduleIfNeeded();
+  const wd = parseInt(document.getElementById("l1_weekday").value, 10);
+  const slots = scheduleSlotsForWeekday(wd);
+  const sel = document.getElementById("l1_slot");
+  sel.innerHTML = "";
+  if (slots.length === 0) {
+    sel.innerHTML = '<option value="">(此天無排班,請使用非排班時段)</option>';
+  } else {
+    slots.forEach(function(s) {
+      const opt = document.createElement("option");
+      opt.value = s.start + "-" + s.end;
+      opt.textContent = s.start + " – " + s.end;
+      sel.appendChild(opt);
+    });
+  }
+}
+
+// 切換 L1 weekday 時要重 load slots
+function onL1WeekdayChange() {
+  initLayer1SlotDropdown();
+}
+
+// L2 日期變化 → load 該天的排班 slots
+async function onL2DateChange() {
+  await loadScheduleIfNeeded();
+  const dateStr = document.getElementById("l2_date").value; // YYYY-MM-DD
+  if (!dateStr) {
+    document.getElementById("l2_slot").innerHTML = '<option value="">— 請先選日期 —</option>';
+    return;
+  }
+  // 用 split 解析,避免時區問題(new Date(YYYY-MM-DD) 是 UTC midnight,在某些時區會差一天)
+  const parts = dateStr.split("-");
+  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  let wd = d.getDay();
+  if (wd === 0) wd = 7; // 週日
+  const slots = scheduleSlotsForWeekday(wd);
+  const sel = document.getElementById("l2_slot");
+  sel.innerHTML = "";
+  if (slots.length === 0) {
+    sel.innerHTML = '<option value="">(此天無排班,請使用非排班時段)</option>';
+  } else {
+    slots.forEach(function(s) {
+      const opt = document.createElement("option");
+      opt.value = s.start + "-" + s.end;
+      opt.textContent = s.start + " – " + s.end;
+      sel.appendChild(opt);
+    });
+  }
+}
+
+// 自訂時段切換鈕(L1 / L2 共用)
+function toggleCustomSlot(prefix) {
+  const slotSel = document.getElementById(prefix + "_slot");
+  const customStartWrap = document.getElementById(prefix + "_customStartWrap");
+  const customEndWrap = document.getElementById(prefix + "_customEndWrap");
+  const toggle = document.querySelector('[onclick="toggleCustomSlot(\'' + prefix + '\')"]');
+  const isCustom = customStartWrap.style.display !== "none";
+  if (isCustom) {
+    customStartWrap.style.display = "none";
+    customEndWrap.style.display = "none";
+    slotSel.disabled = false;
+    if (toggle) toggle.textContent = "使用非排班時段";
+  } else {
+    customStartWrap.style.display = "";
+    customEndWrap.style.display = "";
+    slotSel.disabled = true;
+    if (toggle) toggle.textContent = "改回排班內時段";
+  }
+}
+
+function resetCustomSlot(prefix) {
+  document.getElementById(prefix + "_customStartWrap").style.display = "none";
+  document.getElementById(prefix + "_customEndWrap").style.display = "none";
+  const slotSel = document.getElementById(prefix + "_slot");
+  if (slotSel) slotSel.disabled = false;
+  const toggle = document.querySelector('[onclick="toggleCustomSlot(\'' + prefix + '\')"]');
+  if (toggle) toggle.textContent = "使用非排班時段";
+}
+
+// L1.5 病患下拉:從目前資料的 layer1 active entries 撈姓名(去重)
+function initLayer1_5NameDropdown() {
+  const names = [];
+  const seen = {};
+  if (state.rawEntries && state.rawEntries.layer1) {
+    state.rawEntries.layer1.forEach(function(e) {
+      if (e.status === "active" && !seen[e.name]) {
+        seen[e.name] = true;
+        names.push(e.name);
+      }
+    });
+  }
+  const sel = document.getElementById("l15_name");
+  sel.innerHTML = '<option value="">— 請選病患 —</option>';
+  if (names.length === 0) {
+    sel.innerHTML = '<option value="">— 沒有長期病患 —</option>';
+  } else {
+    names.forEach(function(n) {
+      const opt = document.createElement("option");
+      opt.value = n;
+      opt.textContent = n;
+      sel.appendChild(opt);
+    });
+  }
+  // 重置時段下拉
+  document.getElementById("l15_slot").innerHTML = '<option value="">— 請先選病患 —</option>';
+}
+
+function updateL15DateHint() {
+  const dateStr = document.getElementById("l15_date").value;
+  const hint = document.getElementById("l15_dateHint");
+  if (!dateStr) { hint.textContent = ""; return; }
+  const parts = dateStr.split("-");
+  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  const wdNames = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
+  hint.textContent = wdNames[d.getDay()];
+}
+
+// L1.5 病患選定後,載入該病患在 layer1 的所有固定時段(精準到 weekday + start + end)
+function onL15NameChange() {
+  const name = document.getElementById("l15_name").value;
+  const sel = document.getElementById("l15_slot");
+  sel.innerHTML = "";
+  if (!name) {
+    sel.innerHTML = '<option value="">— 請先選病患 —</option>';
+    return;
+  }
+  const slots = [];
+  if (state.rawEntries && state.rawEntries.layer1) {
+    state.rawEntries.layer1.forEach(function(e) {
+      if (e.status === "active" && e.name === name) {
+        slots.push({ weekday: e.weekday, start: e.startTime, end: e.endTime });
+      }
+    });
+  }
+  if (slots.length === 0) {
+    sel.innerHTML = '<option value="">— 該病患無進行中時段 —</option>';
+    return;
+  }
+  const wdNames = ["", "週一", "週二", "週三", "週四", "週五", "週六"];
+  slots.forEach(function(s) {
+    const opt = document.createElement("option");
+    opt.value = s.weekday + "|" + s.start + "|" + s.end;
+    opt.textContent = wdNames[s.weekday] + " " + s.start + " – " + s.end;
+    sel.appendChild(opt);
+  });
+}
+
+// L3 期待時段 checkboxes(從排班動態生成,只列有排班的格)
+async function initLayer3SlotsCheckboxes() {
+  await loadScheduleIfNeeded();
+  const wrap = document.getElementById("l3_slots");
+  wrap.innerHTML = "";
+  if (!_scheduleCache || _scheduleCache.length === 0) {
+    wrap.innerHTML = '<div class="empty-hint" style="grid-column:1/-1;">無排班資料</div>';
+    return;
+  }
+  const wdNames = ["", "週一", "週二", "週三", "週四", "週五", "週六"];
+  const periodNames = { morning: "早上", afternoon: "下午", evening: "晚上" };
+  // 蒐集所有「(weekday, period)」獨特 pair
+  const seen = {};
+  _scheduleCache.forEach(function(d) {
+    (d.slots || []).forEach(function(s) {
+      const key = d.weekday + "|" + s.period;
+      if (!seen[key]) seen[key] = { weekday: d.weekday, period: s.period };
+    });
+  });
+  // 排序:weekday asc → period(morning < afternoon < evening)
+  const periodOrder = { morning: 1, afternoon: 2, evening: 3 };
+  const items = Object.values(seen).sort(function(a, b) {
+    if (a.weekday !== b.weekday) return a.weekday - b.weekday;
+    return periodOrder[a.period] - periodOrder[b.period];
+  });
+  items.forEach(function(it) {
+    const id = "l3_chk_" + it.weekday + "_" + it.period;
+    const label = document.createElement("label");
+    label.className = "checkbox-item";
+    label.innerHTML =
+      '<input type="checkbox" id="' + id + '" data-weekday="' + it.weekday + '" data-period="' + it.period + '">'
+      + '<span>' + wdNames[it.weekday] + " " + periodNames[it.period] + '</span>';
+    label.querySelector("input").addEventListener("change", function(ev) {
+      label.classList.toggle("checked", ev.target.checked);
+    });
+    wrap.appendChild(label);
+  });
+}
+
+/* ── 表單送出 ──────────────────────────────────────────────────── */
+
+function showFormError(layer, msg) {
+  const errId = layer === "layer1" ? "addErrorLayer1"
+              : layer === "layer1_5" ? "addErrorLayer1_5"
+              : layer === "layer2" ? "addErrorLayer2"
+              : "addErrorLayer3";
+  const el = document.getElementById(errId);
+  if (el) {
+    el.textContent = msg;
+    el.style.display = "block";
+  }
+}
+
+function setFormBusy(btnId, busy) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  if (busy) {
+    btn.disabled = true;
+    btn.dataset.label = btn.textContent;
+    btn.textContent = "送出中";
+  } else {
+    btn.disabled = false;
+    btn.textContent = btn.dataset.label || "新增";
+  }
+}
+
+// 拿時段(從 select 或 custom input)
+function readSlot(prefix) {
+  const customWrap = document.getElementById(prefix + "_customStartWrap");
+  if (customWrap.style.display !== "none") {
+    return {
+      startTime: document.getElementById(prefix + "_customStart").value,
+      endTime: document.getElementById(prefix + "_customEnd").value,
+      isCustom: true
+    };
+  }
+  const val = document.getElementById(prefix + "_slot").value;
+  if (!val) return { startTime: "", endTime: "", isCustom: false };
+  const parts = val.split("-");
+  return { startTime: parts[0] || "", endTime: parts[1] || "", isCustom: false };
+}
+
+async function submitAddLayer1() {
+  const name = document.getElementById("l1_name").value.trim();
+  const weekday = parseInt(document.getElementById("l1_weekday").value, 10);
+  const slot = readSlot("l1");
+  const freq = parseInt(document.getElementById("l1_freq").value, 10);
+  const fee = parseInt(document.getElementById("l1_fee").value, 10);
+  const room = document.getElementById("l1_room").value;
+  const startDate = document.getElementById("l1_startDate").value; // YYYY-MM-DD
+  if (!name) return showFormError("layer1", "姓名必填");
+  if (!slot.startTime || !slot.endTime) return showFormError("layer1", "時段必填");
+  if (isNaN(freq) || freq < 1 || freq > 7) return showFormError("layer1", "每週次數須為 1-7");
+  if (isNaN(fee) || fee < 0) return showFormError("layer1", "費用須為非負整數");
+  if (!startDate) return showFormError("layer1", "開始治療日必填");
+
+  setFormBusy("btnSubmitL1", true);
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "addLayer1Entry",
+      lineId: state.lineId,
+      therapist: state.selectedTherapist,
+      name: name,
+      weekday: weekday,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      freq: freq,
+      fee: fee,
+      room: room,
+      startDate: startDate.replace(/-/g, "/")
+    });
+    if (data.success) {
+      closeAddBlock("layer1");
+      await loadAndRenderEntries();
+    } else {
+      showFormError("layer1", data.error || "新增失敗");
+    }
+  } catch (e) {
+    if (e.isSessionExpired) return;
+    showFormError("layer1", e.message || "連線異常");
+  } finally {
+    setFormBusy("btnSubmitL1", false);
+  }
+}
+
+async function submitAddLayer1_5() {
+  const name = document.getElementById("l15_name").value;
+  const slotVal = document.getElementById("l15_slot").value;
+  const date = document.getElementById("l15_date").value;
+  if (!name) return showFormError("layer1_5", "請選病患");
+  if (!slotVal) return showFormError("layer1_5", "請選時段");
+  if (!date) return showFormError("layer1_5", "請選暫停日期");
+  const parts = slotVal.split("|"); // weekday|start|end
+  const startTime = parts[1];
+  const endTime = parts[2];
+
+  setFormBusy("btnSubmitL15", true);
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "addLayer1_5Entry",
+      lineId: state.lineId,
+      therapist: state.selectedTherapist,
+      name: name,
+      date: date.replace(/-/g, "/"),
+      startTime: startTime,
+      endTime: endTime
+    });
+    if (data.success) {
+      closeAddBlock("layer1_5");
+      await loadAndRenderEntries();
+    } else {
+      showFormError("layer1_5", data.error || "新增失敗");
+    }
+  } catch (e) {
+    if (e.isSessionExpired) return;
+    showFormError("layer1_5", e.message || "連線異常");
+  } finally {
+    setFormBusy("btnSubmitL15", false);
+  }
+}
+
+async function submitAddLayer2() {
+  const name = document.getElementById("l2_name").value.trim();
+  const date = document.getElementById("l2_date").value;
+  const slot = readSlot("l2");
+  const fee = parseInt(document.getElementById("l2_fee").value, 10);
+  const room = document.getElementById("l2_room").value;
+  if (!name) return showFormError("layer2", "姓名必填");
+  if (!date) return showFormError("layer2", "日期必填");
+  if (!slot.startTime || !slot.endTime) return showFormError("layer2", "時段必填");
+  if (isNaN(fee) || fee < 0) return showFormError("layer2", "費用須為非負整數");
+
+  setFormBusy("btnSubmitL2", true);
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "addLayer2Entry",
+      lineId: state.lineId,
+      therapist: state.selectedTherapist,
+      name: name,
+      date: date.replace(/-/g, "/"),
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      fee: fee,
+      room: room
+    });
+    if (data.success) {
+      closeAddBlock("layer2");
+      await loadAndRenderEntries();
+    } else {
+      showFormError("layer2", data.error || "新增失敗");
+    }
+  } catch (e) {
+    if (e.isSessionExpired) return;
+    showFormError("layer2", e.message || "連線異常");
+  } finally {
+    setFormBusy("btnSubmitL2", false);
+  }
+}
+
+async function submitAddLayer3() {
+  const name = document.getElementById("l3_name").value.trim();
+  const freq = parseInt(document.getElementById("l3_freq").value, 10);
+  if (!name) return showFormError("layer3", "姓名必填");
+  if (isNaN(freq) || freq < 1 || freq > 7) return showFormError("layer3", "期待次數須為 1-7");
+  const slots = [];
+  document.querySelectorAll("#l3_slots input[type=checkbox]:checked").forEach(function(cb) {
+    slots.push({
+      weekday: parseInt(cb.dataset.weekday, 10),
+      period: cb.dataset.period
+    });
+  });
+  if (slots.length === 0) return showFormError("layer3", "至少選一個期待時段");
+
+  setFormBusy("btnSubmitL3", true);
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "addLayer3Entry",
+      lineId: state.lineId,
+      therapist: state.selectedTherapist,
+      name: name,
+      freq: freq,
+      slots: slots
+    });
+    if (data.success) {
+      closeAddBlock("layer3");
+      await loadAndRenderEntries();
+    } else {
+      showFormError("layer3", data.error || "新增失敗");
+    }
+  } catch (e) {
+    if (e.isSessionExpired) return;
+    showFormError("layer3", e.message || "連線異常");
+  } finally {
+    setFormBusy("btnSubmitL3", false);
+  }
+}
+
+/* ── 4 層資料展示 ──────────────────────────────────────────────── */
+
+function renderOperationPane() {
+  // 唯讀模式:整個 paneOperation 加 class
+  const pane = document.getElementById("paneOperation");
+  pane.classList.toggle("readonly-view", isReadonlyView());
+
+  renderOpLayer1();
+  renderOpLayer1_5();
+  renderOpLayer2();
+  renderOpLayer3();
+}
+
+function _renderEntriesGeneric(opts) {
+  // opts: { entries, listEl, metaEl, renderInfo, stage1Action, stage2Action, stage1Label, stagedStatuses }
+  const list = document.getElementById(opts.listEl);
+  const meta = document.getElementById(opts.metaEl);
+  const visibleEntries = opts.entries.filter(function(e) { return e.status !== "removed"; });
+  meta.textContent = visibleEntries.length + " 筆";
+  if (visibleEntries.length === 0) {
+    list.innerHTML = '<div class="empty-hint">— 無資料 —</div>';
+    return;
+  }
+  // 排序:active 在前,staged 在後,各自再依 layerId
+  visibleEntries.sort(function(a, b) {
+    const aStaged = opts.stagedStatuses.indexOf(a.status) !== -1 ? 1 : 0;
+    const bStaged = opts.stagedStatuses.indexOf(b.status) !== -1 ? 1 : 0;
+    if (aStaged !== bStaged) return aStaged - bStaged;
+    return a.layerId < b.layerId ? -1 : 1;
+  });
+  const readonly = isReadonlyView();
+  let html = "";
+  visibleEntries.forEach(function(e) {
+    const isStaged = opts.stagedStatuses.indexOf(e.status) !== -1;
+    const info = opts.renderInfo(e);
+    // 注:onclick 引數用 encodeURIComponent 包,接收端 decodeURIComponent
+    // 對齊 admin v5.4.5 [C1] 修補 pattern,防 onclick attr 被使用者輸入的 ' 或 < 破壞
+    const encLayerId = encodeURIComponent(e.layerId);
+    const encLabel = encodeURIComponent(info.shortLabel);
+    const encStage1Label = encodeURIComponent(opts.stage1Label);
+    const stageBtn = isStaged
+      ? '<button class="btn-action btn-action-stage2" '
+        + (readonly ? 'disabled title="OWNER 唯讀檢視,不可操作他人 case"' : 'onclick="confirmStage2(\'' + opts.stage2Action + '\',\'' + encLayerId + '\',\'' + encLabel + '\')"')
+        + '>移除</button>'
+      : '<button class="btn-action" '
+        + (readonly ? 'disabled title="OWNER 唯讀檢視,不可操作他人 case"' : 'onclick="confirmStage1(\'' + opts.stage1Action + '\',\'' + encLayerId + '\',\'' + encLabel + '\',\'' + encStage1Label + '\')"')
+        + '>' + esc(opts.stage1Label) + '</button>';
+    html += '<div class="entry-row' + (isStaged ? ' is-staged' : '') + '">'
+         +    '<div class="entry-info">'
+         +      '<div class="entry-line-1">' + info.line1 + '</div>'
+         +      (info.line2 ? '<div class="entry-line-2">' + info.line2 + '</div>' : '')
+         +    '</div>'
+         +    '<div class="entry-actions">' + stageBtn + '</div>'
+         +  '</div>';
+  });
+  list.innerHTML = html;
+}
+
+function renderOpLayer1() {
+  const wdNames = ["", "週一", "週二", "週三", "週四", "週五", "週六"];
+  _renderEntriesGeneric({
+    entries: (state.rawEntries && state.rawEntries.layer1) || [],
+    listEl: "opLayer1List",
+    metaEl: "opLayer1Meta",
+    stage1Action: "terminateLayer1",
+    stage2Action: "removeLayer1",
+    stage1Label: "終止治療",
+    stagedStatuses: ["terminated"],
+    renderInfo: function(e) {
+      const room = e.room ? ' · ' + esc(e.room) + '室' : '';
+      return {
+        shortLabel: e.name + " " + (wdNames[e.weekday] || "?") + " " + e.startTime,
+        line1: '<span>' + esc(e.name) + '</span>'
+              + '<span class="entry-meta">' + (wdNames[e.weekday] || "?") + ' ' + esc(e.startTime) + '–' + esc(e.endTime) + '</span>'
+              + '<span class="entry-meta">' + esc(e.freq) + '/' + esc(e.fee) + room + '</span>',
+        line2: e.layerId + ' · 開始 ' + esc(e.startDate)
+              + (e.status === "terminated" ? ' · 終止 ' + esc(e.terminatedAt || "") : "")
+      };
+    }
+  });
+}
+
+function renderOpLayer1_5() {
+  _renderEntriesGeneric({
+    entries: (state.rawEntries && state.rawEntries.layer1_5) || [],
+    listEl: "opLayer1_5List",
+    metaEl: "opLayer1_5Meta",
+    stage1Action: "restoreLayer1_5",
+    stage2Action: "removeLayer1_5",
+    stage1Label: "恢復",
+    stagedStatuses: ["restored"],
+    renderInfo: function(e) {
+      return {
+        shortLabel: e.name + " " + e.date + " " + e.startTime,
+        line1: '<span>' + esc(e.name) + '</span>'
+              + '<span class="entry-meta">' + esc(e.date) + ' ' + esc(e.startTime) + '–' + esc(e.endTime) + '</span>',
+        line2: e.layerId
+              + (e.status === "restored" ? ' · 已恢復 ' + esc(e.restoredAt || "") : "")
+      };
+    }
+  });
+}
+
+function renderOpLayer2() {
+  _renderEntriesGeneric({
+    entries: (state.rawEntries && state.rawEntries.layer2) || [],
+    listEl: "opLayer2List",
+    metaEl: "opLayer2Meta",
+    stage1Action: "cancelLayer2",
+    stage2Action: "removeLayer2",
+    stage1Label: "取消",
+    stagedStatuses: ["canceled"],
+    renderInfo: function(e) {
+      const room = e.room ? ' · ' + esc(e.room) + '室' : '';
+      return {
+        shortLabel: e.name + " " + e.date + " " + e.startTime,
+        line1: '<span>' + esc(e.name) + '</span>'
+              + '<span class="entry-meta">' + esc(e.date) + ' ' + esc(e.startTime) + '–' + esc(e.endTime) + '</span>'
+              + '<span class="entry-meta">' + esc(e.fee) + room + '</span>',
+        line2: e.layerId
+              + (e.status === "canceled" ? ' · 已取消 ' + esc(e.canceledAt || "") : "")
+      };
+    }
+  });
+}
+
+function renderOpLayer3() {
+  const wdNames = ["", "一", "二", "三", "四", "五", "六"];
+  const periodNames = { morning: "早上", afternoon: "下午", evening: "晚上" };
+  _renderEntriesGeneric({
+    entries: (state.rawEntries && state.rawEntries.layer3) || [],
+    listEl: "opLayer3List",
+    metaEl: "opLayer3Meta",
+    stage1Action: "cancelLayer3",
+    stage2Action: "removeLayer3",
+    stage1Label: "取消",
+    stagedStatuses: ["canceled"],
+    renderInfo: function(e) {
+      let slots = [];
+      try { slots = JSON.parse(e.slots || "[]"); } catch (err) {}
+      const slotsStr = slots.map(function(s) {
+        return "週" + (wdNames[s.weekday] || "?") + (periodNames[s.period] || s.period);
+      }).join(" / ");
+      return {
+        shortLabel: e.name + " 候補",
+        line1: '<span>' + esc(e.name) + '</span>'
+              + '<span class="entry-meta">期待 ' + esc(e.freq) + ' 次</span>'
+              + '<span class="entry-meta">' + esc(slotsStr) + '</span>',
+        line2: e.layerId + ' · 登記 ' + esc(e.createdDate || "")
+              + (e.status === "canceled" ? ' · 已取消 ' + esc(e.canceledAt || "") : "")
+      };
+    }
+  });
+}
+
+/* ── 兩階段刪除 confirm ─────────────────────────────────────── */
+
+let _pendingConfirm = null; // { action, layerId, label }
+
+function confirmStage1(action, layerIdEnc, labelEnc, actionLabelEnc) {
+  // 接收端 decodeURIComponent(對齊 admin v5.4.5 [C1] pattern)
+  let layerId, label, actionLabel;
+  try {
+    layerId = decodeURIComponent(layerIdEnc || "");
+    label = decodeURIComponent(labelEnc || "");
+    actionLabel = decodeURIComponent(actionLabelEnc || "");
+  } catch (e) { return; }
+  _pendingConfirm = { action: action, layerId: layerId, label: label };
+  document.getElementById("modalConfirmTitle").textContent = actionLabel;
+  document.getElementById("modalConfirmMsg").innerHTML =
+    '確認執行 <strong>' + esc(actionLabel) + '</strong>?<br>'
+    + '<span style="color:var(--ash);font-size:12px;letter-spacing:1px;">'
+    + esc(label) + '</span><br><br>'
+    + '<span style="color:var(--concrete);font-size:12px;">'
+    + '完成後該筆會以刪除線顯示,可於下一階段 [移除] 自畫面消除。'
+    + '</span>';
+  document.getElementById("modalConfirmError").style.display = "none";
+  document.getElementById("btnConfirmGo").disabled = false;
+  document.getElementById("btnConfirmGo").textContent = "確定";
+  document.getElementById("modalConfirm").classList.add("visible");
+}
+
+function confirmStage2(action, layerIdEnc, labelEnc) {
+  let layerId, label;
+  try {
+    layerId = decodeURIComponent(layerIdEnc || "");
+    label = decodeURIComponent(labelEnc || "");
+  } catch (e) { return; }
+  _pendingConfirm = { action: action, layerId: layerId, label: label };
+  document.getElementById("modalConfirmTitle").textContent = "移除";
+  document.getElementById("modalConfirmMsg").innerHTML =
+    '確認 <strong>移除</strong> 此筆?<br>'
+    + '<span style="color:var(--ash);font-size:12px;letter-spacing:1px;">'
+    + esc(label) + '</span><br><br>'
+    + '<span style="color:var(--concrete);font-size:12px;">'
+    + '畫面將從清單消除。資料保留於試算表供 audit。'
+    + '</span>';
+  document.getElementById("modalConfirmError").style.display = "none";
+  document.getElementById("btnConfirmGo").disabled = false;
+  document.getElementById("btnConfirmGo").textContent = "確定移除";
+  document.getElementById("modalConfirm").classList.add("visible");
+}
+
+function closeConfirmModal() {
+  document.getElementById("modalConfirm").classList.remove("visible");
+  _pendingConfirm = null;
+}
+
+async function executeConfirmAction() {
+  if (!_pendingConfirm) return;
+  const { action, layerId } = _pendingConfirm;
+  const btn = document.getElementById("btnConfirmGo");
+  const errEl = document.getElementById("modalConfirmError");
+  errEl.style.display = "none";
+  btn.disabled = true;
+  btn.textContent = "送出中";
+  try {
+    const data = await xhrPost(API_URL, {
+      action: action,
+      lineId: state.lineId,
+      layerId: layerId
+    });
+    if (data.success) {
+      closeConfirmModal();
+      await loadAndRenderEntries();
+    } else {
+      errEl.textContent = data.error || "操作失敗";
+      errEl.style.display = "block";
+      btn.disabled = false;
+      btn.textContent = "確定";
+    }
+  } catch (e) {
+    if (e.isSessionExpired) return;
+    errEl.textContent = e.message || "連線異常";
+    errEl.style.display = "block";
+    btn.disabled = false;
+    btn.textContent = "確定";
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   啟動
+   ══════════════════════════════════════════════════════════════════════════════ */
+window.addEventListener("DOMContentLoaded", function() {
+  bindIdleListeners();
+  // Enter 觸發登入
+  document.getElementById("loginPassword").addEventListener("keypress", function(ev) {
+    if (ev.key === "Enter") doTherapistLogin();
+  });
+  // modal overlay 點擊關閉
+  document.getElementById("modalWaitlist").addEventListener("click", function(ev) {
+    if (ev.target.id === "modalWaitlist") closeWaitlistModal();
+  });
+  document.getElementById("modalConfirm").addEventListener("click", function(ev) {
+    if (ev.target.id === "modalConfirm") closeConfirmModal();
+  });
+  bootstrap();
+});
+</script>
+</body>
+</html>
