@@ -1401,7 +1401,7 @@ body {
 <div id="pageAuth" class="page active">
   <div class="auth-box">
     <div class="auth-mark" id="authMark">YX</div>
-    <div class="auth-title" id="authTitle">驗證中</div>
+    <div class="auth-title" id="authTitle">身分驗證中</div>
     <div class="auth-sub" id="authSub"><span class="loading-dots"><span></span><span></span><span></span></span></div>
     <div id="authActions" style="display:none;">
       <button class="auth-btn" onclick="location.reload()">重新載入</button>
@@ -2082,12 +2082,12 @@ async function doTherapistLogin() {
     return;
   }
   isLoggingIn = true;
-  // v0.6 r2:對齊方案 C — form 整體淡化(input、副標等都灰),按鈕保持實體 + 三點脈動 + 「驗證中」文字
+  // v0.6 r2:對齊方案 C — form 整體淡化(input、副標等都灰),按鈕保持實體 + 三點脈動 + 「進入系統」文字
   if (loginBox) loginBox.classList.add("form-busy");
   btn.disabled = true;
   btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:10px;justify-content:center;">'
                 + '<span class="btn-dots"><span></span><span></span><span></span></span>'
-                + '<span>驗證中</span>'
+                + '<span>進入系統</span>'
                 + '</span>';
 
   // 失敗時恢復 form 狀態的 helper
@@ -2141,7 +2141,7 @@ async function doTherapistLogin() {
 async function doTherapistLogout() {
   // v0.6 r4:登出動畫 — 用 overlay 蓋住整個主頁,跑完才切到登入頁
   // 對齊 enterMainPage 的 overlay pattern,讓登入 / 登出體感一致
-  showLocalOverlay("pageMain", "登出中", "logging out");
+  showLocalOverlay("pageMain", "離開系統", "logging out");
 
   // 等 xhrPost therapistLogout 完成(改 await,不再 fire-and-forget)
   // 失敗也繼續走流程 — 登出對使用者來說是本地動作,不應因網路失敗阻擋
@@ -2178,7 +2178,7 @@ async function doTherapistLogout() {
 /**
  * v0.6 r3:重置 login form 到「乾淨」狀態
  *   - 清掉 form-busy class(讓 input 從淡化恢復)
- *   - 清掉按鈕內三點脈動 + 「驗證中」,恢復「登入」
+ *   - 清掉按鈕內三點脈動 + 「進入系統」,恢復「登入」
  *   - 清空密碼欄
  *   - 清掉 isLoggingIn flag
  * 用於:登出、session expired、進入登入頁等需要重置 UI 的場景
