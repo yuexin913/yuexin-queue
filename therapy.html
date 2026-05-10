@@ -409,10 +409,12 @@ body {
   display: flex;
   align-items: baseline;
   gap: var(--space-md);
-  margin-bottom: var(--space-md);
+  margin-bottom: 14px;
   padding-bottom: var(--space-sm);
   border-bottom: 1px solid var(--line);
 }
+
+/* v0.3 r2:section title 跟下方資料的留白(從 P1-3 過大的 36px 縮回 14px,粟醫師回報「太大了」)*/
 
 .section-title {
   font-size: 14px;
@@ -428,6 +430,47 @@ body {
   color: var(--ash);
   letter-spacing: 1px;
 }
+
+/* v0.3:可收合 section(目前只用在「新增」)*/
+.section-collapsible .section-head-clickable {
+  cursor: pointer;
+  user-select: none;
+  justify-content: space-between;
+  /* 只剩 title + icon,不像一般 section 拉很開 */
+  margin-bottom: 0;
+  padding-bottom: var(--space-sm);
+  transition: background 0.12s;
+}
+.section-collapsible .section-head-clickable:hover {
+  background: var(--paper-2);
+}
+.section-collapsible .section-toggle-icon {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  color: var(--ash);
+  transition: transform 0.2s;
+  font-weight: 300;
+}
+.section-collapsible.section-expanded .section-toggle-icon {
+  color: var(--concrete);
+}
+.section-collapsible .section-body {
+  display: none;
+  padding-top: var(--space-md);
+  /* v0.3:展開後跟下半「資料展示」要明確分隔(P1-1)*/
+  padding-bottom: var(--space-lg);
+}
+.section-collapsible.section-expanded .section-body {
+  display: block;
+}
+/* v0.3:整個 addSectionWrap 跟下方資料區塊的分隔(P1-1)*/
+#addSectionWrap {
+  border-bottom: 2px solid var(--line);
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-md);
+}
+/* 唯讀模式下 #addSectionWrap 整區 hide,連同分隔線一起消失 */
+.readonly-view #addSectionWrap { display: none; }
 
 /* 今天 case 列表 */
 .case-list {
@@ -543,14 +586,14 @@ body {
 .week-day.is-today .week-day-date { color: var(--steel); font-weight: 500; }
 
 .week-case {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--slate);
   margin-bottom: 4px;
   line-height: 1.4;
 }
 .week-case .week-time {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ash);
   margin-right: 4px;
 }
@@ -593,7 +636,7 @@ body {
 .waitlist-row:hover .waitlist-name { color: var(--ink); }
 
 .waitlist-name {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--slate);
   transition: color 0.15s;
 }
@@ -685,6 +728,8 @@ body {
 /* expandable 新增區塊 */
 .add-block {
   border-bottom: 1px solid var(--line);
+  /* v0.3:limit width 跟下方 entry-row 對齊,按鈕不要靠最右 */
+  max-width: 880px;
 }
 .add-block:last-child { border-bottom: none; }
 .add-block-head {
@@ -854,13 +899,15 @@ body {
   flex-direction: column;
 }
 .entry-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-md);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: var(--space-md);
+  row-gap: 4px;
   padding: var(--space-md) 0;
   border-top: 1px solid var(--line);
-  flex-wrap: wrap;
+  /* v0.3:桌機 limit width,避免按鈕被推到極右(P1-6)*/
+  max-width: 880px;
 }
 .entry-list .entry-row:first-child { border-top: none; }
 
@@ -874,11 +921,13 @@ body {
 }
 
 .entry-info {
-  flex: 1 1 auto;
+  /* v0.3:不再是 flex column,而是放在 grid 第一欄 */
+  grid-column: 1 / 2;
+  grid-row: 1 / 3;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 0; /* 讓 flex 子項可縮 */
+  gap: 4px;
+  min-width: 0;
 }
 .entry-line-1 {
   display: flex;
@@ -887,6 +936,14 @@ body {
   flex-wrap: wrap;
   font-size: 14px;
   color: var(--slate);
+  /* v0.3:姓名跟元資料保持 inline 但用 column-gap 留空隙 */
+}
+.entry-line-1 .entry-name-wrap {
+  /* 姓名單獨容器,確保在 wrap 時姓名固定在最前 */
+  font-size: 15px;
+  color: var(--ink);
+  font-weight: 500;
+  margin-right: var(--space-xs);
 }
 .entry-line-1 .entry-meta {
   font-family: var(--font-mono);
@@ -894,12 +951,16 @@ body {
   color: var(--concrete);
 }
 .entry-line-2 {
-  font-size: 11px;
-  color: var(--ash);
+  font-size: 12px;
+  color: var(--concrete);
   letter-spacing: 1px;
 }
 
 .entry-actions {
+  /* v0.3:按鈕固定在 grid 第二欄,跟資料同高度對齊 */
+  grid-column: 2 / 3;
+  grid-row: 1 / 2;
+  align-self: start;
   display: flex;
   gap: 6px;
   flex-shrink: 0;
@@ -935,8 +996,7 @@ body {
   color: var(--ash);
 }
 
-/* 唯讀檢視:整區 hide(上半新增區)*/
-.readonly-view #addSectionWrap { display: none; }
+/* 唯讀檢視:整區 hide(上半新增區)— 規則已寫在上方 .section-collapsible 區段 */
 
 /* 唯讀提示(下半 entries 上方) */
 .readonly-hint {
@@ -979,11 +1039,24 @@ body {
   letter-spacing: 1px;
 }
 
-/* 手機版:form grid 改單欄、checkbox-grid 維持 3 欄(手機 3 個 checkbox 一行還可) */
+/* 手機版:form grid 改單欄、entry 兩行式對齊 */
 @media (max-width: 720px) {
   .form-grid { grid-template-columns: 1fr; }
-  .entry-row { flex-direction: column; align-items: flex-start; gap: var(--space-sm); }
-  .entry-actions { width: 100%; justify-content: flex-end; }
+
+  /* v0.3:手機版 entry 維持 grid 兩欄(姓名+按鈕同列),元資料在第二行 */
+  .entry-row {
+    grid-template-columns: 1fr auto;
+    column-gap: var(--space-sm);
+    padding: var(--space-md) 0;
+  }
+  /* 手機版 line-1 元資料字體 / 行高再小一點,避免擠 */
+  .entry-line-1 {
+    gap: 6px;
+    font-size: 13px;
+  }
+  .entry-line-1 .entry-name-wrap { font-size: 14px; }
+  .entry-line-1 .entry-meta { font-size: 11px; }
+  .entry-line-2 { font-size: 11px; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -1108,12 +1181,14 @@ body {
         OWNER 唯讀檢視 — 不可新增 / 操作他人 case
       </div>
 
-      <!-- 上半:新增動作區(唯讀模式整區 hide) -->
+      <!-- 上半:新增動作區(唯讀模式整區 hide;預設整段收合 v0.3) -->
       <div id="addSectionWrap">
-        <div class="section">
-          <div class="section-head">
+        <div class="section section-collapsible" id="addSection">
+          <div class="section-head section-head-clickable" onclick="toggleAddSection()">
             <div class="section-title">新增</div>
+            <span class="section-toggle-icon" id="addSectionIcon">+</span>
           </div>
+          <div class="section-body" id="addSectionBody">
 
           <!-- expandable: 新增長期治療(layer1) -->
           <div class="add-block" data-add="layer1">
@@ -1293,6 +1368,7 @@ body {
                 <button class="btn-primary" onclick="submitAddLayer3()" id="btnSubmitL3">新增</button>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -1538,11 +1614,13 @@ function handleIdleTimeout() {
 function showPage(id) {
   document.querySelectorAll(".page").forEach(function(p) {
     p.classList.remove("active");
-    if (p.id === "pageLogin" || p.id === "pageMain") p.style.display = "";
+    // v0.3 修補:三個 page 的 default display 全部 reset 成 none(避免 pageAuth 永遠顯示的疊加 bug)
+    p.style.display = "none";
   });
   const target = document.getElementById(id);
   if (target) {
     target.classList.add("active");
+    if (id === "pageAuth") target.style.display = "flex";
     if (id === "pageLogin") target.style.display = "flex";
     if (id === "pageMain") target.style.display = "block";
   }
@@ -1777,6 +1855,13 @@ async function switchTherapist(name) {
   _scheduleCache = null;
   // 收乾淨所有展開的表單(避免在錯誤治療師 context 下殘留)
   collapseAllAddBlocks();
+  // v0.3:同時收回整個新增 section
+  const addSection = document.getElementById("addSection");
+  if (addSection) {
+    addSection.classList.remove("section-expanded");
+    const icon = document.getElementById("addSectionIcon");
+    if (icon) icon.textContent = "+";
+  }
   document.querySelectorAll(".therapist-tab").forEach(function(b) {
     b.classList.toggle("active", b.textContent === name);
   });
@@ -1804,6 +1889,13 @@ function switchSubtab(name) {
   if (name === "display") {
     // 切回 [顯示] 時收乾淨所有 expandable 表單(對齊 abstinence:不誘導頻繁動)
     collapseAllAddBlocks();
+    // v0.3:同時收回整個新增 section
+    const section = document.getElementById("addSection");
+    if (section) {
+      section.classList.remove("section-expanded");
+      const icon = document.getElementById("addSectionIcon");
+      if (icon) icon.textContent = "+";
+    }
   } else if (name === "operation") {
     renderOperationPane();
   }
@@ -2062,6 +2154,22 @@ function isReadonlyView() {
 }
 
 /* ── expandable 新增區塊 ──────────────────────────────────────── */
+
+// v0.3:整段新增 section 收合
+function toggleAddSection() {
+  const section = document.getElementById("addSection");
+  const wasOpen = section.classList.contains("section-expanded");
+  if (wasOpen) {
+    section.classList.remove("section-expanded");
+    document.getElementById("addSectionIcon").textContent = "+";
+    // 收起時也清乾淨 4 個 expandable 內部狀態
+    collapseAllAddBlocks();
+  } else {
+    section.classList.add("section-expanded");
+    document.getElementById("addSectionIcon").textContent = "−";
+  }
+}
+
 function toggleAddBlock(layer) {
   const block = document.querySelector('.add-block[data-add="' + layer + '"]');
   if (!block) return;
@@ -2604,10 +2712,12 @@ function renderOpLayer1() {
       const room = e.room ? ' · ' + esc(e.room) + '室' : '';
       return {
         shortLabel: e.name + " " + (wdNames[e.weekday] || "?") + " " + e.startTime,
-        line1: '<span>' + esc(e.name) + '</span>'
+        // line1: 主視覺(誰、何時、何地)— 治療室上移到 line1
+        line1: '<span class="entry-name-wrap">' + esc(e.name) + '</span>'
               + '<span class="entry-meta">' + (wdNames[e.weekday] || "?") + ' ' + esc(e.startTime) + '–' + esc(e.endTime) + '</span>'
-              + '<span class="entry-meta">' + esc(e.freq) + '/' + esc(e.fee) + room + '</span>',
-        line2: e.layerId + ' · 開始 ' + esc(e.startDate)
+              + (e.room ? '<span class="entry-meta">' + esc(e.room) + '室</span>' : ''),
+        // line2: 治療關係屬性(次數 / 費用 / 開始日期)
+        line2: esc(e.freq) + ' · ' + esc(e.fee) + ' · ' + esc(e.startDate) + ' 開始'
               + (e.status === "terminated" ? ' · 終止 ' + esc(e.terminatedAt || "") : "")
       };
     }
@@ -2626,10 +2736,9 @@ function renderOpLayer1_5() {
     renderInfo: function(e) {
       return {
         shortLabel: e.name + " " + e.date + " " + e.startTime,
-        line1: '<span>' + esc(e.name) + '</span>'
+        line1: '<span class="entry-name-wrap">' + esc(e.name) + '</span>'
               + '<span class="entry-meta">' + esc(e.date) + ' ' + esc(e.startTime) + '–' + esc(e.endTime) + '</span>',
-        line2: e.layerId
-              + (e.status === "restored" ? ' · 已恢復 ' + esc(e.restoredAt || "") : "")
+        line2: e.status === "restored" ? '已恢復 ' + esc(e.restoredAt || "") : ""
       };
     }
   });
@@ -2648,11 +2757,10 @@ function renderOpLayer2() {
       const room = e.room ? ' · ' + esc(e.room) + '室' : '';
       return {
         shortLabel: e.name + " " + e.date + " " + e.startTime,
-        line1: '<span>' + esc(e.name) + '</span>'
+        line1: '<span class="entry-name-wrap">' + esc(e.name) + '</span>'
               + '<span class="entry-meta">' + esc(e.date) + ' ' + esc(e.startTime) + '–' + esc(e.endTime) + '</span>'
               + '<span class="entry-meta">' + esc(e.fee) + room + '</span>',
-        line2: e.layerId
-              + (e.status === "canceled" ? ' · 已取消 ' + esc(e.canceledAt || "") : "")
+        line2: e.status === "canceled" ? '已取消 ' + esc(e.canceledAt || "") : ""
       };
     }
   });
@@ -2677,10 +2785,10 @@ function renderOpLayer3() {
       }).join(" / ");
       return {
         shortLabel: e.name + " 候補",
-        line1: '<span>' + esc(e.name) + '</span>'
+        line1: '<span class="entry-name-wrap">' + esc(e.name) + '</span>'
               + '<span class="entry-meta">期待 ' + esc(e.freq) + ' 次</span>'
               + '<span class="entry-meta">' + esc(slotsStr) + '</span>',
-        line2: e.layerId + ' · 登記 ' + esc(e.createdDate || "")
+        line2: '登記 ' + esc(e.createdDate || "")
               + (e.status === "canceled" ? ' · 已取消 ' + esc(e.canceledAt || "") : "")
       };
     }
