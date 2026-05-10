@@ -369,6 +369,16 @@ body {
   padding: 0 var(--space-lg);
   background: var(--paper);
   border-bottom: 1px solid var(--line);
+  /* v0.5:scroll 時 subtabs 黏在頂端,讓「切顯示/操作」永遠可達 */
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  /* 微陰影,scroll 過頭部時透露「下方有內容」的層次 */
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  transition: box-shadow 0.2s;
+}
+.subtabs.is-stuck {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.04);
 }
 
 .subtab {
@@ -400,49 +410,96 @@ body {
 /* ══════════════════════════════════════════════════════════════════════════════
    [顯示] 分頁:三區塊 — 今天 / 本週 / 候補
    ══════════════════════════════════════════════════════════════════════════════ */
+
+/* v0.5:section v2 設計 — 編號浮左 + 細體大標 + 短橫包數字
+   - .section 加 grid 讓 .section-num 浮在左側 36px 欄
+   - .section-collapsible(新增)不套編號,維持原樣
+*/
 .section {
-  margin-bottom: 40px; /* v0.4-loading-c r2:60→40 縮小 section 間距(粟醫師回報太空曠) */
+  margin-bottom: 56px; /* v0.5:從 40 拉到 56 — 對齊 v2 mock 留白節奏 */
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 4px;
 }
 .section:last-child { margin-bottom: 0; }
+
+/* 浮左編號(mono 細字,像筆記本邊緣的頁碼) */
+.section-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ash);
+  letter-spacing: 1px;
+  padding-top: 7px; /* 跟下方 section-title baseline 對齊 */
+  font-weight: 400;
+}
+
+.section-body { min-width: 0; }
 
 .section-head {
   display: flex;
   align-items: baseline;
   gap: var(--space-md);
-  margin-bottom: 14px;
-  padding-bottom: var(--space-sm);
+  margin-bottom: 22px; /* v0.5:14→22,對齊 v2 留白 */
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--line);
 }
 
-/* v0.3 r2:section title 跟下方資料的留白(從 P1-3 過大的 36px 縮回 14px,粟醫師回報「太大了」)*/
-
 .section-title {
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 3px;
+  font-size: 17px;       /* v0.5:14→17,B 視覺層級 */
+  font-weight: 300;      /* v0.5:500→300 細體 */
+  letter-spacing: 4px;   /* v0.5:3→4 拉開字距 */
   color: var(--ink);
-  text-transform: uppercase;
+  /* v0.5:拿掉 text-transform uppercase(中文沒影響,但若未來混英文,uppercase 反而打斷 */
 }
 
 .section-meta {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--ash);
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+}
+/* v0.5:meta 用 — 包數字(對齊 v2「— 4 —」設計) */
+.section-meta::before, .section-meta::after {
+  content: "—";
+  margin: 0 6px;
+  color: var(--line-2);
+}
+/* v0.5:今天/本週的 meta 是日期範圍而非計數,例外不要 — 包夾 */
+.section-meta.no-dashes::before,
+.section-meta.no-dashes::after {
+  content: none;
 }
 
-/* v0.3:可收合 section(目前只用在「新增」)*/
+/* v0.3:可收合 section(目前只用在「新增」)
+   v0.5:新增 section 不用 v2 編號 grid,要把 grid 取消 */
+.section-collapsible {
+  display: block; /* 取消父層 grid,讓「新增」維持原樣 */
+}
+.section-collapsible .section-head {
+  /* 新增 section 不要 v2 留白,維持收折感 */
+  margin-bottom: 0;
+}
 .section-collapsible .section-head-clickable {
   cursor: pointer;
   user-select: none;
   justify-content: space-between;
-  /* 只剩 title + icon,不像一般 section 拉很開 */
   margin-bottom: 0;
   padding-bottom: var(--space-sm);
   transition: background 0.12s;
 }
 .section-collapsible .section-head-clickable:hover {
   background: var(--paper-2);
+}
+/* 新增 section 的 title 維持原本字級風格(不套 v2 細體) */
+.section-collapsible .section-title {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 3px;
+}
+/* 新增 section 不要 — meta 包夾 */
+.section-collapsible .section-meta::before,
+.section-collapsible .section-meta::after {
+  content: none;
 }
 .section-collapsible .section-toggle-icon {
   font-family: var(--font-mono);
@@ -457,16 +514,16 @@ body {
 .section-collapsible .section-body {
   display: none;
   padding-top: var(--space-md);
-  /* v0.3:展開後跟下半「資料展示」要明確分隔(P1-1)*/
   padding-bottom: var(--space-lg);
 }
 .section-collapsible.section-expanded .section-body {
   display: block;
 }
-/* v0.3:整個 addSectionWrap 跟下方資料區塊的分隔(P1-1)*/
+/* v0.3:整個 addSectionWrap 跟下方資料區塊的分隔
+   v0.5:配合 section margin 從 40 → 56,addSectionWrap 也跟著拉 */
 #addSectionWrap {
   border-bottom: 2px solid var(--line);
-  margin-bottom: 40px; /* v0.4-loading-c r2:60→40 對齊 section 新間距 */
+  margin-bottom: 56px;
   padding-bottom: var(--space-md);
 }
 /* 唯讀模式下 #addSectionWrap 整區 hide,連同分隔線一起消失 */
@@ -537,9 +594,11 @@ body {
 
 .empty-hint {
   padding: var(--space-md) 0;
-  font-size: 13px;
+  font-family: var(--font-mono); /* v0.5:加 mono,工業風 */
+  font-size: 11px;
   color: var(--ash);
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  text-align: center; /* v0.5:置中 */
 }
 
 /* 本週月曆 — Responsive(桌機 6 欄並列、手機直式堆疊) */
@@ -893,7 +952,8 @@ body {
 }
 .btn-secondary:hover { color: var(--slate); border-color: var(--slate); }
 
-/* 4 層資料展示:每筆 entry */
+/* 4 層資料展示:每筆 entry
+   v0.5:配合 v2 設計,留白拉大 + 字距加深 + entry-meta-dim 給「大室」用 */
 .entry-list {
   display: flex;
   flex-direction: column;
@@ -903,16 +963,14 @@ body {
   grid-template-columns: 1fr auto;
   grid-template-rows: auto auto;
   column-gap: var(--space-md);
-  row-gap: 4px;
-  padding: var(--space-md) 0;
+  row-gap: 6px; /* v0.5:4→6,稍微多呼吸 */
+  padding: 18px 0; /* v0.5:--space-md(20)→18,搭配 v2 mock */
   border-top: 1px solid var(--line);
-  /* v0.3:桌機 limit width,避免按鈕被推到極右(P1-6)*/
   max-width: 880px;
 }
 .entry-list .entry-row:first-child { border-top: none; }
 
 .entry-row.is-staged {
-  /* 第一階段已執行(terminated/restored/canceled),視覺刪除線+淡色 */
   opacity: 0.45;
 }
 .entry-row.is-staged .entry-info {
@@ -921,43 +979,54 @@ body {
 }
 
 .entry-info {
-  /* v0.3:不再是 flex column,而是放在 grid 第一欄 */
   grid-column: 1 / 2;
   grid-row: 1 / 3;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px; /* v0.5:4→6 */
   min-width: 0;
 }
 .entry-line-1 {
   display: flex;
   align-items: baseline;
-  gap: var(--space-sm);
+  gap: 14px; /* v0.5:--space-sm(12)→14 */
   flex-wrap: wrap;
   font-size: 14px;
   color: var(--slate);
-  /* v0.3:姓名跟元資料保持 inline 但用 column-gap 留空隙 */
 }
 .entry-line-1 .entry-name-wrap {
-  /* 姓名單獨容器,確保在 wrap 時姓名固定在最前 */
-  font-size: 15px;
+  font-size: 14px;       /* v0.5:15→14 對齊 v2 */
   color: var(--ink);
   font-weight: 500;
+  letter-spacing: 1px;   /* v0.5:加 letter-spacing,姓名更有「呼吸」 */
   margin-right: var(--space-xs);
 }
 .entry-line-1 .entry-meta {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;       /* v0.5:12→11 對齊 v2 */
   color: var(--concrete);
+  letter-spacing: 0.5px;
+}
+/* v0.5:entry-meta-dim — 給「大室」這種次要資訊,顏色更淡 */
+.entry-line-1 .entry-meta-dim {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ash);
+  letter-spacing: 0.5px;
 }
 .entry-line-2 {
-  font-size: 12px;
-  color: var(--concrete);
+  font-family: var(--font-mono); /* v0.5:加 mono(原本沒指定)*/
+  font-size: 10px;        /* v0.5:12→10 對齊 v2 */
+  color: var(--ash);      /* v0.5:concrete→ash 拉淡 */
   letter-spacing: 1px;
+}
+/* v0.5:entry-line-2 內的 · 點分隔器,顏色比文字再淡 */
+.entry-line-2 .dot {
+  margin: 0 8px;
+  color: var(--line-2);
 }
 
 .entry-actions {
-  /* v0.3:按鈕固定在 grid 第二欄,跟資料同高度對齊 */
   grid-column: 2 / 3;
   grid-row: 1 / 2;
   align-self: start;
@@ -966,23 +1035,24 @@ body {
   flex-shrink: 0;
 }
 .btn-action {
-  padding: 6px 12px;
-  font-family: inherit;
-  font-size: 11px;
-  letter-spacing: 1.5px;
-  background: var(--paper);
+  padding: 8px 14px;       /* v0.5:6/12→8/14 加大可點擊區域 */
+  font-family: var(--font-mono); /* v0.5:inherit→mono 工業質地 */
+  font-size: 10px;          /* v0.5:11→10 對齊 v2 */
+  letter-spacing: 2px;      /* v0.5:1.5→2 拉開 */
+  background: transparent;  /* v0.5:paper→transparent 更輕 */
   color: var(--concrete);
-  border: 1px solid var(--line-2);
+  border: 1px solid var(--line);
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
+  text-transform: uppercase; /* v0.5:對中文無效但對英文「remove」有效 */
 }
 .btn-action:hover:not(:disabled) {
   color: var(--ink);
-  border-color: var(--slate);
+  border-color: var(--ink);
+  background: var(--paper-2); /* v0.5:hover 微底色 */
 }
 .btn-action.btn-action-stage2 {
-  /* 第二階段 [移除] — 工業風,稍微比第一階段重 */
   color: var(--slate);
   border-color: var(--slate);
 }
@@ -1161,6 +1231,31 @@ body {
   position: relative;
 }
 
+/* v0.5:section stagger fade-in(進分頁時 sections 由上往下漸入) */
+@keyframes sectionFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#paneDisplay > .section,
+#paneOperation > .section {
+  animation: sectionFadeIn 0.4s ease-out backwards;
+}
+#paneDisplay > .section:nth-child(1),
+#paneOperation > .section:nth-child(1) { animation-delay: 0.00s; }
+#paneDisplay > .section:nth-child(2),
+#paneOperation > .section:nth-child(2) { animation-delay: 0.05s; }
+#paneDisplay > .section:nth-child(3),
+#paneOperation > .section:nth-child(3) { animation-delay: 0.10s; }
+#paneDisplay > .section:nth-child(4),
+#paneOperation > .section:nth-child(4) { animation-delay: 0.15s; }
+#paneDisplay > .section:nth-child(5),
+#paneOperation > .section:nth-child(5) { animation-delay: 0.20s; }
+/* readonly-hint 跟 addSectionWrap 也要漸入,但延遲在最前 */
+#paneOperation > .readonly-hint,
+#paneOperation > #addSectionWrap {
+  animation: sectionFadeIn 0.4s ease-out backwards;
+}
+
 /* ══════════════════════════════════════════════════════════════════════════════
    v0.4-loading-c r2 · 移除動畫(對齊 demo)
    - entry 淡出 + 高度收合(500ms,40% fade + 60% collapse)
@@ -1292,34 +1387,43 @@ body {
     <div id="paneDisplay">
       <!-- 今天 -->
       <div class="section">
-        <div class="section-head">
-          <div class="section-title">今天</div>
-          <div class="section-meta" id="todayMeta"></div>
-        </div>
-        <div class="case-list" id="todayList">
-          <div class="empty-hint">載入中<span class="loading-dots"><span></span><span></span><span></span></span></div>
+        <div class="section-num">01</div>
+        <div class="section-body">
+          <div class="section-head">
+            <div class="section-title">今天</div>
+            <div class="section-meta no-dashes" id="todayMeta"></div>
+          </div>
+          <div class="case-list" id="todayList">
+            <div class="empty-hint">載入中<span class="loading-dots"><span></span><span></span><span></span></span></div>
+          </div>
         </div>
       </div>
 
       <!-- 本週 -->
       <div class="section">
-        <div class="section-head">
-          <div class="section-title">本週</div>
-          <div class="section-meta" id="weekMeta"></div>
-        </div>
-        <div class="week-grid" id="weekGrid">
-          <!-- 動態渲染 6 個 .week-day -->
+        <div class="section-num">02</div>
+        <div class="section-body">
+          <div class="section-head">
+            <div class="section-title">本週</div>
+            <div class="section-meta no-dashes" id="weekMeta"></div>
+          </div>
+          <div class="week-grid" id="weekGrid">
+            <!-- 動態渲染 6 個 .week-day -->
+          </div>
         </div>
       </div>
 
       <!-- 候補 -->
       <div class="section">
-        <div class="section-head">
-          <div class="section-title">候補</div>
-          <div class="section-meta" id="waitlistMeta"></div>
-        </div>
-        <div class="waitlist-summary" id="waitlistSummary">
-          <div class="empty-hint">載入中<span class="loading-dots"><span></span><span></span><span></span></span></div>
+        <div class="section-num">03</div>
+        <div class="section-body">
+          <div class="section-head">
+            <div class="section-title">候補</div>
+            <div class="section-meta" id="waitlistMeta"></div>
+          </div>
+          <div class="waitlist-summary" id="waitlistSummary">
+            <div class="empty-hint">載入中<span class="loading-dots"><span></span><span></span><span></span></span></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1526,35 +1630,47 @@ body {
 
       <!-- 下半:四層資料展示 -->
       <div class="section">
-        <div class="section-head">
-          <div class="section-title">長期治療</div>
-          <div class="section-meta" id="opLayer1Meta"></div>
+        <div class="section-num">01</div>
+        <div class="section-body">
+          <div class="section-head">
+            <div class="section-title">長期治療</div>
+            <div class="section-meta" id="opLayer1Meta"></div>
+          </div>
+          <div class="entry-list" id="opLayer1List"></div>
         </div>
-        <div class="entry-list" id="opLayer1List"></div>
       </div>
 
       <div class="section">
-        <div class="section-head">
-          <div class="section-title">暫停</div>
-          <div class="section-meta" id="opLayer1_5Meta"></div>
+        <div class="section-num">02</div>
+        <div class="section-body">
+          <div class="section-head">
+            <div class="section-title">暫停</div>
+            <div class="section-meta" id="opLayer1_5Meta"></div>
+          </div>
+          <div class="entry-list" id="opLayer1_5List"></div>
         </div>
-        <div class="entry-list" id="opLayer1_5List"></div>
       </div>
 
       <div class="section">
-        <div class="section-head">
-          <div class="section-title">單次治療</div>
-          <div class="section-meta" id="opLayer2Meta"></div>
+        <div class="section-num">03</div>
+        <div class="section-body">
+          <div class="section-head">
+            <div class="section-title">單次治療</div>
+            <div class="section-meta" id="opLayer2Meta"></div>
+          </div>
+          <div class="entry-list" id="opLayer2List"></div>
         </div>
-        <div class="entry-list" id="opLayer2List"></div>
       </div>
 
       <div class="section">
-        <div class="section-head">
-          <div class="section-title">候補</div>
-          <div class="section-meta" id="opLayer3Meta"></div>
+        <div class="section-num">04</div>
+        <div class="section-body">
+          <div class="section-head">
+            <div class="section-title">候補</div>
+            <div class="section-meta" id="opLayer3Meta"></div>
+          </div>
+          <div class="entry-list" id="opLayer3List"></div>
         </div>
-        <div class="entry-list" id="opLayer3List"></div>
       </div>
 
     </div>
@@ -1784,6 +1900,17 @@ function esc(str) {
   return String(str || "")
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+/**
+ * v0.5:金額千分位格式化(對齊 v2 設計)
+ * 3000 → "3,000"
+ * 非數字或空 → 直接 esc 後回傳(避免破壞既有資料)
+ */
+function _fmtMoney(val) {
+  const s = String(val == null ? "" : val).trim();
+  if (s === "" || isNaN(Number(s))) return esc(s);
+  return Number(s).toLocaleString("en-US");
 }
 
 function todayYMD() {
@@ -2040,6 +2167,18 @@ function switchSubtab(name) {
   });
   document.getElementById("paneDisplay").style.display = (name === "display") ? "" : "none";
   document.getElementById("paneOperation").style.display = (name === "operation") ? "" : "none";
+
+  // v0.5:切換到目標分頁時,重觸發 stagger fade-in 動畫
+  // (CSS animation 只在元素首次出現時跑,display none↔block 不會重觸發)
+  const visiblePane = (name === "display") ? "paneDisplay" : "paneOperation";
+  const sections = document.querySelectorAll("#" + visiblePane + " > .section");
+  sections.forEach(function(sec, i) {
+    sec.style.animation = "none";
+    // 強制 reflow 讓 animation 重置
+    void sec.offsetWidth;
+    sec.style.animation = "sectionFadeIn 0.4s ease-out " + (i * 0.05) + "s backwards";
+  });
+
   if (name === "display") {
     // 切回 [顯示] 時收乾淨所有 expandable 表單(對齊 abstinence:不誘導頻繁動)
     collapseAllAddBlocks();
@@ -2183,7 +2322,7 @@ function renderToday() {
   const cases = expandCasesForDate(todayStr);
   const list = document.getElementById("todayList");
   if (cases.length === 0) {
-    list.innerHTML = '<div class="empty-hint">今天沒有 case</div>';
+    list.innerHTML = '<div class="empty-hint">— empty —</div>';
     return;
   }
   let html = "";
@@ -2248,11 +2387,10 @@ function renderWaitlist() {
   const layer3 = (state.rawEntries.layer3 || []).filter(function(e) {
     return e.status === "active";
   });
-  document.getElementById("waitlistMeta").textContent =
-    layer3.length + " 筆候補";
+  document.getElementById("waitlistMeta").textContent = layer3.length;
   const wrap = document.getElementById("waitlistSummary");
   if (layer3.length === 0) {
-    wrap.innerHTML = '<div class="empty-hint">目前沒有候補</div>';
+    wrap.innerHTML = '<div class="empty-hint">— empty —</div>';
     return;
   }
   let html = "";
@@ -2890,9 +3028,9 @@ function _renderEntriesGeneric(opts) {
   const list = document.getElementById(opts.listEl);
   const meta = document.getElementById(opts.metaEl);
   const visibleEntries = opts.entries.filter(function(e) { return e.status !== "removed"; });
-  meta.textContent = visibleEntries.length + " 筆";
+  meta.textContent = visibleEntries.length; /* v0.5:純數字,v2 設計用 CSS ::before/::after 包 — */
   if (visibleEntries.length === 0) {
-    list.innerHTML = '<div class="empty-hint">— 無資料 —</div>';
+    list.innerHTML = '<div class="empty-hint">— empty —</div>';
     return;
   }
   // 排序:active 在前,staged 在後,各自再依 layerId
@@ -2938,19 +3076,18 @@ function renderOpLayer1() {
     metaEl: "opLayer1Meta",
     stage1Action: "terminateLayer1",
     stage2Action: "removeLayer1",
-    stage1Label: "終止治療",
+    stage1Label: "終止", /* v0.5:「終止治療」→「終止」短動詞 */
     stagedStatuses: ["terminated"],
     renderInfo: function(e) {
-      const room = e.room ? ' · ' + esc(e.room) + '室' : '';
       return {
         shortLabel: e.name + " " + (wdNames[e.weekday] || "?") + " " + e.startTime,
-        // line1: 主視覺(誰、何時、何地)— 治療室上移到 line1
+        // v0.5:大室用 entry-meta-dim 拉淡(對齊 v2 設計)
         line1: '<span class="entry-name-wrap">' + esc(e.name) + '</span>'
               + '<span class="entry-meta">' + (wdNames[e.weekday] || "?") + ' ' + esc(e.startTime) + '–' + esc(e.endTime) + '</span>'
-              + (e.room ? '<span class="entry-meta">' + esc(e.room) + '室</span>' : ''),
-        // line2: 治療關係屬性(次數 / 費用 / 開始日期)
-        line2: esc(e.freq) + ' · ' + esc(e.fee) + ' · ' + esc(e.startDate) + ' 開始'
-              + (e.status === "terminated" ? ' · 終止 ' + esc(e.terminatedAt || "") : "")
+              + (e.room ? '<span class="entry-meta-dim">' + esc(e.room) + '室</span>' : ''),
+        // v0.5:line2 改 v2 格式 — 每週 N 次 · 3,000(千分位) · since 2026/04/06
+        line2: '每週 ' + esc(e.freq) + ' 次<span class="dot">·</span>' + _fmtMoney(e.fee) + '<span class="dot">·</span>since ' + esc(e.startDate)
+              + (e.status === "terminated" ? '<span class="dot">·</span>terminated ' + esc(e.terminatedAt || "") : "")
       };
     }
   });
@@ -2970,7 +3107,8 @@ function renderOpLayer1_5() {
         shortLabel: e.name + " " + e.date + " " + e.startTime,
         line1: '<span class="entry-name-wrap">' + esc(e.name) + '</span>'
               + '<span class="entry-meta">' + esc(e.date) + ' ' + esc(e.startTime) + '–' + esc(e.endTime) + '</span>',
-        line2: e.status === "restored" ? '已恢復 ' + esc(e.restoredAt || "") : ""
+        // v0.5:用 mono 英文小詞
+        line2: e.status === "restored" ? 'restored ' + esc(e.restoredAt || "") : ""
       };
     }
   });
@@ -2986,13 +3124,14 @@ function renderOpLayer2() {
     stage1Label: "取消",
     stagedStatuses: ["canceled"],
     renderInfo: function(e) {
-      const room = e.room ? ' · ' + esc(e.room) + '室' : '';
       return {
         shortLabel: e.name + " " + e.date + " " + e.startTime,
+        // v0.5:大室拉到 dim,費用配千分位
         line1: '<span class="entry-name-wrap">' + esc(e.name) + '</span>'
               + '<span class="entry-meta">' + esc(e.date) + ' ' + esc(e.startTime) + '–' + esc(e.endTime) + '</span>'
-              + '<span class="entry-meta">' + esc(e.fee) + room + '</span>',
-        line2: e.status === "canceled" ? '已取消 ' + esc(e.canceledAt || "") : ""
+              + '<span class="entry-meta">' + _fmtMoney(e.fee) + '</span>'
+              + (e.room ? '<span class="entry-meta-dim">' + esc(e.room) + '室</span>' : ''),
+        line2: e.status === "canceled" ? 'canceled ' + esc(e.canceledAt || "") : ""
       };
     }
   });
@@ -3019,9 +3158,10 @@ function renderOpLayer3() {
         shortLabel: e.name + " 候補",
         line1: '<span class="entry-name-wrap">' + esc(e.name) + '</span>'
               + '<span class="entry-meta">期待 ' + esc(e.freq) + ' 次</span>'
-              + '<span class="entry-meta">' + esc(slotsStr) + '</span>',
-        line2: '登記 ' + esc(e.createdDate || "")
-              + (e.status === "canceled" ? ' · 已取消 ' + esc(e.canceledAt || "") : "")
+              + '<span class="entry-meta-dim">' + esc(slotsStr) + '</span>',
+        // v0.5:line2 改 mono 英文小詞
+        line2: 'registered ' + esc(e.createdDate || "")
+              + (e.status === "canceled" ? '<span class="dot">·</span>canceled ' + esc(e.canceledAt || "") : "")
       };
     }
   });
@@ -3184,6 +3324,24 @@ window.addEventListener("DOMContentLoaded", function() {
   document.getElementById("modalConfirm").addEventListener("click", function(ev) {
     if (ev.target.id === "modalConfirm") closeConfirmModal();
   });
+
+  // v0.5:subtabs sticky 偵測 — 用 IntersectionObserver 偵測上方 sentinel,
+  // sentinel 滾出 viewport 時 subtabs 已黏住,加微陰影
+  try {
+    const subtabs = document.querySelector(".subtabs");
+    if (subtabs && "IntersectionObserver" in window) {
+      // 在 subtabs 上方插入一個 sentinel(0 高度,完全不影響 layout)
+      const sentinel = document.createElement("div");
+      sentinel.style.cssText = "height:0;pointer-events:none;";
+      subtabs.parentNode.insertBefore(sentinel, subtabs);
+      const obs = new IntersectionObserver(function(entries) {
+        // sentinel 不在 viewport = 已 scroll 過,subtabs 黏住
+        subtabs.classList.toggle("is-stuck", !entries[0].isIntersecting);
+      });
+      obs.observe(sentinel);
+    }
+  } catch (e) { /* sticky 偵測失敗不影響核心功能 */ }
+
   bootstrap();
 });
 </script>
