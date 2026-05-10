@@ -490,6 +490,11 @@ body {
 .section-collapsible .section-head-clickable:hover {
   background: var(--paper-2);
 }
+/* v0.6:#addSectionWrap 整體底色已是 paper-2,hover 時要用「不同色」才看得出反饋。
+   用 paper(純白)反向呈現「pop out」感,對齊便條紙被「按下去」前的微反差。*/
+#addSectionWrap .section-collapsible .section-head-clickable:hover {
+  background: var(--paper);
+}
 /* 新增 section 的 title 維持原本字級風格(不套 v2 細體) */
 .section-collapsible .section-title {
   font-size: 14px;
@@ -520,14 +525,52 @@ body {
   display: block;
 }
 /* v0.3:整個 addSectionWrap 跟下方資料區塊的分隔
-   v0.5:配合 section margin 從 40 → 56,addSectionWrap 也跟著拉 */
+   v0.5:配合 section margin 從 40 → 56,addSectionWrap 也跟著拉
+   v0.6 (v-E):便條紙效果 — 微底色 paper-2 + 上下細線 + mono 副標 + 底部 hint 線 */
 #addSectionWrap {
-  border-bottom: 2px solid var(--line);
-  margin-bottom: 56px;
-  padding-bottom: var(--space-md);
+  background: var(--paper-2);
+  margin: 0 calc(var(--space-lg) * -1) 64px;  /* 拉到 .content padding 外緣 */
+  padding: 26px var(--space-lg) 22px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  position: relative;
+}
+/* 底部 hint 線:模擬筆記本撕線,左右 fade 中間實 — 暗示「以下是另一個世界」 */
+#addSectionWrap::after {
+  content: "";
+  position: absolute;
+  left: var(--space-lg);
+  right: var(--space-lg);
+  bottom: -32px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line) 15%, var(--line) 85%, transparent);
+  pointer-events: none;
+}
+/* 手機 RWD:對齊 .content 改用 --space-md padding */
+@media (max-width: 720px) {
+  #addSectionWrap {
+    margin-left: calc(var(--space-md) * -1);
+    margin-right: calc(var(--space-md) * -1);
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
+  #addSectionWrap::after {
+    left: var(--space-md);
+    right: var(--space-md);
+  }
 }
 /* 唯讀模式下 #addSectionWrap 整區 hide,連同分隔線一起消失 */
 .readonly-view #addSectionWrap { display: none; }
+
+/* v0.6:便條紙的 mono 英文副標(add) */
+#addSectionWrap .section-eng {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--ash);
+  letter-spacing: 3px;
+  margin-bottom: 5px;
+  text-transform: lowercase;
+}
 
 /* 今天 case 列表 */
 .case-list {
@@ -1439,6 +1482,7 @@ body {
       <!-- 上半:新增動作區(唯讀模式整區 hide;預設整段收合 v0.3) -->
       <div id="addSectionWrap">
         <div class="section section-collapsible" id="addSection">
+          <div class="section-eng">add</div>
           <div class="section-head section-head-clickable" onclick="toggleAddSection()">
             <div class="section-title">新增</div>
             <span class="section-toggle-icon" id="addSectionIcon">+</span>
