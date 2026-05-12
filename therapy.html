@@ -8,11 +8,46 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
 ═══════════════════════════════════════════════════════════════════════════════
-悅心診所 心理治療系統 — therapy.html v0.2
-版本:v0.2(2026-05-10 v6.0 Step 3-B:[操作] 分頁完整實作 + 跨治療師 OWNER 唯讀)
+悅心診所 心理治療系統 — therapy.html v0.6-r10
+版本:v0.6-r10(2026-05-12 新增/刪除後加 pageMain overlay,消除「跳回後還要等」)
 作者:粟寧醫師(架構主導) × Claude(實作)
 設計 anchor:v6_0_therapy_D_design.md (Lock 1-19) + v6_0_therapy_step1_schema.md v4
-Backend:v6.0-step3a-r0(Step 3-A 已加 verifyTherapistLogin / requestTherapistSession 等)
+Backend:v6.0-step3c-r5(邀請加入 + namespace cleanup)
+
+【v0.6-r9 → v0.6-r10 改動】
+- ✅ 新增 / 刪除完成後加 pageMain overlay 包 loadAndRenderEntries
+  - 5 個 caller 都加:submitAddLayer1 / L1_5 / L2 / L3 + executeConfirmAction
+  - 改動 pattern:reload 前 showLocalOverlay("pageMain", "更新中", "syncing")
+                  reload 後 hideLocalOverlay("pageMain")
+  - 動機:原本 loadAndRenderEntries 內部只蓋 paneDisplay 的 overlay,使用者
+          若還在 paneOperation tab 看不到,造成「跳回主畫面後還要等一下」
+          的體驗 bug
+  - 解法:外層 pageMain overlay 覆蓋整頁,使用者一定看得到全域更新訊號
+          (對齊 logout 用的 pageMain pattern,line 2204)
+  - 刪除路徑時序:entry collapse 450ms → overlay 接力 → reload → hide
+  - 雙層 overlay 並存:外層 pageMain 蓋過內層 paneDisplay,內層仍跑 stagger
+                       (對既有 loadAndRenderEntries 0 改動,符合「修 bug 不
+                        順手改相鄰邏輯」紀律)
+
+【v0.6-r8 → v0.6-r9 改動】
+- ✅ .btn-primary:disabled 移除 ash 灰背景,維持 slate 深色
+  - 5 個按鈕受影響:btnSubmitL1 / L15 / L2 / L3(L1/L1.5/L2/L3 新增 submit)
+                  + btnConfirmGo(confirm modal 終止/移除 確認鈕)
+  - 動機:這 5 個按鈕的 disabled 狀態只發生在 busy 中(setFormBusy /
+          executeConfirmAction),此時按鈕內會插入 .btn-dots 白點脈動
+  - 改前:disabled 切到 var(--ash) 灰底 → 白點對比變弱
+  - 改後:維持 var(--slate) 深底 → 白點對比強(對齊 v0.6-r2 的
+          .login-btn:disabled 處理 pattern,Single Source of Truth)
+  - 哲學:方案 C「form frozen,但按鈕正在動」— 整個 form/modal 已用
+          .form-busy / .modal-overlay.busy 淡化提供狀態訊息,按鈕反而
+          刻意保持深色 stand out
+  - 識別來源:v0.4-loading-c r2 自審 backlog,延後實作
+
+【v0.6-r7 → v0.6-r8 改動】
+- ✅ 登入頁 .login-box 上方加 .brand-header
+  - 「悅心診所」(sans + ink + letter-spacing 8px,對齊 booking 結構但用工業字型)
+  - 「J O I N」框框(mono + concrete + line-2 細灰框,對齊 booking 結構但去金色)
+  - 設計哲學:對齊 booking 識別性,但維持 therapy 「C5 純白 + 水泥灰 + 工業字型」風格
 
 【v0.1 → v0.2 改動】
 - ✅ [操作] 分頁完整實作(替換 placeholder)
@@ -203,6 +238,37 @@ body {
 .login-box {
   width: 100%;
   max-width: 360px;
+}
+
+/* v0.6-r8 [step3c]:登入頁 brand header — 悅心診所 + J O I N
+   設計:對齊 booking 識別性,但用 therapy 工業字型紀律(sans + mono,非 serif) */
+.brand-header {
+  text-align: center;
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--line);
+}
+.brand-clinic {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 8px;
+  padding-left: 8px;  /* 對齊 booking pattern:中文 letter-spacing 後視覺右偏,加 padding-left 補回 */
+  color: var(--ink);
+  margin-bottom: var(--space-xs);
+}
+.brand-join {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--concrete);
+  background: transparent;
+  border: 1px solid var(--line-2);
+  padding: 2px 11px;
+  border-radius: var(--r-sm);
+  letter-spacing: 3px;
+  margin-top: var(--space-xs);
 }
 
 .login-title {
@@ -993,8 +1059,11 @@ body {
   border: 1px solid var(--slate);
 }
 .btn-primary:disabled {
-  background: var(--ash);
-  border-color: var(--ash);
+  /* v0.6 r9:對齊 v0.6-r2 的 .login-btn:disabled 處理 — 移除 ash 灰背景,維持 slate 深色
+     理由:5 個 .btn-primary 按鈕(btnSubmitL1/L15/L2/L3 + btnConfirmGo)的 disabled
+     狀態只發生在 busy 中(setFormBusy / executeConfirmAction 期間),此時按鈕內會
+     插入 .btn-dots 白點脈動。若 disabled 切到 ash 灰底,白點對比變弱 — 維持 slate
+     深底才能對齊方案 C「form frozen,但按鈕正在動」哲學。 */
   cursor: not-allowed;
 }
 .btn-primary:not(:disabled):hover { background: var(--ink); border-color: var(--ink); }
@@ -1414,6 +1483,12 @@ body {
      ════════════════════════════════════════════════════════════════════════════ -->
 <div id="pageLogin" class="page">
   <div class="login-box">
+    <!-- v0.6-r8 [step3c]:brand header(對齊 booking 識別性,工業風格) -->
+    <div class="brand-header">
+      <div class="brand-clinic">悅心診所</div>
+      <span class="brand-join">J&nbsp;O&nbsp;I&nbsp;N</span>
+    </div>
+
     <div class="login-title">心理治療登錄系統</div>
     <div class="login-sub" id="loginGreeting">— Squiggle Page —</div>
     <input type="password" id="loginPassword" class="login-input" placeholder="密碼" autocomplete="current-password">
@@ -3038,7 +3113,14 @@ async function submitAddLayer1() {
     });
     if (data.success) {
       closeAddBlock("layer1");
-      await loadAndRenderEntries();
+      // v0.6 r10:用 pageMain overlay 包 reload,消除「跳回主畫面後還要等」
+      // 對齊 logout pattern,讓使用者看到全域更新訊號
+      showLocalOverlay("pageMain", "更新中", "syncing");
+      try {
+        await loadAndRenderEntries();
+      } finally {
+        hideLocalOverlay("pageMain");
+      }
     } else {
       showFormError("layer1", data.error || "新增失敗");
     }
@@ -3074,7 +3156,13 @@ async function submitAddLayer1_5() {
     });
     if (data.success) {
       closeAddBlock("layer1_5");
-      await loadAndRenderEntries();
+      // v0.6 r10:同 L1
+      showLocalOverlay("pageMain", "更新中", "syncing");
+      try {
+        await loadAndRenderEntries();
+      } finally {
+        hideLocalOverlay("pageMain");
+      }
     } else {
       showFormError("layer1_5", data.error || "新增失敗");
     }
@@ -3112,7 +3200,13 @@ async function submitAddLayer2() {
     });
     if (data.success) {
       closeAddBlock("layer2");
-      await loadAndRenderEntries();
+      // v0.6 r10:同 L1
+      showLocalOverlay("pageMain", "更新中", "syncing");
+      try {
+        await loadAndRenderEntries();
+      } finally {
+        hideLocalOverlay("pageMain");
+      }
     } else {
       showFormError("layer2", data.error || "新增失敗");
     }
@@ -3150,7 +3244,13 @@ async function submitAddLayer3() {
     });
     if (data.success) {
       closeAddBlock("layer3");
-      await loadAndRenderEntries();
+      // v0.6 r10:同 L1
+      showLocalOverlay("pageMain", "更新中", "syncing");
+      try {
+        await loadAndRenderEntries();
+      } finally {
+        hideLocalOverlay("pageMain");
+      }
     } else {
       showFormError("layer3", data.error || "新增失敗");
     }
@@ -3421,9 +3521,18 @@ async function executeConfirmAction() {
       showToast(isStage2 ? "已移除 · removed" : "已暫存 · staged");
       // 4. 等收合動畫近結束(450ms)再 reload(讓動畫看得完整)
       //    若 entryEl 不存在,直接 reload(保險,避免 stuck)
+      // v0.6 r10:reload 期間用 pageMain overlay 填補等待,消除「收合完還要等」
+      //   時序:entry collapse 450ms → overlay 接力 → reload 1-2s → hide overlay
       const animDelay = entryEl ? 450 : 0;
       setTimeout(async function() {
-        try { await loadAndRenderEntries(); } catch(e) { /* loadAndRenderEntries 內部已處理 */ }
+        showLocalOverlay("pageMain", "更新中", "syncing");
+        try {
+          await loadAndRenderEntries();
+        } catch(e) {
+          /* loadAndRenderEntries 內部已處理 */
+        } finally {
+          hideLocalOverlay("pageMain");
+        }
       }, animDelay);
     } else {
       // 失敗:恢復 busy 狀態,顯示 error

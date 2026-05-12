@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.8.5">
+  <meta name="version" content="5.8.6-invite-C-r5">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -20,6 +20,41 @@
   /* ==========================================================
      悅心診所 線上預約系統
      ----------------------------------------------------------
+     Version:   v5.8.6-r5 (2026-05-12) [step3c-r5] 跟齊版本(無 booking 改動)
+     ──────────────────────────────────────────────────────────
+     v5.8.6-r5 (2026-05-12) 跟齊版本:只動 backend filter,booking 無實質改動
+
+     Version:   v5.8.6-r4 (2026-05-12) [step3c-r4] 跟齊版本(內容無實質改動)
+     ──────────────────────────────────────────────────────────
+     v5.8.6-r4 (2026-05-12) 第二輪審查無 booking 端 finding,單純跟齊三檔版本號
+
+     Version:   v5.8.6-r3 (2026-05-12) [step3c-r3] 第一輪 reviewer 修補
+     ──────────────────────────────────────────────────────────
+     v5.8.6-r3 (2026-05-12) 第一輪審查修補(Medium):
+     · renderInviteConfirmPage / handleInviteToken catch 區的 onclick attribute
+       全改 addEventListener — 修 escape context 漏洞:
+       - HTML attribute 內嵌 JS 字串會雙重 decoding,_escInvite (HTML escape)
+         塞入 onclick 後 browser decode 回單引號才進 JS context
+       - 姓名 O'Brien / D'Angelo 會讓 JS 語法破裂,按鈕點不動
+       - 修法:closure 捕獲原始變數,完全繞開字串拼接
+     · 對應 backend v6.0-step3c-r2 → r3
+
+     Version:   v5.8.6 (2026-05-12) [step3c] 受邀加入接收端(完整版 C)
+     ──────────────────────────────────────────────────────────
+     v5.8.6 (2026-05-12) [step3c] 受邀加入接收端(完整版 C):
+     · 新增 ?invite=<token> URL 分支(對齊既有 ?bind=<token> pattern)
+     · 兩段式流程(對齊 ?bind= 設計):
+       1. resolveInviteToken(只讀預覽,不刪 token)— 顯示姓名+身份資訊卡
+       2. confirmInvite(對方按確認後寫入分頁 + 燒 token)
+     · 新 pageInvite + 完整渲染函式群:
+       handleInviteToken / renderInviteConfirmPage / renderInviteProcessing
+       renderInviteDone / renderInviteExpired / submitInvite
+     · 六個狀態:確認頁(完整資訊卡) / 處理中(動畫) / 已完成(回顯身份)
+                / 連結已失效 / 無法連線(可重試) / 送出失敗(inline alert)
+     · State 2 動畫:sage 綠 spinner + 三點 pulse
+     · 完成頁回顯身份 pill,讓對方確認剛剛加入的是什麼身份
+     · 對應 backend v6.0-step3c:resolveInviteToken / confirmInvite
+
      Version:   v5.8.5 (2026-05-01) Placeholder B2 + 英文姓名訊息 reframe + 首頁加多語 hint
      ──────────────────────────────────────────────────────────
      v5.8.5 (2026-05-01) 三項小改 + 雙 LLM 審查修正:
@@ -1768,6 +1803,116 @@
     stroke: currentColor;
     fill: none;
   }
+
+  /* ════════════════════════════════════════════════════════
+     v5.8.6 [step3c] 受邀加入頁 — 動畫 + role pill 三色
+     ──────────────────────────────────────────────────────── */
+  @keyframes inviteFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* State 2 spinner */
+  .invite-spinner-ring {
+    width: 48px;
+    height: 48px;
+    border: 1.5px solid rgba(138,170,85,0.18);
+    border-top-color: var(--sage-dark);
+    border-radius: 50%;
+    animation: inviteSpin 0.9s linear infinite;
+  }
+  @keyframes inviteSpin { to { transform: rotate(360deg); } }
+
+  /* State 2 三點動畫 */
+  .invite-dots-anim { display: inline-block; letter-spacing: 0; margin-left: 2px; }
+  .invite-dots-anim span {
+    opacity: 0.2;
+    animation: inviteDotPulse 1.4s infinite;
+    font-family: 'Noto Serif TC', serif;
+  }
+  .invite-dots-anim span:nth-child(1) { animation-delay: 0s; }
+  .invite-dots-anim span:nth-child(2) { animation-delay: 0.25s; }
+  .invite-dots-anim span:nth-child(3) { animation-delay: 0.5s; }
+  @keyframes inviteDotPulse {
+    0%,60%,100% { opacity: 0.2; }
+    30%         { opacity: 1; }
+  }
+
+  /* 身份 pill 三色(管理員 / 治療師 / VIP) */
+  .invite-role-pill {
+    display: inline-block;
+    padding: 3px 12px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    font-weight: 500;
+    border: 0.5px solid;
+  }
+  .invite-role-pill.role-admin {
+    background: #f3e8c8;
+    color: #8a5f0a;
+    border-color: rgba(194,134,10,0.4);
+  }
+  .invite-role-pill.role-therapist {
+    background: var(--sage-light, #e8ede0);
+    color: var(--sage-deep, #3e5a25);
+    border-color: rgba(138,170,85,0.4);
+  }
+  .invite-role-pill.role-vip {
+    background: #e8edf3;
+    color: #2a4a6a;
+    border-color: rgba(42,74,106,0.3);
+  }
+
+  /* 受邀資訊卡 */
+  .invite-info-card {
+    text-align: left;
+    background: var(--cream);
+    padding: 16px 18px;
+    margin-bottom: 22px;
+    font-size: 14px;
+    line-height: 2.1;
+    border-radius: 3px;
+    width: 100%;
+    border: 0.5px solid rgba(74,74,68,0.12);
+  }
+  .invite-info-card .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .invite-info-card .k {
+    color: var(--ink-light);
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+  .invite-info-card .v {
+    color: var(--ink);
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  /* inline alert(送出失敗用) */
+  .invite-inline-alert {
+    background: rgba(192,57,43,0.06);
+    color: var(--error);
+    border-left: 3px solid var(--error);
+    padding: 10px 14px;
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+    animation: inviteFadeIn 0.3s both;
+  }
+
+  /* 提示文字 */
+  .invite-hint-text {
+    font-size: 11.5px;
+    color: var(--ink-light);
+    line-height: 1.7;
+    text-align: center;
+    margin-top: 12px;
+    letter-spacing: 0.5px;
+    font-weight: 300;
+  }
 </style>
 </head>
 <body>
@@ -1987,6 +2132,15 @@
         <div id="pageBindSlowHint" style="display:none;margin-top:20px;padding:14px 16px;background:rgba(255,200,0,0.12);border-left:3px solid #d4a017;font-size:13px;color:var(--ink);line-height:1.7;text-align:center;">
           網路較慢，請稍候片刻。
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- v5.8.6 [step3c] 受邀加入確認頁 -->
+  <div class="page" id="pageInvite">
+    <div class="card" style="margin-top:16px;text-align:center;">
+      <div id="pageInviteContent">
+        <div class="loading"><div class="spinner"></div>讀取中...</div>
       </div>
     </div>
   </div>
@@ -2274,6 +2428,8 @@ async function initLiff() {
   // 預先偵測是否為綁定連結(LIFF init 前就能判斷)
   const urlParams = new URLSearchParams(window.location.search);
   const bindToken = urlParams.get("bind");
+  // v5.8.6 [step3c] 受邀加入連結
+  const inviteToken = urlParams.get("invite");
 
   // 若是綁定連結,先顯示 pageBind loading 畫面
   if (bindToken) {
@@ -2285,6 +2441,10 @@ async function initLiff() {
     }, 8000);
     // 存起來讓成功或錯誤路徑都能清掉
     window._bindSlowHintTimer = slowHintTimer;
+  }
+  // v5.8.6 [step3c] 若是受邀連結,先顯示 pageInvite loading 畫面
+  if (inviteToken) {
+    showPage("pageInvite");
   }
 
   // LIFF 初始化函式,封裝成可重試的版本
@@ -2311,8 +2471,8 @@ async function initLiff() {
     try {
       await tryInitLiff();
     } catch (firstErr) {
-      // 綁定連結情境下,首次失敗自動重試一次(第二次通常會成功,使用者察覺不到)
-      if (bindToken && (firstErr.message === "LIFF_TIMEOUT" || firstErr.message === "LIFF_READY_TIMEOUT")) {
+      // 綁定/受邀連結情境下,首次失敗自動重試一次(第二次通常會成功,使用者察覺不到)
+      if ((bindToken || inviteToken) && (firstErr.message === "LIFF_TIMEOUT" || firstErr.message === "LIFF_READY_TIMEOUT")) {
         console.warn("[LIFF] 首次初始化失敗,自動重試", firstErr.message);
         await new Promise(function(r) { setTimeout(r, 500); }); // 稍等 500ms
         await tryInitLiff();
@@ -2330,6 +2490,12 @@ async function initLiff() {
       // 清掉 slow hint timer(成功不需要提示)
       if (window._bindSlowHintTimer) clearTimeout(window._bindSlowHintTimer);
       await handleBindToken(bindToken);
+      return;
+    }
+
+    // v5.8.6 [step3c] 偵測受邀連結 ?invite=token
+    if (inviteToken) {
+      await handleInviteToken(inviteToken);
       return;
     }
 
@@ -2412,6 +2578,28 @@ async function initLiff() {
             <div class="status-title status-warning-text">${isTimeout ? "連線逾時" : "無法連線"}</div>
             <div class="status-sub" style="max-width:320px;">請確認網路狀態後再試。</div>
             <button class="btn btn-primary" style="max-width:200px;" onclick="location.reload()">重新載入</button>
+          </div>`;
+      }
+      return;
+    }
+    // v5.8.6 [step3c] 受邀連結情境:顯示重試畫面
+    if (inviteToken) {
+      const el = document.getElementById("pageInviteContent");
+      if (el) {
+        el.innerHTML = `
+          <div class="status-container">
+            <div class="status-icon status-warning">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                <line x1="12" y1="20" x2="12.01" y2="20"/>
+                <line x1="2" y1="2" x2="22" y2="22"/>
+              </svg>
+            </div>
+            <div class="status-title status-warning-text">無 法 連 線</div>
+            <div class="status-sub" style="max-width:320px;">請確認網路狀態後再試。</div>
+            <button class="btn btn-primary" style="max-width:200px;margin-top:12px;" onclick="location.reload()">重 試</button>
           </div>`;
       }
       return;
@@ -2607,6 +2795,219 @@ async function submitBind(bindToken) {
     btn.disabled = false; btn.textContent = "確認預約";
   } finally {
     hideOverlay();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// v5.8.6 [step3c] 受邀加入接收端
+// ────────────────────────────────────────────────────────────────────
+// 狀態頁:
+//   1. 確認頁          (token 有效,顯示姓名+身份+確認按鈕)
+//   2. 處理中          (按下確認後,spinner+三點動畫)
+//   3. 已完成          (寫入分頁成功)
+//   4. 連結已失效       (過期/已被認領/格式錯誤統一文案)
+//   5. 無法連線/重試    (LIFF 失敗時 catch 端就處理了,這裡只處理 resolve 後的 API 失敗)
+//   6. 送出失敗 inline (按確認後 API 失敗,顯示 inline alert)
+// ════════════════════════════════════════════════════════════════════
+
+// 身份對應到 pill CSS class
+function _inviteRoleClass(role) {
+  if (role === "管理員") return "role-admin";
+  if (role === "VIP")    return "role-vip";
+  return "role-therapist"; // 預設治療師
+}
+
+// HTML escape
+function _escInvite(s) {
+  if (!s) return "";
+  return String(s).replace(/[&<>"']/g, function(c) {
+    return ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c];
+  });
+}
+
+async function handleInviteToken(inviteToken) {
+  showPage("pageInvite");
+  const el = document.getElementById("pageInviteContent");
+
+  // v5.8.6 [step3c] 完整版 C:先 resolveInviteToken(只讀不刪)取得姓名+身份
+  //   → 顯示完整資訊卡 → 對方點確認 → submitInvite(寫入 + 燒 token)
+  // 對齊既有 ?bind= 的 resolve → confirm 兩段式 pattern
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "resolveInviteToken",
+      inviteToken: inviteToken
+    });
+
+    if (!data.success) {
+      // 過期 / 已被認領 / 格式錯誤 → 統一顯示連結已失效
+      renderInviteExpired();
+      return;
+    }
+
+    // 成功:顯示完整資訊卡(姓名 + 身份)
+    renderInviteConfirmPage(inviteToken, data.name, data.role);
+
+  } catch(e) {
+    // resolve 連線異常 → 顯示無法連線 + 重試
+    el.innerHTML = `
+      <div class="status-container">
+        <div class="status-icon status-warning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+            <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+            <line x1="12" y1="20" x2="12.01" y2="20"/>
+            <line x1="2" y1="2" x2="22" y2="22"/>
+          </svg>
+        </div>
+        <div class="status-title status-warning-text">無 法 連 線</div>
+        <div class="status-sub">請確認網路狀態後再試。</div>
+        <button class="btn btn-primary" id="btnInviteRetry" style="max-width:200px;margin-top:12px;">重 試</button>
+      </div>`;
+    // 統一 addEventListener pattern(雖然 inviteToken 是 UUID 無風險,維持一致比較安全)
+    const retryBtn = document.getElementById("btnInviteRetry");
+    if (retryBtn) {
+      retryBtn.addEventListener("click", function() {
+        handleInviteToken(inviteToken);
+      });
+    }
+  }
+}
+
+function renderInviteConfirmPage(inviteToken, name, role) {
+  const el = document.getElementById("pageInviteContent");
+  const roleClass = _inviteRoleClass(role);
+  const safeName = _escInvite(name || "");
+  const safeRole = _escInvite(role || "");
+  // v5.8.6 [step3c-r3] onclick attribute → addEventListener
+  // 理由:HTML attribute 內嵌 JS 字串會有雙重 decoding 陷阱
+  //       _escInvite 是 HTML escape(' → &#39;),塞入 onclick attribute 後 browser
+  //       decode 回 ' 才進入 JS context → 姓名 O'Brien / D'Angelo 會讓 JS 語法破裂
+  //       改用 closure 捕獲原始變數,完全繞開字串拼接 + 雙重 escape 問題
+  el.innerHTML = `
+    <div class="status-container">
+      <div class="status-icon status-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="8.5" cy="7" r="4"/>
+          <line x1="20" y1="8" x2="20" y2="14"/>
+          <line x1="23" y1="11" x2="17" y2="11"/>
+        </svg>
+      </div>
+      <div class="status-title status-info-text">受 邀 加 入</div>
+      <div class="status-sub">悅心診所 線上預約系統<br>邀請您成為以下新的身份</div>
+
+      <div class="invite-info-card">
+        <div class="row" style="margin-bottom:8px;">
+          <span class="k">姓 名</span>
+          <span class="v">${safeName}</span>
+        </div>
+        <div class="row">
+          <span class="k">身 份</span>
+          <span class="invite-role-pill ${roleClass}">${safeRole}</span>
+        </div>
+      </div>
+
+      <div id="inviteSubmitError" class="invite-inline-alert" style="display:none;"></div>
+      <button class="btn btn-primary" id="btnInviteConfirm">確 認 加 入</button>
+
+      <div class="invite-hint-text">
+        若您並非${safeName}本人,或您不同意加入,<br>請直接關閉本頁,勿點選確認。
+      </div>
+    </div>`;
+
+  // closure 捕獲原始(未 escape)的 token/name/role,送進 submitInvite
+  document.getElementById("btnInviteConfirm").addEventListener("click", function() {
+    submitInvite(inviteToken, name, role);
+  });
+}
+
+function renderInviteProcessing() {
+  const el = document.getElementById("pageInviteContent");
+  el.innerHTML = `
+    <div class="status-container">
+      <div class="status-icon status-info" style="border:none;">
+        <div class="invite-spinner-ring"></div>
+      </div>
+      <div class="status-title status-info-text">處 理 中<span class="invite-dots-anim"><span>.</span><span>.</span><span>.</span></span></div>
+      <div class="status-sub">正在確認您的回覆</div>
+    </div>`;
+}
+
+function renderInviteDone(name, role) {
+  const el = document.getElementById("pageInviteContent");
+  const roleClass = _inviteRoleClass(role);
+  const safeRole = _escInvite(role || "");
+  el.innerHTML = `
+    <div class="status-container">
+      <div class="status-icon status-success">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="stroke-dasharray:40;stroke-dashoffset:40;animation:drawCheck 0.5s 0.3s cubic-bezier(0.22,1,0.36,1) forwards;">
+          <polyline points="4 12 10 18 20 6"></polyline>
+        </svg>
+      </div>
+      <div class="status-title status-success-text">已 完 成</div>
+      <div class="status-sub">您已確認加入悅心線上預約系統<br><span class="invite-role-pill ${roleClass}" style="margin-top:6px;display:inline-block;">${safeRole}</span><br><br>請耐心等候進一步通知。</div>
+    </div>`;
+}
+
+function renderInviteExpired() {
+  const el = document.getElementById("pageInviteContent");
+  el.innerHTML = `
+    <div class="status-container">
+      <div class="status-icon status-warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+      <div class="status-title status-warning-text">連 結 已 失 效</div>
+      <div class="status-sub">請聯繫工作人員重新發送連結。</div>
+    </div>`;
+}
+
+async function submitInvite(inviteToken, name, role) {
+  // 切到處理中
+  renderInviteProcessing();
+
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "confirmInvite",
+      inviteToken: inviteToken,
+      lineId: state.lineId
+    });
+
+    if (!data.success) {
+      // 過期/已被認領/格式錯誤統一顯示連結已失效
+      if (data.expired) {
+        renderInviteExpired();
+        return;
+      }
+      // 其他類型錯誤 → 回確認頁顯示 inline alert(保留姓名/身份資訊)
+      renderInviteConfirmPage(inviteToken, name, role);
+      // 等 DOM 重繪後再插入錯誤訊息
+      setTimeout(function() {
+        const errEl = document.getElementById("inviteSubmitError");
+        if (errEl) {
+          errEl.textContent = "回覆未完成,請重新點選確認";
+          errEl.style.display = "block";
+        }
+      }, 50);
+      return;
+    }
+
+    // 成功 — backend 會回 name/role,優先用回傳值(避免被前端 escape 過的字串)
+    renderInviteDone(data.name || name, data.role || role);
+
+  } catch(e) {
+    // 連線異常 → 回確認頁 inline alert(保留姓名/身份資訊)
+    renderInviteConfirmPage(inviteToken, name, role);
+    setTimeout(function() {
+      const errEl = document.getElementById("inviteSubmitError");
+      if (errEl) {
+        errEl.textContent = "回覆未完成,請重新點選確認";
+        errEl.style.display = "block";
+      }
+    }, 50);
   }
 }
 

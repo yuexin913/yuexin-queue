@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.15-eq-atomic">
+  <meta name="version" content="5.5.18-eq-killswitch">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -17,6 +17,62 @@
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
      ────────────────────────────────────────────────────────
+     Version:   v5.5.18-eq-killswitch (2026-05-12) 應急叫號 Kill Switch
+     ──────────────────────────────────────────────────────────
+     v5.5.18-eq-killswitch (2026-05-12):應急叫號功能開關(對應 backend
+     v6.0-eq-killswitch-r1)
+     · 背景:5/8 叫號機(mainpi.com)硬體故障 → 5/9 上線應急叫號方案 →
+              5/12 廠商修好,病人端已切回 mainpi 原版,但 admin 還留著
+              叫號 tile + 控制台
+     · 設計:Script Property EMERGENCY_QUEUE_ENABLED = "true" / 其他 = 關閉
+              (預設關閉),改完最壞 10 秒生效(走 getEmergencyQueueNumber
+              的既有 10 秒 CacheService)
+     · 改動 1:CSS 推廣 .tile.disabled 通用 class
+              (對齊既有 .tile-nav.disabled pattern,適用所有 tile 型別)
+     · 改動 2:loadEqTileSubtitle() 讀 data.enabled
+              false → tile 加 .disabled class + subtitle 顯示「已停用」
+              true → 維持原本行為(顯示數字 + 可點開 modal)
+     · Q4 = C1:modal 開著時 flag 被外部關掉,讓 backend error 走既有
+              channel 顯紅字「應急叫號功能已關閉」,modal 開啟邏輯不動
+     · 隔離邊界:純前端,backend Kill Switch 即使前端 fail 也擋得住
+
+     Version:   v5.5.17-r5 (2026-05-12) [step3c-r5] 跟齊版本(無 frontend 改動)
+     ──────────────────────────────────────────────────────────
+     v5.5.17-r5 (2026-05-12) 跟齊版本:
+     · 粟醫師抓到 backend ADMIN_WHITELIST 載入會撈到 ADMIN_OWNER key 污染陣列
+     · 修補只動 backend(filter 補排除),frontend 無實質改動
+     · 對應 backend v6.0-step3c-r5
+
+     Version:   v5.5.17-r4 (2026-05-12) [step3c-r4] 第二輪 reviewer 修補
+     ──────────────────────────────────────────────────────────
+     v5.5.17-r4 (2026-05-12) 第二輪審查修補(Low race + Nit 清值):
+     · submitCreateInvite in-flight race guard:
+       場景:按產生 → in-flight → 關 modal 又重開(resetInviteFlow 切回 state 1)→
+             xhr 回來把 DOM 強切到 state 3 → 使用者沒按產生卻看到結果
+       修法:continuation 三條 path(success / error / catch)都加 _isStillGenerating()
+             檢查,DOM 已被重置就放棄結果不污染 UI
+     · handleSessionExpired 補清 state.adminName(pre-existing 對齊 doLogout pattern)
+     · 對應 backend v6.0-step3c-r4
+
+     Version:   v5.5.17-r3 (2026-05-12) [step3c-r3] 第一輪 reviewer 修補
+     ──────────────────────────────────────────────────────────
+     v5.5.17-r3 (2026-05-12) 第一輪審查修補(Medium 兩項):
+     · loadSessionFromStorage 加 isOwner 欄位防呆 — 舊版 session(沒此欄位)
+       強制視同失效,避免 admin 升級後第一次刷新時 isOwner=false 造成邀請功能消失
+     · 對應 booking v5.8.6-r3:onclick attribute → addEventListener
+       (escape context 漏洞,姓名含單引號會炸)
+
+     Version:   v5.5.17 (2026-05-12) [step3c] 邀請加入功能(OWNER only)
+     ──────────────────────────────────────────────────────────
+     v5.5.17 (2026-05-12) [step3c] 邀請加入模組:
+     · [新] modalSecurity 內加「邀請加入」section,僅 ADMIN_OWNER 看得到
+     · 輸入姓名 + 選身份(VIP/治療師/管理員)→ 產生 6h 限時 LIFF 連結
+     · 連結被點選後,LIFF 抓 lineId 寫入「黑名單」分頁(雙用途收集箱)
+     · 粟醫師後續手動把 lineId 搬到 Script Properties 對應 key + ping 生效
+     · state 加 isOwner(verifyAdmin / requestSession 透傳),session 持久化 v3
+     · CSS 加 role-chip / result-box / gen-spinner 動畫
+     · 對應 backend v6.0-step3c:createInviteToken / confirmInvite / isAdminOwner
+
      Version:   v5.5.15 (2026-05-05) [H12] sessionStorage → localStorage,登入持久化 12 小時
      ──────────────────────────────────────────────────────────
      v5.5.15 (2026-05-05) [H12] Session 持久化升級:
@@ -1028,6 +1084,12 @@
   .tile-nav.disabled { background: var(--bg-2) !important; cursor: not-allowed; border-color: var(--border-soft); }
   .tile-nav.disabled .tile-title { color: var(--text-dim) !important; }
   .tile-nav.disabled:active { transform: none; }
+
+  /* v5.5.18-eq-killswitch:.tile.disabled 通用版(對齊 .tile-nav.disabled pattern,適用任何 tile 型別)
+     首次用於 Kill Switch 把叫號 tile 切灰底沉默,讓使用者目光自然略過 */
+  .tile.disabled { background: var(--bg-2) !important; cursor: not-allowed; border-color: var(--border-soft) !important; pointer-events: none; }
+  .tile.disabled .tile-title { color: var(--text-dim) !important; }
+  .tile.disabled .tile-subtitle { color: var(--text-dim) !important; }
 
   /* ── Row 2:醫師 + 時段 — 醫師用 Pearl 彩色底(功能性 tile)── */
   .tile-doctor {
@@ -2190,6 +2252,204 @@
     stroke: currentColor;
     fill: none;
   }
+
+  /* ════════════════════════════════════════════════════════
+     v5.5.17 [step3c] 邀請加入模組 — modalSecurity 內 section
+     ──────────────────────────────────────────────────────── */
+  .invite-section {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-soft);
+  }
+  .invite-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .invite-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--marigold);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .invite-owner-tag {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: var(--marigold);
+    background: var(--marigold-bg);
+    border: 1px solid var(--marigold-bd);
+    padding: 2px 6px;
+  }
+  .invite-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    margin-bottom: 10px;
+    font-weight: 300;
+  }
+  .invite-field-label {
+    font-size: 10px;
+    color: var(--text-light);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    margin-top: 10px;
+    font-weight: 400;
+  }
+  .invite-field-label:first-child { margin-top: 0; }
+
+  /* role chip 三選一 */
+  .invite-role-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .invite-role-chip {
+    flex: 1;
+    padding: 10px 8px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-soft);
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-light);
+    cursor: pointer;
+    text-align: center;
+    letter-spacing: 1px;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .invite-role-chip:hover {
+    background: var(--bg-4);
+    color: var(--text);
+  }
+  .invite-role-chip.active {
+    background: var(--marigold-bg);
+    border-color: var(--marigold-bd);
+    color: var(--marigold);
+    font-weight: 500;
+  }
+
+  /* 生成中動畫 */
+  .invite-gen-spinner {
+    width: 32px;
+    height: 32px;
+    border: 1.5px solid rgba(255,134,1,0.18);
+    border-top-color: var(--marigold);
+    border-radius: 50%;
+    animation: inviteGenSpin 0.9s linear infinite;
+  }
+  @keyframes inviteGenSpin { to { transform: rotate(360deg); } }
+
+  .invite-gen-dots { display: inline-block; margin-left: 1px; }
+  .invite-gen-dots span {
+    opacity: 0.2;
+    animation: inviteGenDot 1.4s infinite;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .invite-gen-dots span:nth-child(1) { animation-delay: 0s; }
+  .invite-gen-dots span:nth-child(2) { animation-delay: 0.25s; }
+  .invite-gen-dots span:nth-child(3) { animation-delay: 0.5s; }
+  @keyframes inviteGenDot {
+    0%,60%,100% { opacity: 0.2; }
+    30%         { opacity: 1; }
+  }
+
+  /* 結果區 */
+  .invite-result-box {
+    margin-top: 14px;
+    padding: 14px;
+    background: var(--bg-2);
+    border-left: 3px solid var(--kiwi);
+  }
+  .invite-result-label {
+    font-size: 10px;
+    color: var(--text-light);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-weight: 400;
+  }
+  .invite-result-text {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text);
+    font-weight: 400;
+    white-space: pre-wrap;
+    font-family: inherit;
+  }
+  .invite-result-link {
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: #0a0a0a;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--capri);
+    word-break: break-all;
+    letter-spacing: 0.3px;
+  }
+  .invite-result-meta {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+  }
+  .invite-copy-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .invite-btn-copy {
+    flex: 1;
+    padding: 10px;
+    background: var(--kiwi-bg, rgba(163,217,119,0.14));
+    color: var(--kiwi, #a3d977);
+    border: 1px solid var(--kiwi-bd, rgba(163,217,119,0.45));
+    font-size: 12px;
+    font-family: inherit;
+    letter-spacing: 1px;
+    cursor: pointer;
+    margin: 0;
+    transition: background 0.15s;
+  }
+  .invite-btn-copy:hover { background: rgba(163,217,119,0.22); }
+  .invite-btn-copy.copied {
+    background: var(--kiwi);
+    color: #0a0a0a;
+    font-weight: 500;
+  }
+
+  /* 再發一張按鈕 */
+  .invite-btn-reset {
+    margin-top: 14px;
+    background: transparent;
+    color: var(--text-light);
+    border: 1px solid var(--border-soft);
+    font-size: 12px;
+    padding: 9px;
+    width: 100%;
+    font-family: inherit;
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+  .invite-btn-reset:hover {
+    border-color: var(--marigold-bd);
+    color: var(--marigold);
+  }
+
+  /* 錯誤訊息 */
+  .invite-alert {
+    background: rgba(249,50,89,0.08);
+    color: var(--pink);
+    border-left: 3px solid var(--pink);
+    padding: 10px 14px;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    margin-top: 12px;
+    margin-bottom: 0;
+  }
 </style>
 </head>
 <body>
@@ -2747,6 +3007,68 @@
       <div id="lookupError" class="alert alert-error" style="display:none;font-size:11px;padding:6px 8px;margin-bottom:8px;"></div>
       <div id="lookupResults" style="font-size:12px;"></div>
     </div>
+
+    <!-- v5.5.17 [step3c] 邀請加入 — 僅 ADMIN_OWNER 看得到,openModal 時依 state.isOwner 顯隱 -->
+    <div class="invite-section" id="inviteSection" style="display:none;">
+      <div class="invite-section-header">
+        <div class="invite-section-label">邀請加入</div>
+        <div class="invite-owner-tag">OWNER</div>
+      </div>
+
+      <!-- state 1:輸入區 -->
+      <div id="inviteStateInput">
+        <div class="invite-hint">產生限時邀請連結,供 LINE 傳送給對方。對方點選後自動寫入收集分頁。</div>
+
+        <div class="invite-field-label">姓名</div>
+        <input type="text" id="inviteName" placeholder="王小帥"
+               style="margin-bottom:0;"
+               maxlength="30">
+
+        <div class="invite-field-label">身份</div>
+        <div class="invite-role-row">
+          <div class="invite-role-chip" data-role="VIP" onclick="selectInviteRole(this)">VIP</div>
+          <div class="invite-role-chip" data-role="治療師" onclick="selectInviteRole(this)">治療師</div>
+          <div class="invite-role-chip" data-role="管理員" onclick="selectInviteRole(this)">管理員</div>
+        </div>
+
+        <button class="btn btn-primary" id="btnGenInvite"
+                style="margin-top:14px;letter-spacing:2px;"
+                onclick="submitCreateInvite()" disabled>產生邀請連結</button>
+
+        <div id="inviteError" class="invite-alert" style="display:none;"></div>
+      </div>
+
+      <!-- state 2:生成中 -->
+      <div id="inviteStateGenerating" style="display:none;">
+        <div style="display:flex;flex-direction:column;align-items:center;padding:36px 0 30px;gap:18px;">
+          <div class="invite-gen-spinner"></div>
+          <div style="font-family:'JetBrains Mono',monospace;color:var(--marigold);font-size:13px;letter-spacing:2px;">
+            生成邀請連結中<span class="invite-gen-dots"><span>.</span><span>.</span><span>.</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- state 3:生成完成 -->
+      <div id="inviteStateResult" style="display:none;">
+        <div class="invite-hint">複製以下訊息,用 LINE 傳給對方:</div>
+
+        <div class="invite-result-box">
+          <div class="invite-result-label">邀請訊息</div>
+          <div class="invite-result-text" id="inviteResultText"></div>
+
+          <div class="invite-result-link" id="inviteResultLink"></div>
+
+          <div class="invite-result-meta">EXPIRES · <span id="inviteExpireText"></span></div>
+
+          <div class="invite-copy-row">
+            <button class="invite-btn-copy" id="btnCopyMessage" onclick="copyInviteMessage('full')">複製訊息+連結</button>
+            <button class="invite-btn-copy" id="btnCopyLink" style="flex:0 0 auto;padding:10px 14px;" onclick="copyInviteMessage('link')">只複製連結</button>
+          </div>
+        </div>
+
+        <button class="invite-btn-reset" onclick="resetInviteFlow()">再發一張</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2958,7 +3280,7 @@ const DEFAULT_DOCTOR_SCHEDULE = {
   6: { "早上": "粟寧",   "下午": "",       "晚上": ""        }
 };
 const API_URL = "https://script.google.com/macros/s/AKfycbxfbtWB6tyWUvFY1r_d26yxdm3Iz6zVALuZgUwLYyqIOHkJrn7TJJADkUE8VPkKOkZkqw/exec";
-let state = { lineId: "", adminName: "", sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, pendingForceAdd: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false, contactType: "", contactDoctor: "", contactDate: "", contactSession: "", pendingAdminAddParams: null, _matchCandidates: [], _selectedMatchIdx: -1, lastCompletedBooking: null };
+let state = { lineId: "", adminName: "", isOwner: false, sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, pendingForceAdd: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false, contactType: "", contactDoctor: "", contactDate: "", contactSession: "", pendingAdminAddParams: null, _matchCandidates: [], _selectedMatchIdx: -1, lastCompletedBooking: null };
 // v5.5.14: lastCompletedBooking 取代 v5.5.13 的 forcedBookingId/Name/Slot/IsUnspec 4 個分散 fields
 // 結構:{ id, name, slot, isUnspec } 或 null
 // 動機:v5.5.13 修法 C 只修了 confirmForceAdd 一個 entry,L4148(主路徑)跟 L4252(confirmMatchBooking)
@@ -2984,6 +3306,7 @@ function saveSessionToStorage() {
       lineId: state.lineId,
       sessionToken: state.sessionToken,
       adminName: state.adminName,
+      isOwner: state.isOwner === true,  // v5.5.17 [step3c] 邀請加入模組需要持久化 OWNER 狀態
       loginTime: state.loginTime,
       savedAt: Date.now()
     }));
@@ -2997,6 +3320,13 @@ function loadSessionFromStorage() {
     const saved = JSON.parse(raw);
     // 基本防呆:必要欄位都要在
     if (!saved.lineId || !saved.sessionToken || !saved.adminName) return null;
+    // v5.5.17 [step3c] 防呆:舊版 session(v5.5.16 之前)沒有 isOwner 欄位
+    // 若直接 restore,state.isOwner 會是 false → 邀請功能消失,粟醫師會困惑為何系統 tile 內沒看到
+    // 強制視同失效,要求重新打 verifyAdmin 取回正確 isOwner 值(對 UX 比升 key 強制重登柔和)
+    if (typeof saved.isOwner === "undefined") {
+      clearSessionFromStorage();
+      return null;
+    }
     // 本地也加一層保護:存超過 12 小時視為過期(backend TTL 也是 12 小時)
     if (saved.savedAt && (Date.now() - saved.savedAt) > 12 * 60 * 60 * 1000) {
       clearSessionFromStorage();
@@ -3216,6 +3546,7 @@ async function initLiff() {
     if (savedSession && savedSession.lineId === state.lineId) {
       state.sessionToken = savedSession.sessionToken;
       state.adminName = savedSession.adminName;
+      state.isOwner = savedSession.isOwner === true;  // v5.5.17 [step3c]
       state.loginTime = savedSession.loginTime;
       // 播個短動畫讓使用者知道正在恢復
       authAnimStart();
@@ -3283,6 +3614,7 @@ async function doLogin() {
     if (data.success) {
       state.sessionToken = data.token;
       state.adminName = data.name;
+      state.isOwner = data.isOwner === true;  // v5.5.17 [step3c]
       state.loginTime = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
       // v5.3.1:session 持久化到 storage,分頁重新整理 / 切 App 回來不用再登 [v5.5.15 localStorage 12h]
       saveSessionToStorage();
@@ -3564,6 +3896,7 @@ async function doLogout() {
   // 清 state + storage(這些與後端無關,可先清)
   state.sessionToken = "";
   state.adminName = "";
+  state.isOwner = false;  // v5.5.17 [step3c]
   state.loginTime = "";
   clearSessionFromStorage();
 
@@ -3617,6 +3950,8 @@ async function doLogout() {
 function handleSessionExpired() {
   hideAdminOverlay(); // 確保所有 loading 狀態都被清除
   state.sessionToken = "";
+  state.adminName = "";   // v5.5.17-r4:pre-existing 漏清,跟 doLogout pattern 對齊
+  state.isOwner = false;  // v5.5.17 [step3c]
   // v5.3.1:backend 說 session 死了 → 清 storage,避免下次進來用失效 token
   clearSessionFromStorage();
   document.getElementById("pageMain").style.display = "none";
@@ -5159,6 +5494,12 @@ function openModal(id) {
     // 依 v5.4.1 哲學:只有確定有未讀才顯示。loadSecurity 會根據 hasUnread 再次決定
     const btnMR = document.getElementById("btnMarkRead");
     if (btnMR) btnMR.style.display = "none";
+    // v5.5.17 [step3c] 邀請加入 section:依 isOwner 顯隱 + 重置
+    const invSec = document.getElementById("inviteSection");
+    if (invSec) {
+      invSec.style.display = state.isOwner ? "" : "none";
+      if (state.isOwner) resetInviteFlow();
+    }
     loadSecurity();
   }
   if (id === "modalSubstitute") loadSubstituteList();
@@ -5809,11 +6150,26 @@ let _eqCurrentNumber = null; // v1.2-atomic:純 View-Model,僅用於 UI 顯示(�
 
 // admin 主畫面 tile subtitle 用,獨立 helper(不開 modal,只更新 subtitle)
 // 同時更新 _eqCurrentNumber,讓 modal 開啟時能立刻顯示(避免 flash 「—」)
+// v5.5.18-eq-killswitch:加 Kill Switch 處理 — data.enabled === false 時 tile
+//                       套 .disabled class + subtitle 顯示「已停用」(灰底沉默)
 async function loadEqTileSubtitle() {
   try {
     const data = await xhrGet(API_URL + "?action=getEmergencyQueueNumber");
     const subEl = document.getElementById("eqTileSubtitle");
     if (!subEl) return;
+    const tileEl = subEl.closest(".tile");
+
+    // v5.5.18-eq-killswitch:flag 優先檢查,disabled 狀態壓制其他顯示
+    // 設計理由:flag 是「功能級別狀態」,優先級高於資料層級的 number/empty 區分
+    if (data && data.success && data.enabled === false) {
+      _eqCurrentNumber = null;
+      subEl.textContent = "已停用";
+      if (tileEl) tileEl.classList.add("disabled");
+      return;
+    }
+
+    // flag enabled(或舊版 backend 無 enabled 欄位)→ 走原有 3 路徑
+    if (tileEl) tileEl.classList.remove("disabled");
     if (data && data.success && data.number !== null && data.number !== undefined) {
       _eqCurrentNumber = parseInt(data.number, 10);
       subEl.textContent = _eqCurrentNumber;
@@ -6234,6 +6590,213 @@ function renderLookupResults(matched) {
     </div>`;
   }).join("");
 }
+
+// ════════════════════════════════════════════════════════════════════
+// v5.5.17 [step3c] 邀請加入模組(OWNER only)
+// ────────────────────────────────────────────────────────────────────
+// state:
+//   _inviteRole: 當前選中的身份(VIP/治療師/管理員)
+//   _inviteToken: 已產生的 token(state 2/3 用)
+//   _inviteMsg: 已產生的完整訊息文字(state 3 複製用)
+//   _inviteLink: 已產生的完整連結 URL
+//
+// booking 部署 URL 來源:由 BOOKING_URL 常數提供
+// 對齊 v6.0 既有「Apps Script web app URL 跟 GitHub Pages 分離」設計
+// ════════════════════════════════════════════════════════════════════
+
+// booking 端部署 URL(對應 ?invite=<token> 路徑)
+// ⚠️ 請粟醫師確認此 URL 與實際 GitHub Pages 部署位置一致
+//    若 booking.html 不在 repo root 或 repo 名稱有變,需更新此處
+//    現在的值對應 yuexin913/yuexin-queue repo root 的 booking.html
+const BOOKING_URL = "https://yuexin913.github.io/yuexin-queue/booking.html";
+
+let _inviteRole = "";
+let _inviteToken = "";
+let _inviteMsg = "";
+let _inviteLink = "";
+
+function selectInviteRole(el) {
+  // 清除其他 chip active state
+  document.querySelectorAll(".invite-role-chip").forEach(function(c) {
+    c.classList.remove("active");
+  });
+  el.classList.add("active");
+  _inviteRole = el.getAttribute("data-role") || "";
+
+  // 解鎖按鈕(需要姓名 + 身份都有)
+  updateInviteButtonState();
+}
+
+function updateInviteButtonState() {
+  const btn = document.getElementById("btnGenInvite");
+  const name = (document.getElementById("inviteName").value || "").trim();
+  if (btn) btn.disabled = !(name && _inviteRole);
+}
+
+async function submitCreateInvite() {
+  const name = (document.getElementById("inviteName").value || "").trim();
+  const errEl = document.getElementById("inviteError");
+  errEl.style.display = "none";
+
+  if (!name) {
+    errEl.textContent = "請輸入姓名。";
+    errEl.style.display = "block";
+    return;
+  }
+  if (!_inviteRole) {
+    errEl.textContent = "請選擇身份。";
+    errEl.style.display = "block";
+    return;
+  }
+
+  // 切換到 state 2(生成中)
+  document.getElementById("inviteStateInput").style.display = "none";
+  document.getElementById("inviteStateGenerating").style.display = "";
+  document.getElementById("inviteStateResult").style.display = "none";
+
+  // v5.5.17-r4:in-flight race guard
+  // 場景:使用者按產生 → in-flight → 關 modal 又重開(觸發 resetInviteFlow 切回 state 1)→
+  //       xhr 回來把 DOM 強切到 state 3,使用者沒按產生卻看到結果
+  // 防護:continuation 回來時檢查 DOM 還是不是 state 2(generating),不是就放棄這次結果
+  function _isStillGenerating() {
+    return document.getElementById("inviteStateGenerating").style.display !== "none";
+  }
+
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "createInviteToken",
+      lineId: state.lineId,
+      token: state.sessionToken,
+      name: name,
+      role: _inviteRole
+    });
+
+    // 若 modal 已被關閉/重置(切回 state 1),放棄這次結果不污染 UI
+    if (!_isStillGenerating()) return;
+
+    if (!data.success) {
+      // 退回 state 1 顯示錯誤
+      document.getElementById("inviteStateGenerating").style.display = "none";
+      document.getElementById("inviteStateInput").style.display = "";
+      errEl.textContent = data.error || "產生失敗,請稍後再試。";
+      errEl.style.display = "block";
+      return;
+    }
+
+    // 成功:組訊息 + 連結,進 state 3
+    _inviteToken = data.inviteToken;
+    _inviteLink = BOOKING_URL + "?invite=" + encodeURIComponent(data.inviteToken);
+    _inviteMsg =
+      name + ",您已受邀成為悅心線上預約系統的「" + _inviteRole + "」。\n\n" +
+      "請於六小時內點選連結並完成確認。完成後請耐心等候進一步通知。\n\n" +
+      "若您不同意成為悅心線上預約系統的「" + _inviteRole + "」,請直接忽略此訊息。";
+
+    // 過期時間顯示
+    const expireDate = new Date(data.expireAt);
+    const expireStr = expireDate.toLocaleString("zh-TW", {
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hour12: false
+    });
+
+    // 填 state 3
+    document.getElementById("inviteResultText").textContent = _inviteMsg;
+    document.getElementById("inviteResultLink").textContent = _inviteLink;
+    document.getElementById("inviteExpireText").textContent = expireStr + " (六小時後)";
+
+    // 重置複製按鈕狀態
+    document.getElementById("btnCopyMessage").textContent = "複製訊息+連結";
+    document.getElementById("btnCopyMessage").classList.remove("copied");
+    document.getElementById("btnCopyLink").textContent = "只複製連結";
+    document.getElementById("btnCopyLink").classList.remove("copied");
+
+    document.getElementById("inviteStateGenerating").style.display = "none";
+    document.getElementById("inviteStateResult").style.display = "";
+
+  } catch(e) {
+    if (e.isSessionExpired) return;
+    // race guard:DOM 已被重置就不要再去碰 UI
+    if (!_isStillGenerating()) return;
+    document.getElementById("inviteStateGenerating").style.display = "none";
+    document.getElementById("inviteStateInput").style.display = "";
+    errEl.textContent = "系統連線異常,請稍後再試。";
+    errEl.style.display = "block";
+  }
+}
+
+function copyInviteMessage(kind) {
+  const text = (kind === "link") ? _inviteLink : (_inviteMsg + "\n\n" + _inviteLink);
+  const btnId = (kind === "link") ? "btnCopyLink" : "btnCopyMessage";
+  const originalText = (kind === "link") ? "只複製連結" : "複製訊息+連結";
+
+  const btn = document.getElementById(btnId);
+
+  // 嘗試現代 clipboard API,失敗 fallback 到 textarea + execCommand
+  function showCopied() {
+    btn.textContent = "✓ 已複製";
+    btn.classList.add("copied");
+    setTimeout(function() {
+      btn.textContent = originalText;
+      btn.classList.remove("copied");
+    }, 1500);
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(showCopied).catch(function() {
+      fallbackCopy(text, showCopied);
+    });
+  } else {
+    fallbackCopy(text, showCopied);
+  }
+}
+
+function fallbackCopy(text, onSuccess) {
+  // execCommand 是 deprecated 但 LIFF in-app browser 可能還沒 clipboard API,保險加 fallback
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    if (onSuccess) onSuccess();
+  } catch(e) {
+    alert("複製失敗,請手動選取複製。");
+  }
+}
+
+function resetInviteFlow() {
+  // 清 state
+  _inviteRole = "";
+  _inviteToken = "";
+  _inviteMsg = "";
+  _inviteLink = "";
+
+  // 清 UI
+  const nameEl = document.getElementById("inviteName");
+  if (nameEl) nameEl.value = "";
+  document.querySelectorAll(".invite-role-chip").forEach(function(c) {
+    c.classList.remove("active");
+  });
+  const btn = document.getElementById("btnGenInvite");
+  if (btn) btn.disabled = true;
+  const errEl = document.getElementById("inviteError");
+  if (errEl) errEl.style.display = "none";
+
+  // 切回 state 1
+  document.getElementById("inviteStateInput").style.display = "";
+  document.getElementById("inviteStateGenerating").style.display = "none";
+  document.getElementById("inviteStateResult").style.display = "none";
+}
+
+// 監聽姓名輸入即時更新按鈕狀態
+document.addEventListener("DOMContentLoaded", function() {
+  const nameEl = document.getElementById("inviteName");
+  if (nameEl) {
+    nameEl.addEventListener("input", updateInviteButtonState);
+  }
+});
 
 /* ── 35天預覽 ── */
 async function openPreviewModal() {
