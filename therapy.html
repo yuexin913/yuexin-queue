@@ -8,7 +8,7 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
 悅心診所 心理治療系統 therapy.html
-Current Version: v0.6-r15 (2026-05-12)
+Current Version: v0.6-r16 (2026-05-12)
 
 Designed by Su Ning | Powered by Claude & Gemini 2026
 -->
@@ -132,10 +132,13 @@ body {
   height: 80px;
   display: block;
 }
-/* sphinx 眨眼:2s 週期,負 delay 確保 0.5s 首眨(快 case 1.5s 也能看到 1 次) */
+/* v0.6 r14:sphinx 眨眼動畫
+   v0.6 r16:節奏 2s + 0.5s 慢眨(25% 閉眼)
+            眨眼動作放慢「思考」感,週期維持 2s 不會等太久
+            對齊「野生懶人精神分析」vibe — sphinx 在沉思 */
 @keyframes sphinx-blink {
-  0%, 85%, 100% { opacity: 0.4; }
-  90%, 95%      { opacity: 0; }
+  0%, 70%, 100% { opacity: 0.4; }
+  80%, 85%      { opacity: 0; }
 }
 .sphinx-eye {
   animation: sphinx-blink 2s ease-in-out infinite;
