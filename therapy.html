@@ -7,89 +7,10 @@
 <title>悅心 心理治療</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
-═══════════════════════════════════════════════════════════════════════════════
-悅心診所 心理治療系統 — therapy.html v0.6-r10
-版本:v0.6-r10(2026-05-12 新增/刪除後加 pageMain overlay,消除「跳回後還要等」)
-作者:粟寧醫師(架構主導) × Claude(實作)
-設計 anchor:v6_0_therapy_D_design.md (Lock 1-19) + v6_0_therapy_step1_schema.md v4
-Backend:v6.0-step3c-r5(邀請加入 + namespace cleanup)
+悅心診所 心理治療系統 therapy.html
+Current Version: v0.6-r13 (2026-05-12)
 
-【v0.6-r9 → v0.6-r10 改動】
-- ✅ 新增 / 刪除完成後加 pageMain overlay 包 loadAndRenderEntries
-  - 5 個 caller 都加:submitAddLayer1 / L1_5 / L2 / L3 + executeConfirmAction
-  - 改動 pattern:reload 前 showLocalOverlay("pageMain", "更新中", "syncing")
-                  reload 後 hideLocalOverlay("pageMain")
-  - 動機:原本 loadAndRenderEntries 內部只蓋 paneDisplay 的 overlay,使用者
-          若還在 paneOperation tab 看不到,造成「跳回主畫面後還要等一下」
-          的體驗 bug
-  - 解法:外層 pageMain overlay 覆蓋整頁,使用者一定看得到全域更新訊號
-          (對齊 logout 用的 pageMain pattern,line 2204)
-  - 刪除路徑時序:entry collapse 450ms → overlay 接力 → reload → hide
-  - 雙層 overlay 並存:外層 pageMain 蓋過內層 paneDisplay,內層仍跑 stagger
-                       (對既有 loadAndRenderEntries 0 改動,符合「修 bug 不
-                        順手改相鄰邏輯」紀律)
-
-【v0.6-r8 → v0.6-r9 改動】
-- ✅ .btn-primary:disabled 移除 ash 灰背景,維持 slate 深色
-  - 5 個按鈕受影響:btnSubmitL1 / L15 / L2 / L3(L1/L1.5/L2/L3 新增 submit)
-                  + btnConfirmGo(confirm modal 終止/移除 確認鈕)
-  - 動機:這 5 個按鈕的 disabled 狀態只發生在 busy 中(setFormBusy /
-          executeConfirmAction),此時按鈕內會插入 .btn-dots 白點脈動
-  - 改前:disabled 切到 var(--ash) 灰底 → 白點對比變弱
-  - 改後:維持 var(--slate) 深底 → 白點對比強(對齊 v0.6-r2 的
-          .login-btn:disabled 處理 pattern,Single Source of Truth)
-  - 哲學:方案 C「form frozen,但按鈕正在動」— 整個 form/modal 已用
-          .form-busy / .modal-overlay.busy 淡化提供狀態訊息,按鈕反而
-          刻意保持深色 stand out
-  - 識別來源:v0.4-loading-c r2 自審 backlog,延後實作
-
-【v0.6-r7 → v0.6-r8 改動】
-- ✅ 登入頁 .login-box 上方加 .brand-header
-  - 「悅心診所」(sans + ink + letter-spacing 8px,對齊 booking 結構但用工業字型)
-  - 「J O I N」框框(mono + concrete + line-2 細灰框,對齊 booking 結構但去金色)
-  - 設計哲學:對齊 booking 識別性,但維持 therapy 「C5 純白 + 水泥灰 + 工業字型」風格
-
-【v0.1 → v0.2 改動】
-- ✅ [操作] 分頁完整實作(替換 placeholder)
-  - 上半:4 個 expandable 新增表單(L1 / L1.5 / L2 / L3)
-    - L1 / L2 排班內時段下拉 + [使用非排班時段] 切換鈕(對齊 schema v4 line 453)
-    - L1.5 病患從現有 L1 active 病患下拉 + 時段從該病患 L1 entries 撈
-    - L3 期待時段從排班動態生成 checkbox(只列有排班的格)
-  - 下半:4 層資料展示 + 兩階段刪除
-    - active → 第一階段按鈕([終止治療]/[恢復]/[取消])→ entry 加刪除線+淡色
-    - staged(terminated/restored/canceled)→ [移除] → entry 從畫面消失
-- ✅ 跨治療師 OWNER 唯讀模式(粟醫師切到王麟祥 tab)
-  - 上半「新增動作區」整區 hide
-  - 下半「資料展示」完整顯示
-  - 各列操作鈕 disabled + tooltip
-- ✅ confirm modal(兩階段刪除前確認,純 OK/取消,不像 admin 那種「打 GO」)
-- ✅ 切回 [顯示] 自動 collapse 所有展開表單(對齊 abstinence)
-- ✅ 切治療師清 schedule cache(換人排班不一樣)
-
-【設計哲學:世界 2 = 手寫筆記本】
-- 最小介入:不替治療師思考、不防呆、不警告
-- 衝堂用 1px 灰線連結兩列(L14),不加符號、不變色
-- 兩階段刪除([終止]/[取消]/[恢復] → [移除])給反悔空間
-- 永遠不做的:衝堂警告、勸阻文案、提示提醒、總人數、自動通知病患
-
-【視覺風格:純白 + 水泥灰 + 工業字型 + 大量留白(C5)】
-
-【入口】
-- 直接 URL 訪問 + LIFF 登入(B3 第一階段:URL 路徑)
-- 額外密道(B3 第二階段)由後續輪次補
-
-【session】
-- 後端 TTL 7200 秒(2 小時)
-- 前端 idle 15 分鐘自動登出
-- localStorage 持久化(對齊 admin v5.5.15 H12 模式,但 key 不同)
-
-【Step 3-B 完成度】
-✅ 全部完成,等粟醫師驗收 + 雙 LLM 審查
-🚧 LIFF ID:目前 placeholder,粟醫師申請後手動填入
-🚧 額外密道入口:Step 3-B 後續輪次補
-🚧 部署:雙 LLM 審查通過後一次部署 backend + therapy.html
-
-═══════════════════════════════════════════════════════════════════════════════
+Designed by Su Ning | Powered by Claude & Gemini 2026
 -->
 <style>
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -339,9 +260,11 @@ body {
 .login-info {
   display: none;
   margin-top: var(--space-sm);
-  font-size: 12px;
-  color: var(--ash);
-  text-align: center;
+  padding: var(--space-sm);
+  background: var(--paper-2);
+  border-left: 2px solid var(--concrete);
+  font-size: 13px;
+  color: var(--concrete);
   letter-spacing: 0.5px;
 }
 
@@ -666,8 +589,10 @@ body {
 }
 .case-list .case-row:first-child { border-top: none; }
 
-/* 衝堂 1px 灰線連結兩列(L14)— 只在今天區塊 */
-.case-row.conflict-with-next::after {
+/* 衝堂 1px 灰線連結兩列(L14)— 今天區塊(case-row)跟 L1 長期治療列表(entry-row)共用
+   v0.6 r11:加 .entry-row 套用,對齊 D 設計裁准擴展到 therapy 長期治療列表 */
+.case-row.conflict-with-next::after,
+.entry-row.conflict-with-next::after {
   content: "";
   position: absolute;
   left: 0;
@@ -1089,6 +1014,7 @@ body {
   padding: 18px 0; /* v0.5:--space-md(20)→18,搭配 v2 mock */
   border-top: 1px solid var(--line);
   max-width: 880px;
+  position: relative; /* v0.6 r11:給 .conflict-with-next::after 1px 灰線定位錨點 */
 }
 .entry-list .entry-row:first-child { border-top: none; }
 
@@ -1631,7 +1557,7 @@ body {
                 </div>
                 <div class="form-field">
                   <label class="form-label">單次費用</label>
-                  <input type="number" class="form-input" id="l1_fee" min="0" step="100" placeholder="3000">
+                  <input type="number" class="form-input" id="l1_fee" min="0" step="100">
                 </div>
                 <div class="form-field">
                   <label class="form-label">治療室</label>
@@ -2012,10 +1938,14 @@ function handleIdleTimeout() {
   // 清狀態 + 顯示登入頁附說明
   state.sessionToken = "";
   clearSessionFromStorage();
+  if (state.idleTimerId) clearTimeout(state.idleTimerId);
   showPage("pageLogin");
+  // v0.6 r12:對齊 handleSessionExpired 的 r3 修補 — 重置 form 殘留狀態
+  // 修復:idle 觸發時若使用者剛好按過「登入」,form-busy / 三點脈動 / isLoggingIn
+  //       會卡住,使用者只能 F5 才能重新登入
+  resetLoginForm();
   document.getElementById("loginInfo").style.display = "block";
   document.getElementById("loginError").style.display = "none";
-  document.getElementById("loginPassword").value = "";
   setTimeout(function() {
     document.getElementById("loginPassword").focus();
   }, 100);
@@ -2295,8 +2225,10 @@ async function enterMainPage() {
 
   // v0.6 r3:立刻蓋上 overlay,避免「顯示主頁 → 跑 getMyVisibleTherapists → loadAndRender」之間
   // 那一段空白讓使用者看到 section-num 浮在外層的視覺殘影(問題:先區域後全域)
-  // overlay 蓋住整個 paneDisplay,getMyVisibleTherapists + loadAndRenderEntries 都在 overlay 下執行
-  showLocalOverlay("paneDisplay", "載入中", "loading · " + (state.myName || "therapist"));
+  // v0.6 r13:改用 pageMain 整頁 overlay(原 paneDisplay 只蓋內容區,header / subtabs
+  //         / 登出按鈕沒蓋到,使用者可在資料載入中按其他互動造成 race)
+  //         對齊 logout / 新增刪除 reload 既有的 pageMain pattern
+  showLocalOverlay("pageMain", "載入中", "loading · " + (state.myName || "therapist"));
 
   try {
     const data = await xhrPost(API_URL, {
@@ -2309,17 +2241,19 @@ async function enterMainPage() {
     state.visibleTherapists = data.visibleTherapists || [];
     state.selectedTherapist = data.myName || (state.visibleTherapists[0] || "");
     renderTherapistTabs();
-    // loadAndRenderEntries 內部會自己 showLocalOverlay,但本來就已蓋上,它不會重複 — 等它執行完
+    // loadAndRenderEntries 內部會自己 showLocalOverlay("paneDisplay"),被 pageMain 蓋著看不見
+    // 它的 finally 會 hide paneDisplay overlay,我們這層 finally 再 hide pageMain
     await loadAndRenderEntries();
-    // loadAndRenderEntries 的 finally 會 hideLocalOverlay + triggerStagger,正確收尾
   } catch (e) {
     if (e.isSessionExpired) return;
-    // 失敗時也要 hide overlay + trigger stagger,避免使用者卡在 loading 畫面 / sections 永遠透明
-    hideLocalOverlay("paneDisplay");
     document.getElementById("todayList").innerHTML =
       '<div class="empty-hint">載入失敗:' + esc(e.message || "未知錯誤") + '</div>';
     triggerStagger("paneDisplay");
     triggerStagger("paneOperation");
+  } finally {
+    // v0.6 r13:無論 success / fail 都 hide pageMain overlay
+    //          (session_expired 已 early return,不會走到這)
+    hideLocalOverlay("pageMain");
   }
 }
 
@@ -2360,7 +2294,15 @@ async function switchTherapist(name) {
   } else {
     banner.classList.remove("visible");
   }
-  await loadAndRenderEntries();
+  // v0.6 r13:切換治療師期間 pageMain overlay 蓋整頁,避免使用者按其他 tab race
+  //          對齊 r10 新增/刪除的 pageMain pattern + 對齊 enterMainPage
+  //          內層 loadAndRenderEntries 仍會起 paneDisplay overlay,被 pageMain 蓋著看不見
+  showLocalOverlay("pageMain", "載入中", "switching · " + name);
+  try {
+    await loadAndRenderEntries();
+  } finally {
+    hideLocalOverlay("pageMain");
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -3285,18 +3227,34 @@ function _renderEntriesGeneric(opts) {
     list.innerHTML = '<div class="empty-hint">— empty —</div>';
     return;
   }
-  // 排序:active 在前,staged 在後,各自再依 layerId
+  // 排序:active 在前,staged 在後,各自再依 sortComparator(預設 layerId 創造順序)
+  // v0.6 r11:加 opts.sortComparator 給特定 layer 自訂二次排序(L1 改 weekday+startTime)
+  const secondarySort = opts.sortComparator || function(a, b) {
+    return a.layerId < b.layerId ? -1 : 1;
+  };
   visibleEntries.sort(function(a, b) {
     const aStaged = opts.stagedStatuses.indexOf(a.status) !== -1 ? 1 : 0;
     const bStaged = opts.stagedStatuses.indexOf(b.status) !== -1 ? 1 : 0;
     if (aStaged !== bStaged) return aStaged - bStaged;
-    return a.layerId < b.layerId ? -1 : 1;
+    return secondarySort(a, b);
   });
   const readonly = isReadonlyView();
   let html = "";
-  visibleEntries.forEach(function(e) {
+  visibleEntries.forEach(function(e, idx) {
     const isStaged = opts.stagedStatuses.indexOf(e.status) !== -1;
     const info = opts.renderInfo(e);
+    // v0.6 r11:衝堂偵測 — 只對相鄰兩列且都是 active 做檢查
+    //   - opts.conflictCheck(a, b) 由 caller 定義,回傳 boolean
+    //   - staged 列不參與衝堂判斷(已終止的 case 不算佔時段)
+    //   - 衝堂兩列獨立不警告,只用 1px 灰線連結(對齊 case-row pattern)
+    let isConflict = false;
+    if (opts.conflictCheck && !isStaged) {
+      const next = visibleEntries[idx + 1];
+      const nextIsStaged = next && opts.stagedStatuses.indexOf(next.status) !== -1;
+      if (next && !nextIsStaged) {
+        isConflict = opts.conflictCheck(e, next);
+      }
+    }
     // 注:onclick 引數用 encodeURIComponent 包,接收端 decodeURIComponent
     // 對齊 admin v5.4.5 [C1] 修補 pattern,防 onclick attr 被使用者輸入的 ' 或 < 破壞
     const encLayerId = encodeURIComponent(e.layerId);
@@ -3309,7 +3267,10 @@ function _renderEntriesGeneric(opts) {
       : '<button class="btn-action" '
         + (readonly ? 'disabled title="OWNER 唯讀檢視,不可操作他人 case"' : 'onclick="confirmStage1(\'' + opts.stage1Action + '\',\'' + encLayerId + '\',\'' + encLabel + '\',\'' + encStage1Label + '\')"')
         + '>' + esc(opts.stage1Label) + '</button>';
-    html += '<div class="entry-row' + (isStaged ? ' is-staged' : '') + '" data-layer-id="' + esc(e.layerId) + '">'
+    const rowClasses = 'entry-row'
+      + (isStaged ? ' is-staged' : '')
+      + (isConflict ? ' conflict-with-next' : '');
+    html += '<div class="' + rowClasses + '" data-layer-id="' + esc(e.layerId) + '">'
          +    '<div class="entry-info">'
          +      '<div class="entry-line-1">' + info.line1 + '</div>'
          +      (info.line2 ? '<div class="entry-line-2">' + info.line2 + '</div>' : '')
@@ -3330,6 +3291,21 @@ function renderOpLayer1() {
     stage2Action: "removeLayer1",
     stage1Label: "終止", /* v0.5:「終止治療」→「終止」短動詞 */
     stagedStatuses: ["terminated"],
+    // v0.6 r11:L1 按 weekday → startTime 排序(對齊治療師排程 perspective)
+    // 同 weekday + 同 startTime 視為衝堂,layerId tiebreaker 確保穩定排序
+    sortComparator: function(a, b) {
+      if (a.weekday !== b.weekday) return a.weekday - b.weekday;
+      if (a.startTime !== b.startTime) return a.startTime < b.startTime ? -1 : 1;
+      return a.layerId < b.layerId ? -1 : 1;
+    },
+    // v0.6 r11:衝堂偵測 — 同 weekday + 時段重疊
+    //   不檢查治療室(對齊 backend line 5878:不檢查治療室衝突;同治療師
+    //   同時段一人只能服務一位,即使不同治療室也是衝堂)
+    //   對齊 isOverlap helper line 2435 的時段重疊判斷邏輯
+    conflictCheck: function(a, b) {
+      if (a.weekday !== b.weekday) return false;
+      return a.startTime < b.endTime && b.startTime < a.endTime;
+    },
     renderInfo: function(e) {
       return {
         shortLabel: e.name + " " + (wdNames[e.weekday] || "?") + " " + e.startTime,
