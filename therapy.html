@@ -8,7 +8,7 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
 悅心診所 心理治療系統 therapy.html
-Current Version: v0.6-r13 (2026-05-12)
+Current Version: v0.6-r15 (2026-05-12)
 
 Designed by Su Ning | Powered by Claude & Gemini 2026
 -->
@@ -113,6 +113,39 @@ body {
   font-size: 24px;
   letter-spacing: 2px;
   color: var(--concrete);
+}
+
+/* v0.6 r14:sphinx mark — 取代 YX 文字方框,V5 雙重意象(躺椅 + sphinx)
+   設計依據:couch_sphinx_mock.html v5 變體 — 層疊複合(底層淡灰 sphinx + 上層深黑躺椅)
+   來源:therapy.html login mark · 一眼躺椅,二眼 sphinx · 對齊野生懶人精神分析 vibe
+   v0.6 r15:拆框 + 放大(100×50 → 160×80),sphinx 本身就是視覺主體不需容器 */
+.sphinx-mark {
+  width: 160px;
+  height: 80px;
+  margin: 0 auto var(--space-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sphinx-mark svg {
+  width: 160px;
+  height: 80px;
+  display: block;
+}
+/* sphinx 眨眼:2s 週期,負 delay 確保 0.5s 首眨(快 case 1.5s 也能看到 1 次) */
+@keyframes sphinx-blink {
+  0%, 85%, 100% { opacity: 0.4; }
+  90%, 95%      { opacity: 0; }
+}
+.sphinx-eye {
+  animation: sphinx-blink 2s ease-in-out infinite;
+  animation-delay: -1.5s;
+}
+/* 錯誤狀態:閉眼不眨 — 對齊既有 authShowError 的視覺訊號慣例
+   sphinx 睡著的隱喻,微妙但跟「身分驗證中」狀態形成對比 */
+.sphinx-mark.error .sphinx-eye {
+  animation: none;
+  opacity: 0;
 }
 
 .auth-title {
@@ -1243,7 +1276,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  z-index: 5;
+  z-index: 60; /* v0.6 r15:5 → 60,蓋過 .subtabs (z-index 50);仍低於 modal(100)/toast(200) */
   pointer-events: auto; /* 阻擋下層互動 */
   animation: localOverlayFadeIn 0.18s ease-out;
 }
@@ -1395,7 +1428,23 @@ body {
      ════════════════════════════════════════════════════════════════════════════ -->
 <div id="pageAuth" class="page active">
   <div class="auth-box">
-    <div class="auth-mark" id="authMark">YX</div>
+    <div class="sphinx-mark" id="authMark">
+      <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- 底層 sphinx 身體(淡灰 fill) -->
+        <path d="M 30 45 Q 30 18 50 18 Q 70 18 70 45 L 65 55 Q 110 50 155 53 Q 175 55 175 70 L 175 78 L 30 78 L 30 45 Z" fill="#c8c8c8" stroke="none"/>
+        <!-- sphinx 眼睛 — 眨眼動畫(class="sphinx-eye") -->
+        <circle class="sphinx-eye" cx="44" cy="30" r="2" fill="#1a1a1a"/>
+        <circle class="sphinx-eye" cx="56" cy="30" r="2" fill="#1a1a1a"/>
+        <!-- 上層躺椅線稿(深黑 stroke) -->
+        <g fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 28 50 L 28 28 Q 28 22 36 22 L 60 22 Q 68 22 68 28 L 68 50"/>
+          <path d="M 68 50 L 175 50"/>
+          <path d="M 28 55 L 175 55"/>
+          <path d="M 28 55 L 28 80"/>
+          <path d="M 175 55 L 175 80"/>
+        </g>
+      </svg>
+    </div>
     <div class="auth-title" id="authTitle">身分驗證中</div>
     <div class="auth-sub" id="authSub"><span class="loading-dots"><span></span><span></span><span></span></span></div>
     <div id="authActions" style="display:none;">
@@ -2061,7 +2110,9 @@ async function proceedAfterLineId() {
 }
 
 function authShowError(title, sub) {
-  document.getElementById("authMark").textContent = "—";
+  // v0.6 r14:sphinx 閉眼(對齊既有「YX 變 —」的錯誤訊號慣例)
+  // 加 .error class 讓 .sphinx-eye 的 animation 停止 + opacity 0
+  document.getElementById("authMark").classList.add("error");
   document.getElementById("authTitle").textContent = title;
   document.getElementById("authSub").textContent = sub;
   document.getElementById("authActions").style.display = "block";
