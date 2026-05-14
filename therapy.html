@@ -8,14 +8,28 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
 悅心診所 心理治療系統 therapy.html
-Current Version: v0.6-r17-skeleton-paneFadeIn (2026-05-13)
-=== r17 過場節奏編排:
-- 拿掉雙層 overlay 鏡面感:loadAndRenderEntries 內部 paneDisplay overlay 改為 skeleton
-- 拿掉 pageMain overlay:enterMainPage / switchTherapist 改用 skeleton 接管 loading 訊號
-- 拿掉 stagger:sectionFadeIn 換成一次性 paneFadeIn 0.3s
-- 三區 skeleton 規則:todayList + waitlistSummary 填 entry-skeleton 脈動,weekGrid 6 格保留骨架但釘子清空顯「—」(β 修正版,零版面位移)
-- 軟性阻擋:reload 期間 therapist-tabs / subtabs / 主畫面按鈕個別 disable(取代 r16 pageMain overlay 的 pointer-events 阻擋)
-- 保留:sphinx 眨眼、entry collapse、modal fade、pageFadeIn、showLocalOverlay/hideLocalOverlay(logout 還在用)
+Current Version: v0.6-r18-per-entry-skeleton (2026-05-13)
+=== r18 該筆 skeleton 哲學(取代 r17 過度通用化的整區 skeleton):
+- r17 設計缺陷:⑦⑧ entry 級操作走整區 skeleton,跟 ④⑤ context 切換視覺等價,且 stage 1/2 也視覺等價
+- r18 核心精神:「skeleton 不是整區在等,是這一筆在跟 backend 確認」
+  - ④⑤ context 切換 → 三區 skeleton(r17 設計,保留)
+  - ⑥ subtab 切換 → paneFadeIn(r17 設計,保留)
+  - ⑦ 新增 entry → 整區 skeleton 但不 is-reloading 凍結整面
+  - ⑧a 終止/取消(stage 1) → 該筆變 entry-single-skel 脈動 → reload → 該筆變 is-staged 劃線
+  - ⑧b 移除(stage 2) → 該筆 entry-removing collapse(既有動畫)→ 背景靜默 reload
+- ⑦⑧ 不再加 is-reloading body class(entry 級操作不該凍結整個介面)
+- ④⑤ 仍走 is-reloading + 整區 skeleton(context 切換值得整面阻擋)
+- 設計討論 mock:therapy_r17_mock.html(粟醫師選 ⑦ single / ⑧a simple / ⑧b collapse)
+
+=== r18 同輪附帶:權限不足頁面 404 改造:
+- r16/r17 既有「權限不足 / 您不在心理治療系統的治療師名單內 / 重新載入」三件事
+- r18 改成 404 風格:黑色 404 大數字 + 灰色「網頁不存在」+ 無 logo + 無按鈕
+- 設計理由:
+  1. 403 暴露「這頁存在,只是你沒權限」→ 攻擊者知道值得繼續嘗試
+  2. 404 偽裝「這頁不存在」→ 攻擊者較可能放棄(security by obscurity,對齊 GitHub/Cloudflare)
+  3. 拿掉「您不在心理治療系統的治療師名單內」避免洩露系統內部結構
+  4. 拿掉「重新載入」按鈕避免提供逃生口
+- 實作:authShowError 加第三參數 opts(noLogo / noActions / bigNumber),其他 3 個錯誤情境 default 行為不變
 
 Designed by Su Ning | Powered by Claude & Gemini 2026
 -->
@@ -164,6 +178,16 @@ body {
   letter-spacing: 0.5px;
   color: var(--ink);
   margin-bottom: var(--space-xs);
+}
+/* r18:404 風格大數字 modifier(權限不足專用)
+   用途:當 authShowError 帶 { bigNumber: true } 時套用 */
+.auth-title.auth-title-big {
+  font-size: 72px;
+  font-weight: 200;
+  letter-spacing: 4px;
+  line-height: 1;
+  margin-bottom: var(--space-sm);
+  color: var(--ink);
 }
 
 .auth-sub {
@@ -1359,6 +1383,33 @@ body {
   100% { background-position: -200% 0; }
 }
 
+/* r18:該筆 entry 變 skeleton(粟醫師「該筆 skeleton」哲學)
+   用途:⑦ 新增 entry 期間 prepend placeholder、⑧a 終止期間目標 entry 變 skeleton
+   設計:套在 .entry-row 上,把整列覆蓋成脈動長條(visibility hidden 內容 + ::before 覆蓋)
+   這樣能直接重用既有 entry-row layout,不需另做高度 / margin / border 計算 */
+.entry-row.entry-single-skel {
+  position: relative;
+  color: transparent;
+  cursor: default;
+  pointer-events: none;
+}
+.entry-row.entry-single-skel > * {
+  visibility: hidden;
+}
+.entry-row.entry-single-skel::before {
+  content: "";
+  position: absolute;
+  inset: 5px 0;
+  border-radius: 2px;
+  background: linear-gradient(90deg,
+    rgba(106,106,106,0.04) 0%,
+    rgba(106,106,106,0.12) 50%,
+    rgba(106,106,106,0.04) 100%);
+  background-size: 200% 100%;
+  animation: entrySkelPulse 1.3s ease-in-out infinite;
+  border: 0.5px solid rgba(106,106,106,0.08);
+}
+
 /* 軟性阻擋:reload 期間 therapist-tabs / subtabs 鎖住
    實作層:loadAndRenderEntries / enterMainPage / switchTherapist 進入時加 body.is-reloading,
           完成時移除。CSS 在 reload 期間鎖互動。
@@ -2109,7 +2160,12 @@ async function proceedAfterLineId() {
     // 第一關:白名單快速檢查(不帶密碼)
     const check = await xhrGet(API_URL + "?action=verifyTherapistLogin&lineId=" + encodeURIComponent(state.lineId) + "&password=");
     if (check.error === "權限不足") {
-      authShowError("權限不足", "您不在心理治療系統的治療師名單內。");
+      // r18:權限不足走 404 風格(security by obscurity)
+      //      理由:回 403 暴露「這頁存在,只是你沒權限」,攻擊者知道值得繼續嘗試
+      //           回 404 偽裝成「這頁根本不存在」,攻擊者較可能放棄
+      //           對齊 GitHub / Cloudflare 等大廠對私有資源的處理
+      //      合法使用者誤觸時會困惑,但這 case 極少(白名單管理是 OWNER 手動)
+      authShowError("404", "網頁不存在", { noLogo: true, noActions: true, bigNumber: true });
       return;
     }
     // check.error === "需要密碼" → 白名單通過,看有沒有 session 可恢復
@@ -2133,13 +2189,22 @@ async function proceedAfterLineId() {
   }
 }
 
-function authShowError(title, sub) {
-  // v0.6 r14:sphinx 閉眼(對齊既有「YX 變 —」的錯誤訊號慣例)
-  // 加 .error class 讓 .sphinx-eye 的 animation 停止 + opacity 0
-  document.getElementById("authMark").classList.add("error");
-  document.getElementById("authTitle").textContent = title;
-  document.getElementById("authSub").textContent = sub;
-  document.getElementById("authActions").style.display = "block";
+function authShowError(title, sub, opts) {
+  // r18:opts = { noLogo, noActions, bigNumber } 控制權限不足等特殊情境
+  //      預設(不傳 opts):顯 logo 閉眼 + 顯按鈕(對齊既有 4 種錯誤情境 default 行為)
+  opts = opts || {};
+  const mark = document.getElementById("authMark");
+  const titleEl = document.getElementById("authTitle");
+  if (opts.noLogo) {
+    mark.style.display = "none";
+  } else {
+    mark.style.display = "";
+    mark.classList.add("error");
+  }
+  titleEl.classList.toggle("auth-title-big", !!opts.bigNumber);
+  titleEl.textContent = title;
+  document.getElementById("authSub").textContent = sub || "";
+  document.getElementById("authActions").style.display = opts.noActions ? "none" : "block";
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -3155,14 +3220,10 @@ async function submitAddLayer1() {
     });
     if (data.success) {
       closeAddBlock("layer1");
-      // r17:拿掉 pageMain overlay,改用 is-reloading 軟性阻擋
-      //      loadAndRenderEntries 內部自帶 skeleton(三區)+ 結尾 paneFadeIn
-      document.body.classList.add("is-reloading");
-      try {
-        await loadAndRenderEntries();
-      } finally {
-        document.body.classList.remove("is-reloading");
-      }
+      // r18:entry 級操作不加 is-reloading,讓 modal busy + 整區 skeleton 自己擔任等待訊號
+      // 注意 loadAndRenderEntries 內部仍會跑 todayList/waitlistSummary skeleton + weekGrid 骨架
+      // (r17 既有的 r17.x 整區 skeleton 設計保留;r18 修正只在「不凍結整面」)
+      await loadAndRenderEntries();
     } else {
       showFormError("layer1", data.error || "新增失敗");
     }
@@ -3198,13 +3259,8 @@ async function submitAddLayer1_5() {
     });
     if (data.success) {
       closeAddBlock("layer1_5");
-      // r17:同 L1
-      document.body.classList.add("is-reloading");
-      try {
-        await loadAndRenderEntries();
-      } finally {
-        document.body.classList.remove("is-reloading");
-      }
+      // r18:同 L1,不加 is-reloading
+      await loadAndRenderEntries();
     } else {
       showFormError("layer1_5", data.error || "新增失敗");
     }
@@ -3242,13 +3298,8 @@ async function submitAddLayer2() {
     });
     if (data.success) {
       closeAddBlock("layer2");
-      // r17:同 L1
-      document.body.classList.add("is-reloading");
-      try {
-        await loadAndRenderEntries();
-      } finally {
-        document.body.classList.remove("is-reloading");
-      }
+      // r18:同 L1,不加 is-reloading
+      await loadAndRenderEntries();
     } else {
       showFormError("layer2", data.error || "新增失敗");
     }
@@ -3286,13 +3337,8 @@ async function submitAddLayer3() {
     });
     if (data.success) {
       closeAddBlock("layer3");
-      // r17:同 L1
-      document.body.classList.add("is-reloading");
-      try {
-        await loadAndRenderEntries();
-      } finally {
-        document.body.classList.remove("is-reloading");
-      }
+      // r18:同 L1,不加 is-reloading
+      await loadAndRenderEntries();
     } else {
       showFormError("layer3", data.error || "新增失敗");
     }
@@ -3585,30 +3631,42 @@ async function executeConfirmAction() {
       if (elapsed < MIN_DURATION_MS) {
         await new Promise(function(r) { setTimeout(r, MIN_DURATION_MS - elapsed); });
       }
-      // 1. 找到對應 entry,加 .entry-removing 觸發收合動畫
-      const entryEl = document.querySelector('.entry-row[data-layer-id="' + layerId.replace(/"/g, '\\"') + '"]');
-      if (entryEl) {
-        entryEl.classList.add("entry-removing");
-      }
-      // 2. 同步關 modal(fade-out 200ms,跟收合動畫並行)
-      closeConfirmModal();
-      // 3. 顯示 toast(對齊兩階段語意:stage 1=暫存,stage 2=移除)
+
+      // r18:拆 stage 1(終止/取消)vs stage 2(移除)分流
+      // 設計理由:r16/r17 兩 stage 視覺等價(都跑 entry-removing collapse 0.5s + 整區 skeleton),
+      //          但 stage 1 是「狀態變更 entry 還在」,stage 2 是「實際從清單消除」,語意不同。
+      //          r18 改成:stage 1 = 該筆 entry-single-skel 脈動 → reload → 該筆變 staged
+      //                  stage 2 = 該筆 entry-removing collapse(既有)→ 背景靜默 reload
+      //          兩 stage 都不再加 is-reloading body class(entry 級操作不該凍結整面)
       const isStage2 = (action === "removeLayer1" || action === "removeLayer1_5" || action === "removeLayer2" || action === "removeLayer3");
+      const entryEl = document.querySelector('.entry-row[data-layer-id="' + layerId.replace(/"/g, '\\"') + '"]');
+
+      if (isStage2) {
+        // stage 2 移除:該筆 entry-removing collapse(既有 0.5s 動畫)
+        if (entryEl) {
+          entryEl.classList.add("entry-removing");
+        }
+      } else {
+        // stage 1 終止/取消:該筆變 entry-single-skel 脈動(reload 完成後 render 會把它變 is-staged)
+        if (entryEl) {
+          entryEl.classList.add("entry-single-skel");
+        }
+      }
+
+      // 同步關 modal(fade-out 200ms)
+      closeConfirmModal();
+      // 顯示 toast(對齊兩階段語意:stage 1=暫存,stage 2=移除)
       showToast(isStage2 ? "已移除 · removed" : "已暫存 · staged");
-      // 4. 等收合動畫近結束(450ms)再 reload(讓動畫看得完整)
-      //    若 entryEl 不存在,直接 reload(保險,避免 stuck)
-      // v0.6 r10:reload 期間用 pageMain overlay 填補等待,消除「收合完還要等」
-      //   時序:entry collapse 450ms → is-reloading 接力 → reload 1-2s → 解除
-      const animDelay = entryEl ? 450 : 0;
+
+      // 背景 reload(無 is-reloading body class,不凍結整面)
+      // stage 2 路徑:延遲 450ms 等 collapse 動畫看完再 reload(原 v0.6 r10 設計)
+      // stage 1 路徑:不延遲,reload 立即跑,該筆 skeleton 期間使用者看到「該筆在脈動」
+      const animDelay = (isStage2 && entryEl) ? 450 : 0;
       setTimeout(async function() {
-        // r17:拿掉 pageMain overlay,改用 is-reloading 軟性阻擋
-        document.body.classList.add("is-reloading");
         try {
           await loadAndRenderEntries();
         } catch(e) {
           /* loadAndRenderEntries 內部已處理 */
-        } finally {
-          document.body.classList.remove("is-reloading");
         }
       }, animDelay);
     } else {
