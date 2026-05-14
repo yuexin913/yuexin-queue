@@ -1426,6 +1426,15 @@ body.is-reloading #addSection {
   opacity: 0.5;
 }
 
+/* r18:entry 級操作軟性鎖(送出新增/終止/移除期間)
+   範圍:只鎖 add-section(避免重複送出),不凍結整面 tabs/subtabs/logout
+   設計理由:對齊 r18「entry 級操作不該凍結整面」哲學
+            修補 v0.6 r17/r18 把 is-reloading 從 ⑦⑧ callback 拿掉後產生的「reload 期間可重複按新增」bug */
+body.is-submitting-entry #addSection {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
 /* ══════════════════════════════════════════════════════════════════════════════
    v0.4-loading-c r2 · 移除動畫(對齊 demo)
    - entry 淡出 + 高度收合(500ms,40% fade + 60% collapse)
@@ -2366,7 +2375,10 @@ async function enterMainPage() {
   // r17:拿掉 pageMain overlay,改用 skeleton 接管 loading 訊號
   //      軟性阻擋:body.is-reloading 鎖 therapist-tabs / subtabs / 主畫面按鈕
   //      設計理由:r16 雙層 overlay 鏡面感 + stagger 過渡無節奏 → 改 booking skeleton pattern
+  // r18:整 paneOperation skeleton 訊號(對齊 paneDisplay 三區 skeleton)
+  //      ④ context 進入時跑;⑦⑧ entry 級不跑(後者用 prependPendingSkeleton 該筆 skeleton)
   document.body.classList.add("is-reloading");
+  showOperationPaneSkeleton();
 
   try {
     const data = await xhrPost(API_URL, {
@@ -2430,7 +2442,9 @@ async function switchTherapist(name) {
   }
   // r17:拿掉 pageMain overlay,改用 skeleton + is-reloading 軟性阻擋
   //      loadAndRenderEntries 內部自帶 skeleton(三區),完成後 paneFadeIn
+  // r18:整 paneOperation skeleton 訊號(⑤ 切治療師,整 context 換)
   document.body.classList.add("is-reloading");
+  showOperationPaneSkeleton();
   try {
     await loadAndRenderEntries();
   } finally {
@@ -2561,6 +2575,22 @@ function buildWeekGridSkeletonHTML() {
          +  '</div>';
   }
   return html;
+}
+
+// r18:paneOperation 4 個 layer list 整 pane skeleton(切治療師 / 進主頁時用)
+//   設計:對齊 paneDisplay 三區 skeleton 邏輯,但**只在 context 切換時跑**(④⑤),
+//        不在 entry 級操作(⑦⑧)跑 — 後者用 prependPendingSkeleton 該筆 skeleton
+//   每個 layer list 塞 2 個 entry-skeleton 暫代未知筆數
+//   reload 完成後 renderOperationPane → 4 個 list innerHTML 重置,skeleton 自動消失
+function showOperationPaneSkeleton() {
+  ["opLayer1List", "opLayer1_5List", "opLayer2List", "opLayer3List"].forEach(function(listId) {
+    const list = document.getElementById(listId);
+    if (list) {
+      list.innerHTML =
+        '<div class="entry-skeleton"></div>' +
+        '<div class="entry-skeleton"></div>';
+    }
+  });
 }
 
 /**
@@ -3124,6 +3154,25 @@ function setFormBusy(btnId, busy, formId) {
 }
 
 /**
+ * r18:新增 entry 成功後,該 layer 的 op list 頂端 prepend 1 個 entry-skeleton
+ *      reload 完成後 renderOperationPane 會把整個 list innerHTML 重置,skeleton 自動消失
+ *      設計理由:r18 「該筆 skeleton」哲學 — 新增的「該筆」對應該 layer list
+ *               視覺訊號:該 list 頂端有一格脈動,使用者明確看到「我剛送出的那筆在跟 backend 確認」
+ *      用法:closeAddBlock("layer1") 後立即呼叫 prependPendingSkeleton("opLayer1List")
+ *      然後 await loadAndRenderEntries() — 完成後 skeleton 自動消失
+ */
+function prependPendingSkeleton(listElId) {
+  const list = document.getElementById(listElId);
+  if (!list) return;
+  // 若原本是 — empty — 整個換成 skeleton 占位
+  const empty = list.querySelector(".empty-hint");
+  if (empty) empty.remove();
+  const skel = document.createElement("div");
+  skel.className = "entry-skeleton";
+  list.insertBefore(skel, list.firstChild);
+}
+
+/**
  * v6.0 Step 4-A 方案 C:load 場景的 local overlay
  *   - 把指定容器設為 has-local-overlay(position:relative),內部插入一層 .local-overlay
  *   - text:中央顯示文字,例「載入中」
@@ -3220,10 +3269,16 @@ async function submitAddLayer1() {
     });
     if (data.success) {
       closeAddBlock("layer1");
-      // r18:entry 級操作不加 is-reloading,讓 modal busy + 整區 skeleton 自己擔任等待訊號
-      // 注意 loadAndRenderEntries 內部仍會跑 todayList/waitlistSummary skeleton + weekGrid 骨架
-      // (r17 既有的 r17.x 整區 skeleton 設計保留;r18 修正只在「不凍結整面」)
-      await loadAndRenderEntries();
+      // r18:該筆 skeleton 哲學 — prepend pending skeleton 到 opLayer1List 頂端
+      //      + is-submitting-entry 鎖 add-section 避免重複送出
+      //      reload 完成後 renderOperationPane 整個 list innerHTML 重置,skeleton 自動消失
+      document.body.classList.add("is-submitting-entry");
+      prependPendingSkeleton("opLayer1List");
+      try {
+        await loadAndRenderEntries();
+      } finally {
+        document.body.classList.remove("is-submitting-entry");
+      }
     } else {
       showFormError("layer1", data.error || "新增失敗");
     }
@@ -3259,8 +3314,14 @@ async function submitAddLayer1_5() {
     });
     if (data.success) {
       closeAddBlock("layer1_5");
-      // r18:同 L1,不加 is-reloading
-      await loadAndRenderEntries();
+      // r18:同 L1,prepend skeleton 到 opLayer1_5List
+      document.body.classList.add("is-submitting-entry");
+      prependPendingSkeleton("opLayer1_5List");
+      try {
+        await loadAndRenderEntries();
+      } finally {
+        document.body.classList.remove("is-submitting-entry");
+      }
     } else {
       showFormError("layer1_5", data.error || "新增失敗");
     }
@@ -3298,8 +3359,14 @@ async function submitAddLayer2() {
     });
     if (data.success) {
       closeAddBlock("layer2");
-      // r18:同 L1,不加 is-reloading
-      await loadAndRenderEntries();
+      // r18:同 L1,prepend skeleton 到 opLayer2List
+      document.body.classList.add("is-submitting-entry");
+      prependPendingSkeleton("opLayer2List");
+      try {
+        await loadAndRenderEntries();
+      } finally {
+        document.body.classList.remove("is-submitting-entry");
+      }
     } else {
       showFormError("layer2", data.error || "新增失敗");
     }
@@ -3337,8 +3404,14 @@ async function submitAddLayer3() {
     });
     if (data.success) {
       closeAddBlock("layer3");
-      // r18:同 L1,不加 is-reloading
-      await loadAndRenderEntries();
+      // r18:同 L1,prepend skeleton 到 opLayer3List
+      document.body.classList.add("is-submitting-entry");
+      prependPendingSkeleton("opLayer3List");
+      try {
+        await loadAndRenderEntries();
+      } finally {
+        document.body.classList.remove("is-submitting-entry");
+      }
     } else {
       showFormError("layer3", data.error || "新增失敗");
     }
