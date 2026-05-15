@@ -8,7 +8,73 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
 悅心診所 心理治療系統 therapy.html
-Current Version: v0.6-r18-per-entry-skeleton (2026-05-13)
+Current Version: v0.7-billing-r1 (2026-05-15)
+Based on: v0.6-r19-optional-fields-r3 (2026-05-15, 同日 marathon)
+
+=== v0.7 改動(粟醫師對帳備忘需求):
+- 觸發:王醫師之後需要這頁,粟醫師同 marathon 順手做完
+- 設計核心:這頁是「治療師對病患的對帳備忘」(不是診所→治療師薪資結算)
+- 設計哲學:abstinence(精神分析的節制原則),只用在 therapy 端
+  - 帳單頁本質是鏡子,不是助手
+  - 不總覽 card / 不 warning / 不引導動作
+  - 治療師有專業判斷,系統不該越權
+- 完整 spec 見 BILLING_PANE_DESIGN_SPEC.md(出自 2026-05-15 marathon)
+- 9 Q 全部拍板紀錄(摘要):
+  Q1 出席=L1應發生-L1.5暫停+L2 / Q2 月份下拉信用卡式 / Q4 請假=L1.5不分方
+  Q5 列日期+小計+無總覽 / Q6 OWNER 沿用既有 RBAC / Q7 請假列日期(記憶輔助)
+  Q7+ 空 fee 只顯示次數(治療師自己未完成 → 不喊)
+- 實作範圍(本檔):
+  · navbar 加第三個 subtab「帳單」
+  · 新增 paneBilling DOM + render 邏輯
+  · 月份下拉(本月 default + 過去月份)
+  · L1 區塊展開該月每位病患出席+請假日期,計小計
+  · L2 區塊列該月所有單次治療
+  · expandCasesForMonth helper(對齊 expandCasesForDate 邏輯,擴到整月)
+  · switchSubtab 加 'billing' 分支
+  · state.billingMonthOffset 存月份偏移(0=本月, -1=上月, -2=...)
+- Backend 0 改動(沿用 getTherapistRawEntries,純前端從 state.rawEntries 算)
+
+=== r3 改動(粟醫師看 UI 截圖逼出 1 漏洞 + 王醫師需求):
+- 漏洞修補:expandCasesForDate line 2641-2642 對齊 backend r19 改動
+  舊:const start = parseYMD(entry.startDate); if (!start || targetDate < start) return;
+  新:空 startDate → start = null → 不過濾(對齊 backend getTherapyCases 演算法)
+  影響:r19 後王醫師建立的空 startDate 老案,前端「今天」「本週」現在會正確展開
+  Gemini 雙審沒抓到,r19 r1/r2 漏掉。粟醫師看 UI 截圖時意外發現
+- 王醫師需求:本週區塊加未來/過去週切換
+  設計:
+  · Q1 標題規則 → 本週 / 下週 / 上週 / +N 週 / -N 週(N>=2)
+  · Q2 箭頭位置 → B 方案(meta + 兩箭頭同行,單手大拇指 reach)
+  · Q3 回本週 → A 方案(offset≠0 時浮現,標題列右側)
+  · 邊界 → 不限制(YAGNI,實際碰到再說)
+  實作:
+  · state.weekOffset 初始 0,點箭頭 ±1
+  · renderWeek(offset) 接受偏移參數,monday = thisMonday + offset*7 days
+  · 標題、meta、回本週鈕全部對應 offset 動態渲染
+- 配套 backend r3:純 header bump 同步版本(0 邏輯改動)
+
+=== r2 改動(Gemini 雙審後微修):
+- Gemini Finding Point 7:parseInt 對「1.5」靜默截斷成「1」,fail-silent 在醫療系統是禁忌
+  舊:freq = parseInt(freqRaw, 10) → 「1.5」變「1」沒人提示
+  新:Number + Number.isInteger 雙重檢查,小數直接 reject
+  範圍:L1 freq / L1 fee / L2 fee 三處
+- 其他 Gemini findings:
+  Point 1/4/6 → 駁回(詳見 backend header)
+  盲點 A/B → 寫進 handoff backlog,不立即修
+
+=== r19 改動(合併 r18 出貨):王醫師實機反饋 — 新增 entry 欄位太多
+- 觸發:王醫師實機 r18 後反饋:固定工作多年的個案,第一次治療日期不可考,
+  費用/頻率系統紀錄純參考。要求 L1 新增的 freq/fee/startDate + L2 fee 改成可空
+- 設計哲學:從「強驗證 schema」改成「核心欄位必填 + 軟性欄位可空」
+- 配套 backend:v6.1.3-therapy-optional-fields(核心改動見 backend header,
+  getTherapyCases 演算法分支:空 startDate 不過濾,展開所有區間日期)
+- 改動清單(本檔):
+  1. submitAddLayer1 freq/fee/startDate 驗證放寬(有填才驗範圍 / 格式)
+  2. submitAddLayer2 fee 驗證放寬(有填才驗 ≥0)
+  3. L2 placeholder「3500」改空字串(避免暗示「應該填」)
+  4. L1 line2 顯示 defensive:空欄位連 dot 一起省略(對齊「— 無資料時不顯示假佔位」)
+  5. (上游傳值)submitAddLayer1 改傳 string 而非 NaN(讓 backend 收到空字串而非 NaN)
+- L2 顯示行(line ~3579)用 _fmtMoney 既有 defensive(空回空),無需改動
+
 === r18 該筆 skeleton 哲學(取代 r17 過度通用化的整區 skeleton):
 - r17 設計缺陷:⑦⑧ entry 級操作走整區 skeleton,跟 ④⑤ context 切換視覺等價,且 stage 1/2 也視覺等價
 - r18 核心精神:「skeleton 不是整區在等,是這一筆在跟 backend 確認」
@@ -534,6 +600,191 @@ body {
 .section-meta.no-dashes::before,
 .section-meta.no-dashes::after {
   content: none;
+}
+
+/* v0.6-r19-r3:本週區塊週次切換 toolbar
+   - week-head 維持既有 section-head 結構,但加入 reset btn(只 offset≠0 顯示)
+   - week-toolbar 是 meta + 兩箭頭的同一行(Q2 B 方案)
+   - 對齊 C5 純白 + 水泥灰 + 細線設計風格,不破壞既有 visual rhythm */
+.week-head {
+  justify-content: space-between; /* 標題左 / reset btn 右 */
+}
+.week-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 0.5px solid var(--line-2);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--concrete);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.week-reset-btn:hover {
+  background: var(--paper-2);
+}
+.week-reset-btn:active {
+  background: var(--line);
+}
+.week-reset-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+.week-reset-label {
+  /* 維持 mono 字體節奏 */
+}
+.week-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px; /* v0.5:section-head 後本來 22px,toolbar 自己再縮 6px */
+}
+.week-toolbar .section-meta {
+  flex: 1; /* meta 撐開,把箭頭推到右側 */
+}
+.week-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0.5px solid var(--line-2);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--concrete);
+  font-family: var(--font-mono);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.week-nav-btn:hover {
+  background: var(--paper-2);
+}
+.week-nav-btn:active {
+  background: var(--line);
+}
+
+/* v0.7:帳單頁樣式 — 對齊既有 C5 純白 + 水泥灰 + 細線設計
+   abstinence:純鏡子呈現,無強烈視覺引導 */
+.billing-toolbar {
+  margin-bottom: 24px;
+}
+.billing-month-select {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--slate);
+  letter-spacing: 1px;
+  padding: 8px 12px;
+  border: 0.5px solid var(--line-2);
+  border-radius: 4px;
+  background: var(--paper);
+  width: 100%;
+  cursor: pointer;
+}
+.billing-list .billing-patient {
+  border-top: 0.5px solid var(--line);
+  padding: 14px 0;
+}
+.billing-list .billing-patient:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.billing-list .billing-patient:last-child {
+  padding-bottom: 0;
+}
+.billing-row-1 {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 5px;
+}
+.billing-name {
+  font-size: 15px;
+  color: var(--ink);
+  font-weight: 500;
+  flex: 0 1 auto;
+  min-width: 0;
+  word-break: break-all;
+}
+.billing-amount {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink);
+  letter-spacing: 1px;
+  text-align: right;
+  flex: 0 0 auto;
+}
+.billing-amount.dim {
+  /* 空 fee 時用 ash 淡化 — abstinence:不警告,只是「無資料」的視覺暗示 */
+  color: var(--ash);
+}
+.billing-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--concrete);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.billing-dates {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ash);
+  letter-spacing: 0.5px;
+  line-height: 1.7;
+}
+.billing-dates .leave {
+  /* 請假日期跟出席日期同灰階,只是稍微更淡 — abstinence:不強調 */
+  color: var(--ash);
+  opacity: 0.75;
+}
+.billing-l2-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 0.5px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--slate);
+  letter-spacing: 1px;
+}
+.billing-l2-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.billing-l2-row:last-child {
+  padding-bottom: 0;
+}
+.billing-l2-info {
+  flex: 1;
+  min-width: 0;
+}
+.billing-l2-name {
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  margin-right: 8px;
+}
+.billing-l2-date {
+  color: var(--ash);
+  font-size: 11px;
+}
+.billing-l2-amount {
+  color: var(--ink);
+  text-align: right;
+  flex: 0 0 auto;
+}
+.billing-l2-amount.dim {
+  color: var(--ash);
 }
 
 /* v0.3:可收合 section(目前只用在「新增」)
@@ -1581,6 +1832,7 @@ body.is-submitting-entry #addSection {
   <div class="subtabs">
     <button class="subtab active" data-subtab="display" onclick="switchSubtab('display')">顯示</button>
     <button class="subtab" data-subtab="operation" onclick="switchSubtab('operation')">操作</button>
+    <button class="subtab" data-subtab="billing" onclick="switchSubtab('billing')">帳單</button>
   </div>
 
   <div class="content">
@@ -1604,9 +1856,18 @@ body.is-submitting-entry #addSection {
       <div class="section">
         <div class="section-num">02</div>
         <div class="section-body">
-          <div class="section-head">
-            <div class="section-title">本週</div>
+          <!-- v0.6-r19-r3:section-head 內加「回本週」按鈕 (offset!==0 才顯示) -->
+          <div class="section-head week-head">
+            <div class="section-title" id="weekTitle">本週</div>
+            <button type="button" class="week-reset-btn" id="weekResetBtn" style="display:none" onclick="resetWeekOffset()" aria-label="回到本週">
+              <span class="week-reset-icon">↺</span><span class="week-reset-label">回本週</span>
+            </button>
+          </div>
+          <!-- v0.6-r19-r3:meta + 兩箭頭同一行 toolbar(Q2 B 方案) -->
+          <div class="week-toolbar">
             <div class="section-meta no-dashes" id="weekMeta"></div>
+            <button type="button" class="week-nav-btn" id="weekPrevBtn" onclick="shiftWeekOffset(-1)" aria-label="上一週">‹</button>
+            <button type="button" class="week-nav-btn" id="weekNextBtn" onclick="shiftWeekOffset(1)" aria-label="下一週">›</button>
           </div>
           <div class="week-grid" id="weekGrid">
             <!-- 動態渲染 6 個 .week-day -->
@@ -1779,7 +2040,7 @@ body.is-submitting-entry #addSection {
                 </div>
                 <div class="form-field">
                   <label class="form-label">費用</label>
-                  <input type="number" class="form-input" id="l2_fee" min="0" step="100" placeholder="3500">
+                  <input type="number" class="form-input" id="l2_fee" min="0" step="100">
                 </div>
                 <div class="form-field">
                   <label class="form-label">治療室</label>
@@ -1876,6 +2137,46 @@ body.is-submitting-entry #addSection {
       </div>
 
     </div>
+
+    <!-- ━━━ [帳單] 分頁 (v0.7) ━━━ -->
+    <div id="paneBilling" style="display:none;">
+
+      <!-- 月份下拉 toolbar -->
+      <div class="billing-toolbar">
+        <select class="billing-month-select" id="billingMonthSelect" onchange="onBillingMonthChange()">
+          <!-- 動態渲染 option -->
+        </select>
+      </div>
+
+      <!-- 01 長期治療 -->
+      <div class="section">
+        <div class="section-num">01</div>
+        <div class="section-body">
+          <div class="section-head">
+            <div class="section-title">長期治療</div>
+            <div class="section-meta" id="billingL1Meta"></div>
+          </div>
+          <div class="billing-list" id="billingL1List">
+            <div class="empty-hint">載入中<span class="loading-dots"><span></span><span></span><span></span></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 02 單次治療 -->
+      <div class="section">
+        <div class="section-num">02</div>
+        <div class="section-body">
+          <div class="section-head">
+            <div class="section-title">單次治療</div>
+            <div class="section-meta" id="billingL2Meta"></div>
+          </div>
+          <div class="billing-list" id="billingL2List">
+            <div class="empty-hint">— empty —</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 </div>
 
@@ -1945,8 +2246,10 @@ const state = {
   selectedTherapist: "", // 目前選中的治療師(預設自己)
   loginTime: "",
   rawEntries: null,    // getTherapistRawEntries 的快取(切分頁時重新拿)
-  subtab: "display",   // 'display' | 'operation'
-  idleTimerId: null
+  subtab: "display",   // v0.7:'display' | 'operation' | 'billing'
+  idleTimerId: null,
+  weekOffset: 0,       // v0.6-r19-r3:本週區塊偏移週數(0=本週, +1=下週, -1=上週, ...)
+  billingMonthOffset: 0  // v0.7:帳單月份偏移(0=本月, -1=上月, -2=...)
 };
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -2420,6 +2723,10 @@ async function switchTherapist(name) {
   state.selectedTherapist = name;
   // 換治療師排班不一樣,清 schedule cache
   _scheduleCache = null;
+  // v0.6-r19-r3:切治療師回本週(否則粟醫師滑到 +3 週切到王醫師會延續偏移,困惑)
+  state.weekOffset = 0;
+  // v0.7:同理,切治療師也回本月帳單
+  state.billingMonthOffset = 0;
   // 收乾淨所有展開的表單(避免在錯誤治療師 context 下殘留)
   collapseAllAddBlocks();
   // v0.3:同時收回整個新增 section
@@ -2462,11 +2769,17 @@ function switchSubtab(name) {
   });
   document.getElementById("paneDisplay").style.display = (name === "display") ? "" : "none";
   document.getElementById("paneOperation").style.display = (name === "operation") ? "" : "none";
+  // v0.7:加 billing pane 切換
+  const billingPane = document.getElementById("paneBilling");
+  if (billingPane) billingPane.style.display = (name === "billing") ? "" : "none";
 
   // r17:取代 v0.5/v0.6-r1 stagger,改用一次性 paneFadeIn(0.3s)
   // 設計理由:subtab 切換無 IO,純前端「換內容」訊號;stagger 5 段過炫,paneFadeIn 1 次乾淨
-  const visiblePane = (name === "display") ? "paneDisplay" : "paneOperation";
-  const paneEl = document.getElementById(visiblePane);
+  let visiblePaneId;
+  if (name === "display") visiblePaneId = "paneDisplay";
+  else if (name === "operation") visiblePaneId = "paneOperation";
+  else if (name === "billing") visiblePaneId = "paneBilling";
+  const paneEl = visiblePaneId ? document.getElementById(visiblePaneId) : null;
   if (paneEl) {
     paneEl.classList.remove("pane-entering");
     void paneEl.offsetWidth;  // 強制 reflow 讓動畫重跑
@@ -2486,6 +2799,9 @@ function switchSubtab(name) {
     }
   } else if (name === "operation") {
     renderOperationPane();
+  } else if (name === "billing") {
+    // v0.7:切到帳單頁時渲染
+    renderBillingPane();
   }
 }
 
@@ -2532,6 +2848,10 @@ async function loadAndRenderEntries() {
     renderWeek();
     renderWaitlist();
     renderOperationPane();
+    // v0.7:若當前在 billing tab,也要 render
+    if (state.subtab === "billing") {
+      renderBillingPane();
+    }
   } catch (e) {
     if (e.isSessionExpired) return;
     if (todayList) {
@@ -2542,7 +2862,10 @@ async function loadAndRenderEntries() {
   } finally {
     // r17:render 完成後對當前可見 pane 觸發 paneFadeIn(取代 r16 stagger)
     // 不論 success / fail 都跑,讓「載入失敗訊息」也有一致的進場感
-    const visiblePane = (state.subtab === "operation") ? "paneOperation" : "paneDisplay";
+    // v0.7:加 billing pane 判斷
+    let visiblePane = "paneDisplay";
+    if (state.subtab === "operation") visiblePane = "paneOperation";
+    else if (state.subtab === "billing") visiblePane = "paneBilling";
     const paneEl = document.getElementById(visiblePane);
     if (paneEl) {
       paneEl.classList.remove("pane-entering");
@@ -2613,8 +2936,12 @@ function expandCasesForDate(targetYMD) {
   (state.rawEntries.layer1 || []).forEach(function(entry) {
     if (entry.status !== "active") return;
     if (parseInt(entry.weekday, 10) !== targetWeekday) return;
-    const start = parseYMD(entry.startDate);
-    if (!start || targetDate < start) return;
+    // v0.6-r19-r3:對齊 backend getTherapyCases 演算法
+    //   空 startDate → start = null → 不過濾(老案不可考的歷史治療,任何日期都展開)
+    //   有效 startDate → 用該日期當下界
+    //   r19 r1/r2 漏改前端這裡,Gemini 雙審也沒抓到,粟醫師看 UI 截圖意外發現
+    const start = entry.startDate ? parseYMD(entry.startDate) : null;
+    if (start && targetDate < start) return;
     // 檢查 layer1_5 shadow
     const shadowed = (state.rawEntries.layer1_5 || []).some(function(s) {
       return s.status === "active"
@@ -2714,6 +3041,28 @@ function renderWeek() {
   const offset = (dayOfWeek === 0) ? 1 : (1 - dayOfWeek);
   monday.setDate(today.getDate() + offset);
 
+  // v0.6-r19-r3:套用 state.weekOffset 切到目標週(0=本週, +1=下週, -1=上週)
+  const weekOffset = state.weekOffset || 0;
+  if (weekOffset !== 0) {
+    monday.setDate(monday.getDate() + weekOffset * 7);
+  }
+
+  // v0.6-r19-r3:標題依 offset 動態變更(Q1 拍板:本週/下週/上週/+N 週/-N 週)
+  const weekTitleEl = document.getElementById("weekTitle");
+  if (weekTitleEl) {
+    if (weekOffset === 0)       weekTitleEl.textContent = "本週";
+    else if (weekOffset === 1)  weekTitleEl.textContent = "下週";
+    else if (weekOffset === -1) weekTitleEl.textContent = "上週";
+    else if (weekOffset > 0)    weekTitleEl.textContent = "+" + weekOffset + " 週";
+    else                         weekTitleEl.textContent = weekOffset + " 週"; // 負號自帶
+  }
+
+  // v0.6-r19-r3:offset≠0 才顯示「↺ 回本週」按鈕(Q3 A 方案)
+  const resetBtn = document.getElementById("weekResetBtn");
+  if (resetBtn) {
+    resetBtn.style.display = (weekOffset === 0) ? "none" : "";
+  }
+
   document.getElementById("weekMeta").textContent =
     ymdParts(monday) + " ─ " + ymdParts(new Date(monday.getTime() + 5 * 86400000));
 
@@ -2742,6 +3091,18 @@ function renderWeek() {
   document.getElementById("weekGrid").innerHTML = html;
 }
 
+/* v0.6-r19-r3:本週區塊偏移控制 ─────────────────── */
+function shiftWeekOffset(delta) {
+  state.weekOffset = (state.weekOffset || 0) + delta;
+  renderWeek();
+}
+
+function resetWeekOffset() {
+  if ((state.weekOffset || 0) === 0) return;
+  state.weekOffset = 0;
+  renderWeek();
+}
+
 /* ── 渲染候補區塊 ───────────────────────────── */
 function renderWaitlist() {
   const layer3 = (state.rawEntries.layer3 || []).filter(function(e) {
@@ -2763,6 +3124,285 @@ function renderWaitlist() {
     html += '<div class="waitlist-row" onclick="openWaitlistDetail(' + idx + ')">'
          +    '<span class="waitlist-name">' + esc(entry.name) + ' · 期待 ' + esc(entry.freq) + ' 次</span>'
          +    '<span class="waitlist-meta">' + slotsCount + ' 個時段</span>'
+         +  '</div>';
+  });
+  wrap.innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   v0.7 帳單頁(對帳備忘)
+   ══════════════════════════════════════════════════════════════════════════════
+   設計核心:治療師 → 病患的對帳備忘(非診所薪資結算)
+   abstinence 哲學:純鏡子呈現,不警告、不引導、不彙總總額
+   
+   資料源:state.rawEntries(getTherapistRawEntries 既有 API,backend 0 改動)
+   演算法:類似 expandCasesForDate,但 expand 整月而非單日
+   
+   完整 spec:見 BILLING_PANE_DESIGN_SPEC.md
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * 算指定月份某治療師每位病患的「出席日期 + 請假日期 + 小計」
+ * 
+ * 演算法(對齊 expandCasesForDate + 整月 expand):
+ *   1. 對每個 L1 active entry,iterate 該月每一天:
+ *      - 若該日 < l1.startDate 跳過(空 startDate = 老案不過濾,對齊 r19 backend)
+ *      - 若 weekday match → 該日加入該病患的「應發生」list
+ *      - 同時檢查 L1.5 active 有沒蓋住(同病患+同日+同 startTime) → 蓋住 = 請假
+ *   2. 對每個 L2 active entry,看 date 在不在月內,在 → 該病患的單次治療 list
+ * 
+ * @param {string} yearStr  "2026"
+ * @param {string} monthStr "05" (1-12,01-12 補零)
+ * @return {object} { l1ByPatient: [...], l2List: [...] }
+ *   l1ByPatient 每筆: { name, weekday, startTime, fee, attendDates, leaveDates, count, subtotal }
+ *   l2List 每筆: { name, date, fee }
+ */
+function computeBillingForMonth(yearStr, monthStr) {
+  if (!state.rawEntries) return { l1ByPatient: [], l2List: [] };
+  const year = parseInt(yearStr, 10);
+  const month = parseInt(monthStr, 10); // 1-12
+  // 月初/月末日期
+  const monthStart = new Date(year, month - 1, 1);
+  monthStart.setHours(0, 0, 0, 0);
+  const monthEnd = new Date(year, month, 0); // 上月最後一天 = 本月第 0 天,即本月最後一天
+  monthEnd.setHours(0, 0, 0, 0);
+
+  // ─── L1 展開 ─────────────────────────────────────────
+  // 一個 L1 entry 對應一個病患的「該月所有應發生治療」
+  // 用 Map 收集:key = layerId(每筆 L1 一行),value = { 該病患詳情 }
+  const l1Result = [];
+  (state.rawEntries.layer1 || []).forEach(function(entry) {
+    if (entry.status !== "active") return;
+    const wd = parseInt(entry.weekday, 10);
+    if (!(wd >= 1 && wd <= 6)) return;
+    // r19:空 startDate → start = null → 不過濾(對齊 backend getTherapyCases)
+    const startObj = entry.startDate ? parseYMD(entry.startDate) : null;
+    
+    const attendDates = [];
+    const leaveDates = [];
+    // iterate 整月每一天
+    const cursor = new Date(monthStart.getTime());
+    while (cursor <= monthEnd) {
+      // 區間日期需 ≥ startDate(若 startObj 為 null 則不過濾)
+      if (startObj && cursor < startObj) {
+        cursor.setDate(cursor.getDate() + 1);
+        continue;
+      }
+      const jsDay = cursor.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+      const ourWeekday = (jsDay === 0) ? 7 : jsDay; // 對齊 schema 1-6(週日=7,但 L1 schema 只 1-6)
+      if (ourWeekday === wd) {
+        const dStr = ymdParts(cursor);
+        // 檢查 L1.5 shadow
+        const isLeave = (state.rawEntries.layer1_5 || []).some(function(s) {
+          return s.status === "active"
+            && s.name === entry.name
+            && s.date === dStr
+            && s.startTime === entry.startTime;
+        });
+        if (isLeave) {
+          leaveDates.push(dStr);
+        } else {
+          attendDates.push(dStr);
+        }
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    
+    // 該月該病患沒任何記錄(出席 + 請假皆 0)→ 不顯示(該 entry 該月「不存在」)
+    if (attendDates.length === 0 && leaveDates.length === 0) return;
+    
+    // 計算小計(空 fee 時 subtotal = null)
+    const feeNum = (entry.fee !== "" && entry.fee != null && !isNaN(Number(entry.fee))) ? Number(entry.fee) : null;
+    const subtotal = (feeNum != null) ? attendDates.length * feeNum : null;
+    
+    l1Result.push({
+      layerId: entry.layerId,
+      name: entry.name,
+      weekday: wd,
+      startTime: entry.startTime,
+      fee: feeNum,
+      attendDates: attendDates,
+      leaveDates: leaveDates,
+      attendCount: attendDates.length,
+      leaveCount: leaveDates.length,
+      subtotal: subtotal
+    });
+  });
+  
+  // 排序:weekday → startTime(對齊 op 頁 L1 排序邏輯)
+  l1Result.sort(function(a, b) {
+    if (a.weekday !== b.weekday) return a.weekday - b.weekday;
+    if (a.startTime !== b.startTime) return a.startTime < b.startTime ? -1 : 1;
+    return a.layerId < b.layerId ? -1 : 1;
+  });
+
+  // ─── L2 篩選 ─────────────────────────────────────────
+  const l2Result = [];
+  (state.rawEntries.layer2 || []).forEach(function(entry) {
+    if (entry.status !== "active") return;
+    const dObj = parseYMD(entry.date);
+    if (!dObj) return;
+    if (dObj < monthStart || dObj > monthEnd) return;
+    const feeNum = (entry.fee !== "" && entry.fee != null && !isNaN(Number(entry.fee))) ? Number(entry.fee) : null;
+    l2Result.push({
+      layerId: entry.layerId,
+      name: entry.name,
+      date: entry.date,
+      fee: feeNum
+    });
+  });
+  // L2 按日期 asc
+  l2Result.sort(function(a, b) {
+    return a.date < b.date ? -1 : (a.date > b.date ? 1 : 0);
+  });
+
+  return { l1ByPatient: l1Result, l2List: l2Result };
+}
+
+/**
+ * 列出可選的月份(本月 → 過去 N 個月)
+ * 範圍:從 state.rawEntries 內最早一筆 entry 的 createdAt 月份,到本月
+ * (但簡化:固定回 12 個月 = 本月 + 過去 11 個月,YAGNI 不算最早)
+ */
+function buildBillingMonthOptions() {
+  const today = new Date();
+  const options = [];
+  for (let offset = 0; offset >= -11; offset--) {
+    const d = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+    const yStr = String(d.getFullYear());
+    const mStr = String(d.getMonth() + 1).padStart(2, "0");
+    let label = yStr + " / " + mStr;
+    if (offset === 0)       label += " 本月";
+    else if (offset === -1) label += " 上月";
+    options.push({ offset: offset, year: yStr, month: mStr, label: label });
+  }
+  return options;
+}
+
+/* ── 渲染帳單頁(主入口) ─────────────────────────────────── */
+function renderBillingPane() {
+  // 1. 建月份下拉
+  const select = document.getElementById("billingMonthSelect");
+  const options = buildBillingMonthOptions();
+  if (select) {
+    let html = "";
+    options.forEach(function(opt) {
+      const selected = (opt.offset === state.billingMonthOffset) ? " selected" : "";
+      html += '<option value="' + opt.offset + '"' + selected + '>' + esc(opt.label) + '</option>';
+    });
+    select.innerHTML = html;
+  }
+  
+  // 2. 取得目前選中月份的年/月
+  const target = options.find(function(o) { return o.offset === state.billingMonthOffset; }) || options[0];
+  
+  // 3. 計算該月帳單資料
+  const data = computeBillingForMonth(target.year, target.month);
+  
+  // 4. 渲染 L1 區塊
+  renderBillingL1(data.l1ByPatient);
+  
+  // 5. 渲染 L2 區塊
+  renderBillingL2(data.l2List);
+}
+
+/* ── 月份切換 callback ─────────────────────────────────── */
+function onBillingMonthChange() {
+  const select = document.getElementById("billingMonthSelect");
+  if (!select) return;
+  state.billingMonthOffset = parseInt(select.value, 10);
+  renderBillingPane();
+}
+
+/* ── L1 區塊渲染 ─────────────────────────────────── */
+function renderBillingL1(patients) {
+  const meta = document.getElementById("billingL1Meta");
+  const wrap = document.getElementById("billingL1List");
+  if (!wrap) return;
+  
+  if (patients.length === 0) {
+    if (meta) meta.textContent = "0";
+    wrap.innerHTML = '<div class="empty-hint">— empty —</div>';
+    return;
+  }
+  
+  if (meta) meta.textContent = patients.length;
+  
+  let html = "";
+  patients.forEach(function(p) {
+    // 金額顯示邏輯(對齊 Q7+ 拍板:空 fee 只顯示次數,不顯示「— = —」)
+    let amountHtml;
+    if (p.fee == null) {
+      // 空 fee:只顯示「N 次」(abstinence:治療師自己看到會去補,系統不喊)
+      amountHtml = '<span class="billing-amount dim">' + p.attendCount + ' 次</span>';
+    } else {
+      // 有 fee:標準格式「N × $X = $Y」
+      amountHtml = '<span class="billing-amount">'
+                 +   p.attendCount + ' × $' + p.fee.toLocaleString("en-US")
+                 +   ' = $' + p.subtotal.toLocaleString("en-US")
+                 + '</span>';
+    }
+    
+    // weekday name
+    const wdName = "週" + (["", "一", "二", "三", "四", "五", "六"][p.weekday] || "?");
+    
+    // 出席日期 list(M/D 簡短格式)
+    const attendStr = p.attendDates.map(function(d) {
+      const m = d.match(/^\d{4}\/(\d{2})\/(\d{2})$/);
+      return m ? (parseInt(m[1], 10) + "/" + parseInt(m[2], 10)) : d;
+    }).join(", ");
+    
+    // 請假日期 list(Q7 拍板:列出日期當記憶輔助)
+    let leaveStr = "";
+    if (p.leaveDates.length > 0) {
+      const dates = p.leaveDates.map(function(d) {
+        const m = d.match(/^\d{4}\/(\d{2})\/(\d{2})$/);
+        return m ? (parseInt(m[1], 10) + "/" + parseInt(m[2], 10)) : d;
+      }).join(", ");
+      leaveStr = '<br><span class="leave">請假 ' + esc(dates) + '</span>';
+    }
+    
+    html += '<div class="billing-patient">'
+         +    '<div class="billing-row-1">'
+         +      '<span class="billing-name">' + esc(p.name) + '</span>'
+         +      amountHtml
+         +    '</div>'
+         +    '<div class="billing-meta">' + wdName + ' ' + esc(p.startTime) + '</div>'
+         +    '<div class="billing-dates">' + esc(attendStr) + leaveStr + '</div>'
+         +  '</div>';
+  });
+  wrap.innerHTML = html;
+}
+
+/* ── L2 區塊渲染 ─────────────────────────────────── */
+function renderBillingL2(l2List) {
+  const meta = document.getElementById("billingL2Meta");
+  const wrap = document.getElementById("billingL2List");
+  if (!wrap) return;
+  
+  if (l2List.length === 0) {
+    if (meta) meta.textContent = "0";
+    wrap.innerHTML = '<div class="empty-hint">— empty —</div>';
+    return;
+  }
+  
+  if (meta) meta.textContent = l2List.length;
+  
+  let html = "";
+  l2List.forEach(function(l2) {
+    // 日期短格式 M/D
+    const m = l2.date.match(/^\d{4}\/(\d{2})\/(\d{2})$/);
+    const dStr = m ? (parseInt(m[1], 10) + "/" + parseInt(m[2], 10)) : l2.date;
+    
+    const amountClass = (l2.fee == null) ? "billing-l2-amount dim" : "billing-l2-amount";
+    const amountText = (l2.fee == null) ? "—" : "$" + l2.fee.toLocaleString("en-US");
+    
+    html += '<div class="billing-l2-row">'
+         +    '<div class="billing-l2-info">'
+         +      '<span class="billing-l2-name">' + esc(l2.name) + '</span>'
+         +      '<span class="billing-l2-date">' + esc(dStr) + '</span>'
+         +    '</div>'
+         +    '<span class="' + amountClass + '">' + amountText + '</span>'
          +  '</div>';
   });
   wrap.innerHTML = html;
@@ -3242,15 +3882,33 @@ async function submitAddLayer1() {
   const name = document.getElementById("l1_name").value.trim();
   const weekday = parseInt(document.getElementById("l1_weekday").value, 10);
   const slot = readSlot("l1");
-  const freq = parseInt(document.getElementById("l1_freq").value, 10);
-  const fee = parseInt(document.getElementById("l1_fee").value, 10);
+  // v0.6-r19:freq/fee/startDate 改成可空(王醫師 5/15 反饋:老案 startDate 不可考,
+  //          freq/fee 系統紀錄純參考 — 從「強驗證 schema」改成「核心欄位必填 + 軟性欄位可空」)
+  const freqRaw = document.getElementById("l1_freq").value.trim();
+  const feeRaw = document.getElementById("l1_fee").value.trim();
   const room = document.getElementById("l1_room").value;
-  const startDate = document.getElementById("l1_startDate").value; // YYYY-MM-DD
+  const startDate = document.getElementById("l1_startDate").value; // YYYY-MM-DD,可空
   if (!name) return showFormError("layer1", "姓名必填");
   if (!slot.startTime || !slot.endTime) return showFormError("layer1", "時段必填");
-  if (isNaN(freq) || freq < 1 || freq > 7) return showFormError("layer1", "每週次數須為 1-7");
-  if (isNaN(fee) || fee < 0) return showFormError("layer1", "費用須為非負整數");
-  if (!startDate) return showFormError("layer1", "開始治療日必填");
+  // v0.6-r19:有填才驗範圍,空 = pass
+  // v0.6-r19-r2:改用 Number + Number.isInteger(Gemini Finding 7)
+  //   parseInt("1.5") 靜默截斷成 1,在醫療系統 fail-silent 是禁忌
+  //   freq 必為整數 1-7;fee 必為非負整數
+  let freq = "";
+  if (freqRaw !== "") {
+    freq = Number(freqRaw);
+    if (!Number.isFinite(freq) || !Number.isInteger(freq) || freq < 1 || freq > 7) {
+      return showFormError("layer1", "每週次數須為 1-7 的整數");
+    }
+  }
+  let fee = "";
+  if (feeRaw !== "") {
+    fee = Number(feeRaw);
+    if (!Number.isFinite(fee) || !Number.isInteger(fee) || fee < 0) {
+      return showFormError("layer1", "費用須為非負整數");
+    }
+  }
+  // startDate 純前端不驗(空 = 老案不可考,backend 也放寬;有填的話 input type=date 自帶格式保證)
 
   setFormBusy("btnSubmitL1", true);
   try {
@@ -3262,10 +3920,10 @@ async function submitAddLayer1() {
       weekday: weekday,
       startTime: slot.startTime,
       endTime: slot.endTime,
-      freq: freq,
-      fee: fee,
+      freq: freq,  // v0.6-r19: 可能 ""
+      fee: fee,    // v0.6-r19: 可能 ""
       room: room,
-      startDate: startDate.replace(/-/g, "/")
+      startDate: startDate ? startDate.replace(/-/g, "/") : ""  // v0.6-r19: 空 startDate 直送 ""
     });
     if (data.success) {
       closeAddBlock("layer1");
@@ -3337,12 +3995,21 @@ async function submitAddLayer2() {
   const name = document.getElementById("l2_name").value.trim();
   const date = document.getElementById("l2_date").value;
   const slot = readSlot("l2");
-  const fee = parseInt(document.getElementById("l2_fee").value, 10);
+  // v0.6-r19:fee 改成可空(同 L1 軟性欄位邏輯)
+  const feeRaw = document.getElementById("l2_fee").value.trim();
   const room = document.getElementById("l2_room").value;
   if (!name) return showFormError("layer2", "姓名必填");
   if (!date) return showFormError("layer2", "日期必填");
   if (!slot.startTime || !slot.endTime) return showFormError("layer2", "時段必填");
-  if (isNaN(fee) || fee < 0) return showFormError("layer2", "費用須為非負整數");
+  // v0.6-r19:fee 有填才驗
+  // v0.6-r19-r2:同 L1,改 Number + Number.isInteger(Gemini Finding 7)
+  let fee = "";
+  if (feeRaw !== "") {
+    fee = Number(feeRaw);
+    if (!Number.isFinite(fee) || !Number.isInteger(fee) || fee < 0) {
+      return showFormError("layer2", "費用須為非負整數");
+    }
+  }
 
   setFormBusy("btnSubmitL2", true);
   try {
@@ -3354,7 +4021,7 @@ async function submitAddLayer2() {
       date: date.replace(/-/g, "/"),
       startTime: slot.startTime,
       endTime: slot.endTime,
-      fee: fee,
+      fee: fee,  // v0.6-r19: 可能 ""
       room: room
     });
     if (data.success) {
@@ -3526,15 +4193,36 @@ function renderOpLayer1() {
       return a.startTime < b.endTime && b.startTime < a.endTime;
     },
     renderInfo: function(e) {
+      // v0.6-r19:line2 三段 (每週N次 / 費用千分位 / since startDate) 空欄連 dot 一起省略
+      //   原邏輯:'每週 ' + esc(e.freq) + ' 次 · ' + _fmtMoney(e.fee) + ' · since ' + esc(e.startDate)
+      //   問題:空欄會印「每週  次 ·  · since 」醜字串
+      //   新邏輯:每段獨立判斷有值才推入,join 時用 dot 分隔
+      const parts2 = [];
+      // freq 段:有值才印「每週 N 次」
+      if (e.freq !== "" && e.freq != null) {
+        parts2.push('每週 ' + esc(e.freq) + ' 次');
+      }
+      // fee 段:有值且為合法數字才印千分位(_fmtMoney 空輸入會回空字串,但這裡額外把空段拿掉)
+      if (e.fee !== "" && e.fee != null) {
+        const moneyStr = _fmtMoney(e.fee);
+        if (moneyStr !== "") parts2.push(moneyStr);
+      }
+      // startDate 段:有值才印「since YYYY/MM/DD」
+      if (e.startDate !== "" && e.startDate != null) {
+        parts2.push('since ' + esc(e.startDate));
+      }
+      // terminated 段:獨立判斷
+      if (e.status === "terminated") {
+        parts2.push('terminated ' + esc(e.terminatedAt || ""));
+      }
+      const line2Html = parts2.join('<span class="dot">·</span>');
       return {
         shortLabel: e.name + " " + (wdNames[e.weekday] || "?") + " " + e.startTime,
         // v0.5:大室用 entry-meta-dim 拉淡(對齊 v2 設計)
         line1: '<span class="entry-name-wrap">' + esc(e.name) + '</span>'
               + '<span class="entry-meta">' + (wdNames[e.weekday] || "?") + ' ' + esc(e.startTime) + '–' + esc(e.endTime) + '</span>'
               + (e.room ? '<span class="entry-meta-dim">' + esc(e.room) + '室</span>' : ''),
-        // v0.5:line2 改 v2 格式 — 每週 N 次 · 3,000(千分位) · since 2026/04/06
-        line2: '每週 ' + esc(e.freq) + ' 次<span class="dot">·</span>' + _fmtMoney(e.fee) + '<span class="dot">·</span>since ' + esc(e.startDate)
-              + (e.status === "terminated" ? '<span class="dot">·</span>terminated ' + esc(e.terminatedAt || "") : "")
+        line2: line2Html
       };
     }
   });
