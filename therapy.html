@@ -9,7 +9,7 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
 悅心診所 心理治療系統 therapy.html
-v0.8-end-treatment-r2 (2026-05-15)
+v0.8-end-treatment-r3 (2026-05-15)
 
 Designed by Su Ning | Powered by Claude & Gemini 2026
 -->
@@ -1128,7 +1128,7 @@ body {
   font-family: inherit;
   font-size: 14px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, opacity 0.15s;
   -webkit-appearance: none;
   appearance: none;
 }
@@ -1137,6 +1137,26 @@ body {
 .form-input[type="number"] { font-family: var(--font-mono); }
 .form-input[type="time"],
 .form-input[type="date"] { font-family: var(--font-mono); }
+/* v0.8-r3: placeholder 淺灰 — text input + date input + select 第一個空 option
+   對齊 ash 階(#b8b8b8),跟 entry-meta-dim 同色感
+   browser default placeholder 顏色不一致(Safari ~0.5 alpha,Chrome ~#757575)
+   統一拉到 ash 維持工業節制感 */
+.form-input::placeholder { color: var(--ash); }
+.form-input::-webkit-input-placeholder { color: var(--ash); }
+.form-input::-moz-placeholder { color: var(--ash); opacity: 1; }
+.form-input[type="date"]:not(:focus):in-range::-webkit-datetime-edit { color: var(--ash); }
+.form-input[type="date"]:invalid::-webkit-datetime-edit { color: var(--ash); }
+
+/* v0.8-r3: form field disabled 視覺(逐步開放用)
+   病患沒選 → 日期 disabled / 日期沒選 → 時段 disabled
+   視覺:opacity 拉淡 + cursor not-allowed,提示「需先完成上一步」
+   對齊 abstinence — 不彈警告,只是「視覺上不可碰」 */
+.form-input:disabled,
+.form-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--paper);
+}
 
 .form-select {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M0 0l5 6 5-6z' fill='%236a6a6a'/></svg>");
@@ -1916,7 +1936,7 @@ body.is-submitting-entry #addSection {
             </div>
           </div>
 
-          <!-- expandable: 新增暫停(layer1.5) -->
+          <!-- expandable: 新增暫停(layer1.5 type=single) -->
           <div class="add-block" data-add="layer1_5">
             <div class="add-block-head" onclick="toggleAddBlock('layer1_5')">
               <span class="add-block-title">新增暫停</span>
@@ -1928,24 +1948,64 @@ body.is-submitting-entry #addSection {
                 <div class="form-field span-2">
                   <label class="form-label">病患姓名(從長期病人選)</label>
                   <select class="form-select" id="l15_name" onchange="onL15NameChange()">
-                    <option value="">— 請先選病患 —</option>
+                    <option value="">— 選擇病患 —</option>
                   </select>
                 </div>
                 <div class="form-field">
                   <label class="form-label">暫停日期</label>
-                  <input type="date" class="form-input" id="l15_date" onchange="updateL15DateHint()">
+                  <!-- v0.8-r3: 病患沒選前 disabled(逐步開放) -->
+                  <input type="date" class="form-input" id="l15_date" disabled onchange="onL15DateChange()">
                   <span class="field-toggle" id="l15_dateHint" style="cursor:default;"></span>
                 </div>
                 <div class="form-field">
                   <label class="form-label">時段(從該病患固定時段選)</label>
-                  <select class="form-select" id="l15_slot">
-                    <option value="">— 請先選病患 —</option>
+                  <!-- v0.8-r3: 日期沒選前 disabled,只顯示符合 weekday 的時段 -->
+                  <select class="form-select" id="l15_slot" disabled>
+                    <option value="">— 先選病患與日期 —</option>
                   </select>
                 </div>
               </div>
               <div class="form-actions">
                 <button class="btn-secondary" onclick="closeAddBlock('layer1_5')">取消</button>
                 <button class="btn-primary" onclick="submitAddLayer1_5()" id="btnSubmitL15">新增</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- expandable: 新增結束日期(layer1.5 type=end-from)
+               v0.8-r3: 對齊 single 結構,form fields 一樣(病患/日期/時段),
+                       submit 時帶 type=end-from。病患/日期/時段三步驟逐步開放。
+                       label 跟 single 差異:「結束日期」「最後一次治療日」
+                       明確讓治療師理解這不是「請假該日」而是「最後治療日」 -->
+          <div class="add-block" data-add="layer1_5_end_from">
+            <div class="add-block-head" onclick="toggleAddBlock('layer1_5_end_from')">
+              <span class="add-block-title">新增結束日期</span>
+              <span class="add-block-icon">+</span>
+            </div>
+            <div class="add-block-form" id="addFormLayer1_5_end_from">
+              <div class="form-error" id="addErrorLayer1_5_end_from"></div>
+              <div class="form-grid">
+                <div class="form-field span-2">
+                  <label class="form-label">病患姓名(從長期病人選)</label>
+                  <select class="form-select" id="lEnd_name" onchange="onLEndNameChange()">
+                    <option value="">— 選擇病患 —</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">結束日期(最後一次治療日)</label>
+                  <input type="date" class="form-input" id="lEnd_date" disabled onchange="onLEndDateChange()">
+                  <span class="field-toggle" id="lEnd_dateHint" style="cursor:default;"></span>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">時段(從該病患固定時段選)</label>
+                  <select class="form-select" id="lEnd_slot" disabled>
+                    <option value="">— 先選病患與日期 —</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn-secondary" onclick="closeAddBlock('layer1_5_end_from')">取消</button>
+                <button class="btn-primary" onclick="submitAddLayerEndFrom()" id="btnSubmitLEnd">新增</button>
               </div>
             </div>
           </div>
@@ -2168,37 +2228,6 @@ body.is-submitting-entry #addSection {
 
 <!-- v0.4-loading-c r2:Toast(配合移除動畫做反饋) -->
 <div class="toast" id="therapyToast"></div>
-
-<!-- ════════════════════════════════════════════════════════════════════════════
-     v0.8 結束日期 modal — L1 entry「結束日期」action button 觸發
-     ────────────────────────────────────────────────────────────────────────────
-     呼叫 addLayer1_5Entry 時 type=end-from(L1.5 加 type 欄)
-     對齊 Q5 拍板:嚴格不允許修改既有結束日(後端會 reject「此病患此時段已有結束日」)
-     ════════════════════════════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="modalSetEndDate">
-  <div class="modal-box">
-    <div class="modal-head">
-      <div class="modal-title">結束日期</div>
-      <button class="modal-close" onclick="closeSetEndDateModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="confirm-msg" id="modalSetEndDateMsg"></div>
-      <div class="form-field" style="margin-bottom: var(--space-md);">
-        <label class="form-label" for="setEndDateInput">結束日期</label>
-        <input type="date" id="setEndDateInput" class="form-input">
-        <span class="field-toggle" style="cursor:default; margin-top: 8px; display: block; line-height: 1.5;">
-          選定日期為「最後一次治療日」,該日仍正常進行。<br>
-          此後系統不再展開該長期治療(歷史紀錄不變)。
-        </span>
-      </div>
-      <div class="form-error" id="modalSetEndDateError"></div>
-      <div class="confirm-actions">
-        <button class="btn-secondary" onclick="closeSetEndDateModal()">取消</button>
-        <button class="btn-primary" id="btnSetEndDateGo" onclick="submitSetEndDate()">確定</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script>
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -3502,7 +3531,15 @@ function collapseAllAddBlocks() {
 // 表單初始化:預填合理 default + 載入下拉
 function initAddForm(layer) {
   // 清錯誤
-  const errEl = document.getElementById("addError" + (layer === "layer1_5" ? "Layer1_5" : layer === "layer1" ? "Layer1" : layer === "layer2" ? "Layer2" : "Layer3"));
+  //   v0.8-r3: errEl 對應對齊 layer 名稱(layer1_5_end_from 對應 addErrorLayer1_5_end_from)
+  const errIdMap = {
+    layer1: "addErrorLayer1",
+    layer1_5: "addErrorLayer1_5",
+    layer1_5_end_from: "addErrorLayer1_5_end_from",
+    layer2: "addErrorLayer2",
+    layer3: "addErrorLayer3"
+  };
+  const errEl = document.getElementById(errIdMap[layer]);
   if (errEl) errEl.style.display = "none";
 
   if (layer === "layer1") {
@@ -3514,8 +3551,9 @@ function initAddForm(layer) {
     // 重置自訂時段切換
     resetCustomSlot("l1");
   } else if (layer === "layer1_5") {
-    initLayer1_5NameDropdown();
-    document.getElementById("l15_date").value = "";
+    initLayer1_5NameDropdown(); /* v0.8-r3: 含重置三步驟逐步開放 */
+  } else if (layer === "layer1_5_end_from") {
+    initLayerEndFromDropdown(); /* v0.8-r3: 結束日期 form,共用 helper */
   } else if (layer === "layer2") {
     document.getElementById("l2_name").value = "";
     document.getElementById("l2_date").value = "";
@@ -3643,7 +3681,19 @@ function resetCustomSlot(prefix) {
 }
 
 // L1.5 病患下拉:從目前資料的 layer1 active entries 撈姓名(去重)
-function initLayer1_5NameDropdown() {
+// v0.8-r3: L1.5 form helpers 重構(single + end-from 共用底層 helper)
+//
+// 邏輯 flow(三步驟逐步開放):
+//   step 1: 病患下拉 onchange → 開啟日期 input,重置時段下拉
+//   step 2: 日期 input onchange → 推算 weekday,filter 該病患在此 weekday 的固定時段
+//                                  weekday 不符 → 時段下拉空,提示「該病患週X 無固定治療」
+//   step 3: 時段下拉 onchange → form 完整,可送出
+//
+// formId prefix:single = "l15" / end-from = "lEnd"
+// 共用 helper 內用 prefix 動態組 element id
+
+function _initL15FormByPrefix(prefix) {
+  // 載入病患下拉
   const names = [];
   const seen = {};
   if (state.rawEntries && state.rawEntries.layer1) {
@@ -3654,61 +3704,109 @@ function initLayer1_5NameDropdown() {
       }
     });
   }
-  const sel = document.getElementById("l15_name");
-  sel.innerHTML = '<option value="">— 請選病患 —</option>';
+  const nameSel = document.getElementById(prefix + "_name");
+  nameSel.innerHTML = '<option value="">— 選擇病患 —</option>';
   if (names.length === 0) {
-    sel.innerHTML = '<option value="">— 沒有長期病患 —</option>';
+    nameSel.innerHTML = '<option value="">— 沒有長期病患 —</option>';
   } else {
     names.forEach(function(n) {
       const opt = document.createElement("option");
       opt.value = n;
       opt.textContent = n;
-      sel.appendChild(opt);
+      nameSel.appendChild(opt);
     });
   }
-  // 重置時段下拉
-  document.getElementById("l15_slot").innerHTML = '<option value="">— 請先選病患 —</option>';
+  // 重置 step 2 + step 3(回到 disabled 預設)
+  const dateEl = document.getElementById(prefix + "_date");
+  const slotEl = document.getElementById(prefix + "_slot");
+  const hintEl = document.getElementById(prefix + "_dateHint");
+  dateEl.value = "";
+  dateEl.disabled = true;
+  slotEl.innerHTML = '<option value="">— 先選病患與日期 —</option>';
+  slotEl.disabled = true;
+  if (hintEl) hintEl.textContent = "";
 }
 
-function updateL15DateHint() {
-  const dateStr = document.getElementById("l15_date").value;
-  const hint = document.getElementById("l15_dateHint");
-  if (!dateStr) { hint.textContent = ""; return; }
-  const parts = dateStr.split("-");
-  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-  const wdNames = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
-  hint.textContent = wdNames[d.getDay()];
+// step 1 → step 2:病患選完,開啟日期 input
+function _onL15NameChangeByPrefix(prefix) {
+  const name = document.getElementById(prefix + "_name").value;
+  const dateEl = document.getElementById(prefix + "_date");
+  const slotEl = document.getElementById(prefix + "_slot");
+  const hintEl = document.getElementById(prefix + "_dateHint");
+  // 重置 step 2 + step 3(切換病患時要清掉之前的選擇)
+  dateEl.value = "";
+  slotEl.innerHTML = '<option value="">— 先選病患與日期 —</option>';
+  slotEl.disabled = true;
+  if (hintEl) hintEl.textContent = "";
+  // 開啟 / 關閉日期 input
+  dateEl.disabled = !name;
 }
 
-// L1.5 病患選定後,載入該病患在 layer1 的所有固定時段(精準到 weekday + start + end)
-function onL15NameChange() {
-  const name = document.getElementById("l15_name").value;
-  const sel = document.getElementById("l15_slot");
-  sel.innerHTML = "";
-  if (!name) {
-    sel.innerHTML = '<option value="">— 請先選病患 —</option>';
+// step 2 → step 3:日期填完,推算 weekday → filter 時段下拉只顯示符合的固定時段
+function _onL15DateChangeByPrefix(prefix) {
+  const name = document.getElementById(prefix + "_name").value;
+  const dateStr = document.getElementById(prefix + "_date").value;
+  const slotEl = document.getElementById(prefix + "_slot");
+  const hintEl = document.getElementById(prefix + "_dateHint");
+
+  if (!name || !dateStr) {
+    slotEl.innerHTML = '<option value="">— 先選病患與日期 —</option>';
+    slotEl.disabled = true;
+    if (hintEl) hintEl.textContent = "";
     return;
   }
+
+  // 推算 weekday(<input type=date> 回傳 YYYY-MM-DD)
+  // 注意:用 Date 建構式 split 才不會被時區踩雷
+  const parts = dateStr.split("-");
+  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  // JS getDay: 0=日 / 1=一 / ... / 6=六;系統 weekday: 1=一 / ... / 7=日
+  const jsWd = d.getDay();
+  const weekday = (jsWd === 0) ? 7 : jsWd;
+  const wdNamesShort = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
+  if (hintEl) hintEl.textContent = wdNamesShort[jsWd];
+
+  // filter 該病患在此 weekday 的固定時段(精準到 weekday + start + end)
   const slots = [];
   if (state.rawEntries && state.rawEntries.layer1) {
     state.rawEntries.layer1.forEach(function(e) {
-      if (e.status === "active" && e.name === name) {
+      if (e.status === "active" && e.name === name && e.weekday === weekday) {
         slots.push({ weekday: e.weekday, start: e.startTime, end: e.endTime });
       }
     });
   }
+
+  slotEl.innerHTML = "";
   if (slots.length === 0) {
-    sel.innerHTML = '<option value="">— 該病患無進行中時段 —</option>';
+    // 該病患在此 weekday 沒有固定時段(治療師選錯天 / 該天本來就不是治療日)
+    slotEl.innerHTML = '<option value="">— 該病患 ' + wdNamesShort[jsWd] + ' 無固定治療 —</option>';
+    slotEl.disabled = true;
     return;
   }
-  const wdNames = ["", "週一", "週二", "週三", "週四", "週五", "週六"];
+
+  const wdNamesLong = ["", "週一", "週二", "週三", "週四", "週五", "週六"];
   slots.forEach(function(s) {
     const opt = document.createElement("option");
     opt.value = s.weekday + "|" + s.start + "|" + s.end;
-    opt.textContent = wdNames[s.weekday] + " " + s.start + " – " + s.end;
-    sel.appendChild(opt);
+    opt.textContent = wdNamesLong[s.weekday] + " " + s.start + " – " + s.end;
+    slotEl.appendChild(opt);
   });
+  slotEl.disabled = false;
+  // 若該 weekday 只有一個時段,自動選定(體驗:不用多按一次)
+  if (slots.length === 1) {
+    slotEl.selectedIndex = 0;
+  }
 }
+
+// ── single (暫停) form wrappers ─────────────────────────────
+function initLayer1_5NameDropdown() { _initL15FormByPrefix("l15"); }
+function onL15NameChange()           { _onL15NameChangeByPrefix("l15"); }
+function onL15DateChange()           { _onL15DateChangeByPrefix("l15"); }
+
+// ── end-from (結束日期) form wrappers ───────────────────────
+function initLayerEndFromDropdown()  { _initL15FormByPrefix("lEnd"); }
+function onLEndNameChange()          { _onL15NameChangeByPrefix("lEnd"); }
+function onLEndDateChange()          { _onL15DateChangeByPrefix("lEnd"); }
 
 // L3 期待時段 checkboxes(從排班動態生成,只列有排班的格)
 async function initLayer3SlotsCheckboxes() {
@@ -3752,8 +3850,10 @@ async function initLayer3SlotsCheckboxes() {
 /* ── 表單送出 ──────────────────────────────────────────────────── */
 
 function showFormError(layer, msg) {
+  // v0.8-r3: 加 layer1_5_end_from 分支
   const errId = layer === "layer1" ? "addErrorLayer1"
               : layer === "layer1_5" ? "addErrorLayer1_5"
+              : layer === "layer1_5_end_from" ? "addErrorLayer1_5_end_from"
               : layer === "layer2" ? "addErrorLayer2"
               : "addErrorLayer3";
   const el = document.getElementById(errId);
@@ -3955,18 +4055,31 @@ async function submitAddLayer1() {
   }
 }
 
-async function submitAddLayer1_5() {
-  const name = document.getElementById("l15_name").value;
-  const slotVal = document.getElementById("l15_slot").value;
-  const date = document.getElementById("l15_date").value;
-  if (!name) return showFormError("layer1_5", "請選病患");
-  if (!slotVal) return showFormError("layer1_5", "請選時段");
-  if (!date) return showFormError("layer1_5", "請選暫停日期");
+// v0.8-r3: L1.5 submit 通用底層 — single 跟 end-from 共用
+//   差異只在:type 參數("single" | "end-from")+ form prefix(l15 / lEnd)+
+//             skeleton 目標(ListSingle / ListEndFrom)+ error layer 名稱
+async function _submitAddL15ByPrefix(prefix, type) {
+  // form prefix → element ID
+  const name = document.getElementById(prefix + "_name").value;
+  const slotVal = document.getElementById(prefix + "_slot").value;
+  const date = document.getElementById(prefix + "_date").value;
+
+  // type → error layer 名稱(對齊 addError* DOM ID)+ button + skeleton 目標
+  const isEndFrom = (type === "end-from");
+  const errLayer = isEndFrom ? "layer1_5_end_from" : "layer1_5";
+  const btnId = isEndFrom ? "btnSubmitLEnd" : "btnSubmitL15";
+  const skeletonListId = isEndFrom ? "opLayer1_5ListEndFrom" : "opLayer1_5ListSingle";
+  // 文案微差(error 訊息中 single 用「暫停日期」、end-from 用「結束日期」)
+  const dateLabel = isEndFrom ? "結束日期" : "暫停日期";
+
+  if (!name) return showFormError(errLayer, "請選病患");
+  if (!date) return showFormError(errLayer, "請選" + dateLabel);
+  if (!slotVal) return showFormError(errLayer, "請選時段");
   const parts = slotVal.split("|"); // weekday|start|end
   const startTime = parts[1];
   const endTime = parts[2];
 
-  setFormBusy("btnSubmitL15", true);
+  setFormBusy(btnId, true);
   try {
     const data = await xhrPost(API_URL, {
       action: "addLayer1_5Entry",
@@ -3975,30 +4088,32 @@ async function submitAddLayer1_5() {
       name: name,
       date: date.replace(/-/g, "/"),
       startTime: startTime,
-      endTime: endTime
+      endTime: endTime,
+      type: type  // ★ v0.8-r3: 區分 single / end-from
     });
     if (data.success) {
-      closeAddBlock("layer1_5");
+      closeAddBlock(errLayer);
       // r18:同 L1,prepend skeleton
-      // v0.8: L1.5 拆兩 sub,新增「單次暫停」(既有 submit 入口固定 single)skeleton 放 ListSingle
-      //       end-from 走 submitSetEndDate,skeleton 放 ListEndFrom
       document.body.classList.add("is-submitting-entry");
-      prependPendingSkeleton("opLayer1_5ListSingle");
+      prependPendingSkeleton(skeletonListId);
       try {
         await loadAndRenderEntries();
       } finally {
         document.body.classList.remove("is-submitting-entry");
       }
     } else {
-      showFormError("layer1_5", data.error || "新增失敗");
+      showFormError(errLayer, data.error || "新增失敗");
     }
   } catch (e) {
     if (e.isSessionExpired) return;
-    showFormError("layer1_5", e.message || "連線異常");
+    showFormError(errLayer, e.message || "連線異常");
   } finally {
-    setFormBusy("btnSubmitL15", false);
+    setFormBusy(btnId, false);
   }
 }
+
+async function submitAddLayer1_5()    { return _submitAddL15ByPrefix("l15",  "single"); }
+async function submitAddLayerEndFrom(){ return _submitAddL15ByPrefix("lEnd", "end-from"); }
 
 async function submitAddLayer2() {
   const name = document.getElementById("l2_name").value.trim();
@@ -4116,7 +4231,7 @@ function _renderEntriesGeneric(opts) {
   // opts: { entries, listEl, metaEl, renderInfo, stage1Action, stage2Action, stage1Label, stagedStatuses,
   //         extraActions?, isTintedFn? }
   //   v0.8: metaEl 可為 null(L1.5 sub-section render 用,因 meta 顯示在外層 opLayer1_5Meta)
-  //   v0.8: extraActions = [{label, handler}] 額外 action buttons(L1 結束日期用)
+  //   v0.8: extraActions = [{label, handler}] 額外 action buttons(通用 infra,v0.8-r3 起無 caller,保留供未來使用)
   //   v0.8: isTintedFn = function(e) → bool,過期 end-from 泛黃判斷
   const list = document.getElementById(opts.listEl);
   const meta = opts.metaEl ? document.getElementById(opts.metaEl) : null;
@@ -4241,12 +4356,6 @@ function renderOpLayer1() {
       if (a.weekday !== b.weekday) return false;
       return a.startTime < b.endTime && b.startTime < a.endTime;
     },
-    // v0.8: L1 entry 加「結束日期」action button(在 [終止] 之前)
-    //   名詞 label(對齊 Q1 拍板)— 治療師看到就理解這裡輸入結束日期
-    //   點下去 → confirmSetEndDate modal
-    extraActions: [
-      { label: "結束日期", handler: "confirmSetEndDate" }
-    ],
     // v0.8: L1 entry 泛黃判斷(對齊 Q4 拍板 B 舊書頁泛黃)
     //   條件:有對應 active end-from L1.5 且 today > endDate(嚴格大於)
     //   為什麼嚴格大於:結束日當天仍是治療,系統當天閉嘴(不該影響當次 session 氛圍)
@@ -4519,148 +4628,6 @@ function closeConfirmModal() {
   _pendingConfirm = null;
 }
 
-// ════════════════════════════════════════════════════════════════════════════════
-// v0.8 結束日期 modal handlers
-// ────────────────────────────────────────────────────────────────────────────────
-// confirmSetEndDate(layerIdEnc, labelEnc)  — L1 entry [結束日期] button 觸發
-// closeSetEndDateModal()                    — modal 關閉
-// submitSetEndDate()                        — 確定按鈕,呼叫 addLayer1_5Entry type=end-from
-// ════════════════════════════════════════════════════════════════════════════════
-
-// _pendingSetEndDate 暫存當下要設結束日的 L1 entry context
-//   (跟 _pendingConfirm 分開避免兩個 modal 互踩)
-let _pendingSetEndDate = null;
-
-function confirmSetEndDate(layerIdEnc, labelEnc) {
-  let layerId, label;
-  try {
-    layerId = decodeURIComponent(layerIdEnc || "");
-    label = decodeURIComponent(labelEnc || "");
-  } catch (e) { return; }
-
-  // 從 state 找出該 L1 entry,撈出 name / startTime / endTime
-  const l1List = (state.rawEntries && state.rawEntries.layer1) || [];
-  const entry = l1List.find(function(e) { return e.layerId === layerId; });
-  if (!entry) {
-    showToast("找不到該筆資料,請重新整理");
-    return;
-  }
-
-  _pendingSetEndDate = {
-    layerId: layerId,
-    label: label,
-    name: entry.name,
-    startTime: entry.startTime,
-    endTime: entry.endTime
-  };
-
-  // Modal 顯示:標題、提示訊息
-  document.getElementById("modalSetEndDateMsg").innerHTML =
-    '為以下長期治療設定<strong>結束日期</strong>:<br>'
-    + '<span style="color:var(--ash);font-size:12px;letter-spacing:1px;">'
-    + esc(label) + '</span>';
-
-  // date input 預設清空
-  const dateInput = document.getElementById("setEndDateInput");
-  dateInput.value = "";
-
-  document.getElementById("modalSetEndDateError").style.display = "none";
-  const btn = document.getElementById("btnSetEndDateGo");
-  btn.disabled = false;
-  btn.textContent = "確定";
-
-  document.getElementById("modalSetEndDate").classList.add("visible");
-  // focus date input(體驗:打開立即可操作)
-  setTimeout(function() { dateInput.focus(); }, 100);
-}
-
-function closeSetEndDateModal() {
-  const overlay = document.getElementById("modalSetEndDate");
-  overlay.classList.add("closing");
-  overlay.classList.remove("visible");
-  setTimeout(function() {
-    overlay.classList.remove("closing", "busy");
-  }, 200);
-  _pendingSetEndDate = null;
-}
-
-async function submitSetEndDate() {
-  if (!_pendingSetEndDate) return;
-  const { layerId, name, startTime, endTime } = _pendingSetEndDate;
-
-  const dateRaw = document.getElementById("setEndDateInput").value;
-  const errEl = document.getElementById("modalSetEndDateError");
-  errEl.style.display = "none";
-
-  if (!dateRaw) {
-    errEl.textContent = "請選結束日期";
-    errEl.style.display = "block";
-    return;
-  }
-  // <input type=date> 回傳 YYYY-MM-DD,轉成 YYYY/MM/DD(對齊 backend isValidYMD)
-  const date = dateRaw.replace(/-/g, "/");
-
-  // Busy 狀態
-  const overlay = document.getElementById("modalSetEndDate");
-  const btn = document.getElementById("btnSetEndDateGo");
-  overlay.classList.add("busy");
-  btn.disabled = true;
-  btn.dataset.label = btn.textContent;
-  btn.innerHTML = '<span class="btn-dots"><span></span><span></span><span></span></span>';
-
-  const start = Date.now();
-  const MIN_DURATION_MS = 600;
-
-  try {
-    const data = await xhrPost(API_URL, {
-      action: "addLayer1_5Entry",
-      lineId: state.lineId,
-      therapist: state.selectedTherapist,
-      name: name,
-      date: date,
-      startTime: startTime,
-      endTime: endTime,
-      type: "end-from"  // ★ v0.8 關鍵 — backend 區分 single / end-from 用
-    });
-
-    if (data.success) {
-      const elapsed = Date.now() - start;
-      if (elapsed < MIN_DURATION_MS) {
-        await new Promise(function(r) { setTimeout(r, MIN_DURATION_MS - elapsed); });
-      }
-
-      closeSetEndDateModal();
-      showToast("已設結束日期 · end date set");
-
-      // L1.5 EndFrom sub-section 加 skeleton 占位(對齊 L1.5 既有 submit 流程)
-      //   注意:第一次設結束日時 EndFrom sub-section 可能還是 display:none
-      //   但 prependPendingSkeleton 對 hidden element 有 defensive,不會 throw
-      //   loadAndRenderEntries 後 renderOpLayer1_5 會把 sub-section 切回 visible
-      prependPendingSkeleton("opLayer1_5ListEndFrom");
-
-      try {
-        await loadAndRenderEntries();
-      } catch(e) {
-        /* loadAndRenderEntries 內部已處理 */
-      }
-    } else {
-      // 失敗:恢復 busy 狀態,顯示 error
-      overlay.classList.remove("busy");
-      errEl.textContent = data.error || "設定失敗";
-      errEl.style.display = "block";
-      btn.disabled = false;
-      btn.innerHTML = btn.dataset.label || "確定";
-    }
-  } catch (e) {
-    if (e.isSessionExpired) return;
-    overlay.classList.remove("busy");
-    errEl.textContent = e.message || "連線異常";
-    errEl.style.display = "block";
-    btn.disabled = false;
-    btn.innerHTML = btn.dataset.label || "確定";
-  }
-}
-
 async function executeConfirmAction() {
   if (!_pendingConfirm) return;
   const { action, layerId, label } = _pendingConfirm;
@@ -4780,10 +4747,6 @@ window.addEventListener("DOMContentLoaded", function() {
   });
   document.getElementById("modalConfirm").addEventListener("click", function(ev) {
     if (ev.target.id === "modalConfirm") closeConfirmModal();
-  });
-  // v0.8 (Gemini Finding 4): modalSetEndDate 漏掉 overlay click 監聽,補上
-  document.getElementById("modalSetEndDate").addEventListener("click", function(ev) {
-    if (ev.target.id === "modalSetEndDate") closeSetEndDateModal();
   });
 
   // v0.5:subtabs sticky 偵測 — 用 IntersectionObserver 偵測上方 sentinel,
