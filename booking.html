@@ -2283,7 +2283,7 @@ function _drawAnnouncements() {
       : `<span class="announcement-badge-sub">代診</span>`;
     const detail = a.type === "停診"
       ? (a.reason ? `<span class="announcement-reason">（${a.reason}）</span>` : "")
-      : (a.reason ? `<span class="announcement-reason">代診醫師：${a.reason}</span>` : "");
+      : (a.reason ? `<span class="announcement-reason">醫師：${a.reason}</span>` : "");
     return `<div class="announcement-item">
       ${badge}
       <span class="announcement-text">${dateLabel} ${a.session} ${detail}</span>
