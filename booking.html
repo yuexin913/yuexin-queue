@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.8.6-invite-C-r5">
+  <meta name="version" content="5.8.7-name-validate">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -19,7 +19,7 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
-     Current Version: v5.8.6-r5 (2026-05-12)
+     v5.8.7-name-validate (2026-05-17)
 
      Designed by Su Ning | Powered by Claude & Gemini 2026
      ========================================================== */
@@ -3206,13 +3206,25 @@ async function goToPageTime() {
   const birthY = document.getElementById("inputBirthY").value.trim();
   const birthM = document.getElementById("inputBirthM").value.trim();
   const birthD = document.getElementById("inputBirthD").value.trim();
+  // v5.8.7: 姓名防呆統一 — 純中文 whitelist
+  //   舊邏輯(v5.5.2/v5.5.3):3 條客製化錯誤訊息(數字引導電話欄 / 英文引導來電 / 沒擋符號)
+  //   新邏輯:任何「非 CJK 中文字」一律 reject,訊息統一
+  //
+  //   reject 範圍:
+  //     - 阿拉伯數字(半/全形)
+  //     - 英文字母(半/全形)
+  //     - 標點符號(半/全形)── v5.8.7 補上,起因是「邱,熊素菁」這種雙姓 workaround
+  //     - 任何其他非 \u4e00-\u9fa5 範圍(emoji、注音符號殘留、空白也算 ── 但 line 3201
+  //       已先 strip 過空白,這裡不會碰到)
+  //
+  //   訊息:統一「請以全中文輸入姓名,勿參雜英文/數字/符號。」
+  //         放棄既有客製化引導(「打到電話欄」「來電預約」),理由:訊息簡潔一致 > 細節引導
   if (!name) return showError("errorPage1", "請輸入您的姓名。");
   if (name.length < 2) return showError("errorPage1", "姓名請至少輸入 2 個字。");
-  // 禁阿拉伯數字(半形+全形)— 防止電話號碼誤輸入到姓名欄位
-  if (/[0-9０-９]/.test(name)) return showError("errorPage1", "姓名不可包含數字，若為電話號碼請輸入到下方的手機欄位。");
-  // 禁英文字母 — 若為英文姓名,請於門診時間來電預約
-  // v5.5.3 [M1]: 加全形英文 Ａ-Ｚ / ａ-ｚ,與數字防呆一致(原本只擋半形)
-  if (/[a-zA-Zａ-ｚＡ-Ｚ]/.test(name)) return showError("errorPage1", "尚未開放輸入英文姓名。若有需要請於門診時間來電：07-363-1313");
+  // 純中文 whitelist:只允許 CJK Unified Ideographs (\u4e00-\u9fa5)
+  if (!/^[\u4e00-\u9fa5]+$/.test(name)) {
+    return showError("errorPage1", "請以全中文輸入姓名，勿參雜英文／數字／符號。");
+  }
   if (!phone || !/^09\d{8}$/.test(phone)) return showError("errorPage1", "手機號碼格式不正確，請重新確認（須為 09 開頭的 10 碼）。");
   const birth = parseBirthROC(birthY, birthM, birthD);
   if (!birth) return showError("errorPage1", "生日格式不正確，請重新確認（民國年，如 80/05/20）。");
