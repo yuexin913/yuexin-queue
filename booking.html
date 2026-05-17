@@ -2132,15 +2132,30 @@ async function initLiff() {
     //   · 真的被封鎖 → pageLoadError(無法使用線上預約,給診所電話)
     //   · Timeout / 網路錯誤 → pageNetworkError(連線逾時,給重新載入按鈕)
     const blPromise = xhrGet(`${API_URL}?action=checkBlacklist&lineId=${state.lineId}`).catch(() => ({ _error: true }));
-    const timeoutPromise = new Promise(function(resolve) {
+    const blTimeoutPromise = new Promise(function(resolve) {
       setTimeout(function() { resolve({ _timeout: true }); }, 8000);
     });
-    const blResult = await Promise.race([blPromise, timeoutPromise]);
 
-    // 公告:lazy load 背景跑,不阻塞首頁顯示
-    xhrGet(`${API_URL}?action=getUpcomingAnnouncements`).then(function(r) {
-      if (r && r.success && r.announcements) renderAnnouncements(r.announcements);
-    }).catch(() => {});
+    // v5.8.7-r2: 公告 API 從 fire-and-forget 改成並行 await(各自 8s timeout 保護)
+    //   舊行為:公告 fire-and-forget → 首頁先出現,公告遲到擠進來(視覺跳動)
+    //   新行為:公告跟黑名單並行 await → 兩者都回才顯示首頁,公告跟首頁同步出現
+    //   實際延遲成本接近 0 — animation 保底 1500ms 永遠是瓶頸,API ~300-500ms 藏在動畫內
+    //   公告 API 失敗或 timeout → fallback null,當無公告處理(首頁仍正常顯示)
+    const annPromise = xhrGet(`${API_URL}?action=getUpcomingAnnouncements`).catch(() => null);
+    const annTimeoutPromise = new Promise(function(resolve) {
+      setTimeout(function() { resolve(null); }, 8000);
+    });
+
+    // 並行 await 兩個請求(各自 race 自己的 timeout)
+    const [blResult, annResult] = await Promise.all([
+      Promise.race([blPromise, blTimeoutPromise]),
+      Promise.race([annPromise, annTimeoutPromise])
+    ]);
+
+    // 公告:有就渲染,失敗 / 空陣列 / null 都靜默 fallback
+    if (annResult && annResult.success && annResult.announcements) {
+      renderAnnouncements(annResult.announcements);
+    }
 
     if (blResult._timeout || blResult._error) {
       // 網路/系統錯誤:顯示「連線逾時」頁(可重試)
