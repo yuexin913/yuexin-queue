@@ -3925,10 +3925,17 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
   // 統一用 session 字串陣列做 includes 判斷
   const openSessionNames = rawSessions.map(s => typeof s === "string" ? s : s.session);
   // 建立 session → { doctor, isSubstitute, isClosed } 對照表
+  // r6 hotfix:doctor 用 `??` 而非 `||` 保留空字串"" 作為 stop session 信號
+  //   - 舊 bug:r5 用 `s.doctor || "—"` 把 backend return 的 ""(stop session)
+  //     轉成 "—",導致下游 isStopSession 判斷失敗(stop tile 沒反灰、可點選)
+  //   - 修補:`s.doctor ?? "—"` 只在 null/undefined 時 fallback,保留 ""
+  //   - 風險:其他 caller(L4094 switchTab fallback / L6225-6227 therapy modal /
+  //     L6906 slotDisplay 等)用 `|| "—"` 對 stop session doctor="" 仍會顯「—」
+  //     → 視覺層 stop tile 反灰 + 醫師 tile 顯「—」並存,UX 一致
   const sessionDoctorMap = {};
   rawSessions.forEach(function(s) {
     if (typeof s === "string") sessionDoctorMap[s] = { doctor: "—", isSubstitute: false, isClosed: false };
-    else sessionDoctorMap[s.session] = { doctor: s.doctor || "—", isSubstitute: s.isSubstitute || false, isClosed: s.isClosed || false };
+    else sessionDoctorMap[s.session] = { doctor: s.doctor ?? "—", isSubstitute: s.isSubstitute || false, isClosed: s.isClosed || false };
   });
 
   // v5.5.19 marathon 2:動態生成 session tile
