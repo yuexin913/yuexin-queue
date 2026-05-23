@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.8.7-name-validate-r2">
+  <meta name="version" content="5.8.8-marathon3-dual-clinic-r2">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -19,7 +19,7 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
-     v5.8.7-name-validate-r2 (2026-05-17)
+     v5.8.8-marathon3-dual-clinic-r2 (2026-05-21)
 
      Designed by Su Ning | Powered by Claude & Gemini 2026
      ========================================================== */
@@ -3428,6 +3428,10 @@ async function loadSlots(dateStr) {
 }
 
 // 診次選擇列表（選完日期後顯示）
+// ⚠️ v5.8.8 marathon 3:雙診週六(2026/06/13 起每月第 2/4 個週六)上午
+//    粟寧續看一診、王伯元加開二診。一/二診共享同物理時段(對齊 backend
+//    getSessionConfig alias「早上」),此處 hardcode 不需擴張「早上一診/
+//    早上二診」key — caller 統一走 normSessionForTime helper alias。
 const SESSION_DISPLAY_TIME = {
   "早上": "09:00 – 12:00",
   "下午": "14:00 – 17:00",
@@ -3438,6 +3442,84 @@ const SESSION_END_TIME = {
   "下午": "16:30",
   "晚上": "20:00"
 };
+
+// ══════════════════════════════════════════════════════════
+// v5.8.8 marathon 3 r2:雙診支援 helpers
+// ══════════════════════════════════════════════════════════
+// 雙診週六:2026/06/13 起每月第 2/4 個週六上午王伯元加開二診
+// (粟寧續看一診)。Backend session key「早上一診」/「早上二診」。
+//
+// 設計哲學(X3 拍板):
+//   - 選擇瞬間(預約頁 / 確認頁):顯「上午診」alias(沿用 backend
+//     getAvailableSlots 留白)+ doctor 欄區分。病患心智「比較醫師」
+//     不被「一診/二診」干擾
+//   - 保存階段(成功頁 / 我的預約 / 圖卡):升級「上午一診/上午二診」
+//     明確 anchor,病患保存截圖 / 未來查詢時要清楚標識
+//
+// 對應 backend 雙 helper 分工:
+//   getAvailableSlots(預約頁用)   → cfg.displayName「上午診」alias
+//   queryBookings(我的預約用)     → getSessionDisplayName「上午一診」
+//   submitBooking(成功頁用)       → 沒回 displayName → frontend 自己升級
+//
+// r1 → r2 修補(Gemini 第三輪 review):
+//   原 r1 單一 helper getSessionDisplayNameFE 試圖兼顧兩種階段,靠 caller
+//   傳對「fallback 時機」決定行為,隱含 fragility。r2 拆成雙 helper 分工,
+//   跟 backend(getSessionConfig vs getSessionDisplayName)對齊。
+//
+//   Booking 階段守 backend alias(即使 backend 缺值也不主動升級)
+//   Save 階段 frontend 主動升級(對齊保存 anchor 哲學)
+// ══════════════════════════════════════════════════════════
+
+// 預約瞬間用(預約頁 / 確認頁 — 守 backend alias 哲學)
+// 即使 backend 缺 displayName,也不主動升級雙診 key,守住「上午診」
+// alias(讓病患心智停在「比較醫師」階段不被「一/二診」干擾)
+function getSessionDisplayNameForBooking(session, backendDisplayName) {
+  // backend 若已主動升級成「上午一/二診」(理論上 getAvailableSlots 不會,
+  // 但為對接未來 backend 設計變動的相容性,優先信任 backend 已升級值)
+  if (backendDisplayName === "上午一診" || backendDisplayName === "上午二診") {
+    return backendDisplayName;
+  }
+  // backend 給的 alias 優先用(雙診:「上午診」/ 平日:「上午診/下午診/晚上診」)
+  if (backendDisplayName) return backendDisplayName;
+  // backend 缺值的最終 fallback:守 alias 不主動升級
+  // (雙診 key 也顯「上午診」,病患心智仍在比較醫師階段)
+  if (session === "早上一診" || session === "早上二診") return "上午診";
+  return session + "診";
+}
+
+// 保存階段用(成功頁 / 我的預約 / 圖卡 — frontend 主動升級哲學)
+// 雙診 key 強制升級成「上午一/二診」明確 anchor(保存截圖未來查詢用)
+function getSessionDisplayNameForSave(session, backendDisplayName) {
+  // backend 若已升級(queryBookings / resolveBindToken 走 getSessionDisplayName)
+  // 直接信任,不重複升級
+  if (backendDisplayName === "上午一診" || backendDisplayName === "上午二診") {
+    return backendDisplayName;
+  }
+  // backend 是 alias「上午診」或缺值,frontend 主動升級雙診 key
+  // (submitBooking 沒回 displayName,frontend state.slotsData 拿到的是
+  //  getAvailableSlots 的「上午診」alias,此處必須升級)
+  if (session === "早上一診") return "上午一診";
+  if (session === "早上二診") return "上午二診";
+  // 平日 + 一般週六:backend 給的 displayName 優先(「下午診/晚上診」)
+  return backendDisplayName || (session + "診");
+}
+
+// 時間計算 alias(雙診一/二診共享「早上」物理時段)
+// SESSION_DISPLAY_TIME / SESSION_END_TIME / RETURN_TIME_CARDS 都走這個 normalize
+function normSessionForTime(session) {
+  if (session === "早上一診" || session === "早上二診") return "早上";
+  return session;
+}
+
+// 全院統一 session 排序常數(對應 backend SESSION_DISPLAY_ORDER)
+const SESSION_DISPLAY_ORDER_FE = {
+  "早上":     0,
+  "早上一診": 1,
+  "早上二診": 2,
+  "下午":     3,
+  "晚上":     4
+};
+
 function renderSessions() {
   const sessions = state.slotsData;
   const container = document.getElementById("sessionContainer");
@@ -3456,14 +3538,25 @@ function renderSessions() {
     return;
   }
 
-  const order = ["早上","下午","晚上"];
+  // v5.8.8 marathon 3:order 改 dynamic + SESSION_DISPLAY_ORDER_FE 排序
+  //   (雙診週六自然含「早上一診」「早上二診」)
+  //   X3 拍板:預約頁顯「上午診」alias(backend getAvailableSlots 已給),
+  //   一/二診靠 doctor 欄區分(下方 session-select-doctor 並列)
+  const order = Object.keys(sessions).sort(function(a, b) {
+    var sa = SESSION_DISPLAY_ORDER_FE[a]; if (sa === undefined) sa = 99;
+    var sb = SESSION_DISPLAY_ORDER_FE[b]; if (sb === undefined) sb = 99;
+    return sa - sb;
+  });
   let html = '<div class="session-select-list">';
 
   if (state.session) {
     // 已選診次：只顯示選中的那一個 + 重新選擇連結
     const s = sessions[state.session];
-    const displayName = s ? (s.displayName || state.session + "診") : state.session + "診";
-    const timeRange = SESSION_DISPLAY_TIME[state.session] || "";
+    // v5.8.8 marathon 3 r2:預約瞬間走 Booking helper(守 backend alias)
+    //   雙診週六 fallback 顯「上午診」不主動升級,X3 哲學的「比較醫師」階段
+    const displayName = getSessionDisplayNameForBooking(state.session, s ? s.displayName : null);
+    // v5.8.8 marathon 3:雙診共享同時段,alias normalize 查 SESSION_DISPLAY_TIME
+    const timeRange = SESSION_DISPLAY_TIME[normSessionForTime(state.session)] || "";
     const doctor = s ? (s.doctor || "") : "";
     const isSubstitute = s ? (s.isSubstitute || false) : false;
     const doctorLabel = isSubstitute ? `<span style="font-size:11px;background:var(--green);color:#fff;padding:1px 5px;border-radius:3px;margin-right:5px;">代診</span>${doctor}` : doctor;
@@ -3483,8 +3576,10 @@ function renderSessions() {
     order.forEach(function(sessionKey) {
       if (!sessions[sessionKey]) return;
       const s = sessions[sessionKey];
-      const displayName = s.displayName || sessionKey + "診";
-      const timeRange = SESSION_DISPLAY_TIME[sessionKey] || "";
+      // v5.8.8 marathon 3 r2:預約瞬間走 Booking helper(守 backend alias)
+      const displayName = getSessionDisplayNameForBooking(sessionKey, s.displayName);
+      // v5.8.8 marathon 3:雙診共享同時段,alias normalize 查 SESSION_DISPLAY_TIME
+      const timeRange = SESSION_DISPLAY_TIME[normSessionForTime(sessionKey)] || "";
       const doctor = s.doctor || "";
       const isSubstitute = s.isSubstitute || false;
       const isClosed = s.isClosed || false;
@@ -3577,7 +3672,9 @@ function renderSlots() {
   const isNewPatient = state.type === "初診";
   const sessionKey = state.session;
   const s = sessions[sessionKey];
-  const displayName = s.displayName || sessionKey + "診";
+  // v5.8.8 marathon 3 r2:時段卡片頁是「預約瞬間」的延伸,走 Booking helper
+  //   病患還在「選複診時段」的選擇階段,守 backend alias「上午診」
+  const displayName = getSessionDisplayNameForBooking(sessionKey, s.displayName);
   let html = `<div class="session-block">`;
 
   if (isNewPatient) {
@@ -3604,7 +3701,7 @@ function renderSlots() {
     const returnSlots = s.returnSlots || [];
     // 郭玉柱醫師：複診從11號開始（6-10保留給現場），其他醫師從6號開始
     const minFirst = state.doctor === "郭玉柱" ? 11 : 6;
-    const cards = (RETURN_TIME_CARDS[sessionKey] || []).map(function(card) {
+    const cards = (RETURN_TIME_CARDS[normSessionForTime(sessionKey)] || []).map(function(card) {
       if (card.minNum === 6) return Object.assign({}, card, { minNum: minFirst });
       return card;
     });
@@ -3643,7 +3740,7 @@ function renderSlots() {
     html += `<div class="${unspecifiedCls}" ${unspecifiedOnclick}>
       <div class="time-card-left">
         <div class="time-card-title">現場排號:不指定時段</div>
-        <div class="time-card-label">${unspecifiedAvailable ? "例行回診開立相同藥物。請於 " + (SESSION_END_TIME[sessionKey] || "結診") + " 前至診所櫃檯報到。" : "此時段已額滿。若有需要，請於門診時間來電：07-363-1313"}</div>
+        <div class="time-card-label">${unspecifiedAvailable ? "例行回診開立相同藥物。請於 " + (SESSION_END_TIME[normSessionForTime(sessionKey)] || "結診") + " 前至診所櫃檯報到。" : "此時段已額滿。若有需要，請於門診時間來電：07-363-1313"}</div>
       </div>
     </div>`;
     html += '</div>';
@@ -3690,7 +3787,10 @@ async function goToConfirm() {
   const weekdays = ["日","一","二","三","四","五","六"];
   const weekday = weekdays[new Date(state.date).getDay()];
   const s = state.slotsData && state.slotsData[state.session];
-  const displayName = s ? (s.displayName || state.session + "診") : state.session + "診";
+  // v5.8.8 marathon 3 r2:預約確認頁是「即將送出」狀態,病患心智仍在
+  //   「最後 review」選擇階段,走 Booking helper 守 backend alias「上午診」
+  //   (對齊紀律 X3:預約瞬間 alias / 保存階段升級的分界)
+  const displayName = getSessionDisplayNameForBooking(state.session, s ? s.displayName : null);
 
   // 時段顯示：初診不顯示號碼，複診顯示預計報到時段
   let slotDisplay = "";
@@ -3698,7 +3798,8 @@ async function goToConfirm() {
 
   if (state.isUnspecified) {
     slotDisplay = "";
-    arrivalDisplay = "現場排號（" + (SESSION_END_TIME[state.session] || "結診") + " 前報到）";
+    // v5.8.8 marathon 3:雙診共享同時段 alias
+    arrivalDisplay = "現場排號（" + (SESSION_END_TIME[normSessionForTime(state.session)] || "結診") + " 前報到）";
   } else if (state.type === "初診") {
     // state.timeSlot是"0915"等時間code
     const npH = parseInt(state.timeSlot.substring(0, 2));
@@ -3707,7 +3808,8 @@ async function goToConfirm() {
     arrivalDisplay = npH + "點" + npM + "分 前";
   } else {
     // 複診：從 RETURN_TIME_CARDS 找對應的時間區間顯示
-    const cards = RETURN_TIME_CARDS[state.session] || [];
+    // v5.8.8 marathon 3:雙診共享同時段 alias
+    const cards = RETURN_TIME_CARDS[normSessionForTime(state.session)] || [];
     const matched = cards.find(function(c) { return c.value === state.timeSlot; });
     slotDisplay = "";
     arrivalDisplay = matched ? matched.label : state.timeSlot;
@@ -3870,20 +3972,27 @@ function renderSuccessCard(data) {
   // - 複診指定 → displayName · arrivalLabel(從 RETURN_TIME_CARDS 找)
   // - 複診不指定 → displayName · {結診時間} 前報到
   // - 初診 → displayName · {HHMM} 前報到
+  // v5.8.8 marathon 3 r2 X3 哲學:成功頁是「保存截圖」階段,走 Save helper
+  //   雙診週六升級成「上午一診/上午二診」明確 anchor(對齊 backend
+  //   queryBookings 之後的查詢一致)。state.slotsData 來自 getAvailableSlots
+  //   給的「上午診」alias,Save helper 主動升級
   const sessionInfo = state.slotsData && state.slotsData[state.session];
-  const sessionDisplayName = sessionInfo
-    ? (sessionInfo.displayName || state.session + "診")
-    : (state.session ? state.session + "診" : "-");
+  const backendDisplayName = sessionInfo ? sessionInfo.displayName : null;
+  const sessionDisplayName = state.session
+    ? getSessionDisplayNameForSave(state.session, backendDisplayName)
+    : "-";
 
   let arrivalText = "";
   if (state.isUnspecified) {
-    arrivalText = (SESSION_END_TIME[state.session] || "結診") + " 前報到";
+    // v5.8.8 marathon 3:雙診共享同時段 alias
+    arrivalText = (SESSION_END_TIME[normSessionForTime(state.session)] || "結診") + " 前報到";
   } else if (state.type === "初診" && state.timeSlot) {
     const npH = parseInt(state.timeSlot.substring(0, 2), 10);
     const npM = state.timeSlot.substring(2, 4);
     arrivalText = npH + ":" + npM + " 前報到";
   } else if (state.timeSlot) {
-    const cards = (RETURN_TIME_CARDS[state.session] || []);
+    // v5.8.8 marathon 3:雙診共享同時段 alias
+    const cards = (RETURN_TIME_CARDS[normSessionForTime(state.session)] || []);
     const matched = cards.find(function(c) { return c.value === state.timeSlot; });
     arrivalText = matched ? matched.label : state.timeSlot;
   }
@@ -3985,7 +4094,10 @@ function renderBookingPage() {
   let html = "";
   pageBookings.forEach(function(b) {
     const isClickable = b.status === "已確認";  // 只有已確認可點開圖卡 + 顯示 actions
-    const displayName = esc(b.displayName || b.session + "診");
+    // v5.8.8 marathon 3 r2:我的預約清單是「保存階段查詢」,走 Save helper
+    //   b.displayName 來自 backend queryBookings 已升級為「上午一診/上午二診」,
+    //   fallback 路徑(backend 缺值)Save helper 也主動升級避免壞字串
+    const displayName = esc(b.displayName || getSessionDisplayNameForSave(b.session));
 
     // ── 組醫師標籤(代診加「(代診)」) ──
     const doctorLabel = b.doctor
@@ -4163,10 +4275,15 @@ function populateCardModal(b) {
     b.date ? (b.date + "(" + weekday + ")") : "-";
 
   // 診次:displayName · arrivalText
-  const sessionDisplayName = b.displayName || (b.session ? b.session + "診" : "-");
+  // v5.8.8 marathon 3 r2 X3 哲學:圖卡 modal 是「保存階段查詢」(病患點預約
+  //   卡片開圖卡要存圖),走 Save helper。b.displayName 來自 backend
+  //   queryBookings 已是「上午一診/上午二診」(backend r2 已升級)。
+  //   SESSION_END_TIME / RETURN_TIME_CARDS 走 normSessionForTime alias
+  //   共享物理時段。fallback 走 Save helper 主動升級避免壞字串
+  const sessionDisplayName = b.displayName || (b.session ? getSessionDisplayNameForSave(b.session) : "-");
   let arrivalText = "";
   if (isUnspecified) {
-    arrivalText = (SESSION_END_TIME[b.session] || "結診") + " 前報到";
+    arrivalText = (SESSION_END_TIME[normSessionForTime(b.session)] || "結診") + " 前報到";
   } else if (b.type === "初診") {
     // 從 b.slot(時間 code 如 "0915")反推 "09:15 前報到" 格式,跟 pageSuccess 圖卡一致
     if (b.slot && /^\d{4}$/.test(b.slot)) {
@@ -4176,9 +4293,9 @@ function populateCardModal(b) {
     } else {
       arrivalText = b.checkInTime || "";  // 容錯
     }
-  } else if (!isNaN(slotInt) && RETURN_TIME_CARDS[b.session]) {
+  } else if (!isNaN(slotInt) && RETURN_TIME_CARDS[normSessionForTime(b.session)]) {
     // 複診指定:從 slot 反查 RETURN_TIME_CARDS 找區間 label
-    const cards = RETURN_TIME_CARDS[b.session];
+    const cards = RETURN_TIME_CARDS[normSessionForTime(b.session)];
     const matched = cards.find(function(c) { return slotInt >= c.minNum && slotInt <= c.maxNum; });
     if (matched) arrivalText = matched.label;
   }

@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.18-eq-killswitch">
+  <meta name="version" content="5.5.19-marathon2-dual-clinic-r5">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -16,7 +16,7 @@
 <style>
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
-     Current Version: v5.5.18-eq-killswitch (2026-05-12)
+     Current Version: v5.5.19-marathon2-dual-clinic-r5 (2026-05-23)
 
      Designed by Su Ning | Powered by Claude & Gemini 2026
      ════════════════════════════════════════════════════════ */
@@ -603,6 +603,12 @@
   .tile-4 { grid-column: span 4; }
   .tile-5 { grid-column: span 5; }
 
+  /* v5.5.19 marathon 2:雙診週六 doctor tile 縮成 span 1
+     (擠出 1 col 給「早上二診」tile)
+     CSS specificity:`.tile-2.doctor-dual-clinic` > `.tile-2`,正確覆寫
+     桌機 media query 內亦有對應 .tile-doctor.doctor-dual-clinic 規則 */
+  .tile.tile-2.doctor-dual-clinic { grid-column: span 1; }
+
   /* ── 半透明彩色 tile(取代原本純色塊)── */
   .tile-marigold  { background: var(--marigold-bg); border-color: var(--marigold-bd); }
   .tile-marigold:hover { background: var(--marigold-bg-hov); }
@@ -750,6 +756,10 @@
   }
   .tile-doctor:hover { background: rgba(188,184,168,0.2); }
   .tile-doctor .tile-title { font-size: 20px; font-weight: 500; color: #D8D4C0; letter-spacing: 1px; }
+  /* v5.5.19 marathon 2:雙診週六 doctor tile 縮成 span 1,
+     字級 + 副標位置同步調整避免擠 */
+  .tile-doctor.doctor-dual-clinic .tile-title { font-size: 17px; letter-spacing: 0.5px; }
+  .tile-doctor.doctor-dual-clinic #sessionDoctorSubLabel { font-size: 10px; letter-spacing: 1px; }
   .doctor-substitute-note {
     position: absolute; top: 8px; right: 8px;
     background: var(--bg-4); color: var(--marigold);
@@ -774,6 +784,9 @@
   }
   .tile-session .tile-title { color: var(--text-light); font-weight: 400; }
   .tile-session .count-text { font-size: 14px; font-weight: 300; color: var(--text-dim); margin-top: auto; letter-spacing: 0.5px; }
+  /* v5.5.19 marathon 2:雙診週六「早上一診」「早上二診」4 字,字級稍縮避免擠 */
+  .tile-session[data-session="早上一診"] .tile-title,
+  .tile-session[data-session="早上二診"] .tile-title { font-size: 14px; letter-spacing: 0.5px; }
   .tile-session.active {
     background: var(--bg-4);
     border: 1px solid var(--border-hard);
@@ -991,15 +1004,25 @@
       grid-row: 1;
     }
 
-    /* 醫師 tile-2 → col 6-7 */
+    /* 醫師 tile-2 → col 6-7 (預設 span 2)
+       v5.5.19 marathon 2:雙診週六需擠出 1 col 給「早上二診」tile,
+       JS 動態給 doctorTile 加 .doctor-dual-clinic class 縮成 span 1 */
     .tile-doctor {
       grid-column: 6 / span 2;
       grid-row: 1;
     }
-    /* 早午晚診分別到 col 8, 9, 10 */
-    #session-早上 { grid-column: 8; grid-row: 1; }
-    #session-下午 { grid-column: 9; grid-row: 1; }
-    #session-晚上 { grid-column: 10; grid-row: 1; }
+    .tile-doctor.doctor-dual-clinic {
+      grid-column: 6;  /* span 1 */
+    }
+    /* v5.5.19 marathon 2:session tile 改用 :nth-of-type 動態定位
+       (原 hardcode `#session-早上`/`#session-下午`/`#session-晚上` 廢除)
+       平日 3 tile:col 8/9/10
+       雙診週六 4 tile + doctor span 1:col 7/8/9/10
+       (sessionTileContainer 用 display:contents 子元素直接融入父 grid,
+        靠 source order 自動填,不需指定 grid-column) */
+    .metro-grid > .tile-session {
+      grid-row: 1;
+    }
 
     /* ─── 第 2-4 列:30 格預約 ─── */
     /* scheduleContent 是 display:contents,子元素直接融入父 grid
@@ -2253,22 +2276,17 @@
   </div>
 
   <!-- Row 2: 醫師資訊 + 時段磚 -->
+  <!-- v5.5.19 marathon 2: doctor tile span class 由 JS 動態切換
+       (平日 tile-2 = span 2 / 雙診週六 tile-1 = span 1,擠出 col 給早上二診) -->
   <div class="tile tile-2 tile-doctor" id="doctorTile" style="position:relative;" onclick="loadSchedule(activeSession)" title="點擊重新整理">
     <div class="tile-title" style="font-size:20px;font-weight:200;" id="sessionDoctorText">—</div>
-    <div style="font-size:11px;color:rgba(216,212,192,0.7);margin-top:auto;font-weight:300;letter-spacing:1.5px;">主治醫師</div>
+    <div style="font-size:11px;color:rgba(216,212,192,0.7);margin-top:auto;font-weight:300;letter-spacing:1.5px;" id="sessionDoctorSubLabel">主治醫師</div>
   </div>
-  <div class="tile tile-1 tile-session" id="session-早上" onclick="switchTab('早上')" style="position:relative;">
-    <div class="tile-title" style="font-size:16px;">早上診</div>
-    <div class="count-text" id="count-早上">—</div>
-  </div>
-  <div class="tile tile-1 tile-session" id="session-下午" onclick="switchTab('下午')" style="position:relative;">
-    <div class="tile-title" style="font-size:16px;">下午診</div>
-    <div class="count-text" id="count-下午">—</div>
-  </div>
-  <div class="tile tile-1 tile-session" id="session-晚上" onclick="switchTab('晚上')" style="position:relative;">
-    <div class="tile-title" style="font-size:16px;">晚上診</div>
-    <div class="count-text" id="count-晚上">—</div>
-  </div>
+  <!-- v5.5.19 marathon 2: session tile 容器,JS 動態生成(平日 3 tile / 雙診週六 4 tile / 週日 0 tile)
+       平日:[doctor span2][早上][下午][晚上]
+       雙診週六:[doctor span1][早一][早二][下午][晚上]
+       原 hardcode `#session-早上` / `#session-下午` / `#session-晚上` 廢除 -->
+  <div id="sessionTileContainer" style="display:contents;"></div>
 
   <!-- scheduleLoading 已移除，改用 skeleton 格 -->
   <!-- Row 4-9: 30格診單（JS 動態輸出到這裡）-->
@@ -2573,14 +2591,12 @@
       </div>
     </div>
     <div id="bcSingleFields" style="display:none;">
-      <div class="form-group"><label class="form-label">日期</label><input type="date" id="bcSingleDate"></div>
+      <!-- v5.5.19 marathon 2:date onchange 動態 populate session option -->
+      <div class="form-group"><label class="form-label">日期</label><input type="date" id="bcSingleDate" onchange="populateSessionOptions(document.getElementById('bcSingleSession'), this.value)"></div>
       <div class="form-group">
         <label class="form-label">時段</label>
         <select id="bcSingleSession">
           <option value="">請選擇時段</option>
-          <option value="早上">早上診</option>
-          <option value="下午">下午診</option>
-          <option value="晚上">晚上診</option>
         </select>
       </div>
     </div>
@@ -2805,14 +2821,12 @@
     </div>
     <!-- 代診 Tab -->
     <div id="tabSubstitute">
-      <div class="form-group"><label class="form-label">日期</label><input type="date" id="subDate"></div>
+      <!-- v5.5.19 marathon 2:date onchange 動態 populate session option -->
+      <div class="form-group"><label class="form-label">日期</label><input type="date" id="subDate" onchange="populateSessionOptions(document.getElementById('subSession'), this.value)"></div>
       <div class="form-group">
         <label class="form-label">時段</label>
         <select id="subSession" style="width:100%;padding:10px;font-size:14px;background:var(--bg-2);color:var(--text);border:none;border-bottom:2px solid var(--border);">
           <option value="">請選擇</option>
-          <option value="早上">早上診</option>
-          <option value="下午">下午診</option>
-          <option value="晚上">晚上診</option>
         </select>
       </div>
       <div class="form-group"><label class="form-label">代診醫師</label><input type="text" id="subDoctor" placeholder="請輸入代診醫師姓名"></div>
@@ -2824,14 +2838,12 @@
     </div>
     <!-- 停診 Tab -->
     <div id="tabClosed" style="display:none">
-      <div class="form-group"><label class="form-label">日期</label><input type="date" id="closedDate"></div>
+      <!-- v5.5.19 marathon 2:date onchange 動態 populate session option -->
+      <div class="form-group"><label class="form-label">日期</label><input type="date" id="closedDate" onchange="populateSessionOptions(document.getElementById('closedSession'), this.value)"></div>
       <div class="form-group">
         <label class="form-label">時段</label>
         <select id="closedSession" style="width:100%;padding:10px;font-size:14px;background:var(--bg-2);color:var(--text);border:none;border-bottom:2px solid var(--border);">
           <option value="">請選擇</option>
-          <option value="早上">早上診</option>
-          <option value="下午">下午診</option>
-          <option value="晚上">晚上診</option>
         </select>
       </div>
       <div class="form-group"><label class="form-label">原因（選填）</label><input type="text" id="closedReason" placeholder="例：醫師出差、臨時停診"></div>
@@ -2922,6 +2934,10 @@
 // 前端 fallback 副本：僅在 GAS 未回傳 openSessions 時使用（舊版相容）
 // 正常情況下 adminGetTodaySchedule 會回傳 openSessions，此副本不會被用到
 // ⚠️ 班表異動時仍需同步修改此副本，以防 GAS 部署中斷時 fallback 正確
+// ⚠️ v5.5.19 marathon 2:雙診週六(2026/06/13 起每月第 2/4 個週六上午王伯元
+//    加開二診)fallback 接受退化 — backend 失聯時雙診週六會顯示成「只有
+//    粟寧早上」,不引入 frontend 版的 DUAL_CLINIC_RULES 避免 DRY 違反。
+//    Backend 失聯本身就罕見且大事,雙診退化可接受(粟醫師看到不對會手動 refresh)
 const DEFAULT_DOCTOR_SCHEDULE = {
   1: { "早上": "粟寧",   "下午": "粟寧",   "晚上": "王伯元" },
   2: { "早上": "王麟祥", "下午": "粟寧",   "晚上": "郭玉柱" },
@@ -2929,6 +2945,155 @@ const DEFAULT_DOCTOR_SCHEDULE = {
   4: { "早上": "粟寧",   "下午": "粟寧",   "晚上": "王麟祥" },
   5: { "早上": "郭玉柱", "下午": "王伯元", "晚上": "粟寧"   },
   6: { "早上": "粟寧",   "下午": "",       "晚上": ""        }
+};
+
+// ══════════════════════════════════════════════════════════
+// v5.5.19 marathon 2:雙診支援 helpers
+// ══════════════════════════════════════════════════════════
+// 雙診週六:2026/06/13 起每月第 2/4 個週六上午王伯元加開二診
+// (粟寧續看一診)。Backend session key「早上一診」/「早上二診」
+// 對接這些 helper。
+//
+// 設計哲學(對齊 backend r2「雙 helper 分工」):
+//   getSessionTileLabel    — admin 自己看的 tile/form/異動清單(「早上一診」)
+//   getSessionMessageLabel — 病患 LINE 訊息(「上午一診」對齊 backend r2)
+//   getSessionCheatLabel   — 小抄櫃台 keyin 用,緊湊(「早一」)
+//   getSessionPreviewLabel — 35 天月曆,空間極窄(「早一」)
+//
+// SESSION_END / SESSION_RANGE 給 buildLineMsg 用,雙診一/二診共享同
+// 物理時段 alias 到「早上」(對齊 backend getSessionConfig 哲學)
+// ══════════════════════════════════════════════════════════
+
+// admin 看的:tile 標題、代診/停診 form、門診異動清單
+function getSessionTileLabel(session) {
+  if (session === "早上一診") return "早上一診";
+  if (session === "早上二診") return "早上二診";
+  // 早上→早上診 / 下午→下午診 / 晚上→晚上診
+  return session + "診";
+}
+
+// 病患看的:LINE 預約確認 / 回診提醒 / 綁定連結訊息
+// v5.5.19 順手對齊 backend r2 getSessionDisplayName(「上午」前綴),
+// 修一個現役技術債 — buildLineMsg L4757 原拼「早上診」跟 backend 不一致,
+// 雙診週六若不對齊病患會收到兩份措辭不同的 LINE 訊息(backend 發 +
+// admin 補發)。對齊紀律 6 例外:同 bug 多 instance 對稱修補。
+function getSessionMessageLabel(session) {
+  if (session === "早上一診") return "上午一診";
+  if (session === "早上二診") return "上午二診";
+  const map = { "早上": "上午診", "下午": "下午診", "晚上": "晚上診" };
+  return map[session] || (session + "診");
+}
+
+// 小抄櫃台 keyin 用:緊湊,字越短越快掃
+function getSessionCheatLabel(session) {
+  if (session === "早上一診") return "早一";
+  if (session === "早上二診") return "早二";
+  const map = { "早上": "早診", "下午": "午診", "晚上": "晚診" };
+  return map[session] || session;
+}
+
+// 35 天月曆預覽:每格空間極窄
+function getSessionPreviewLabel(session) {
+  if (session === "早上一診") return "早一";
+  if (session === "早上二診") return "早二";
+  const map = { "早上": "早", "下午": "午", "晚上": "晚" };
+  return map[session] || session.charAt(0);
+}
+
+// ⚠️ SSoT(Single Source of Truth)違規警告 — Frontend 規則副本 ⚠️
+// ════════════════════════════════════════════════════════════
+// 本區塊(DUAL_CLINIC_START_DATE + isDualClinicSaturdayFE +
+//   getValidSessionsForDate)是 backend DUAL_CLINIC_RULES 的 frontend 副本,
+//   嚴格意義上違反「單一真理來源」原則。
+//
+// 為何維持副本(2026-05-21 拍板,Gemini r2 review 部分採納):
+//   1. populateSessionOptions 是 date input onchange 同步觸發,不能等 async
+//      API 呼叫(否則 form 體感差)
+//   2. Backend 沒現成的 getValidSessionsForDate 公開 API
+//   3. 雙診規則是 hardcode(每月第 2/4 個週六)不會頻繁改動
+//   4. Gemini 解方「從 35 天日曆資料查」有未來雙診週六超出 35 天範圍的
+//      邊界 bug,比現役副本更糟
+//
+// 🚨🚨 規則改動時的 SOP:🚨🚨
+//   若雙診規則未來調整(例如國定假日改成第 1/3 個週六、或開到週日、或
+//   加開傍晚一診二診),改動清單:
+//     1. backend `悅心診所_Apps_Script_v6_2_x.js`:
+//        - DUAL_CLINIC_RULES 物件(搜 `var DUAL_CLINIC_RULES`)
+//        - isDualClinicSaturday 函式(搜 `function isDualClinicSaturday`)
+//     2. admin frontend `admin_v5_5_xx.html`(本檔):
+//        - DUAL_CLINIC_START_DATE 常數(下方)
+//        - isDualClinicSaturdayFE 函式(下方)
+//        - getValidSessionsForDate 函式(下方)
+//     3. booking frontend `booking_v5_8_x.html`:
+//        - normSessionForTime 函式(若新 session key)
+//        - getSessionDisplayNameForBooking / ForSave(若新 session 拼法)
+//
+// ⚠️ 兩端 startDate 數值刻意不一致(by design,r3 補充說明):
+//   - Backend `DUAL_CLINIC_RULES.startDate = "2026/06/01"`(月初)
+//   - Frontend `DUAL_CLINIC_START_DATE = "2026/06/13"`(第一個實際雙診日)
+//   Frontend 比 backend 更收斂,是 defensive 防 admin 查 5 月歷史時誤觸發
+//   雙診邏輯。「frontend ≤ backend」收斂方向永遠安全;規則改動時 frontend
+//   應對齊或更收斂,不應放寬(放寬會引入 admin 看歷史誤判風險)。
+//
+//   兩處 / 三處同步改後跑 e2e Gemini review verify。
+//
+// 未來架構升級方向(backlog,不阻擋目前 ship):
+//   把 backend 加一個公開 API `getValidSessionsForDate(dateStr)` →
+//   frontend populateSessionOptions 改 async 呼叫 → 完全 SSoT。
+//   但這個升級不阻擋 6/13 ship,且要動 backend 介面 + frontend 多個
+//   caller 改 async,marathon 後再做。
+// ════════════════════════════════════════════════════════════
+const DUAL_CLINIC_START_DATE = "2026/06/13";
+function isDualClinicSaturdayFE(dateStr) {
+  if (!dateStr || dateStr < DUAL_CLINIC_START_DATE) return false;
+  const d = new Date(dateStr.replace(/\//g, "-"));
+  if (isNaN(d) || d.getDay() !== 6) return false;
+  const nth = Math.floor((d.getDate() - 1) / 7) + 1;
+  return nth === 2 || nth === 4;
+}
+
+// 給該日期回傳該日的有效 session list
+// 對應 backend getSessionsForDate(觸點 D 自帶防呆)
+// 對應上方 SSoT 違規警告 — 規則改動時要同步改 isDualClinicSaturdayFE
+function getValidSessionsForDate(dateStr) {
+  if (!dateStr) return ["早上", "下午", "晚上"];
+  const d = new Date(dateStr.replace(/\//g, "-"));
+  if (isNaN(d)) return ["早上", "下午", "晚上"];
+  const dow = d.getDay();
+  if (dow === 0) return [];  // 週日
+  if (dow === 6) {
+    return isDualClinicSaturdayFE(dateStr)
+      ? ["早上一診", "早上二診", "下午", "晚上"]
+      : ["早上", "下午", "晚上"];
+  }
+  return ["早上", "下午", "晚上"];
+}
+
+// 動態 populate <select> 的 session option
+// 給代診 / 停診 / 廣播 form 用,date 欄 onchange 觸發
+// dateStr 接受 ISO「2026-06-13」或斜線「2026/06/13」兩種格式
+function populateSessionOptions(selectEl, dateStr, includeBlank) {
+  if (!selectEl) return;
+  // 統一 normalize 成 yyyy/MM/dd(對齊 DUAL_CLINIC_START_DATE 比較格式)
+  const normDateStr = (dateStr || "").replace(/-/g, "/");
+  const sessions = getValidSessionsForDate(normDateStr);
+  let html = (includeBlank !== false) ? '<option value="">請選擇</option>' : "";
+  html += sessions.map(function(s) {
+    return '<option value="' + s + '">' + getSessionTileLabel(s) + '</option>';
+  }).join("");
+  // 保留現役選擇(如果該 session 仍在新 list 中)
+  const prev = selectEl.value;
+  selectEl.innerHTML = html;
+  if (prev && sessions.indexOf(prev) !== -1) selectEl.value = prev;
+}
+
+// 全院統一 session 排序常數(對應 backend SESSION_DISPLAY_ORDER)
+const SESSION_DISPLAY_ORDER_FE = {
+  "早上":     0,
+  "早上一診": 1,
+  "早上二診": 2,
+  "下午":     3,
+  "晚上":     4
 };
 const API_URL = "https://script.google.com/macros/s/AKfycbxfbtWB6tyWUvFY1r_d26yxdm3Iz6zVALuZgUwLYyqIOHkJrn7TJJADkUE8VPkKOkZkqw/exec";
 let state = { lineId: "", adminName: "", isOwner: false, sessionToken: "", loginTime: "", pendingCancelId: "", cancelFromModal: null, pendingForceAdd: null, bcPreviewCount: 0, viewDate: new Date(), contactBookingId: "", contactIsNotified: false, contactType: "", contactDoctor: "", contactDate: "", contactSession: "", pendingAdminAddParams: null, _matchCandidates: [], _selectedMatchIdx: -1, lastCompletedBooking: null };
@@ -3012,7 +3177,11 @@ function getReturnTimeSlotLabel(session, slotNum) {
   if (isNaN(num)) return null;
   const range = RETURN_SLOT_RANGES.find(r => num >= r.min && num <= r.max);
   if (!range || !range.label) return null;
-  const sessionLabels = RETURN_SLOT_LABELS[session];
+  // v5.5.19 marathon 2:雙診週六「早上一診/早上二診」共享「早上」物理時段
+  //   (對齊 backend getSessionConfig 哲學)。此處 normalize 後查既有 map。
+  let normSession = session;
+  if (normSession === "早上一診" || normSession === "早上二診") normSession = "早上";
+  const sessionLabels = RETURN_SLOT_LABELS[normSession];
   if (!sessionLabels) return null;
   return sessionLabels[range.label] || null;
 }
@@ -3702,11 +3871,12 @@ async function loadSchedule(preferredSession) {
   if (oldNoteEl) oldNoteEl.remove();
   const subEl = document.getElementById("sessionDoctorSub");
   if (subEl) subEl.textContent = "";
-  // A3：時段磚人數顯示「—」
-  ["早上","下午","晚上"].forEach(function(s) {
-    const el = document.getElementById("session-" + s);
-    if (el) { el.classList.remove("active"); el.style.opacity = "0.55"; }
-    const c = document.getElementById("count-" + s);
+  // A3:時段磚人數顯示「—」(v5.5.19 marathon 2:改用 querySelectorAll
+  //     對齊動態 session tile,雙診週六也涵蓋「早上一診」「早上二診」)
+  document.querySelectorAll("#sessionTileContainer .tile-session").forEach(function(el) {
+    el.classList.remove("active");
+    el.style.opacity = "0.55";
+    const c = el.querySelector(".count-text");
     if (c) c.textContent = "—";
   });
   // A1：渲染30個 skeleton 空格
@@ -3741,6 +3911,8 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
   allBookings = bookings;
   const el = document.getElementById("scheduleContent");
   // 優先使用 GAS 回傳的開診時段（含醫師），fallback 到前端副本
+  // v5.5.19 marathon 2:雙診週六 fallback 接受退化(backend 失聯時雙診週六
+  //   會顯示成「只有粟寧早上」,不引入 frontend 版的 DUAL_CLINIC_RULES)
   const dow = state.viewDate.getDay();
   const rawSessions = openSessionsFromGAS ||
     ["早上","下午","晚上"]
@@ -3756,20 +3928,39 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
     else sessionDoctorMap[s.session] = { doctor: s.doctor || "—", isSubstitute: s.isSubstitute || false, isClosed: s.isClosed || false };
   });
 
-  // 更新三個時段磚
-  ["早上","下午","晚上"].forEach(function(s) {
-    const tile = document.getElementById("session-" + s);
-    const countEl = document.getElementById("count-" + s);
-    if (!openSessionNames.includes(s)) {
-      tile.style.opacity = "0.2";
-      tile.style.pointerEvents = "none";
-      if (countEl) countEl.textContent = "—";
-    } else {
-      const cnt = bookings.filter(b => b.session === s).length;
-      tile.style.opacity = "0.5";
-      tile.style.pointerEvents = "auto";
-      if (countEl) countEl.textContent = cnt;
-    }
+  // v5.5.19 marathon 2:動態生成 session tile
+  // 平日 3 tile / 雙診週六 4 tile / 週日 0 tile
+  // doctor tile span 切換:雙診週六 4 tile 需 doctor 縮成 span 1(擠出 col)
+  const container = document.getElementById("sessionTileContainer");
+  const doctorTileEl = document.getElementById("doctorTile");
+  const isDualClinic = openSessionNames.indexOf("早上一診") !== -1
+                    || openSessionNames.indexOf("早上二診") !== -1;
+  if (doctorTileEl) {
+    doctorTileEl.classList.toggle("doctor-dual-clinic", isDualClinic);
+  }
+
+  // 紀律 4:closure pattern + addEventListener,不嵌 onclick
+  container.innerHTML = "";
+  openSessionNames.forEach(function(s) {
+    const tile = document.createElement("div");
+    tile.className = "tile tile-1 tile-session";
+    tile.setAttribute("data-session", s);
+    tile.style.position = "relative";
+    tile.innerHTML =
+      '<div class="tile-title" style="font-size:16px;">' + esc(getSessionTileLabel(s)) + '</div>' +
+      '<div class="count-text">—</div>';
+    tile.addEventListener("click", function() { switchTab(s); });
+    container.appendChild(tile);
+  });
+
+  // 更新時段磚人數(動態 query 所有生成的 tile)
+  container.querySelectorAll(".tile-session").forEach(function(tile) {
+    const s = tile.getAttribute("data-session");
+    const countEl = tile.querySelector(".count-text");
+    const cnt = bookings.filter(b => b.session === s).length;
+    tile.style.opacity = "0.5";
+    tile.style.pointerEvents = "auto";
+    if (countEl) countEl.textContent = cnt;
   });
 
   if (openSessionNames.length === 0) {
@@ -3794,13 +3985,26 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
   window._sessionDoctorMap = sessionDoctorMap;
 
   // 決定預設時段：優先用傳入的 preferredSession，否則依當前時間
+  // v5.5.19 marathon 2:雙診週六上午時段(時間判定 < 13:00 命中 timeBasedDefault === "早上")
+  //   alias 到「早上一診」(粟寧固定診,排首位 = openSessionNames[0])
+  // r4(2026-05-22 self-review 第二輪):註解原寫「11:00 前」但下方 `hhmm <= 1259`
+  //   cutoff 實際是 12:59,對齊 code 真實邏輯
+  // r5(2026-05-23 self-review 第三輪):原 r4 註解寫「L3995 cutoff」但實際 cutoff
+  //   行在 `hhmm <= 1259`,改用 code pattern anchor 規避行號維護債
   let defaultSession = preferredSession;
   if (!defaultSession || !openSessionNames.includes(defaultSession)) {
     const now = new Date();
     const hhmm = now.getHours() * 100 + now.getMinutes();
-    if (hhmm <= 1259) defaultSession = "早上";
-    else if (hhmm <= 1714) defaultSession = "下午";
-    else defaultSession = "晚上";
+    let timeBasedDefault;
+    if (hhmm <= 1259) timeBasedDefault = "早上";
+    else if (hhmm <= 1714) timeBasedDefault = "下午";
+    else timeBasedDefault = "晚上";
+    // 雙診週六「早上」alias 到「早上一診」(openSessionNames[0])
+    if (timeBasedDefault === "早上" && !openSessionNames.includes("早上")) {
+      defaultSession = openSessionNames.indexOf("早上一診") !== -1 ? "早上一診" : openSessionNames[0];
+    } else {
+      defaultSession = timeBasedDefault;
+    }
   }
   activeSession = openSessionNames.includes(defaultSession) ? defaultSession : openSessionNames[0];
   switchTab(activeSession);
@@ -3808,10 +4012,10 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
 
 function switchTab(session) {
   activeSession = session;
-  // 時段磚 active 狀態
-  ["早上","下午","晚上"].forEach(function(s) {
-    const tile = document.getElementById("session-" + s);
-    if (!tile) return;
+  // 時段磚 active 狀態(v5.5.19 marathon 2:改用 querySelectorAll 對齊動態
+  //   session tile,雙診週六也涵蓋「早上一診」「早上二診」)
+  document.querySelectorAll("#sessionTileContainer .tile-session").forEach(function(tile) {
+    const s = tile.getAttribute("data-session");
     if (s === session) {
       tile.classList.add("active");
       tile.style.opacity = "1";
@@ -4472,8 +4676,9 @@ async function copyBindLinkFromContact(followUp) {
     const nameEl = document.getElementById("contactName");
     const patientName = nameEl ? nameEl.textContent.replace(/[💚📞💬]/g, "").trim() : "您";
     const dateStr = state.contactDate || dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1/$2/$3");
-    const sessionDisplayMap = { "早上": "上午診", "下午": "下午診", "晚上": "晚上診" };
-    const displayName = sessionDisplayMap[state.contactSession] || state.contactSession + "診";
+    // v5.5.19 marathon 2:用 getSessionMessageLabel,雙診週六走「上午一診/上午二診」
+    //   平日「早上」走「上午診」(對齊 backend r2)
+    const displayName = getSessionMessageLabel(state.contactSession);
     const dParts = dateStr.split("/");
     // v5.6.7: 加週幾顯示(對齊 booking 確認頁的「YYYY/MM/DD(週X)」)
     const weekdays = ["日","一","二","三","四","五","六"];
@@ -4531,8 +4736,8 @@ async function copyBindLink(followUp) {
     const bindUrl = "https://yuexin913.github.io/yuexin-queue/booking.html?bind=" + data.bindToken;
     const patientName = lcb.name || "您";  // v5.5.14:讀 lastCompletedBooking.name(原 forcedBookingName + 雙保險 fallback)
     const dateStr = state.contactDate || dateToYMD(state.viewDate).replace(/(\d{4})(\d{2})(\d{2})/, "$1/$2/$3");
-    const sessionDisplayMap = { "早上": "上午診", "下午": "下午診", "晚上": "晚上診" };
-    const displayName = sessionDisplayMap[activeSession] || activeSession + "診";
+    // v5.5.19 marathon 2:用 getSessionMessageLabel,雙診週六走「上午一診/上午二診」
+    const displayName = getSessionMessageLabel(activeSession);
     const dParts = dateStr.split("/");
     // v5.6.7: 加週幾顯示(對齊 booking 確認頁的「YYYY/MM/DD(週X)」)
     const weekdays = ["日","一","二","三","四","五","六"];
@@ -4754,7 +4959,16 @@ function buildLineMsg(type, isReminder, name, date, session, slot, doctor) {
   const weekdays = ["日","一","二","三","四","五","六"];
   const d = new Date(date.replace(/\//g, "-"));
   const weekday = isNaN(d) ? "" : weekdays[d.getDay()];
-  const displayName = session + "診";
+  // v5.5.19 marathon 2:改用 getSessionMessageLabel
+  //   平日:「早上診/下午診/晚上診」→「上午診/下午診/晚上診」(順手對齊
+  //   backend r2 — 雙診上線後病患可能同時收 backend 自動發 + admin 補發
+  //   訊息,措辭一致避免困惑)
+  //   雙診週六:「上午一診/上午二診」
+  const displayName = getSessionMessageLabel(session);
+  // v5.5.19 marathon 2:雙診一/二診共享同物理時段 alias 到「早上」
+  //   (對齊 backend getSessionConfig 哲學)
+  let normSession = session;
+  if (normSession === "早上一診" || normSession === "早上二診") normSession = "早上";
   const SESSION_END = { "早上": "11:30", "下午": "16:30", "晚上": "20:00" };
 
   // 複診：反推時段區間
@@ -4789,12 +5003,13 @@ function buildLineMsg(type, isReminder, name, date, session, slot, doctor) {
       + "2.初診需較長時間會談，實際看診順序依當日到診狀況適當安排。\n"
       + "3.逾時報到視同取消預約，需重新排空號或改其他時段。";
   } else if (type === "不指定" || String(slot) === "不指定") {
-    const timeRange = RETURN_SLOT_LABELS[session]
-      ? Object.values(RETURN_SLOT_LABELS[session])[0].split(" - ")[0] : "";
+    const timeRange = RETURN_SLOT_LABELS[normSession]
+      ? Object.values(RETURN_SLOT_LABELS[normSession])[0].split(" - ")[0] : "";
     const SESSION_RANGE = {
       "早上": "09:00 - 11:30", "下午": "14:00 - 16:30", "晚上": "17:30 - 20:00"
     };
-    const rangeDisplay = SESSION_RANGE[session] || "診間時間內";
+    // v5.5.19 marathon 2:用 normSession(雙診 alias 到「早上」)取對應 range
+    const rangeDisplay = SESSION_RANGE[normSession] || "診間時間內";
     const intro = isReminder
       ? name + " 您好，提醒您明天（" + date + "）有預約："
       : name + " 您好，您的預約已完成。";
@@ -5205,7 +5420,7 @@ async function loadSubstituteList() {
   try {
     const data = await xhrPost(API_URL, { action: "getSubstituteList", lineId: state.lineId });
     const list = data.list || [];
-    const sn = {"早上":"早上診","下午":"下午診","晚上":"晚上診"};
+    const sn = function(s) { return getSessionTileLabel(s); };  // v5.5.19 marathon 2:用 helper 支援雙診
     if (list.length === 0) { el.innerHTML = `<div style="font-size:12px;color:var(--text-light)">目前無門診異動</div>`; return; }
     el.innerHTML = list.map(function(item) {
       const dp = item.date.split("/");
@@ -5215,7 +5430,7 @@ async function loadSubstituteList() {
         : `<span style="font-size:10px;font-weight:700;color:white;background:var(--marigold);padding:1px 5px;margin-left:4px;">代診</span>`;
       return `<div style="font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center">
         <span style="color:var(--orange-dark);font-weight:400">${dp[1]}月${dp[2]}日</span>
-        <span style="color:var(--text-light)">${sn[item.session]||item.session}</span>
+        <span style="color:var(--text-light)">${sn(item.session)||item.session}</span>
         ${typeLabel}
         <span style="font-weight:400;flex:1;color:var(--text)">${esc(item.doctor)}</span>
         <button onclick="cancelSubstitute('${encodeURIComponent(item.date)}','${encodeURIComponent(item.session)}',this)"
@@ -5266,7 +5481,9 @@ async function doSubstitute() {
         // [v5.5.15] 局部延長 timeout 至 120 秒:notifySubstituteSession 內部 sleep(300)迴圈逐筆推播,
         // 50 人代診可能突破 30 秒 timeout → 前端誤判失敗 → admin 重發 → 病患被洗版災難
         const notifyData = await xhrPost(API_URL, { action: 'notifySubstituteSession', date: date.replace(/-/g,'/'), session, doctor, lineId: state.lineId }, { timeout: 120000 });
-        sucEl.textContent = `✓ 已更新：${date} ${session}診 → ${doctor}，已通知 ${notifyData.sentCount || 0} 位病患`;
+        // v5.5.19 marathon 2:用 getSessionTileLabel 顯示,雙診週六「早上一診」
+        //   不會變成「早上一診診」(原 ${session}診 拼法在平日 OK,雙診壞)
+        sucEl.textContent = `✓ 已更新：${date} ${getSessionTileLabel(session)} → ${doctor}，已通知 ${notifyData.sentCount || 0} 位病患`;
         sucEl.style.display = 'block';
         document.getElementById('subDate').value = '';
         document.getElementById('subSession').value = '';
@@ -5304,7 +5521,8 @@ async function doClosed() {
         // [v5.5.15] 局部延長 timeout 至 120 秒:notifyAndCancelSession 內部 sleep(300)迴圈逐筆推播,
         // 50 人停診可能突破 30 秒 timeout → 前端誤判失敗 → admin 重發 → 病患被洗版災難
         const notifyData = await xhrPost(API_URL, { action: 'notifyAndCancelSession', date: date.replace(/-/g,'/'), session, reason: reason || '停診', lineId: state.lineId }, { timeout: 120000 });
-        sucEl.textContent = `✓ 已設定停診：${date} ${session}診，已取消並通知 ${notifyData.cancelledCount || 0} 位病患`;
+        // v5.5.19 marathon 2:用 getSessionTileLabel 顯示(雙診週六字串安全)
+        sucEl.textContent = `✓ 已設定停診：${date} ${getSessionTileLabel(session)}，已取消並通知 ${notifyData.cancelledCount || 0} 位病患`;
         sucEl.style.display = 'block';
         document.getElementById('closedDate').value = '';
         document.getElementById('closedSession').value = '';
@@ -6466,7 +6684,8 @@ async function openPreviewModal() {
 }
 
 function renderPreview(days) {
-  const SESSION_LABELS = { "早上": "早", "下午": "午", "晚上": "晚" };
+  // v5.5.19 marathon 2:SESSION_LABELS 改用 getSessionPreviewLabel helper,
+  //   雙診週六自動取「早一/早二」,平日 fallback「早/午/晚」
 
   // 找第一個非週日的天，計算週一為起點的前置空格
   const firstDay = days.find(function(d) { return d.dow !== 0; });
@@ -6498,7 +6717,13 @@ function renderPreview(days) {
     if (day.dow === 0) return;
 
     const sessions = day.sessions;
-    const sessionKeys = ["早上", "下午", "晚上"].filter(function(s) { return sessions[s]; });
+    // v5.5.19 marathon 2:sessionKeys 改 dynamic from backend 回傳 +
+    //   SESSION_DISPLAY_ORDER_FE 排序(雙診週六自動含「早上一診」「早上二診」)
+    const sessionKeys = Object.keys(sessions).sort(function(a, b) {
+      var sa = SESSION_DISPLAY_ORDER_FE[a]; if (sa === undefined) sa = 99;
+      var sb = SESSION_DISPLAY_ORDER_FE[b]; if (sb === undefined) sb = 99;
+      return sa - sb;
+    });
     const hasAny = sessionKeys.some(function(s) { return !sessions[s].isClosed; });
 
     const firstOpenSession = sessionKeys.find(function(s) { return !sessions[s].isClosed; }) || sessionKeys[0];
@@ -6511,7 +6736,8 @@ function renderPreview(days) {
 
     sessionKeys.forEach(function(s) {
       const sd = sessions[s];
-      const label = SESSION_LABELS[s];
+      // v5.5.19 marathon 2:用 getSessionPreviewLabel(「早/午/晚」+ 雙診「早一/早二」)
+      const label = getSessionPreviewLabel(s);
       if (sd.isClosed) {
         html += `<div class="preview-session-row">
           <span class="preview-session-label">${label}</span>
@@ -6585,18 +6811,28 @@ function renderCheatSheet(bookings) {
       '<div class="cheat-empty">無預約</div>';
     return;
   }
-  const SESSION_LABELS = { "早上": "早診", "下午": "午診", "晚上": "晚診" };
-  const groups = { "早上": [], "下午": [], "晚上": [] };
+  // v5.5.19 marathon 2:groups 改 dynamic from bookings,label 用 helper,
+  //   排序用 SESSION_DISPLAY_ORDER_FE(雙診週六自動含「早上一診」「早上二診」)
+  const groups = {};
   bookings.forEach(function(b) {
-    if (groups[b.session]) groups[b.session].push(b);
+    if (!groups[b.session]) groups[b.session] = [];
+    groups[b.session].push(b);
   });
   // 後端已排序:初診 → 複診(號碼小到大)→ 不指定,沿用
 
+  // 依 SESSION_DISPLAY_ORDER_FE 排序 group keys
+  const orderedSessions = Object.keys(groups).sort(function(a, b) {
+    var sa = SESSION_DISPLAY_ORDER_FE[a]; if (sa === undefined) sa = 99;
+    var sb = SESSION_DISPLAY_ORDER_FE[b]; if (sb === undefined) sb = 99;
+    return sa - sb;
+  });
+
   let html = '<div style="padding:8px 16px 16px 16px;">';
-  ["早上","下午","晚上"].forEach(function(s) {
+  orderedSessions.forEach(function(s) {
     if (!groups[s].length) return;
     html += '<div class="cheat-session-group">';
-    html += '<div class="cheat-session-header">' + SESSION_LABELS[s] + ' · ' + groups[s].length + '</div>';
+    // v5.5.19 marathon 2:用 getSessionCheatLabel(「早診/午診/晚診」+ 雙診「早一/早二」)
+    html += '<div class="cheat-session-header">' + getSessionCheatLabel(s) + ' · ' + groups[s].length + '</div>';
     groups[s].forEach(function(b) {
       let typeClass, typeLabel;
       if (b.type === "初診") { typeClass = "np"; typeLabel = "初"; }
