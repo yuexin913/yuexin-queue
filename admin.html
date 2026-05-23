@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.19-marathon2-dual-clinic-r5">
+  <meta name="version" content="5.5.19-marathon2-dual-clinic-r6">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -16,7 +16,7 @@
 <style>
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
-     Current Version: v5.5.19-marathon2-dual-clinic-r5 (2026-05-23)
+     Current Version: v5.5.19-marathon2-dual-clinic-r6 (2026-05-23)
 
      Designed by Su Ning | Powered by Claude & Gemini 2026
      ════════════════════════════════════════════════════════ */
@@ -1016,8 +1016,11 @@
     }
     /* v5.5.19 marathon 2:session tile 改用 :nth-of-type 動態定位
        (原 hardcode `#session-早上`/`#session-下午`/`#session-晚上` 廢除)
-       平日 3 tile:col 8/9/10
-       雙診週六 4 tile + doctor span 1:col 7/8/9/10
+       r6(2026-05-23):layout 統一「row 1 col 6-10 永遠填滿」原則
+       平日 3 開診 tile(早/午/晚): doctor span 2 + 3 session tile = col 6-10 ✓
+       一般週六(早開,午晚反灰):  doctor span 2 + 3 session tile = col 6-10 ✓
+       雙診週六(4 session):       doctor span 1 + 4 session tile = col 6-10 ✓
+       週日(全反灰):              doctor span 2(顯休息)+ 3 stop tile = col 6-10 ✓
        (sessionTileContainer 用 display:contents 子元素直接融入父 grid,
         靠 source order 自動填,不需指定 grid-column) */
     .metro-grid > .tile-session {
@@ -3939,23 +3942,54 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
     doctorTileEl.classList.toggle("doctor-dual-clinic", isDualClinic);
   }
 
+  // r6(2026-05-23):週日特例 — backend getSessionsForDate 週日 return [],
+  //   admin frontend 補 3 個 stop tile(早/午/晚)讓 layout 對齊 row 1 col 6-10 填滿原則
+  //   doctor tile 仍顯「休息」(下方 if (openSessionNames.length === 0) 已處理)
+  // r6 註解:isDualClinic 上面已算過,週日 isDualClinic=false 不需重算
+  let effectiveSessionNames = openSessionNames;
+  let effectiveSessionDoctorMap = sessionDoctorMap;
+  const isSundayEmpty = openSessionNames.length === 0;
+  if (isSundayEmpty) {
+    effectiveSessionNames = ["早上", "下午", "晚上"];
+    effectiveSessionDoctorMap = {
+      "早上": { doctor: "", isSubstitute: false, isClosed: false },
+      "下午": { doctor: "", isSubstitute: false, isClosed: false },
+      "晚上": { doctor: "", isSubstitute: false, isClosed: false }
+    };
+  }
+
   // 紀律 4:closure pattern + addEventListener,不嵌 onclick
+  // r6:為 stop session(doctor="" && !isClosed)加 .disabled class
+  //   → CSS .tile.disabled 已存在(L747)— 自動套用反灰 + pointer-events:none
+  //   → 對齊「stop tile 視覺反灰但不可點選」UX 需求
   container.innerHTML = "";
-  openSessionNames.forEach(function(s) {
+  effectiveSessionNames.forEach(function(s) {
     const tile = document.createElement("div");
     tile.className = "tile tile-1 tile-session";
     tile.setAttribute("data-session", s);
     tile.style.position = "relative";
+    // r6:判斷是否為 stop session(無預設醫師且未主動停診)→ 視覺反灰
+    const info = effectiveSessionDoctorMap[s] || { doctor: "", isClosed: false };
+    const isStopSession = !info.doctor && !info.isClosed;
+    if (isStopSession) {
+      tile.classList.add("disabled");
+      tile.setAttribute("data-stop", "true");
+    }
     tile.innerHTML =
       '<div class="tile-title" style="font-size:16px;">' + esc(getSessionTileLabel(s)) + '</div>' +
-      '<div class="count-text">—</div>';
-    tile.addEventListener("click", function() { switchTab(s); });
+      '<div class="count-text">' + (isStopSession ? '停診' : '—') + '</div>';
+    if (!isStopSession) {
+      tile.addEventListener("click", function() { switchTab(s); });
+    }
     container.appendChild(tile);
   });
 
   // 更新時段磚人數(動態 query 所有生成的 tile)
+  // r6:stop session 不顯示人數,維持「停診」字樣
   container.querySelectorAll(".tile-session").forEach(function(tile) {
     const s = tile.getAttribute("data-session");
+    const isStop = tile.getAttribute("data-stop") === "true";
+    if (isStop) return;  // r6:stop session 跳過人數更新
     const countEl = tile.querySelector(".count-text");
     const cnt = bookings.filter(b => b.session === s).length;
     tile.style.opacity = "0.5";
@@ -3963,8 +3997,9 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
     if (countEl) countEl.textContent = cnt;
   });
 
-  if (openSessionNames.length === 0) {
-    // 無開診（週日）：醫師磚顯示「休息」，清代診標籤，仍渲染 30 個空格保持版面
+  if (isSundayEmpty) {
+    // 週日:doctor tile 顯示「休息」+ 30 個空格,session tile 已在上方 render 為 3 個反灰
+    // r6:不再 early return,讓週日 layout 對齊原則「row 1 col 6-10 永遠填滿」
     const dtEl = document.getElementById("sessionDoctorText");
     dtEl.textContent = "休息";
     dtEl.classList.remove("doctor-loading");
@@ -3991,26 +4026,56 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
   //   cutoff 實際是 12:59,對齊 code 真實邏輯
   // r5(2026-05-23 self-review 第三輪):原 r4 註解寫「L3995 cutoff」但實際 cutoff
   //   行在 `hhmm <= 1259`,改用 code pattern anchor 規避行號維護債
+  // r6(2026-05-23):default tab 邏輯 2 處強化
+  //   (1) 雙診週六永遠 default 進「早上一診」(粟醫師主診優先,不看時間)
+  //   (2) default 命中 stop session(doctor="" 反灰)時,自動找第一個非 stop session
+  //       → 雙診週六 13:00 後不會誤 default 進「下午」反灰 tile
+  //       → 一般週六 13:00 後不會誤 default 進「下午」反灰 tile
+  //       → 週日已在上方 isSundayEmpty path early return,不會到這段 code
+  //
+  // r6 helper:找第一個非 stop session(對應 effectiveSessionDoctorMap)
+  const isNonStopSession = function(s) {
+    const info = effectiveSessionDoctorMap[s];
+    return info && (info.doctor || info.isClosed);
+  };
+  const firstNonStop = effectiveSessionNames.find(isNonStopSession);
+
   let defaultSession = preferredSession;
-  if (!defaultSession || !openSessionNames.includes(defaultSession)) {
-    const now = new Date();
-    const hhmm = now.getHours() * 100 + now.getMinutes();
-    let timeBasedDefault;
-    if (hhmm <= 1259) timeBasedDefault = "早上";
-    else if (hhmm <= 1714) timeBasedDefault = "下午";
-    else timeBasedDefault = "晚上";
-    // 雙診週六「早上」alias 到「早上一診」(openSessionNames[0])
-    if (timeBasedDefault === "早上" && !openSessionNames.includes("早上")) {
-      defaultSession = openSessionNames.indexOf("早上一診") !== -1 ? "早上一診" : openSessionNames[0];
+  if (!defaultSession || !effectiveSessionNames.includes(defaultSession)) {
+    // r6:雙診週六不看時間,永遠進「早上一診」(粟醫師主診)
+    if (isDualClinic) {
+      defaultSession = effectiveSessionNames.indexOf("早上一診") !== -1 ? "早上一診" : (firstNonStop || effectiveSessionNames[0]);
     } else {
+      const now = new Date();
+      const hhmm = now.getHours() * 100 + now.getMinutes();
+      let timeBasedDefault;
+      if (hhmm <= 1259) timeBasedDefault = "早上";
+      else if (hhmm <= 1714) timeBasedDefault = "下午";
+      else timeBasedDefault = "晚上";
       defaultSession = timeBasedDefault;
     }
   }
-  activeSession = openSessionNames.includes(defaultSession) ? defaultSession : openSessionNames[0];
+  // r6:default 命中 stop session → 改用第一個非 stop session
+  //   firstNonStop 可能為 undefined(週日全部反灰),此時 activeSession 仍會被
+  //   賦值為 effectiveSessionNames[0],但 switchTab 內已 guard stop session
+  if (!isNonStopSession(defaultSession)) {
+    defaultSession = firstNonStop || effectiveSessionNames[0];
+  }
+  activeSession = effectiveSessionNames.includes(defaultSession) ? defaultSession : effectiveSessionNames[0];
   switchTab(activeSession);
 }
 
 function switchTab(session) {
+  // r6 defensive guard:stop session 不該被 switchTab 進入
+  //   - 正常路徑:stop tile 的 click handler 在 renderSchedule 內就不 attach,所以
+  //     使用者點 stop tile 不會觸發 switchTab
+  //   - 此 guard 防禦未來改動意外傳入 stop session(例如 default tab 邏輯 regression)
+  //   - 對齊「stop tile 永遠不可進入」UX 契約
+  const sessionMap = window._sessionDoctorMap || {};
+  const sessionInfoCheck = sessionMap[session];
+  if (sessionInfoCheck && !sessionInfoCheck.doctor && !sessionInfoCheck.isClosed) {
+    return;  // r6:stop session 直接 return,不切 active
+  }
   activeSession = session;
   // 時段磚 active 狀態(v5.5.19 marathon 2:改用 querySelectorAll 對齊動態
   //   session tile,雙診週六也涵蓋「早上一診」「早上二診」)
