@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.19-marathon2-dual-clinic-r6">
+  <meta name="version" content="5.5.19-marathon2-dual-clinic-r7">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -16,7 +16,7 @@
 <style>
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
-     Current Version: v5.5.19-marathon2-dual-clinic-r6 (2026-05-23)
+     Current Version: v5.5.19-marathon2-dual-clinic-r7 (2026-05-23)
 
      Designed by Su Ning | Powered by Claude & Gemini 2026
      ════════════════════════════════════════════════════════ */
@@ -4303,10 +4303,13 @@ function renderSessionContent(session, isClosed) {
       const isNotified = c.isAdminBooking && c.notifyStatus === "[已人工通知]";
       const bannerClass = c.isAdminBooking ? (isNotified ? "admin-notified" : "admin-pending") : "has-patient";
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.slot||'')}" data-session="${esc(session)}" data-type="初診" data-status="${esc(c.status||'')}" data-np-referral="${esc(c.npReferral)}" data-np-isadult="${esc(c.npIsAdult)}" data-np-residence="${esc(c.npResidence)}" data-np-livingwith="${esc(c.npLivingWith)}" data-np-occupation="${esc(c.npOccupation)}" data-np-availabletime="${esc(c.npAvailableTime)}" onclick="openContactModalFromEl(this)"`;
-      // isPending = 代掛未通知（sunny lime）；否則（一般初診或已通知）= kiwi
+      // r7(2026-05-23):待人工通知 indicator 從黑色 #000 改成 marigold(橘黃),
+      //   對齊複診 cell-caution(L882-886)的視覺契約 — 整個 admin 「橘方塊 = 待人工通知」單一語意
+      //   舊註解寫「sunny lime / kiwi」跟 code 實際黑色不同步,屬歷史 iteration 痕跡,r7 一併清除
+      //   尺寸 10x10 保留(初診 banner 比複診格子大,維持較大 indicator 視覺均衡)
       const isPending = c.isAdminBooking && c.notifyStatus === "[人工預約]";
       const cautionHtml = isPending
-        ? `<div style="position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:#000;"></div>` : "";
+        ? `<div style="position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:var(--marigold);"></div>` : "";
       const npConflictHtml = (c.hasRtConflict || conflictNpRowStarts.has(c.npRowStart))
         ? `<div style="position:absolute;bottom:6px;right:7px;line-height:1;color:var(--pink);"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>` : "";
       const isXinkuan = c.source === "心寬轉介";
