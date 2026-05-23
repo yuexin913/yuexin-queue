@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.8.8-marathon3-dual-clinic-r4">
+  <meta name="version" content="5.8.8-marathon3-dual-clinic-r5">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -19,7 +19,20 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
-     v5.8.8-marathon3-dual-clinic-r4 (2026-05-23)
+     v5.8.8-marathon3-dual-clinic-r5 (2026-05-23)
+
+     r5 改動(2026-05-23 r4 stage 實機暴露 + 邏輯一致性):
+       1. renderSlots 雙診週六上午 path 隱藏不指定卡
+          → 因為 session 層級已有快捷不指定卡(r4),slot 層級不該再重複
+          → 病患選了某位醫師 session = 「我要這位醫師看診」,不該再被 nudge 走不指定
+       2. 雙診週六上午 allFull 引導文案動態化:
+          - 不指定 pool 仍有額度 → 「請『重選診次』後改『不指定報到時間/例行領藥』」
+          - 不指定 pool 也滿 → 「請於門診時間來電:07-363-1313」(對齊現役 fallback)
+       3. 平日 / 一般週六 slot 頁:行為不變(仍顯示不指定卡作 fallback)
+
+       為何 r4 沒抓到:r4 patch 只 audit session 選擇頁,沒同步 audit slot 頁的
+         不指定卡是否還需要 → stage 實機暴露雙入口 / dead-end
+       教訓:**改一處邏輯要 audit 全系統對應的 read 路徑**(對齊本輪暴露的方法論)
 
      r4 改動(2026-05-23 雙診共享 quota 對齊 + 不指定獨立概念):
        1. renderSessions 雙診週六上午加「不指定報到時間/例行領藥」快捷卡
@@ -32,10 +45,10 @@
           (對齊 backend r6 LINE 訊息不顯示醫師)
        4. 平日 / 一般週六:行為不變(不顯示快捷卡)
 
-     背景:對齊「不指定不該綁醫師」業務模型(粟醫師 2026-05-23 sign-off)
-     - 病人選不指定本來就不在乎誰開藥(現場才分派)
-     - r3 已在 slot 層級主推不指定,r4 在 session 層級也對齊主推
-     - Frontend 仍 assign 早一(粟為主診,default 一致),病患全程不顯示醫師
+       背景:對齊「不指定不該綁醫師」業務模型(粟醫師 2026-05-23 sign-off)
+       - 病人選不指定本來就不在乎誰開藥(現場才分派)
+       - r3 已在 slot 層級主推不指定,r4 在 session 層級也對齊主推
+       - Frontend 仍 assign 早一(粟為主診,default 一致),病患全程不顯示醫師
 
      r3 改動(2026-05-23 病患 feedback「沒注意到不指定按鈕」+ 粟醫師營運意圖反轉):
        1. renderSlots:不指定卡上移到時段卡之前 + 加「或」分隔線
@@ -3827,31 +3840,60 @@ function renderSlots() {
     const allFull = cards.every(function(card) { return !cardHasAvailable(card); });
     html += '<div class="time-cards">';
 
+    // r5(2026-05-23):雙診週六上午跳過不指定卡 + 「或」分隔線
+    //   邏輯一致性:session 層級已有 r4 快捷不指定卡,slot 層級不該重複
+    //   病患選了某位醫師 = 「我要這位醫師看診」,不該再被 nudge 走不指定
+    //   判定:當前 sessionKey 是「早上一診」或「早上二診」,且對方 session 存在
+    //         (在 booking 中表示是雙診週六上午,對齊 backend r2 後的 session keys)
+    const isDualClinicMorning = (sessionKey === "早上一診" || sessionKey === "早上二診") &&
+      !!sessions["早上一診"] && !!sessions["早上二診"];
+
     // r3(2026-05-23):反轉 render 順序 — 不指定卡先 render(主推),指定時段卡後 render(次推)
     //   原順序:[指定時段 cards × N] + [不指定卡]
     //   新順序:[不指定卡] + [「或」分隔線] + [指定時段 cards × N]
     //   對齊「複診例行開藥不需指定時段」營運意圖
+    // r5(2026-05-23):雙診週六上午 path 跳過此 block(if !isDualClinicMorning)
+    if (!isDualClinicMorning) {
+      // ─── 1. 不指定卡(主推,上移)───
+      const isUnspecifiedSelected = state.isUnspecified;
+      const unspecifiedAvailable = s.unspecifiedAvailable !== false; // GAS 回傳 false 才 disabled
+      let unspecifiedCls = "time-card time-card-unspecified";
+      if (isUnspecifiedSelected) unspecifiedCls += " selected";
+      if (!unspecifiedAvailable) unspecifiedCls += " time-card-disabled";
+      const unspecifiedOnclick = unspecifiedAvailable ? `onclick="selectSlot('${sessionKey}','不指定','${s.doctor}',true)"` : "";
+      html += `<div class="${unspecifiedCls}" ${unspecifiedOnclick}>
+        <div class="time-card-left">
+          <div class="time-card-title">不指定報到時間/例行領藥</div>
+          <div class="time-card-label">${unspecifiedAvailable ? "回診開立相同藥物。請於 " + (SESSION_END_TIME[normSessionForTime(sessionKey)] || "結診") + " 前至診所櫃檯報到。" : "此時段已額滿。若有需要,請於門診時間來電:07-363-1313"}</div>
+        </div>
+      </div>`;
 
-    // ─── 1. 不指定卡(主推,上移)───
-    const isUnspecifiedSelected = state.isUnspecified;
-    const unspecifiedAvailable = s.unspecifiedAvailable !== false; // GAS 回傳 false 才 disabled
-    let unspecifiedCls = "time-card time-card-unspecified";
-    if (isUnspecifiedSelected) unspecifiedCls += " selected";
-    if (!unspecifiedAvailable) unspecifiedCls += " time-card-disabled";
-    const unspecifiedOnclick = unspecifiedAvailable ? `onclick="selectSlot('${sessionKey}','不指定','${s.doctor}',true)"` : "";
-    html += `<div class="${unspecifiedCls}" ${unspecifiedOnclick}>
-      <div class="time-card-left">
-        <div class="time-card-title">不指定報到時間/例行領藥</div>
-        <div class="time-card-label">${unspecifiedAvailable ? "回診開立相同藥物。請於 " + (SESSION_END_TIME[normSessionForTime(sessionKey)] || "結診") + " 前至診所櫃檯報到。" : "此時段已額滿。若有需要,請於門診時間來電:07-363-1313"}</div>
-      </div>
-    </div>`;
-
-    // ─── 2. 「或」分隔線 ───
-    html += '<div class="unspec-divider">或</div>';
+      // ─── 2. 「或」分隔線 ───
+      html += '<div class="unspec-divider">或</div>';
+    }
 
     // ─── 3. 指定時段卡(次推,下移)───
     if (allFull) {
-      html += `<div class="fully-booked" style="border:none;padding:8px 0;">此時段已額滿。請選擇上方的「不指定報到時間/例行領藥」</div>`;
+      // r5(2026-05-23):allFull 引導文案動態化
+      //   - 平日 / 一般週六:走 r3 原文案「請選擇上方的『不指定...』」
+      //   - 雙診週六上午 + 不指定 pool 仍有額度:引導重選診次去用 r4 快捷卡
+      //   - 雙診週六上午 + 不指定 pool 也滿:來電 fallback
+      let allFullMsg;
+      if (isDualClinicMorning) {
+        // 判定不指定 pool 是否仍有額度(對齊 backend r5 共享 quota,兩個 session 應永遠同步)
+        const quickUnspecAvailable = (
+          (sessions["早上一診"] && sessions["早上一診"].unspecifiedAvailable !== false) ||
+          (sessions["早上二診"] && sessions["早上二診"].unspecifiedAvailable !== false)
+        );
+        if (quickUnspecAvailable) {
+          allFullMsg = `此時段已額滿。請按「重選診次」後改選「不指定報到時間/例行領藥」`;
+        } else {
+          allFullMsg = `此時段已額滿。若有需要,請於門診時間來電:07-363-1313`;
+        }
+      } else {
+        allFullMsg = `此時段已額滿。請選擇上方的「不指定報到時間/例行領藥」`;
+      }
+      html += `<div class="fully-booked" style="border:none;padding:8px 0;">${allFullMsg}</div>`;
     } else {
       cards.forEach(function(card) {
         const available = cardHasAvailable(card);
