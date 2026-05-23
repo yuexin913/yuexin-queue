@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.8.8-marathon3-dual-clinic-r5">
+  <meta name="version" content="5.8.8-marathon3-dual-clinic-r7">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -19,7 +19,43 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
-     v5.8.8-marathon3-dual-clinic-r5 (2026-05-23)
+     v5.8.8-marathon3-dual-clinic-r7 (2026-05-23)
+
+     r7 改動(2026-05-23 stage 實機 deep audit + 資訊隱藏徹底化):
+       1. 新 helper getSessionDisplayNameForUnspecAware(b):
+          - b.slot === "不指定" + 雙診 session("早上一診"/"早上二診")
+            → 強制降「上午診」alias 不洩漏分診
+          - 其他 case → 走 getSessionDisplayNameForSave(維持原行為)
+       2. 3 處 caller 改用新 helper:
+          - pageSuccess 預約成功小卡(L4176)
+          - cardModal 預約查詢卡(L4490)
+          - renderBookingPage 列表卡 mainLine(L4301)
+       3. 預約成功小卡 / cardModal 主題色:不指定 case 強制走 fallback 綠
+          - 原 r4-r6 仍因 state.doctor="粟寧" 走 SUCCESS_CARD_DOCTOR_THEME["粟寧"](紫)
+          - 即使醫師欄已隱,主題色仍洩漏粟醫師身份
+          - 修補後不指定 case 走 SUCCESS_CARD_FALLBACK 綠(對齊代診通用色)
+       4. 對齊 backend r7:LINE 訊息也降「上午診」alias(getSessionDisplayName
+          加 slotRaw 參數,buildConfirmationMessage + sendReminders 兩處 caller)
+
+       教訓 8(本輪暴露):資訊隱藏 audit 要 **semantic 層級**,不只看欄位名稱
+       也要看 displayName / 視覺顏色 / 排版等所有「指向同樣資訊」的位置
+       「不指定不該綁醫師」semantic 邊界至少涵蓋 4 個維度:
+         - 醫師欄(明顯)— r4/r6 已修
+         - session displayName 一/二診(中等)— **r7 修補**
+         - 卡片主題色(隱性)— **r7 修補**
+         - LINE 訊息(明顯)— backend r6 隱藏醫師欄,r7 補 displayName 降級
+
+     r6 改動(2026-05-23 Gemini Round 6 review BLOCK + CONCERN 修補):
+       1. selectQuickUnspecified 加停診 fallback:
+          - 原 r4/r5 hardcode state.session = "早上一診"
+          - 若早一停診(粟醫師臨時請假),自動 fallback 早二(王伯元)
+          - 修補 Gemini Bug 11:病患會卡死在確認頁無法送出不指定預約
+       2. renderBookingPage 列表卡 mainLine 不指定 case 隱藏醫師:
+          - 原 r4 audit 只看 cardModal,漏掉「我的預約」列表頁 mainLine
+          - 病患在列表卡看到「6/13 上午診 · 粟寧 醫師」會打破 r4 隱藏醫師體驗
+       3. reopenSessionSelect 補 state.doctor = null(architectural fix):
+          - 對齊 Gemini CONCERN 10:Stale State 是 bug 萬惡之源
+          - 避免依賴渲染層 isUnspecified 遮掩
 
      r5 改動(2026-05-23 r4 stage 實機暴露 + 邏輯一致性):
        1. renderSlots 雙診週六上午 path 隱藏不指定卡
@@ -3571,6 +3607,20 @@ function getSessionDisplayNameForSave(session, backendDisplayName) {
   return backendDisplayName || (session + "診");
 }
 
+// r7(2026-05-23):不指定 case 的 displayName 降級 helper
+//   對齊「不指定不該綁醫師 → 也不該洩漏分診」semantic 延伸
+//   接受 booking 物件 b(含 slot / session / displayName),return semantic 對齊 displayName
+//   - 不指定 + 雙診 session → "上午診"(降級,不洩漏一/二診)
+//   - 其他 case → 走 getSessionDisplayNameForSave(維持原行為)
+function getSessionDisplayNameForUnspecAware(b) {
+  // 不指定 case 的雙診 session 降級成「上午診」
+  if (b && b.slot === "不指定" && (b.session === "早上一診" || b.session === "早上二診")) {
+    return "上午診";
+  }
+  // 其他 case 走 Save helper
+  return b ? getSessionDisplayNameForSave(b.session, b.displayName) : "-";
+}
+
 // 時間計算 alias(雙診一/二診共享「早上」物理時段)
 // SESSION_DISPLAY_TIME / SESSION_END_TIME / RETURN_TIME_CARDS 都走這個 normalize
 function normSessionForTime(session) {
@@ -3719,6 +3769,10 @@ function reopenSessionSelect() {
   state.session = null;
   state.timeSlot = null;
   state.isUnspecified = false;
+  // r6(2026-05-23 Gemini Round 6 CONCERN 修補):補清 state.doctor
+  //   架構性 fix:避免「點快捷卡 → 重選 → 仍殘留前次 doctor」的 stale state
+  //   對齊 architectural fix 哲學:不依賴 isUnspecified 渲染層遮掩
+  state.doctor = null;
   renderSessions();
 }
 
@@ -3753,12 +3807,17 @@ function selectQuickUnspecified() {
   // 預設 assign 早一(對齊粟醫師主診 default)
   // 後續來現場由櫃台動態分派,backend 沒有「不指定醫師」session,
   // 仍要寫入某個 session key,選早一保持 default 一致性
-  state.session = "早上一診";
+  // r6(2026-05-23 Gemini Round 6 Bug 11 修補):
+  //   若早一停診(粟醫師臨時請假),自動 fallback 早二(王伯元)
+  //   避免病患點快捷卡 → backend 收到 isClosed session → reject → 卡死確認頁
+  const sessions = state.slotsData || {};
+  const earlyOneClosed = !!(sessions["早上一診"] && sessions["早上一診"].isClosed);
+  state.session = earlyOneClosed ? "早上二診" : "早上一診";
   state.timeSlot = "不指定";
   state.isUnspecified = true;
-  // doctor 仍是後端回傳的早一醫師(粟寧),但 pageConfirm / pageSuccess /
+  // doctor 仍是後端回傳的醫師,但 pageConfirm / pageSuccess /
   // pageMyReservations 走 isUnspecified 分支會隱藏醫師欄
-  const s = state.slotsData && state.slotsData["早上一診"];
+  const s = state.slotsData && state.slotsData[state.session];
   state.doctor = s ? (s.doctor || "") : "";
   state.sessionSelected = true;
   // 隱藏餘藥切換列(對齊 selectSession 行為)
@@ -4096,8 +4155,11 @@ function renderSuccessCard(data) {
   const isSubstitute = sessionData ? !!sessionData.isSubstitute : false;
   const doctor = state.doctor || "";
 
-  // 代診 → 一律 fallback(通用綠 + 通用 logo);否則查表,查不到也用 fallback
-  const theme = isSubstitute
+  // r7(2026-05-23 教訓 8 修補):不指定 case 也走 fallback 通用綠
+  //   原 r4-r6 仍因 state.doctor="粟寧" 走 SUCCESS_CARD_DOCTOR_THEME["粟寧"](紫)
+  //   即使醫師欄已隱,主題色仍洩漏粟醫師身份
+  // 代診 / 不指定 → fallback;否則查表,查不到也用 fallback
+  const theme = (isSubstitute || state.isUnspecified)
     ? SUCCESS_CARD_FALLBACK
     : (SUCCESS_CARD_DOCTOR_THEME[doctor] || SUCCESS_CARD_FALLBACK);
 
@@ -4149,10 +4211,16 @@ function renderSuccessCard(data) {
   //   雙診週六升級成「上午一診/上午二診」明確 anchor(對齊 backend
   //   queryBookings 之後的查詢一致)。state.slotsData 來自 getAvailableSlots
   //   給的「上午診」alias,Save helper 主動升級
+  // r7(2026-05-23 教訓 8 修補):不指定 case 走 UnspecAware helper 降「上午診」
+  //   不洩漏一/二診(熟悉診所的人知道一/二診對應誰)
   const sessionInfo = state.slotsData && state.slotsData[state.session];
   const backendDisplayName = sessionInfo ? sessionInfo.displayName : null;
   const sessionDisplayName = state.session
-    ? getSessionDisplayNameForSave(state.session, backendDisplayName)
+    ? getSessionDisplayNameForUnspecAware({
+        session: state.session,
+        slot: state.isUnspecified ? "不指定" : state.timeSlot,
+        displayName: backendDisplayName
+      })
     : "-";
 
   let arrivalText = "";
@@ -4277,7 +4345,8 @@ function renderBookingPage() {
     // v5.8.8 marathon 3 r2:我的預約清單是「保存階段查詢」,走 Save helper
     //   b.displayName 來自 backend queryBookings 已升級為「上午一診/上午二診」,
     //   fallback 路徑(backend 缺值)Save helper 也主動升級避免壞字串
-    const displayName = esc(b.displayName || getSessionDisplayNameForSave(b.session));
+    // r7(2026-05-23 教訓 8 修補):不指定 case 走 UnspecAware helper 降「上午診」
+    const displayName = esc(getSessionDisplayNameForUnspecAware(b));
 
     // ── 組醫師標籤(代診加「(代診)」) ──
     const doctorLabel = b.doctor
@@ -4285,8 +4354,14 @@ function renderBookingPage() {
       : "-";
 
     // ── 主資訊行:日期 · 時段 · 醫師(已確認顯示醫師,已取消為了精簡只顯示時段) ──
+    // r6(2026-05-23 Gemini Round 6 CONCERN 修補):
+    //   不指定 case 隱藏醫師欄,對齊 r4 cardModal/pageConfirm/pageSuccess 已修補的邏輯
+    //   原 r4 audit 漏掉這裡 → 病患在「我的預約」列表卡仍會看到醫師,打破隱藏體驗
+    const isUnspecBooking = (b.slot === "不指定");
     const mainLine = isClickable
-      ? `${esc(b.date)} ${displayName} · ${doctorLabel}`
+      ? (isUnspecBooking
+          ? `${esc(b.date)} ${displayName}`
+          : `${esc(b.date)} ${displayName} · ${doctorLabel}`)
       : `${esc(b.date)} ${displayName}`;
 
     const itemClick = isClickable
@@ -4421,7 +4496,10 @@ function populateCardModal(b) {
   // ── 1. 醫師色 + logo + 是否代診 ──
   const isSubstitute = !!b.isSubstitute;
   const doctor = b.doctor || "";
-  const theme = isSubstitute
+  // r7(2026-05-23 教訓 8 修補):不指定 case 也走 fallback 通用綠
+  //   對齊 pageSuccess B1 修補 + 「不指定不該綁醫師」semantic 延伸
+  const isUnspecBooking = (b.slot === "不指定");
+  const theme = (isSubstitute || isUnspecBooking)
     ? SUCCESS_CARD_FALLBACK
     : (SUCCESS_CARD_DOCTOR_THEME[doctor] || SUCCESS_CARD_FALLBACK);
   card.style.setProperty("--doc-color", theme.color);
@@ -4460,7 +4538,10 @@ function populateCardModal(b) {
   //   queryBookings 已是「上午一診/上午二診」(backend r2 已升級)。
   //   SESSION_END_TIME / RETURN_TIME_CARDS 走 normSessionForTime alias
   //   共享物理時段。fallback 走 Save helper 主動升級避免壞字串
-  const sessionDisplayName = b.displayName || (b.session ? getSessionDisplayNameForSave(b.session) : "-");
+  // r7(2026-05-23 教訓 8 修補):不指定 case 走 UnspecAware helper 降「上午診」
+  //   注意:backend r7 已對不指定 case 回「上午診」alias,但加 frontend 防禦層
+  //   雙保險(若 backend 因任何原因仍回「上午一/二診」,frontend 也會降級)
+  const sessionDisplayName = getSessionDisplayNameForUnspecAware(b);
   let arrivalText = "";
   if (isUnspecified) {
     arrivalText = (SESSION_END_TIME[normSessionForTime(b.session)] || "結診") + " 前報到";
