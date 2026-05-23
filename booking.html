@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.8.8-marathon3-dual-clinic-r2">
+  <meta name="version" content="5.8.8-marathon3-dual-clinic-r4">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -19,7 +19,32 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
-     v5.8.8-marathon3-dual-clinic-r2 (2026-05-21)
+     v5.8.8-marathon3-dual-clinic-r4 (2026-05-23)
+
+     r4 改動(2026-05-23 雙診共享 quota 對齊 + 不指定獨立概念):
+       1. renderSessions 雙診週六上午加「不指定報到時間/例行領藥」快捷卡
+          (上移 + 「或」分隔線,完全複用 r3 不指定卡視覺語言)
+       2. 新 handler selectQuickUnspecified:
+          - state.session = "早上一診"(預設 assign 早一,粟醫師主診)
+          - state.isUnspecified = true
+          - 直接跳到下一步(Path A flow:跳過 slot 頁,對齊「快速」承諾)
+       3. 預約確認頁 / 預約查詢頁 不指定 case 隱藏醫師欄
+          (對齊 backend r6 LINE 訊息不顯示醫師)
+       4. 平日 / 一般週六:行為不變(不顯示快捷卡)
+
+     背景:對齊「不指定不該綁醫師」業務模型(粟醫師 2026-05-23 sign-off)
+     - 病人選不指定本來就不在乎誰開藥(現場才分派)
+     - r3 已在 slot 層級主推不指定,r4 在 session 層級也對齊主推
+     - Frontend 仍 assign 早一(粟為主診,default 一致),病患全程不顯示醫師
+
+     r3 改動(2026-05-23 病患 feedback「沒注意到不指定按鈕」+ 粟醫師營運意圖反轉):
+       1. renderSlots:不指定卡上移到時段卡之前 + 加「或」分隔線
+       2. 不指定卡 CSS 升級:dashed → solid 邊框 / title 改襯線體 16px sage-deep
+       3. Title 文案改:「現場排號:不指定時段」→「不指定報到時間/例行領藥」
+       4. Label 文案微調:去掉「例行」二字避免跟 title 重複
+       5. L3716 allFull 引導文案對齊新 title
+       6. L3802 預約成功頁 arrivalDisplay 簡化(去掉「現場排號」改用直接時間)
+       營運意圖:主推「例行回診直接領藥」(複診本來就不需挑時段),指定時段轉次推
 
      Designed by Su Ning | Powered by Claude & Gemini 2026
      ========================================================== */
@@ -384,10 +409,39 @@
     border-radius: 2px; white-space: nowrap; margin-left: 12px;
     letter-spacing: 0.5px;
   }
-  .time-card-unspecified { border-style: dashed; }
-  .time-card-unspecified .time-card-title { font-family: 'Noto Sans TC', sans-serif; font-size: 14px; font-weight: 400; color: var(--ink-light); letter-spacing: 1px; }
+  /* r3(2026-05-23):不指定卡 L9-B 視覺升級 — dashed → solid 加粗,title 改襯線體 16px sage-deep
+     對齊「主推不指定」營運意圖,但仍維持「位置主推 + 卡片視覺克制」Iki 風格 */
+  .time-card-unspecified {
+    border-style: solid;
+    border-width: 1px;
+    border-color: rgba(74,74,68,0.35);
+  }
+  .time-card-unspecified .time-card-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--sage-deep);
+    letter-spacing: 2px;
+  }
   .time-card-unspecified.selected .time-card-title { color: white; }
   .time-card-unspecified:hover:not(.time-card-disabled) .time-card-title { color: var(--sage-dark); }
+  /* r3:「或」分隔線 — 不指定卡跟指定時段卡之間的視覺分區 */
+  .unspec-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 4px;
+    color: var(--ink-light);
+    font-size: 11px;
+    letter-spacing: 4px;
+  }
+  .unspec-divider::before,
+  .unspec-divider::after {
+    content: "";
+    flex: 1;
+    height: 0.5px;
+    background: rgba(74,74,68,0.2);
+  }
 
   /* ── 單選（初診來源） ── */
   .radio-option {
@@ -1575,7 +1629,7 @@
         <div class="fusion-info-row"><div class="lbl">姓名</div><div class="val" id="cardModalName"></div></div>
         <div class="fusion-info-row"><div class="lbl">日期</div><div class="val" id="cardModalDate"></div></div>
         <div class="fusion-info-row"><div class="lbl">診次</div><div class="val" id="cardModalSession"></div></div>
-        <div class="fusion-info-row"><div class="lbl">醫師</div><div class="val doc" id="cardModalDoctor"></div></div>
+        <div class="fusion-info-row" id="cardModalDoctorRow"><div class="lbl">醫師</div><div class="val doc" id="cardModalDoctor"></div></div>
       </div>
 
       <div class="fusion-footer">
@@ -1961,7 +2015,7 @@
         <div class="fusion-info-row"><div class="lbl">姓名</div><div class="val" id="successName"></div></div>
         <div class="fusion-info-row"><div class="lbl">日期</div><div class="val" id="successDate"></div></div>
         <div class="fusion-info-row"><div class="lbl">診次</div><div class="val" id="successSession"></div></div>
-        <div class="fusion-info-row"><div class="lbl">醫師</div><div class="val doc" id="successDoctor"></div></div>
+        <div class="fusion-info-row" id="successDoctorRow"><div class="lbl">醫師</div><div class="val doc" id="successDoctor"></div></div>
       </div>
 
       <div class="fusion-footer">
@@ -3547,7 +3601,37 @@ function renderSessions() {
     var sb = SESSION_DISPLAY_ORDER_FE[b]; if (sb === undefined) sb = 99;
     return sa - sb;
   });
-  let html = '<div class="session-select-list">';
+
+  // r4(2026-05-23):雙診週六上午加「不指定報到時間/例行領藥」快捷卡
+  //   判定:sessions 同時含「早上一診」「早上二診」(對應雙診週六)
+  //   只在未選 session 時 + 該日複診(state.type !== "初診")才顯示
+  //   點下後 selectQuickUnspecified handler 處理 assign + 跳過 slot 頁
+  const isDualClinicMorning = !!(sessions["早上一診"] && sessions["早上二診"]);
+  const showQuickUnspecCard = isDualClinicMorning && !state.session && state.type !== "初診";
+  // 額度檢查:雙診週六共享 quota,任一 session 的 unspecifiedAvailable 為 true 即可選
+  //   (對齊 backend r5 共享 quota 邏輯:早一/早二的 unspecifiedAvailable 永遠同步)
+  const quickUnspecAvailable = showQuickUnspecCard && (
+    sessions["早上一診"].unspecifiedAvailable !== false ||
+    sessions["早上二診"].unspecifiedAvailable !== false
+  );
+
+  let html = '';
+  if (showQuickUnspecCard) {
+    const cls = "time-card time-card-unspecified" + (!quickUnspecAvailable ? " time-card-disabled" : "");
+    const onclick = quickUnspecAvailable ? `onclick="selectQuickUnspecified()"` : "";
+    const label = quickUnspecAvailable
+      ? "回診開立相同藥物。請於 11:30 前至診所櫃檯報到。"
+      : "此時段已額滿。若有需要,請於門診時間來電:07-363-1313";
+    html += `<div class="${cls}" ${onclick} style="margin-bottom:8px;">
+      <div class="time-card-left">
+        <div class="time-card-title">不指定報到時間/例行領藥</div>
+        <div class="time-card-label">${label}</div>
+      </div>
+    </div>`;
+    html += '<div class="unspec-divider">或</div>';
+  }
+
+  html += '<div class="session-select-list">';
 
   if (state.session) {
     // 已選診次：只顯示選中的那一個 + 重新選擇連結
@@ -3643,6 +3727,36 @@ function selectSession(sessionKey) {
   }, 50);
 }
 
+// r4(2026-05-23):雙診週六上午快捷不指定 handler
+//   對齊「不指定不該綁醫師」業務模型(粟醫師 sign-off):
+//   - 預設 assign「早上一診」(粟醫師主診,跟 admin r6 default tab 邏輯一致)
+//   - 病患全程不顯示醫師欄(預約頁 / LINE 訊息 / 查詢頁)
+//   - 直接 trigger goToConfirm 跳到下一步(Path A flow,對齊「快速」承諾)
+//
+// state 設定後 goToConfirm 內部會處理:
+//   - checkLimit
+//   - 渲染 pageConfirm(後續 r4 patch 不指定 case 隱藏醫師欄)
+function selectQuickUnspecified() {
+  // 預設 assign 早一(對齊粟醫師主診 default)
+  // 後續來現場由櫃台動態分派,backend 沒有「不指定醫師」session,
+  // 仍要寫入某個 session key,選早一保持 default 一致性
+  state.session = "早上一診";
+  state.timeSlot = "不指定";
+  state.isUnspecified = true;
+  // doctor 仍是後端回傳的早一醫師(粟寧),但 pageConfirm / pageSuccess /
+  // pageMyReservations 走 isUnspecified 分支會隱藏醫師欄
+  const s = state.slotsData && state.slotsData["早上一診"];
+  state.doctor = s ? (s.doctor || "") : "";
+  state.sessionSelected = true;
+  // 隱藏餘藥切換列(對齊 selectSession 行為)
+  const medCalcToggleBar = document.getElementById("medCalcToggleBar");
+  if (medCalcToggleBar) medCalcToggleBar.style.display = "none";
+  const medCalcArea = document.getElementById("medCalcArea");
+  if (medCalcArea) medCalcArea.style.display = "none";
+  // Path A:直接跳到下一步,不渲染 slot 頁
+  goToConfirm();
+}
+
 // 複診時段卡片定義（依各時段開診時間）
 const RETURN_TIME_CARDS = {
   "早上": [
@@ -3699,7 +3813,7 @@ function renderSlots() {
     }
   } else {
     const returnSlots = s.returnSlots || [];
-    // 郭玉柱醫師：複診從11號開始（6-10保留給現場），其他醫師從6號開始
+    // 郭玉柱醫師:複診從11號開始(6-10保留給現場),其他醫師從6號開始
     const minFirst = state.doctor === "郭玉柱" ? 11 : 6;
     const cards = (RETURN_TIME_CARDS[normSessionForTime(sessionKey)] || []).map(function(card) {
       if (card.minNum === 6) return Object.assign({}, card, { minNum: minFirst });
@@ -3712,8 +3826,32 @@ function renderSlots() {
     }
     const allFull = cards.every(function(card) { return !cardHasAvailable(card); });
     html += '<div class="time-cards">';
+
+    // r3(2026-05-23):反轉 render 順序 — 不指定卡先 render(主推),指定時段卡後 render(次推)
+    //   原順序:[指定時段 cards × N] + [不指定卡]
+    //   新順序:[不指定卡] + [「或」分隔線] + [指定時段 cards × N]
+    //   對齊「複診例行開藥不需指定時段」營運意圖
+
+    // ─── 1. 不指定卡(主推,上移)───
+    const isUnspecifiedSelected = state.isUnspecified;
+    const unspecifiedAvailable = s.unspecifiedAvailable !== false; // GAS 回傳 false 才 disabled
+    let unspecifiedCls = "time-card time-card-unspecified";
+    if (isUnspecifiedSelected) unspecifiedCls += " selected";
+    if (!unspecifiedAvailable) unspecifiedCls += " time-card-disabled";
+    const unspecifiedOnclick = unspecifiedAvailable ? `onclick="selectSlot('${sessionKey}','不指定','${s.doctor}',true)"` : "";
+    html += `<div class="${unspecifiedCls}" ${unspecifiedOnclick}>
+      <div class="time-card-left">
+        <div class="time-card-title">不指定報到時間/例行領藥</div>
+        <div class="time-card-label">${unspecifiedAvailable ? "回診開立相同藥物。請於 " + (SESSION_END_TIME[normSessionForTime(sessionKey)] || "結診") + " 前至診所櫃檯報到。" : "此時段已額滿。若有需要,請於門診時間來電:07-363-1313"}</div>
+      </div>
+    </div>`;
+
+    // ─── 2. 「或」分隔線 ───
+    html += '<div class="unspec-divider">或</div>';
+
+    // ─── 3. 指定時段卡(次推,下移)───
     if (allFull) {
-      html += `<div class="fully-booked" style="border:none;padding:8px 0;">此時段複診已額滿。請選擇「現場排號：不指定時段」。</div>`;
+      html += `<div class="fully-booked" style="border:none;padding:8px 0;">此時段已額滿。請選擇上方的「不指定報到時間/例行領藥」</div>`;
     } else {
       cards.forEach(function(card) {
         const available = cardHasAvailable(card);
@@ -3731,18 +3869,7 @@ function renderSlots() {
         </div>`;
       });
     }
-    const isUnspecifiedSelected = state.isUnspecified;
-    const unspecifiedAvailable = s.unspecifiedAvailable !== false; // GAS 回傳 false 才 disabled
-    let unspecifiedCls = "time-card time-card-unspecified";
-    if (isUnspecifiedSelected) unspecifiedCls += " selected";
-    if (!unspecifiedAvailable) unspecifiedCls += " time-card-disabled";
-    const unspecifiedOnclick = unspecifiedAvailable ? `onclick="selectSlot('${sessionKey}','不指定','${s.doctor}',true)"` : "";
-    html += `<div class="${unspecifiedCls}" ${unspecifiedOnclick}>
-      <div class="time-card-left">
-        <div class="time-card-title">現場排號:不指定時段</div>
-        <div class="time-card-label">${unspecifiedAvailable ? "例行回診開立相同藥物。請於 " + (SESSION_END_TIME[normSessionForTime(sessionKey)] || "結診") + " 前至診所櫃檯報到。" : "此時段已額滿。若有需要，請於門診時間來電：07-363-1313"}</div>
-      </div>
-    </div>`;
+
     html += '</div>';
   }
   html += '</div>';
@@ -3798,8 +3925,10 @@ async function goToConfirm() {
 
   if (state.isUnspecified) {
     slotDisplay = "";
-    // v5.8.8 marathon 3:雙診共享同時段 alias
-    arrivalDisplay = "現場排號（" + (SESSION_END_TIME[normSessionForTime(state.session)] || "結診") + " 前報到）";
+    // r3(2026-05-23):「現場排號」hardcode 改為簡潔的「時間 + 前報到」
+    //   對齊新 booking title「不指定報到時間/例行領藥」術語,預約成功後不重複描述選項類型,只給時間
+    //   v5.8.8 marathon 3:雙診共享同時段 alias
+    arrivalDisplay = (SESSION_END_TIME[normSessionForTime(state.session)] || "結診") + " 前報到";
   } else if (state.type === "初診") {
     // state.timeSlot是"0915"等時間code
     const npH = parseInt(state.timeSlot.substring(0, 2));
@@ -3823,7 +3952,9 @@ async function goToConfirm() {
     <div class="summary-row"><span class="summary-label">預約日期</span><span class="summary-value">${esc(state.date)}（週${weekday}）</span></div>
     <div class="summary-row"><span class="summary-label">時段</span><span class="summary-value">${esc(displayName)}${slotDisplay ? ' ' + esc(slotDisplay) : ''}</span></div>
     <div class="summary-row"><span class="summary-label">報到時間</span><span class="summary-value">${esc(arrivalDisplay)}</span></div>
-    <div class="summary-row"><span class="summary-label">醫師</span><span class="summary-value">${esc(state.doctor || "-")}</span></div>`;
+    ${state.isUnspecified ? '' : `<div class="summary-row"><span class="summary-label">醫師</span><span class="summary-value">${esc(state.doctor || "-")}</span></div>`}`;
+  // r4(2026-05-23):不指定 case 隱藏醫師欄,對齊 backend r6 LINE 訊息
+  //   業務模型「不指定不該綁醫師」:病患不知道誰開藥(來現場才分派)
   showPage("pageConfirm");
 }
 
@@ -4001,16 +4132,23 @@ function renderSuccessCard(data) {
     arrivalText ? (sessionDisplayName + " · " + arrivalText) : sessionDisplayName;
 
   // 醫師(代診加標籤)
+  // r4(2026-05-23):不指定 case 整 row 隱藏,對齊 backend r6 LINE 訊息
+  const doctorRow = document.getElementById("successDoctorRow");
   const doctorEl = document.getElementById("successDoctor");
-  if (isSubstitute) {
-    // 用 textContent 安全處理姓名後再 append 標籤(避免 XSS)
-    doctorEl.textContent = doctor + " 醫師";
-    const tag = document.createElement("span");
-    tag.className = "substitute-tag";
-    tag.textContent = "(代診)";
-    doctorEl.appendChild(tag);
+  if (state.isUnspecified) {
+    if (doctorRow) doctorRow.style.display = "none";
   } else {
-    doctorEl.textContent = (doctor || "-") + (doctor ? " 醫師" : "");
+    if (doctorRow) doctorRow.style.display = "";
+    if (isSubstitute) {
+      // 用 textContent 安全處理姓名後再 append 標籤(避免 XSS)
+      doctorEl.textContent = doctor + " 醫師";
+      const tag = document.createElement("span");
+      tag.className = "substitute-tag";
+      tag.textContent = "(代診)";
+      doctorEl.appendChild(tag);
+    } else {
+      doctorEl.textContent = (doctor || "-") + (doctor ? " 醫師" : "");
+    }
   }
 }
 
@@ -4303,16 +4441,23 @@ function populateCardModal(b) {
     arrivalText ? (sessionDisplayName + " · " + arrivalText) : sessionDisplayName;
 
   // 醫師(代診加標籤)— 用 textContent + appendChild 防 XSS
+  // r4(2026-05-23):不指定 case 整 row 隱藏,對齊 backend r6 LINE 訊息
+  const doctorRow = document.getElementById("cardModalDoctorRow");
   const doctorEl = document.getElementById("cardModalDoctor");
-  doctorEl.textContent = "";
-  if (isSubstitute) {
-    doctorEl.textContent = doctor + " 醫師";
-    const tag = document.createElement("span");
-    tag.className = "substitute-tag";
-    tag.textContent = "(代診)";
-    doctorEl.appendChild(tag);
+  if (isUnspecified) {
+    if (doctorRow) doctorRow.style.display = "none";
   } else {
-    doctorEl.textContent = (doctor || "-") + (doctor ? " 醫師" : "");
+    if (doctorRow) doctorRow.style.display = "";
+    doctorEl.textContent = "";
+    if (isSubstitute) {
+      doctorEl.textContent = doctor + " 醫師";
+      const tag = document.createElement("span");
+      tag.className = "substitute-tag";
+      tag.textContent = "(代診)";
+      doctorEl.appendChild(tag);
+    } else {
+      doctorEl.textContent = (doctor || "-") + (doctor ? " 醫師" : "");
+    }
   }
 }
 

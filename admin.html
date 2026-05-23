@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.19-marathon2-dual-clinic-r7">
+  <meta name="version" content="5.5.19-marathon2-dual-clinic-r9">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -16,7 +16,7 @@
 <style>
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
-     Current Version: v5.5.19-marathon2-dual-clinic-r7 (2026-05-23)
+     Current Version: v5.5.19-marathon2-dual-clinic-r9 (2026-05-23)
 
      Designed by Su Ning | Powered by Claude & Gemini 2026
      ════════════════════════════════════════════════════════ */
@@ -3072,6 +3072,36 @@ function getValidSessionsForDate(dateStr) {
   return ["早上", "下午", "晚上"];
 }
 
+// r8(2026-05-23):frontend helper — 對應 backend getSessionsToCountForUnspecified
+//   雙診週六上午「早上一診」/「早上二診」的不指定 quota 共享,
+//   admin tile 顯示不指定人數也應對齊「共享 pool」邏輯
+//   (avoid 邏輯不對稱:backend 算 quota 加總,admin 顯示卻分開算)
+//
+// 行為:
+//   - 雙診週六的「早上一診」/「早上二診」:return ["早上一診", "早上二診"]
+//   - 其他所有 session(平日 / 一般週六 / 雙診週六的下午晚上):return [session]
+//
+// 3 個 caller(都在 renderSessionContent / renderUnspecList 內):
+//   - unList filter(L4167 區):雙診週六上午 unList 包含兩個 session 的不指定
+//   - unspecPendingDot 判斷(L4400 區):同上
+//   - renderUnspecList modal(L4453):同上
+//
+// SSoT 副本紀律:本 helper 對應 backend getSessionsToCountForUnspecified,
+//   未來規則改動要兩處同步(對齊 SOP backlog #2 frontend SSoT 升級議題,
+//   未來 backend API getValidSessionsForDate / getSharedUnspecSessions 上線
+//   後可統一)。
+//
+// 簽章:接 dateObj(Date 物件,從 state.viewDate),內部 normalize 成 yyyy/MM/dd
+function getSessionsToCountForUnspecifiedFE(session, dateObj) {
+  if (!dateObj) return [session];
+  const ymd = dateToYMD(dateObj);
+  const dateStr = ymd.substring(0,4) + "/" + ymd.substring(4,6) + "/" + ymd.substring(6,8);
+  if (isDualClinicSaturdayFE(dateStr) && (session === "早上一診" || session === "早上二診")) {
+    return ["早上一診", "早上二診"];
+  }
+  return [session];
+}
+
 // 動態 populate <select> 的 session option
 // 給代診 / 停診 / 廣播 form 用,date 欄 onchange 觸發
 // dateStr 接受 ISO「2026-06-13」或斜線「2026/06/13」兩種格式
@@ -4007,6 +4037,9 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
   if (isSundayEmpty) {
     // 週日:doctor tile 顯示「休息」+ 30 個空格,session tile 已在上方 render 為 3 個反灰
     // r6:不再 early return,讓週日 layout 對齊原則「row 1 col 6-10 永遠填滿」
+    // r9(2026-05-23):週日也需設 window._sessionDoctorMap + 呼叫日級不指定 helper
+    //   讓週日的不指定 tile 正確顯示(disable + 人數 0)
+    window._sessionDoctorMap = effectiveSessionDoctorMap;
     const dtEl = document.getElementById("sessionDoctorText");
     dtEl.textContent = "休息";
     dtEl.classList.remove("doctor-loading");
@@ -4020,11 +4053,17 @@ function renderSchedule(bookings, preferredSession, openSessionsFromGAS) {
       emptyHtml += `<div class="grid-cell empty"><span style="font-size:20px;font-weight:200;color:var(--empty-text);position:absolute;top:6px;left:6px;">${i}</span></div>`;
     }
     el.innerHTML = emptyHtml;
+    // r9:呼叫日級不指定 tile render(週日仍要更新狀態 = disable + 空人數)
+    renderDayLevelUnspecTile();
     return;
   }
 
   // 把 sessionDoctorMap 存到全域，供 switchTab 使用
   window._sessionDoctorMap = sessionDoctorMap;
+  // r9(2026-05-23):呼叫日級不指定 tile render
+  //   切日(loadSchedule)觸發,設好 sessionDoctorMap 後 immediately update
+  //   不指定 tile,後續 switchTab 不再 touch
+  renderDayLevelUnspecTile();
 
   // 決定預設時段：優先用傳入的 preferredSession，否則依當前時間
   // v5.5.19 marathon 2:雙診週六上午時段(時間判定 < 13:00 命中 timeBasedDefault === "早上")
@@ -4123,6 +4162,64 @@ function switchTab(session) {
 }
 
 /* ════════════════════════════════════════════════
+   r9(2026-05-23):日級 不指定 tile render
+   ════════════════════════════════════════════════
+   設計理念(粟醫師 2026-05-23 sign-off):
+   - 不指定屬於「日」級概念,不屬於「session」級
+   - 對齊現役 底部 R5 功能 tile 家族行為(心理治療 / 預覽 / 代診 / 群發 / 系統
+     都不隨 tab 切換)
+   - 對齊「不指定本來就不該綁醫師」業務模型(雙診週六上午病患來現場才分派)
+
+   行為:
+   - 切日(loadSchedule → renderSchedule)時呼叫一次
+   - 切 tab(switchTab → renderSessionContent)時**不再 touch** 不指定 tile
+   - 雙診週六上午:跨 session 加總(對齊 backend r5 共享 quota)
+
+   停診 disable 邏輯:
+   - 當日「所有可預約 session」都停診 → disable
+   - 其中一個 session 可預約 → 仍可開新增不指定 modal
+*/
+function renderDayLevelUnspecTile() {
+  const unspecTile = document.getElementById("unspecCount")?.closest(".tile");
+  const unspecEl = document.getElementById("unspecCount");
+  const unspecDot = document.getElementById("unspecPendingDot");
+  if (!unspecTile || !unspecEl) return;
+
+  // 算當日不指定 list(跨所有 session,因為 allBookings 已經是「當日」的)
+  const unListDay = allBookings.filter(function(b) {
+    return b.type !== "初診" && b.slot === "不指定";
+  });
+
+  // disable 邏輯:當日所有 session 都停診時 disable
+  //   sessionDoctorMap 由 renderSchedule 設定 window._sessionDoctorMap
+  //   雙診週六上午 isClosed 通常只發生在臨時停診(粟醫師或王伯元請假)
+  const sessionMap = window._sessionDoctorMap || {};
+  const allSessionsKeys = Object.keys(sessionMap);
+  const allClosed = allSessionsKeys.length > 0 && allSessionsKeys.every(function(s) {
+    return sessionMap[s].isClosed;
+  });
+
+  if (allClosed) {
+    unspecTile.style.pointerEvents = "none";
+    unspecTile.style.opacity = "0.3";
+  } else {
+    unspecTile.style.pointerEvents = "auto";
+    unspecTile.style.opacity = "1";
+  }
+
+  // 顯示人數
+  unspecEl.textContent = unListDay.length > 0 ? unListDay.length + " 人" : "";
+
+  // 待通知 pending dot
+  if (unspecDot) {
+    const hasPending = unListDay.some(function(b) {
+      return b.notifyStatus === "[人工預約]";
+    });
+    unspecDot.style.display = hasPending ? "block" : "none";
+  }
+}
+
+/* ════════════════════════════════════════════════
    核心渲染：30 格儀表板
    ════════════════════════════════════════════════ */
 function renderSessionContent(session, isClosed) {
@@ -4136,20 +4233,15 @@ function renderSessionContent(session, isClosed) {
     });
 
   const rtList = list.filter(b => b.type !== "初診" && b.slot !== "不指定");
-  const unList = list.filter(b => b.type !== "初診" && b.slot === "不指定");
+  // r9(2026-05-23):unList 不再在此處計算,移至日級 renderDayLevelUnspecTile()
+  //   理由:不指定屬於「日級」概念,不該隨 tab 切換更新
+  //   對齊「不指定本來就不該綁醫師」業務模型
+  //   雙診週六上午跨 session 共享 quota 已由日級 helper 處理(allBookings 已是當日)
   const doctor = list.length > 0 ? list[0].doctor : "";
 
-  // 停診時：不指定磚 disable
-  const unspecTile = document.getElementById("unspecCount")?.closest(".tile");
-  if (unspecTile) {
-    if (isClosed) {
-      unspecTile.style.pointerEvents = "none";
-      unspecTile.style.opacity = "0.3";
-    } else {
-      unspecTile.style.pointerEvents = "auto";
-      unspecTile.style.opacity = "1";
-    }
-  }
+  // r9(2026-05-23):停診時不指定 tile disable 邏輯也移至日級 helper
+  //   原本「該 session isClosed 就 disable 不指定 tile」邏輯不對齊
+  //   現在改為「當日所有 session 都停診才 disable」
 
   if (list.length === 0) {
     let emptyHtml = "";
@@ -4162,9 +4254,7 @@ function renderSessionContent(session, isClosed) {
       }
     }
     el.innerHTML = emptyHtml;
-    // 更新不指定人數
-    const unspecEl = document.getElementById("unspecCount");
-    if (unspecEl) unspecEl.textContent = "";
+    // r9:不再清空 unspecEl(由日級 helper 管理)
     return;
   }
 
@@ -4367,14 +4457,8 @@ function renderSessionContent(session, isClosed) {
 
 
 
-  // 更新不指定磚的人數 subtitle 和黑點
-  const unspecEl = document.getElementById("unspecCount");
-  if (unspecEl) unspecEl.textContent = unList.length > 0 ? unList.length + " 人" : "";
-  const unspecDot = document.getElementById("unspecPendingDot");
-  if (unspecDot) {
-    const hasPending = unList.some(b => b.notifyStatus === "[人工預約]");
-    unspecDot.style.display = hasPending ? "block" : "none";
-  }
+  // r9(2026-05-23):不指定 tile 更新邏輯已移至日級 renderDayLevelUnspecTile()
+  //   切日(loadSchedule → renderSchedule)時呼叫一次,切 tab 不再 touch
 
   el.innerHTML = html;
 
@@ -4422,7 +4506,10 @@ function openUnspecModal() {
 }
 
 function renderUnspecList() {
-  const list = allBookings.filter(b => b.session === activeSession && b.type !== "初診" && b.slot === "不指定");
+  // r8(2026-05-23):雙診週六上午跨 session 共享 pool — modal 名單顯示加總
+  //   對齊 backend r5 共享 quota 邏輯 + admin tile 加總人數
+  const unListSessions = getSessionsToCountForUnspecifiedFE(activeSession, state.viewDate);
+  const list = allBookings.filter(b => unListSessions.indexOf(b.session) !== -1 && b.type !== "初診" && b.slot === "不指定");
   const el = document.getElementById("unspecContent");
   if (list.length === 0) {
     el.innerHTML = `<div class="empty-state">目前無不指定時段病患</div>`;
