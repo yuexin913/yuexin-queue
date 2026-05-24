@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.8.8-marathon3-dual-clinic-r8">
+  <meta name="version" content="5.8.8-marathon3-dual-clinic-r9">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -19,7 +19,19 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
-     v5.8.8-marathon3-dual-clinic-r8 (2026-05-23)
+     v5.8.8-marathon3-dual-clinic-r9 (2026-05-24)
+
+     r9 改動(2026-05-24 stage 實機 visual hierarchy 修補):
+       1. selectDate 已選日期後隱藏「或 直接選擇日期」/「或 輸入剩餘藥物天數」
+          toggle 連結 + 餘藥區
+          → 對齊既有 reopenCalendar 復原邏輯的 mirror image:選了日期就不需切換
+          → 病患要改日期應透過「重選日期」按鈕(reopenCalendar 已對齊完整復原)
+       2. Root cause:現役 selectDate L3430 註解「餘藥區塊維持顯示」
+          是 booking 早期決策,沒對齊「已選 = 不需切日選法」業務邏輯
+          → 表面症狀是「session 區跟上方視覺擁擠」,
+            真正原因是「不該存在的元素還在頁面上佔位」
+       3. 教訓 12:設計決策該先問「該不該存在?」而非「該怎麼存在?」
+          對應 Iki 美學的「節制」與工程紀律的「最小化」同源
 
      r8 改動(2026-05-23 stage 實機 UI 3 bug 修補):
        1. Bug 1 — 餘藥輸入框 vs「計算回診日」按鈕比例失衡(被截斷)
@@ -3427,7 +3439,15 @@ async function selectDate(dateStr) {
   document.getElementById("selectedDateLabel").textContent = dateStr + "（週" + weekdays[d.getDay()] + "）";
   document.getElementById("calendarArea").style.display = "none";
   document.getElementById("selectedDateBar").style.display = "block";
-  // 餘藥區塊維持顯示（複診才有）
+  // r9(2026-05-24):選了日期後,toggle 連結 + 餘藥區都該收
+  //   - 病患心理「我已選好哪一天」→ 不需要繼續看「另一種選日方式」
+  //   - 對齊 reopenCalendar(L3470-3488)復原邏輯的 mirror image
+  //   - 若想改日期,「重選日期」按鈕 trigger reopenCalendar 會完整復原
+  //   原 L3442 註解「餘藥區塊維持顯示」是 booking 早期決策,沒對齊業務邏輯
+  const medCalcToggleBar = document.getElementById("medCalcToggleBar");
+  if (medCalcToggleBar) medCalcToggleBar.style.display = "none";
+  const medCalcArea = document.getElementById("medCalcArea");
+  if (medCalcArea) medCalcArea.style.display = "none";
   document.getElementById("sessionContainer").innerHTML = '<div class="loading"><div class="spinner"></div>載入中...</div>';
   document.getElementById("slotsContainer").innerHTML = "";
   // 自動捲動到診次區，讓 spinner 進入視野
