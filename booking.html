@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.8.8-marathon3-dual-clinic-r7">
+  <meta name="version" content="5.8.8-marathon3-dual-clinic-r8">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -19,7 +19,23 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
-     v5.8.8-marathon3-dual-clinic-r7 (2026-05-23)
+     v5.8.8-marathon3-dual-clinic-r8 (2026-05-23)
+
+     r8 改動(2026-05-23 stage 實機 UI 3 bug 修補):
+       1. Bug 1 — 餘藥輸入框 vs「計算回診日」按鈕比例失衡(被截斷)
+          → 改 display:grid + grid-template-columns:1fr auto
+          → input 自動 stretch / button auto 內容寬,文字永遠完整
+       2. Bug 2 — toggleCalendar 切換選日期模式時 session 清單殘留
+          → 加 resetDateSelection() helper SSoT(對齊 reopenCalendar 既有清除邏輯)
+          → toggleCalendar 與 reopenCalendar 都用此 helper(對齊紀律 6)
+          → 病患切換選日期模式時,既有 session 清單跟 state 一起清乾淨
+       3. Bug 3 — goToConfirm 抓錯按鈕(potential race condition)
+          → 原 querySelector("#pageTime .btn-primary") 抓第 1 個 .btn-primary
+            實際抓到「計算回診日」(L2003),不是真正的「下一步」(L2014)
+          → 後果:點下一步後「計算回診日」按鈕被改文字 + disabled,
+            真正的「下一步」按鈕完全沒 disabled → 病患快速雙擊有 race 隱患
+          → L2014 加 id="btnNextConfirm",L3999 改用 getElementById 精準抓
+          → 同時 audit 整個 booking 中所有可能誤抓 .btn-primary 的位置
 
      r7 改動(2026-05-23 stage 實機 deep audit + 資訊隱藏徹底化):
        1. 新 helper getSessionDisplayNameForUnspecAware(b):
@@ -1996,11 +2012,11 @@
           <button class="pill-btn" onclick="setMedDays(21)">21 天</button>
           <button class="pill-btn" onclick="setMedDays(28)">28 天</button>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:10px;">
           <input type="number" id="medDaysInput" inputmode="numeric" min="1" max="35"
             placeholder="輸入天數（1–35）"
-            style="flex:2;min-width:0;padding:10px 12px;font-size:13px;">
-          <button class="btn btn-primary" style="white-space:nowrap;padding:10px 14px;flex:1;margin:0;letter-spacing:0.5px;font-size:14px;" onclick="calculateMedDate()">計算回診日</button>
+            style="min-width:0;padding:10px 12px;font-size:13px;">
+          <button class="btn btn-primary" style="white-space:nowrap;padding:10px 16px;margin:0;letter-spacing:0.5px;font-size:14px;" onclick="calculateMedDate()">計算回診日</button>
         </div>
         <div id="medCalcError" class="alert alert-error" style="display:none;margin-bottom:0;"></div>
       </div>
@@ -2011,7 +2027,7 @@
     <div id="slotsContainer"></div>
     <div id="nhiReminder" class="alert alert-warn" style="display:none;margin-top:24px"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> <strong>重要提醒：</strong>為確保用藥安全及避免浪費資源，健保看診開藥（領藥）原則上僅能提前 1 天。若不確定您的健保回診日期，敬請提前聯繫診所確認。</div>
     <div id="errorPage2" class="alert alert-error" style="display:none"></div>
-    <button class="btn btn-primary" onclick="goToConfirm()">下一步：確認預約 →</button>
+    <button class="btn btn-primary" id="btnNextConfirm" onclick="goToConfirm()">下一步：確認預約 →</button>
     <button class="btn btn-outline" onclick="showPage('pageInfo')">← 修改基本資料</button>
   </div>
 
@@ -3426,21 +3442,34 @@ async function selectDate(dateStr) {
   }
 }
 
-function reopenCalendar() {
+// r8(2026-05-23 Bug 2 修補):抽出 resetDateSelection helper SSoT
+//   原 reopenCalendar 已有完整清除邏輯,toggleCalendar 沒清 → 病患切換選日期模式時
+//   既有 session 清單殘留(視覺困擾)
+//   對齊紀律 6「Patch 後 audit dual-entry / dead-code」+ SSoT 紀律
+//   兩個 caller 都呼叫此 helper:
+//   - reopenCalendar:從已選日期回到月曆(維持原語意)
+//   - toggleCalendar:在月曆/餘藥之間切換時也該清(本輪修補)
+function resetDateSelection() {
+  // 清 state
   state.date = null; state.session = null; state.timeSlot = null;
-  state.isUnspecified = false; state.sessionSelected = false;
+  state.doctor = null; state.isUnspecified = false; state.sessionSelected = false;
+  // 清 UI
   document.getElementById("selectedDateBar").style.display = "none";
   document.getElementById("sessionContainer").innerHTML = "";
   document.getElementById("slotsContainer").innerHTML = "";
-  // 清空藥量輸入
+  // 清藥量輸入 + pill 高亮
   const medInput = document.getElementById("medDaysInput");
   if (medInput) medInput.value = "";
-  document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".pill-btn").forEach(function(b) { b.classList.remove("active"); });
   const medErr = document.getElementById("medCalcError");
   if (medErr) medErr.style.display = "none";
-  const medResult = document.getElementById("medCalcResult");
-  if (medResult) medResult.style.display = "none";
-  // 收折餘藥區塊
+  // 清 errorPage2(避免之前的錯誤殘留)
+  hideError("errorPage2");
+}
+
+function reopenCalendar() {
+  resetDateSelection();
+  // 收折餘藥區塊(對齊「回到月曆」語意)
   const medCalcBody = document.getElementById("medCalcBody");
   if (medCalcBody) medCalcBody.style.display = "none";
   const medCalcToggleBtn = document.getElementById("medCalcToggleBtn");
@@ -3478,17 +3507,20 @@ function toggleCalendar() {
   const selectedDateBar = document.getElementById("selectedDateBar");
   const isMedShown = medCalcArea.style.display !== "none";
 
+  // r8(2026-05-23 Bug 2 修補):切換選日期模式時清現有日期選擇 + session 清單
+  //   原 toggle 只切 display,病患若已選日期 → 切到另一模式時 session 清單殘留
+  //   對齊「切換選日期模式 = 想改天」語意 + 紀律 6 SSoT
+  resetDateSelection();
+
   if (isMedShown) {
-    // 餘藥區展開中 → 收折餘藥，展開月曆
+    // 餘藥區展開中 → 收折餘藥,展開月曆
     medCalcArea.style.display = "none";
     medCalcToggleBar.style.display = "block";
     cal.style.display = "block";
-    selectedDateBar.style.display = "none";
     renderCalendar();
   } else {
-    // 月曆展開中 → 收折月曆，展開餘藥
+    // 月曆展開中 → 收折月曆,展開餘藥
     cal.style.display = "none";
-    selectedDateBar.style.display = "none";
     medCalcToggleBar.style.display = "none";
     medCalcArea.style.display = "block";
   }
@@ -3996,7 +4028,10 @@ async function goToConfirm() {
   }
   hideError("errorPage2");
 
-  const btn = document.querySelector("#pageTime .btn-primary");
+  // r8(2026-05-23 Bug 3 修補):原 querySelector("#pageTime .btn-primary") 抓第 1 個
+  //   .btn-primary,實際抓到「計算回診日」(L2003),不是真正的「下一步」(L2014)
+  //   改用 getElementById("btnNextConfirm") 精準抓 → 避免 race condition
+  const btn = document.getElementById("btnNextConfirm");
   if (btn) { btn.disabled = true; btn.textContent = "確認中..."; }
   showOverlay("確認中...");
   try {
