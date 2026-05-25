@@ -1160,7 +1160,8 @@ body {
   .content { padding: var(--space-md); }
   .header { padding: var(--space-md) var(--space-md) 0; }
   .subtabs { padding: 0 var(--space-md); }
-  .case-row { grid-template-columns: 80px 1fr auto; gap: var(--space-sm); }
+  /* v0.8-r4: mobile 第一欄改 auto — 時間欄自然撐開,避免 80px hardcode 在窄螢幕被 11 字元時間字串溢出蓋姓名 */
+  .case-row { grid-template-columns: auto 1fr auto; gap: var(--space-sm); }
   .case-time { font-size: 14px; }
   .case-name { font-size: 14px; }
 }
