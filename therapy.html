@@ -103,7 +103,9 @@ body {
 #pageAuth {
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  /* v0.8-r5:改成從上而下排版(原 align-items: center),讓 pageAuth + pageLogin
+     使用同樣的 layout 模式,sphinx 在兩階段同位置(視覺連續性 Q2 B) */
+  align-items: flex-start;
   justify-content: center;
   padding: var(--space-lg);
 }
@@ -112,6 +114,7 @@ body {
 .auth-box {
   text-align: center;
   max-width: 420px;
+  width: 100%;
 }
 
 .auth-mark {
@@ -210,7 +213,8 @@ body {
   display: none;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* v0.8-r5:垂直 top 對齊(原 justify-content: center),配合 pageAuth 視覺連續性 */
+  justify-content: flex-start;
   padding: var(--space-lg);
 }
 #pageLogin.active { display: flex; }
@@ -1933,6 +1937,15 @@ body.is-submitting-entry #addSection {
      ════════════════════════════════════════════════════════════════════════════ -->
 <div id="pageAuth" class="page active">
   <div class="auth-box">
+    <!-- v0.8-r5:加入 brand-header,對齊 pageLogin 結構,讓 sphinx 在兩階段同位置 -->
+    <div class="brand-header">
+      <div class="brand-clinic">悅心診所</div>
+      <span class="brand-join">J&nbsp;O&nbsp;I&nbsp;N</span>
+    </div>
+
+    <div class="login-title">心理治療登錄系統</div>
+    <div class="login-sub">— Squiggle Page —</div>
+
     <div class="sphinx-mark" id="authMark">
       <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
         <!-- 底層 sphinx 身體(淡灰 fill) -->
@@ -1973,7 +1986,7 @@ body.is-submitting-entry #addSection {
     <div class="login-sub" id="loginGreeting">— Squiggle Page —</div>
 
     <!-- v0.8-r5:Sphinx 在 pageLogin 也出現,跟 pageAuth 同位置(Q2 B 視覺連續性) -->
-    <div class="sphinx-mark" id="loginSphinx" style="margin: 0 auto var(--space-md);">
+    <div class="sphinx-mark" id="loginSphinx">
       <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
         <path d="M 30 45 Q 30 18 50 18 Q 70 18 70 45 L 65 55 Q 110 50 155 53 Q 175 55 175 70 L 175 78 L 30 78 L 30 45 Z" fill="#c8c8c8" stroke="none"/>
         <circle class="sphinx-eye" cx="44" cy="30" r="2.5" fill="#1a1a1a"/>
