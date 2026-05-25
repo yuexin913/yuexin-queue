@@ -9,9 +9,21 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
 悅心診所 心理治療系統 therapy.html
-v0.8-end-treatment-r3 (2026-05-15)
+v0.8-r5-squiggle-login (2026-05-25)
 
 Designed by Su Ning | Powered by Claude & Gemini 2026
+
+v0.8-r5 changelog:
+  - mobile case-row 第一欄改 auto(原 80px,時間字串 11 字溢出蓋姓名)
+  - pageLogin 升級為 Squiggle 謎語登入
+    · Sphinx 圖示在 pageAuth → pageLogin 同位置不動(Q2 B 視覺連續性)
+    · 三筆塗鴉判讀為「高度序列」(U/D),序列化送 GAS 比對
+    · 4-2-3 提示對應 Sphinx 謎語(嬰兒四足 / 成人雙足 / 老年三足)
+    · 文字輸入 fallback 保留(6 字元上限)
+    · 錯誤:sphinx 變橘眼持續怒目,顯示「密碼錯誤(剩餘 N 次)」
+    · locked:純黑遮罩 + 600 秒倒數(對齊 GAS 鎖定 10 分鐘)
+  - 配套 GAS 改動見 GAS-diff:新增 THERAPIST_PASSWORD_PATTERN Script Property
+    + verifyTherapistLogin OR 比對(文字 or 塗鴉任一通過)
 -->
 <style>
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -313,6 +325,202 @@ body {
   font-size: 13px;
   color: var(--concrete);
   letter-spacing: 0.5px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   v0.8-r5:Squiggle Login — Sphinx 謎語登入
+   設計脈絡:
+     - 既有 pageLogin 純文字密碼登入「無趣,且失去 Squiggle Page 副標的意義」
+     - r5 升級成「畫板答謎」:畫三筆 → 系統判讀高度序列 → 跟密碼比對
+     - 典故:Sphinx 謎語答案是 MAN — M(四足/嬰兒)、A(雙足/成人)、N(三足/老年)
+     - Sphinx 圖示 v0.6-r14 既存於 pageAuth,r5 讓它也在 pageLogin 出現(同位置)
+       → 視覺上 pageAuth → pageLogin 切換時 sphinx「不動」,只是底下 UI 重組
+     - 安全:前端不存密碼,純送字串給 GAS verifyTherapistLogin 比對
+       塗鴉判讀 → "DUDUD|DUD|DUDU" 字串 → 跟 THERAPIST_PASSWORD_PATTERN 比
+       文字輸入 → 沿用既有 → 跟 THERAPIST_PASSWORD 比
+       GAS 端 OR 比對:任一通過即可
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Squiggle 容器 */
+.squiggle-stage {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+.squiggle-stage.active { display: flex; }
+
+/* 畫板 — 280×280 淡灰底細邊框 */
+.squiggle-pad {
+  width: 280px;
+  height: 280px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  position: relative;
+  cursor: crosshair;
+  touch-action: none;
+  margin-bottom: var(--space-md);
+}
+.squiggle-pad canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 畫板鉛筆 hint — 進畫板時淡出 */
+.squiggle-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  height: 26px;
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 0.3s;
+}
+.squiggle-hint svg {
+  width: 100%;
+  height: 100%;
+  stroke: var(--concrete);
+  fill: none;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.squiggle-pad.has-content .squiggle-hint { opacity: 0; }
+
+/* 進度提示 4-2-3 — Sphinx 謎語的隱喻 */
+.squiggle-progress {
+  display: flex;
+  justify-content: center;
+  gap: 36px;
+  margin-bottom: 22px;
+  height: 22px;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--ash);
+}
+.squiggle-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 22px;
+  transition: color 0.4s ease;
+}
+.squiggle-group.filled { color: transparent; }
+.squiggle-progress.shake { animation: squiggleShake 0.4s ease; }
+@keyframes squiggleShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+/* 並排兩按鈕(畫板/文字模式都用) */
+.squiggle-actions {
+  display: flex;
+  gap: 12px;
+  width: 280px;
+}
+.squiggle-btn {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--concrete);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  padding: 10px 0;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 0;
+}
+.squiggle-btn:hover {
+  border-color: var(--concrete);
+  color: var(--slate);
+}
+.squiggle-btn:active { transform: scale(0.97); }
+.squiggle-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.squiggle-btn svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.6;
+}
+
+/* 文字模式 input(取代既有 .login-input 在 squiggle 場景的使用) */
+.squiggle-text-input {
+  width: 280px;
+  height: 56px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 24px;
+  letter-spacing: 12px;
+  text-align: center;
+  padding: 0 12px;
+  margin-bottom: var(--space-sm);
+  outline: none;
+  color: var(--ink);
+  border-radius: 0;
+}
+.squiggle-text-input:focus { border-color: var(--steel); }
+.squiggle-text-input.error { border-color: var(--warn); }
+
+/* 共用錯誤訊息(取代 .login-error 在 squiggle 場景的使用) */
+.squiggle-error {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--warn);
+  height: 16px;
+  margin-top: var(--space-sm);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.squiggle-error.visible { opacity: 1; }
+
+/* Sphinx 怒目 — 持續變橘直到答對 */
+.sphinx-mark.angry .sphinx-eye {
+  fill: var(--warn);
+  animation: none;
+  opacity: 1;
+}
+
+/* 沉思遮罩 — 鎖定時顯示,黑底 + 倒數秒數 */
+.meditation-veil {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.meditation-veil.active {
+  display: flex;
+  opacity: 1;
+}
+.meditation-countdown {
+  font-family: var(--font-mono);
+  font-size: 88px;
+  font-weight: 200;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 6px;
+  line-height: 1;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -948,8 +1156,7 @@ body {
   .content { padding: var(--space-md); }
   .header { padding: var(--space-md) var(--space-md) 0; }
   .subtabs { padding: 0 var(--space-md); }
-  /* v0.8-r4: 第一欄改 auto — 時間欄自然撐開,避免 80px hardcode 在窄螢幕被 11 字元時間字串溢出蓋到姓名 */
-  .case-row { grid-template-columns: auto 1fr auto; gap: var(--space-sm); }
+  .case-row { grid-template-columns: 80px 1fr auto; gap: var(--space-sm); }
   .case-time { font-size: 14px; }
   .case-name { font-size: 14px; }
 }
@@ -1764,11 +1971,71 @@ body.is-submitting-entry #addSection {
 
     <div class="login-title">心理治療登錄系統</div>
     <div class="login-sub" id="loginGreeting">— Squiggle Page —</div>
-    <input type="password" id="loginPassword" class="login-input" placeholder="密碼" autocomplete="current-password">
-    <button id="btnLogin" class="login-btn" onclick="doTherapistLogin()">登入</button>
-    <div class="login-error" id="loginError"></div>
+
+    <!-- v0.8-r5:Sphinx 在 pageLogin 也出現,跟 pageAuth 同位置(Q2 B 視覺連續性) -->
+    <div class="sphinx-mark" id="loginSphinx" style="margin: 0 auto var(--space-md);">
+      <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 30 45 Q 30 18 50 18 Q 70 18 70 45 L 65 55 Q 110 50 155 53 Q 175 55 175 70 L 175 78 L 30 78 L 30 45 Z" fill="#c8c8c8" stroke="none"/>
+        <circle class="sphinx-eye" cx="44" cy="30" r="2.5" fill="#1a1a1a"/>
+        <circle class="sphinx-eye" cx="56" cy="30" r="2.5" fill="#1a1a1a"/>
+        <g fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 28 50 L 28 28 Q 28 22 36 22 L 60 22 Q 68 22 68 28 L 68 50"/>
+          <path d="M 68 50 L 175 50"/>
+          <path d="M 28 55 L 175 55"/>
+          <path d="M 28 55 L 28 80"/>
+          <path d="M 175 55 L 175 80"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- 塗鴉模式 -->
+    <div class="squiggle-stage active" id="squiggleStage">
+      <div class="squiggle-pad" id="squigglePad">
+        <canvas id="squiggleCanvas"></canvas>
+        <div class="squiggle-hint">
+          <svg viewBox="0 0 24 24">
+            <path d="M16.5 3.5l4 4L7 21H3v-4L16.5 3.5z"/>
+            <path d="M14 6l4 4"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="squiggle-progress" id="squiggleProgress">
+        <div class="squiggle-group">4</div>
+        <div class="squiggle-group">2</div>
+        <div class="squiggle-group">3</div>
+      </div>
+
+      <div class="squiggle-actions">
+        <button class="squiggle-btn" id="btnSquiggleReset" type="button">
+          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+          重 畫
+        </button>
+        <button class="squiggle-btn" id="btnToText" type="button">輸 入 文 字</button>
+      </div>
+    </div>
+
+    <!-- 文字模式 -->
+    <div class="squiggle-stage" id="textStage">
+      <input type="password" id="loginPassword" class="squiggle-text-input"
+             inputmode="text" autocapitalize="off" autocomplete="current-password" maxlength="6">
+      <div class="squiggle-actions">
+        <button class="squiggle-btn" id="btnTextSubmit" type="button">登 入</button>
+        <button class="squiggle-btn" id="btnToSquiggle" type="button">使 用 塗 鴉</button>
+      </div>
+    </div>
+
+    <!-- 共用錯誤訊息 -->
+    <div class="squiggle-error" id="squiggleError"></div>
+
+    <!-- 既有 idle 自動登出訊息(保留) -->
     <div class="login-info" id="loginInfo">閒置已自動登出,請重新登入</div>
   </div>
+</div>
+
+<!-- v0.8-r5:沉思遮罩 — 收到 GAS locked 時顯示,純黑 + 倒數秒數 -->
+<div class="meditation-veil" id="meditationVeil">
+  <div class="meditation-countdown" id="meditationCountdown">600</div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════════════
@@ -2390,15 +2657,12 @@ function handleIdleTimeout() {
   clearSessionFromStorage();
   if (state.idleTimerId) clearTimeout(state.idleTimerId);
   showPage("pageLogin");
-  // v0.6 r12:對齊 handleSessionExpired 的 r3 修補 — 重置 form 殘留狀態
-  // 修復:idle 觸發時若使用者剛好按過「登入」,form-busy / 三點脈動 / isLoggingIn
-  //       會卡住,使用者只能 F5 才能重新登入
+  // v0.8-r5:適配新登入結構 — 重置 squiggle + 顯示 idle 訊息
   resetLoginForm();
-  document.getElementById("loginInfo").style.display = "block";
-  document.getElementById("loginError").style.display = "none";
-  setTimeout(function() {
-    document.getElementById("loginPassword").focus();
-  }, 100);
+  Squiggle.init();
+  const infoEl = document.getElementById("loginInfo");
+  if (infoEl) infoEl.style.display = "block";
+  hideSquiggleError();
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -2506,9 +2770,9 @@ async function proceedAfterLineId() {
     }
     // 沒 session,顯示登入頁
     showPage("pageLogin");
-    setTimeout(function() {
-      document.getElementById("loginPassword").focus();
-    }, 100);
+    // v0.8-r5:塗鴉模式預設,不 focus 任何元素(文字模式才需 focus)
+    // 改在 squiggle module 初始化 canvas
+    setTimeout(function() { Squiggle.init(); }, 100);
   } catch (e) {
     if (e.isSessionExpired) return;
     authShowError("連線錯誤", "無法驗證身份,請稍後再試。");
@@ -2537,36 +2801,21 @@ function authShowError(title, sub, opts) {
    登入 / 登出
    ══════════════════════════════════════════════════════════════════════════════ */
 let isLoggingIn = false;
-async function doTherapistLogin() {
-  if (isLoggingIn) return;
-  const pwEl = document.getElementById("loginPassword");
-  const errEl = document.getElementById("loginError");
-  const infoEl = document.getElementById("loginInfo");
-  const btn = document.getElementById("btnLogin");
-  const loginBox = document.querySelector(".login-box");
-  errEl.style.display = "none";
-  infoEl.style.display = "none";
-  const password = pwEl.value;
+
+/* v0.8-r5:doTherapistLogin 重構 — 支援塗鴉 + 文字兩種輸入模式
+   - 塗鴉:Squiggle.getSubmitString() 把三筆判讀序列化為 "DUDUD|DUD|DUDU" 字串
+   - 文字:既有 loginPassword input 的值
+   兩者都送 password 欄位給 GAS verifyTherapistLogin,GAS 端 OR 比對(改動見 GAS diff)
+   錯誤反饋:塗鴉錯 → sphinx 變橘眼 + 抖動;文字錯 → input 變紅
+   locked   → 全屏黑遮罩 + 600 秒倒數(對齊 GAS lockoutSeconds)
+*/
+async function doTherapistLogin(password, mode) {
+  if (isLoggingIn) return { success: false };
   if (!password) {
-    errEl.textContent = "請輸入密碼";
-    errEl.style.display = "block";
-    return;
+    showSquiggleError("請輸入密碼");
+    return { success: false };
   }
   isLoggingIn = true;
-  // v0.6 r2:對齊方案 C — form 整體淡化(input、副標等都灰),按鈕保持實體 + 三點脈動 + 「進入系統」文字
-  if (loginBox) loginBox.classList.add("form-busy");
-  btn.disabled = true;
-  btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:10px;justify-content:center;">'
-                + '<span class="btn-dots"><span></span><span></span><span></span></span>'
-                + '<span>進入系統</span>'
-                + '</span>';
-
-  // 失敗時恢復 form 狀態的 helper
-  function restoreForm(label) {
-    if (loginBox) loginBox.classList.remove("form-busy");
-    btn.disabled = false;
-    btn.innerHTML = label || "登入";
-  }
 
   try {
     const data = await xhrPost(API_URL, {
@@ -2580,34 +2829,338 @@ async function doTherapistLogin() {
       state.isOwner = !!data.isOwner;
       state.loginTime = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
       saveSessionToStorage();
-      pwEl.value = "";
-      // 成功不 restoreForm — 直接進主頁(避免「淡化解除」一閃造成視覺雜訊)
+      hideSquiggleError();
+      Squiggle.onSuccess();
       enterMainPage();
+      return { success: true };
     } else if (data.error === "locked") {
-      errEl.textContent = "登入失敗次數過多,請稍後再試。";
-      errEl.style.display = "block";
-      restoreForm();
+      Squiggle.triggerMeditation();
+      return { success: false, locked: true };
     } else if (data.error === "wrong_password") {
-      // v0.6 r2:先 restoreForm(解除 pointer-events 鎖),再 focus + show error
-      restoreForm();
-      pwEl.value = ""; pwEl.focus();
       const rem = data.remaining || 0;
-      errEl.textContent = "密碼錯誤(剩餘 " + rem + " 次)";
-      errEl.style.display = "block";
+      showSquiggleError("密 碼 錯 誤 ( 剩 餘 " + rem + " 次 )");
+      Squiggle.onFail(mode);
+      return { success: false, wrong: true };
     } else {
-      errEl.textContent = data.error || "登入失敗,請稍後再試。";
-      errEl.style.display = "block";
-      restoreForm();
+      showSquiggleError(data.error || "登入失敗");
+      Squiggle.onFail(mode);
+      return { success: false };
     }
   } catch (e) {
-    if (e.isSessionExpired) return;
-    errEl.textContent = "連線異常,請稍後再試。";
-    errEl.style.display = "block";
-    restoreForm();
+    if (e.isSessionExpired) return { success: false };
+    showSquiggleError("連線異常,請稍後再試");
+    Squiggle.onFail(mode);
+    return { success: false };
   } finally {
     isLoggingIn = false;
   }
 }
+
+/* v0.8-r5:共用錯誤訊息(取代既有 loginError 在 squiggle 場景的使用)*/
+function showSquiggleError(msg) {
+  const el = document.getElementById("squiggleError");
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add("visible");
+}
+function hideSquiggleError() {
+  const el = document.getElementById("squiggleError");
+  if (!el) return;
+  el.classList.remove("visible");
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   v0.8-r5:Squiggle Module — Sphinx 謎語登入
+   核心邏輯:
+     1. canvas 接收三筆塗鴉(touch / mouse)
+     2. 每筆畫完抬手 → 計算「高度序列」(起點 + 轉折點 + 終點,每點映射到 U/D)
+        中線設在畫板高度 40% 處(給「下」更多空間,適合 spike 向上書寫)
+        轉折判定:方向變化 > 90° 且距離 > 8% 對角線
+     3. 三筆完成 → 序列字串化 "DUDUD|DUD|DUDU" → 送 GAS 比對
+     4. 失敗 → sphinx 變橘眼 + dots 抖動,沿用既有 wrong_password 流程
+     5. locked → 沉思遮罩 + 600 秒倒數(GAS 鎖 10 分鐘對齊)
+   ══════════════════════════════════════════════════════════════════════════════ */
+const Squiggle = (function() {
+  const PARAMS = {
+    midlineRatio:    0.40,
+    cornerAngleDeg:  90,
+    minSegmentRatio: 0.08,
+    resampleDist:    6,
+    lockoutSeconds:  600    // 對齊 GAS verifyTherapistLogin lockKey TTL(line 3723)
+  };
+
+  let canvas, ctx, pad, progress, groupEls, sphinx;
+  let textInput, textStage, squiggleStage, veil, countdownEl;
+  let isDrawing = false;
+  let currentStroke = [];
+  let strokeIndex = 0;
+  let strokeResults = [];
+  let inited = false;
+
+  function init() {
+    if (inited) {
+      setupCanvas();  // 重 init(re-show pageLogin)時補 setup
+      return;
+    }
+    inited = true;
+    canvas        = document.getElementById("squiggleCanvas");
+    ctx           = canvas.getContext("2d");
+    pad           = document.getElementById("squigglePad");
+    progress      = document.getElementById("squiggleProgress");
+    groupEls      = progress.querySelectorAll(".squiggle-group");
+    sphinx        = document.getElementById("loginSphinx");
+    textInput     = document.getElementById("loginPassword");
+    textStage     = document.getElementById("textStage");
+    squiggleStage = document.getElementById("squiggleStage");
+    veil          = document.getElementById("meditationVeil");
+    countdownEl   = document.getElementById("meditationCountdown");
+
+    setupCanvas();
+    bindEvents();
+  }
+
+  function setupCanvas() {
+    const rect = pad.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return false;
+    canvas.width  = rect.width * 2;
+    canvas.height = rect.height * 2;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);  // reset
+    ctx.scale(2, 2);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#2c2c2c";
+    return true;
+  }
+
+  function bindEvents() {
+    pad.addEventListener("mousedown",  startDraw);
+    pad.addEventListener("mousemove",  moveDraw);
+    window.addEventListener("mouseup", endDraw);
+    pad.addEventListener("touchstart", startDraw, { passive: false });
+    pad.addEventListener("touchmove",  moveDraw,  { passive: false });
+    pad.addEventListener("touchend",   endDraw,   { passive: false });
+    window.addEventListener("resize", function() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      setupCanvas();
+    });
+
+    document.getElementById("btnSquiggleReset").addEventListener("click", resetStrokes);
+    document.getElementById("btnToText").addEventListener("click", switchToText);
+    document.getElementById("btnToSquiggle").addEventListener("click", switchToSquiggle);
+    document.getElementById("btnTextSubmit").addEventListener("click", submitText);
+    textInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") submitText();
+    });
+  }
+
+  function getPos(e) {
+    const rect = pad.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    return { x: x, y: y };
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    if (strokeIndex >= 3 || isLoggingIn) return;
+    isDrawing = true;
+    pad.classList.add("has-content");
+    const p = getPos(e);
+    currentStroke = [p];
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  }
+  function moveDraw(e) {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const p = getPos(e);
+    currentStroke.push(p);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  }
+  function endDraw(e) {
+    if (!isDrawing) return;
+    e.preventDefault();
+    isDrawing = false;
+    finalizeStroke();
+  }
+
+  function finalizeStroke() {
+    if (currentStroke.length < 2) {
+      setTimeout(clearCanvas, 200);
+      return;
+    }
+    const rect = pad.getBoundingClientRect();
+    const seq = computeHeightSequence(currentStroke, rect.width, rect.height);
+    strokeResults.push(seq);
+    groupEls[strokeIndex].classList.add("filled");
+    strokeIndex++;
+
+    setTimeout(function() {
+      fadeOutCanvas(function() {
+        clearCanvas();
+        if (strokeIndex >= 3) submitSquiggle();
+      });
+    }, 300);
+  }
+
+  function computeHeightSequence(points, w, h) {
+    const midY = h * PARAMS.midlineRatio;
+    const heightOf = function(y) { return y < midY ? "U" : "D"; };
+    const minDist = Math.hypot(w, h) * PARAMS.minSegmentRatio;
+    const cornerThresh = PARAMS.cornerAngleDeg * Math.PI / 180;
+    const sampled = resample(points, PARAMS.resampleDist);
+    if (sampled.length < 3) {
+      return [heightOf(points[0].y), heightOf(points[points.length - 1].y)];
+    }
+    const corners = [0];
+    let lastDir = direction(sampled[0], sampled[1]);
+    let lastCornerIdx = 0;
+    for (let i = 2; i < sampled.length; i++) {
+      const dir = direction(sampled[i - 1], sampled[i]);
+      const angleDiff = angleBetween(lastDir, dir);
+      const distFromLastCorner = pathLength(sampled, lastCornerIdx, i);
+      if (angleDiff > cornerThresh && distFromLastCorner > minDist) {
+        corners.push(i - 1);
+        lastCornerIdx = i - 1;
+        lastDir = dir;
+      } else {
+        lastDir = direction(sampled[lastCornerIdx], sampled[i]);
+      }
+    }
+    corners.push(sampled.length - 1);
+    return corners.map(function(i) { return heightOf(sampled[i].y); });
+  }
+
+  function resample(points, dist) {
+    if (points.length < 2) return points;
+    const result = [points[0]];
+    let acc = 0;
+    for (let i = 1; i < points.length; i++) {
+      const d = Math.hypot(points[i].x - points[i-1].x, points[i].y - points[i-1].y);
+      acc += d;
+      if (acc >= dist) { result.push(points[i]); acc = 0; }
+    }
+    result.push(points[points.length - 1]);
+    return result;
+  }
+  function direction(a, b) { return Math.atan2(b.y - a.y, b.x - a.x); }
+  function angleBetween(a, b) {
+    let diff = Math.abs(a - b);
+    if (diff > Math.PI) diff = 2 * Math.PI - diff;
+    return diff;
+  }
+  function pathLength(points, from, to) {
+    let len = 0;
+    for (let i = from + 1; i <= to; i++) {
+      len += Math.hypot(points[i].x - points[i-1].x, points[i].y - points[i-1].y);
+    }
+    return len;
+  }
+
+  function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pad.classList.remove("has-content");
+    currentStroke = [];
+    canvas.style.opacity = "1";
+  }
+  function fadeOutCanvas(cb) {
+    canvas.style.transition = "opacity 0.4s ease";
+    canvas.style.opacity = "0";
+    setTimeout(function() {
+      canvas.style.transition = "none";
+      cb();
+    }, 400);
+  }
+
+  async function submitSquiggle() {
+    const submittedString = strokeResults.map(function(s) { return s.join(""); }).join("|");
+    await doTherapistLogin(submittedString, "squiggle");
+  }
+  async function submitText() {
+    if (isLoggingIn) return;
+    const v = textInput.value;
+    await doTherapistLogin(v, "text");
+  }
+
+  function resetStrokes() {
+    clearCanvas();
+    groupEls.forEach(function(g) { g.classList.remove("filled"); });
+    strokeIndex = 0;
+    strokeResults = [];
+    hideSquiggleError();
+  }
+
+  function switchToText() {
+    squiggleStage.classList.remove("active");
+    textStage.classList.add("active");
+    hideSquiggleError();
+    setTimeout(function() { textInput.focus(); }, 100);
+  }
+  function switchToSquiggle() {
+    textStage.classList.remove("active");
+    squiggleStage.classList.add("active");
+    textInput.value = "";
+    textInput.classList.remove("error");
+    hideSquiggleError();
+    resetStrokes();
+    requestAnimationFrame(setupCanvas);  // 防 race condition
+  }
+
+  function onFail(mode) {
+    sphinx.classList.add("angry");
+    if (mode === "squiggle") {
+      progress.classList.add("shake");
+      setTimeout(function() {
+        progress.classList.remove("shake");
+        groupEls.forEach(function(g) { g.classList.remove("filled"); });
+        strokeIndex = 0;
+        strokeResults = [];
+      }, 500);
+    } else {
+      textInput.value = "";
+      textInput.classList.add("error");
+      setTimeout(function() {
+        textInput.classList.remove("error");
+        textInput.focus();
+      }, 600);
+    }
+  }
+
+  function onSuccess() {
+    sphinx.classList.remove("angry");
+    resetStrokes();
+  }
+
+  function triggerMeditation() {
+    veil.classList.add("active");
+    let remaining = PARAMS.lockoutSeconds;
+    countdownEl.textContent = remaining;
+    const ticker = setInterval(function() {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(ticker);
+        veil.classList.remove("active");
+        sphinx.classList.remove("angry");
+        hideSquiggleError();
+      } else {
+        countdownEl.textContent = remaining;
+      }
+    }, 1000);
+  }
+
+  // 公開 API
+  return {
+    init: init,
+    onFail: onFail,
+    onSuccess: onSuccess,
+    triggerMeditation: triggerMeditation,
+    getSubmitString: function() {
+      return strokeResults.map(function(s) { return s.join(""); }).join("|");
+    }
+  };
+})();
 
 async function doTherapistLogout() {
   // v0.6 r4:登出動畫 — 用 overlay 蓋住整個主頁,跑完才切到登入頁
@@ -2635,36 +3188,31 @@ async function doTherapistLogout() {
   // 切到登入頁(此時 overlay 仍蓋在 pageMain 上,使用者看不到切換瞬間)
   showPage("pageLogin");
   resetLoginForm();
-  document.getElementById("loginError").style.display = "none";
-  document.getElementById("loginInfo").style.display = "none";
+  // v0.8-r5:重置 squiggle 而非 focus loginPassword(預設是塗鴉模式)
+  Squiggle.init();
 
   // 拿掉 pageMain 上的 overlay(因為 pageMain 已 display:none,overlay 看不見但 DOM 還在,清掉)
   hideLocalOverlay("pageMain");
-
-  setTimeout(function() {
-    document.getElementById("loginPassword").focus();
-  }, 100);
 }
 
 /**
- * v0.6 r3:重置 login form 到「乾淨」狀態
- *   - 清掉 form-busy class(讓 input 從淡化恢復)
- *   - 清掉按鈕內三點脈動 + 「進入系統」,恢復「登入」
- *   - 清空密碼欄
+ * v0.8-r5:重置 login form(適配新塗鴉 + 文字結構)
+ *   - 清空文字輸入
  *   - 清掉 isLoggingIn flag
- * 用於:登出、session expired、進入登入頁等需要重置 UI 的場景
+ *   - 隱藏錯誤訊息與 idle 提示
+ *   - 重置塗鴉狀態(透過 Squiggle.onSuccess,reuse 同一份清理邏輯)
+ * 用於:登出、session expired、idle 自動登出等需要重置 UI 的場景
  */
 function resetLoginForm() {
-  const loginBox = document.querySelector(".login-box");
-  const btn = document.getElementById("btnLogin");
   const pwEl = document.getElementById("loginPassword");
-  if (loginBox) loginBox.classList.remove("form-busy");
-  if (btn) {
-    btn.disabled = false;
-    btn.innerHTML = "登入";
+  if (pwEl) {
+    pwEl.value = "";
+    pwEl.classList.remove("error");
   }
-  if (pwEl) pwEl.value = "";
   isLoggingIn = false;
+  hideSquiggleError();
+  const infoEl = document.getElementById("loginInfo");
+  if (infoEl) infoEl.style.display = "none";
 }
 
 function handleSessionExpired() {
@@ -2672,13 +3220,10 @@ function handleSessionExpired() {
   clearSessionFromStorage();
   if (state.idleTimerId) clearTimeout(state.idleTimerId);
   showPage("pageLogin");
-  resetLoginForm(); // v0.6 r3:重置 form 殘留狀態
-  const errEl = document.getElementById("loginError");
-  errEl.textContent = "登入已過期,請重新登入。";
-  errEl.style.display = "block";
-  setTimeout(function() {
-    document.getElementById("loginPassword").focus();
-  }, 100);
+  resetLoginForm();
+  // v0.8-r5:顯示 session 過期訊息 + 重置 squiggle
+  showSquiggleError("登 入 已 過 期 , 請 重 新 登 入");
+  Squiggle.init();
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -4738,10 +5283,7 @@ function showToast(msg, duration) {
    ══════════════════════════════════════════════════════════════════════════════ */
 window.addEventListener("DOMContentLoaded", function() {
   bindIdleListeners();
-  // Enter 觸發登入
-  document.getElementById("loginPassword").addEventListener("keypress", function(ev) {
-    if (ev.key === "Enter") doTherapistLogin();
-  });
+  // v0.8-r5:loginPassword keypress 綁定改在 Squiggle.bindEvents 內處理,這裡移除
   // modal overlay 點擊關閉
   document.getElementById("modalWaitlist").addEventListener("click", function(ev) {
     if (ev.target.id === "modalWaitlist") closeWaitlistModal();
