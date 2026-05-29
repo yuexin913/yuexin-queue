@@ -16,7 +16,9 @@
 <style>
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
-     Current Version: v5.5.19-marathon2-dual-clinic-r10 (2026-05-23)
+     Current Version: v5.5.20-cleanup (2026-05-28)
+     (基於 v5.5.19-marathon2-dual-clinic-r10 / 雙診上線版,本輪 cleanup:
+      心寬轉介標記移除 3 處 / rocDate helper 升級防呆版 / 代掛 match modal birth 過 rocDate)
 
      Designed by Su Ning | Powered by Claude & Gemini 2026
      ════════════════════════════════════════════════════════ */
@@ -4418,13 +4420,11 @@ function renderSessionContent(session, isClosed) {
         ? `<div style="position:absolute;bottom:7px;right:7px;width:10px;height:10px;background:var(--marigold);"></div>` : "";
       const npConflictHtml = (c.hasRtConflict || conflictNpRowStarts.has(c.npRowStart))
         ? `<div style="position:absolute;bottom:6px;right:7px;line-height:1;color:var(--pink);"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>` : "";
-      const isXinkuan = c.source === "心寬轉介";
-
       const npBirthDisplay = c.birth ? esc(rocDate(c.birth)) : "";
       html += `<div class="grid-np-banner ${bannerClass}" ${clickAttr} style="cursor:pointer;position:relative;">
         <div style="position:absolute;top:7px;left:6px;font-size:20px;font-weight:700;color:#ffffff;">${esc(c.checkInTime)}前</div>
         ${npBirthDisplay ? `<div style="position:absolute;top:50%;left:6px;right:90px;transform:translateY(-50%);font-size:12px;font-weight:400;color:#ffffff;opacity:0.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${npBirthDisplay}</div>` : ""}
-        <div style="position:absolute;bottom:6px;left:6px;right:90px;font-size:14px;font-weight:400;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${isXinkuan ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(c.name)}</span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>` : esc(c.name)}</div>
+        <div style="position:absolute;bottom:6px;left:6px;right:90px;font-size:14px;font-weight:400;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${esc(c.name)}</div>
         ${cautionHtml}${npConflictHtml}
       </div>`;
     } else if (c.type === "rt") {
@@ -4434,17 +4434,12 @@ function renderSessionContent(session, isClosed) {
       const numDisplay = `${c.num}`;
       const clickAttr = `data-bid="${esc(c.bookingId)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-notify-status="${c.notifyStatus}" data-admin="${c.isAdminBooking}" data-birth="${esc(c.birth)}" data-slot="${esc(c.num)}" data-session="${esc(session)}" data-type="複診" data-status="${esc(c.status||'')}" onclick="openContactModalFromEl(this)" style="cursor:pointer"`;
       const cautionHtml = (c.isAdminBooking && (c.notifyStatus === "[人工預約]")) ? `<div class="cell-caution"></div>` : "";
-      const isXinkuan = c.source === "心寬轉介";
-      const xinkuanHtml = "";
       const nameRight = cautionHtml ? "22px" : "20px";
-      const nameHtml = isXinkuan
-        ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(c.name)}</span><span style="color:#C0392B;font-size:10px;font-weight:700;"> *</span>`
-        : esc(c.name);
       const birthDisplay = c.birth ? esc(rocDate(c.birth)) : "";
       html += `<div class="grid-cell ${cellClass}" ${clickAttr}>
         <span class="cell-num" style="font-size:22px;font-weight:700;color:#ffffff;position:absolute;top:6px;left:6px;">${numDisplay}</span>
         ${birthDisplay ? `<span style="font-size:12px;font-weight:400;color:#ffffff;opacity:0.7;position:absolute;top:50%;left:6px;right:6px;transform:translateY(-50%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${birthDisplay}</span>` : ""}
-        <span style="font-size:14px;font-weight:400;color:#ffffff;position:absolute;bottom:5px;left:6px;right:${nameRight};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${nameHtml}</span>
+        <span style="font-size:14px;font-weight:400;color:#ffffff;position:absolute;bottom:5px;left:6px;right:${nameRight};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;" title="${esc(c.name)}">${esc(c.name)}</span>
         ${cautionHtml}
       </div>`;
     } else if (c.type === "conflict") {
@@ -4561,14 +4556,10 @@ function renderUnspecList() {
         onclick="openUnspecContactCard('${esc(b.bookingId)}')">自動通知</span>`;
     }
 
-    const xinkuanDot = b.source === "心寬轉介"
-      ? `<span style="color:#C0392B;font-size:10px;font-weight:700;flex-shrink:0;"> *</span>`
-      : "";
-
     return `<div class="unspec-modal-row">
       <span class="unspec-modal-num">${i + 31}</span>
       <div class="unspec-modal-main">
-        <div class="unspec-modal-name">${b.source === "心寬轉介" ? `<span style="text-decoration:underline;text-decoration-color:#C0392B;text-underline-offset:2px;">${esc(b.name)}</span>` : esc(b.name)}${xinkuanDot}</div>
+        <div class="unspec-modal-name">${esc(b.name)}</div>
         <div class="unspec-modal-info">${birthStr}${birthStr && phoneStr ? "　" : ""}${phoneStr}</div>
       </div>
       ${notifyTag}
@@ -4791,7 +4782,7 @@ function showAdminAddResult(type, matches) {
         ? `<input type="radio" name="matchPatient" value="${i}" id="matchOpt${i}" onchange="selectMatchPatient(${i})" style="margin-right:6px;">`
         : "";
       const labelHtml = `<label for="matchOpt${i}" style="font-size:13px;cursor:pointer;">
-        ${esc(m.name || "")}　${esc(m.birth || "")}　${esc(m.phone || "")}
+        ${esc(m.name || "")}　${esc(rocDate(m.birth || ""))}　${esc(m.phone || "")}
       </label>`;
       return `<div style="padding:8px;border:1px solid var(--border);border-radius:4px;margin-bottom:6px;display:flex;align-items:center;">
         ${radioHtml}${labelHtml}
@@ -5292,13 +5283,47 @@ function copyLineMsgForAdd(isReminder) {
   });
 }
 
+// 2026-05-28:rocDate 從假轉換(split-join 不轉)升級成防呆版
+//   輸入可能格式:
+//     · 民國 slash "61/11/11"        → passthrough(已是民國)
+//     · 西元 dash  "1972-11-11"       → 減 1911 → "61/11/11"
+//     · 西元 slash "1972/11/11"       → 減 1911 → "61/11/11"
+//     · 純數字     "19721111"          → 減 1911 → "61/11/11"
+//     · Date 物件                      → toISOString → 減 1911
+//     · 空 / null / undefined          → ""
+//   升級理由:原本 backend 部分 path 直接吐西元 dash(如 lookupPatientLineId,代掛 match
+//   modal 顯示「2003-02-22」洩漏西元年),前端 caller 信任 rocDate 會轉但其實沒轉,
+//   是個 latent UI bug。升級為真會轉的防呆版後,即使未來 backend 新增 path 直接吐
+//   西元,前端 rocDate 仍能正確顯示民國年,不再依賴「每個 backend path 都記得轉」。
 function rocDate(birthStr) {
   if (!birthStr) return "";
-  const parts = birthStr.toString().split("/");
-  if (parts.length === 3) {
-    return parts[0] + "/" + parts[1] + "/" + parts[2];
+  // Date 物件 → 轉成 yyyy-mm-dd 字串
+  if (birthStr instanceof Date) {
+    const y = birthStr.getFullYear();
+    const m = String(birthStr.getMonth() + 1).padStart(2, "0");
+    const d = String(birthStr.getDate()).padStart(2, "0");
+    birthStr = y + "-" + m + "-" + d;
   }
-  return birthStr;
+  const s = birthStr.toString().trim();
+  if (!s) return "";
+  // 拆解:支援 dash / slash / 純數字
+  let y, m, d;
+  if (/^\d{8}$/.test(s)) {
+    y = parseInt(s.substring(0, 4));
+    m = s.substring(4, 6);
+    d = s.substring(6, 8);
+  } else {
+    const parts = s.split(/[-\/]/);
+    if (parts.length !== 3) return s;  // 不認得就 passthrough(向後相容)
+    y = parseInt(parts[0]);
+    m = parts[1].padStart(2, "0");
+    d = parts[2].padStart(2, "0");
+  }
+  if (isNaN(y)) return s;
+  // 西元年(4 位數 ≥ 1911)→ 減 1911 變民國
+  // 民國年(3 位以下,通常 <= 200)→ passthrough
+  const rocY = y >= 1911 ? (y - 1911) : y;
+  return rocY + "/" + m + "/" + d;
 }
 
 function openContactModal(bookingId, name, phone, isNotified, isAdminBooking, birth, slot, session, npSurvey, el, notifyStatus) {
