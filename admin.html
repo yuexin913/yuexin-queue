@@ -16,9 +16,11 @@
 <style>
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
-     Current Version: v5.5.20-cleanup (2026-05-28)
-     (基於 v5.5.19-marathon2-dual-clinic-r10 / 雙診上線版,本輪 cleanup:
-      心寬轉介標記移除 3 處 / rocDate helper 升級防呆版 / 代掛 match modal birth 過 rocDate)
+     Current Version: v5.5.21-ui-fixes (2026-05-28)
+     (基於 v5.5.19-marathon2-dual-clinic-r10 / 雙診上線版,本輪 cleanup + UI 修補:
+      心寬轉介標記移除 3 處 / rocDate helper 升級防呆版 / 代掛 match modal birth 過 rocDate /
+      Bug 1:getValidSessionsForDate 週六只回早上(門診異動 modal 不再出現下午晚上選項) /
+      Bug 2:停診時醫師 tile 主文字改空字串,紅標獨立呈現停診狀態)
 
      Designed by Su Ning | Powered by Claude & Gemini 2026
      ════════════════════════════════════════════════════════ */
@@ -3067,9 +3069,12 @@ function getValidSessionsForDate(dateStr) {
   const dow = d.getDay();
   if (dow === 0) return [];  // 週日
   if (dow === 6) {
+    // 2026-05-28 Bug 1 修補:一般週六只有早上(下午/晚上對齊 DEFAULT_DOCTOR_SCHEDULE[6]
+    //   的空字串,排除 modal session 選單出現「下午/晚上」這種實際無診的選項)。
+    //   雙診週六上午仍正確回 4 個 session,backend 信號控制 path 不受影響。
     return isDualClinicSaturdayFE(dateStr)
       ? ["早上一診", "早上二診", "下午", "晚上"]
-      : ["早上", "下午", "晚上"];
+      : ["早上"];
   }
   return ["早上", "下午", "晚上"];
 }
@@ -4147,7 +4152,10 @@ function switchTab(session) {
   const list = allBookings.filter(b => b.session === session);
   const sessionInfo = (window._sessionDoctorMap && window._sessionDoctorMap[session]) || { doctor: "—", isSubstitute: false, isClosed: false };
   const isClosed = sessionInfo.isClosed;
-  const doctor = isClosed ? "停診" : (list.length > 0 ? list[0].doctor : sessionInfo.doctor);
+  // 2026-05-28 Bug 2 修補:停診時 doctor 主文字改空字串(原本寫「停診」覆蓋醫師姓名)。
+  //   L4158-4163 的 doctor-substitute-note 紅標機制已獨立呈現「停診」狀態,
+  //   主文字不再重複塞同樣文字。簡化職責:紅標管狀態,主文字管醫師姓名。
+  const doctor = isClosed ? "" : (list.length > 0 ? list[0].doctor : sessionInfo.doctor);
   const isSubstitute = !isClosed && (list.length > 0 ? list[0].isSubstitute : sessionInfo.isSubstitute);
   document.getElementById("sessionDoctorText").textContent = doctor;
   document.getElementById("sessionDoctorText").classList.remove("doctor-loading");
