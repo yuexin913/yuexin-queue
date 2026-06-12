@@ -16,11 +16,11 @@
 <style>
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
-     Current Version: v5.5.21-ui-fixes (2026-05-28)
-     (基於 v5.5.19-marathon2-dual-clinic-r10 / 雙診上線版,本輪 cleanup + UI 修補:
-      心寬轉介標記移除 3 處 / rocDate helper 升級防呆版 / 代掛 match modal birth 過 rocDate /
-      Bug 1:getValidSessionsForDate 週六只回早上(門診異動 modal 不再出現下午晚上選項) /
-      Bug 2:停診時醫師 tile 主文字改空字串,紅標獨立呈現停診狀態)
+     Current Version: v5.5.22-ui-fixes-r2 (2026-05-28)
+     (基於 v5.5.21-ui-fixes / 上一輪 5/28 ship,Bug 1 補完整:
+      v5.5.21 只改了單診週六,雙診週六(每月第 2/4 個週六)session 下拉
+      仍出現下午/晚上 — 粟醫師實機 catch。本版改完雙診週六也只回「早上一診/早上二診」。
+      Bug 2(停診醫師 tile 主文字)維持 v5.5.21 修補不變。)
 
      Designed by Su Ning | Powered by Claude & Gemini 2026
      ════════════════════════════════════════════════════════ */
@@ -3069,11 +3069,13 @@ function getValidSessionsForDate(dateStr) {
   const dow = d.getDay();
   if (dow === 0) return [];  // 週日
   if (dow === 6) {
-    // 2026-05-28 Bug 1 修補:一般週六只有早上(下午/晚上對齊 DEFAULT_DOCTOR_SCHEDULE[6]
-    //   的空字串,排除 modal session 選單出現「下午/晚上」這種實際無診的選項)。
-    //   雙診週六上午仍正確回 4 個 session,backend 信號控制 path 不受影響。
+    // 2026-05-28 Bug 1 修補(後補:雙診週六也要 filter):週六(雙診/單診)的下午、
+    //   晚上對齊 DEFAULT_DOCTOR_SCHEDULE[6] 的空字串(實際無診),不該出現在門診異動
+    //   modal 的選單(對齊 SSoT)。單診週六:只回「早上」;雙診週六:只回「早上一診」「早上二診」。
+    //   注意:backend getSessionsForDate(L726)仍回 4 個 session(保留寫入彈性),
+    //   本 helper 只服務 frontend modal 的窄用途,UI 防呆 + backend 保留彈性兩邊各司其職。
     return isDualClinicSaturdayFE(dateStr)
-      ? ["早上一診", "早上二診", "下午", "晚上"]
+      ? ["早上一診", "早上二診"]
       : ["早上"];
   }
   return ["早上", "下午", "晚上"];
