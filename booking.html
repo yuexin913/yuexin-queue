@@ -19,7 +19,7 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
-     v5.8.10-elderly-ui (2026-06-14)
+     v5.8.9-cleanup (2026-05-28)
      (基於 v5.8.8-marathon3-dual-clinic-r9 / 雙診上線版,本輪 cleanup:
       楠梓心寬轉介入口卡 + handler 移除 / 王麟祥初診 1115 隱藏邏輯移除)
 
@@ -373,9 +373,9 @@
   }
   /* 覆蓋 inline 的 SVG width/height="16" —— 只影響 entry-icon 內的 SVG */
   .entry-icon svg { width: 24px !important; height: 24px !important; stroke-width: 1.3; }
-  .entry-text .entry-title { font-size: 17px; font-weight: 400; color: var(--ink); letter-spacing: 1px; }
+  .entry-text .entry-title { font-size: 15px; font-weight: 400; color: var(--ink); letter-spacing: 1px; }
   .entry-text .entry-desc {
-    font-size: 14px; color: #6f6d5f; margin-top: 4px;
+    font-size: 12px; color: var(--ink-light); margin-top: 4px;
     line-height: 1.5; letter-spacing: 0.3px;
   }
   .entry-arrow { margin-left: auto; color: var(--ink-light); font-size: 18px; font-weight: 300; opacity: 0.6; }
@@ -398,7 +398,7 @@
   .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
   .cal-day {
     aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-    font-size: 16px; border-radius: 2px; cursor: pointer; transition: all 0.2s;
+    font-size: 13px; border-radius: 2px; cursor: pointer; transition: all 0.2s;
     border: 0.5px solid transparent;
   }
   .cal-day:hover:not(.disabled):not(.empty) {
@@ -458,7 +458,7 @@
   }
   .time-card {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 18px 16px; border: 0.5px solid rgba(74,74,68,0.22);
+    padding: 14px 16px; border: 0.5px solid rgba(74,74,68,0.2);
     border-radius: 2px; background: transparent;
     cursor: pointer; transition: all 0.2s; text-align: left;
   }
@@ -480,12 +480,12 @@
   .time-card-disabled .time-card-label { color: rgba(74,74,68,0.3); }
   .time-card-disabled .time-card-badge { background: rgba(74,74,68,0.06); color: rgba(74,74,68,0.35); }
   .time-card-left { flex: 1; }
-  .time-card-title { font-family: 'Noto Serif TC', serif; font-size: 19px; font-weight: 500; color: var(--sage-deep); letter-spacing: 2px; }
-  .time-card-label { font-size: 14px; color: #6f6d5f; margin-top: 6px; letter-spacing: 0.3px; }
+  .time-card-title { font-family: 'Noto Serif TC', serif; font-size: 16px; font-weight: 500; color: var(--sage-deep); letter-spacing: 2px; }
+  .time-card-label { font-size: 12px; color: var(--ink-light); margin-top: 4px; letter-spacing: 0.3px; }
   .time-card-badge {
-    font-size: 13px; font-weight: 400; padding: 4px 12px;
-    background: rgba(138,170,85,0.15); color: var(--sage-dark);
-    border-radius: 3px; white-space: nowrap; margin-left: 12px;
+    font-size: 11px; font-weight: 400; padding: 3px 10px;
+    background: rgba(138,170,85,0.12); color: var(--sage-dark);
+    border-radius: 2px; white-space: nowrap; margin-left: 12px;
     letter-spacing: 0.5px;
   }
   /* r3(2026-05-23):不指定卡 L9-B 視覺升級 — dashed → solid 加粗,title 改襯線體 16px sage-deep
@@ -497,7 +497,7 @@
   }
   .time-card-unspecified .time-card-title {
     font-family: 'Noto Serif TC', serif;
-    font-size: 19px;
+    font-size: 16px;
     font-weight: 500;
     color: var(--sage-deep);
     letter-spacing: 2px;
@@ -663,8 +663,8 @@
   .btn-danger:hover { background: #fdf0ef; }
 
   .pill-btn {
-    padding: 10px 20px; border: 0.5px solid rgba(74,74,68,0.25); border-radius: 2px;
-    background: transparent; color: var(--ink-mid); font-family: inherit; font-size: 16px;
+    padding: 8px 18px; border: 0.5px solid rgba(74,74,68,0.25); border-radius: 2px;
+    background: transparent; color: var(--ink-mid); font-family: inherit; font-size: 14px;
     font-weight: 400; letter-spacing: 1.5px;
     cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
   }
@@ -862,11 +862,11 @@
   .summary-row:nth-child(7) { animation-delay: 0.35s; }
   .summary-row:nth-child(8) { animation-delay: 0.40s; }
   .summary-label {
-    font-size: 13px; color: #6f6d5f;
-    font-weight: 400; letter-spacing: 1px;
+    font-size: 11.5px; color: var(--ink-light);
+    font-weight: 400; letter-spacing: 2px;
   }
   .summary-value {
-    font-size: 16px; font-weight: 400;
+    font-size: 14.5px; font-weight: 400;
     color: var(--ink); text-align: right;
     letter-spacing: 1px;
   }
@@ -1051,17 +1051,17 @@
   }
   .fusion-info-row {
     display: grid;
-    grid-template-columns: 56px 1fr;
+    grid-template-columns: 50px 1fr;
     gap: 12px;
-    padding: 6px 0;
+    padding: 5px 0;
     align-items: baseline;
-    font-size: 16px;
+    font-size: 13px;
     font-family: 'Noto Sans TC', sans-serif;
   }
   .fusion-info-row .lbl {
-    color: #6f6d5f;
-    letter-spacing: 1px;
-    font-size: 13px;
+    color: var(--ink-light);
+    letter-spacing: 2px;
+    font-size: 11px;
   }
   .fusion-info-row .val {
     color: var(--ink);
@@ -1174,8 +1174,8 @@
   .status-title.status-warning-text { color: #8a5f0a; }
   .status-title.status-error-text   { color: #8a2a22; }
   .status-sub {
-    text-align: center; font-size: 16px;
-    color: #3a3a35; line-height: 1.85; margin-bottom: 24px;
+    text-align: center; font-size: 13.5px;
+    color: var(--ink-mid); line-height: 1.9; margin-bottom: 24px;
     letter-spacing: 1px;
     animation: fadeIn 0.4s 0.7s both;
   }
@@ -1409,30 +1409,30 @@
   }
   .announcement-title {
     font-family: 'Noto Serif TC', serif;
-    font-size: 15px; font-weight: 500; color: #8a5f0a;
+    font-size: 13px; font-weight: 500; color: #8a5f0a;
     display: flex; align-items: center; gap: 6px;
     margin-bottom: 10px; letter-spacing: 3px;
   }
   .announcement-item {
     display: flex; align-items: baseline; gap: 8px;
     padding: 6px 0; border-bottom: 0.5px solid rgba(74,74,68,0.1);
-    font-size: 16px; line-height: 1.7;
+    font-size: 13px; line-height: 1.7;
   }
   .announcement-item:last-child { border-bottom: none; padding-bottom: 0; }
   .announcement-badge-closed {
-    font-size: 12px; font-weight: 500; color: var(--error);
+    font-size: 10px; font-weight: 500; color: var(--error);
     background: transparent; border: 0.5px solid rgba(192,57,43,0.4);
-    padding: 2px 8px; border-radius: 2px; letter-spacing: 0.5px;
+    padding: 1px 7px; border-radius: 2px; letter-spacing: 0.5px;
     flex-shrink: 0;
   }
   .announcement-badge-sub {
-    font-size: 12px; font-weight: 500; color: var(--sage-dark);
+    font-size: 10px; font-weight: 500; color: var(--sage-dark);
     background: transparent; border: 0.5px solid rgba(90,122,56,0.4);
-    padding: 2px 8px; border-radius: 2px; letter-spacing: 0.5px;
+    padding: 1px 7px; border-radius: 2px; letter-spacing: 0.5px;
     flex-shrink: 0;
   }
   .announcement-text { color: var(--ink); letter-spacing: 0.5px; }
-  .announcement-reason { color: #6f6d5f; font-size: 14px; letter-spacing: 0.3px; }
+  .announcement-reason { color: var(--ink-light); font-size: 12px; letter-spacing: 0.3px; }
   .announcement-toggle {
     font-size: 12px; color: #8a5f0a; text-align: center;
     padding-top: 8px; cursor: pointer; font-weight: 400; letter-spacing: 1px;
@@ -1762,7 +1762,7 @@
       <div class="status-title status-error-text">無法使用線上預約</div>
       <div class="status-sub" style="max-width:340px;">
         若需協助，請傳訊息至官方 LINE,<br>
-        或於門診時間來電：<strong style="color:var(--sage-dark);font-size:19px;letter-spacing:1px;">07-363-1313</strong>
+        或於門診時間來電：<strong style="color:var(--sage-dark)">07-363-1313</strong>
       </div>
     </div>
   </div>
@@ -1781,7 +1781,7 @@
       </div>
       <div class="status-sub" style="max-width:340px;margin-top:8px;">
         系統暫時無法回應，請稍後再試。<br>
-        若持續無法連線，請來電：<strong style="color:var(--sage-dark);font-size:19px;letter-spacing:1px;">07-363-1313</strong>
+        若持續無法連線，請來電：<strong style="color:var(--sage-dark)">07-363-1313</strong>
       </div>
       <button class="btn btn-primary" style="max-width:220px;margin-top:12px;" onclick="location.reload()">重新載入</button>
     </div>
@@ -1801,7 +1801,7 @@
       <div class="status-title status-info-text">系統維護中</div>
       <div class="status-sub" style="max-width:340px;">
         線上預約系統暫停服務，造成不便敬請見諒。<br>
-        若需協助，請於門診時間來電：<strong style="color:var(--sage-dark);font-size:19px;letter-spacing:1px;">07-363-1313</strong>
+        若需協助，請於門診時間來電：<strong style="color:var(--sage-dark)">07-363-1313</strong>
       </div>
     </div>
   </div>
@@ -2011,7 +2011,7 @@
         <div style="flex:1;height:1px;background:rgba(74,74,68,0.15);"></div>
       </div>
       <div class="card" style="padding:18px;">
-        <div class="card-title" style="margin-bottom:12px;font-size:18px;">依據餘藥天數</div>
+        <div class="card-title" style="margin-bottom:12px;">依據餘藥天數</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
           <button class="pill-btn" onclick="setMedDays(7)">7 天</button>
           <button class="pill-btn" onclick="setMedDays(14)">14 天</button>
@@ -2021,8 +2021,8 @@
         <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:10px;">
           <input type="number" id="medDaysInput" inputmode="numeric" min="1" max="35"
             placeholder="輸入天數（1–35）"
-            style="min-width:0;padding:13px 12px;font-size:16px;">
-          <button class="btn btn-primary" style="white-space:nowrap;padding:13px 18px;margin:0;letter-spacing:0.5px;font-size:16px;" onclick="calculateMedDate()">計算回診日</button>
+            style="min-width:0;padding:10px 12px;font-size:13px;">
+          <button class="btn btn-primary" style="white-space:nowrap;padding:10px 16px;margin:0;letter-spacing:0.5px;font-size:14px;" onclick="calculateMedDate()">計算回診日</button>
         </div>
         <div id="medCalcError" class="alert alert-error" style="display:none;margin-bottom:0;"></div>
       </div>
@@ -2370,8 +2370,8 @@ async function initLiff() {
     document.querySelector(".container").innerHTML = `
       <div class="card" style="text-align:center;padding:40px 20px">
         <div style="font-size:40px;margin-bottom:16px"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg></div>
-        <div style="font-family:'Noto Serif TC',serif;font-size:19px;color:var(--green-dark);margin-bottom:12px">請使用 LINE 開啟</div>
-        <div style="font-size:15px;color:#6f6d5f;line-height:1.75">本預約系統需透過 LINE 開啟使用。<br>請在 LINE 中點選連結進入。</div>
+        <div style="font-family:'Noto Serif TC',serif;font-size:17px;color:var(--green-dark);margin-bottom:12px">請使用 LINE 開啟</div>
+        <div style="font-size:13px;color:var(--text-light);line-height:1.8">本預約系統需透過 LINE 開啟使用。<br>請在 LINE 中點選連結進入。</div>
       </div>`;
   }
 }
@@ -2408,7 +2408,7 @@ function _drawAnnouncements() {
       : `<span class="announcement-badge-sub">代診</span>`;
     const detail = a.type === "停診"
       ? (a.reason ? `<span class="announcement-reason">（${a.reason}）</span>` : "")
-      : (a.reason ? `<span class="announcement-reason">（${a.reason}醫師看診）</span>` : "");
+      : (a.reason ? `<span class="announcement-reason">醫師：${a.reason}</span>` : "");
     return `<div class="announcement-item">
       ${badge}
       <span class="announcement-text">${dateLabel} ${a.session} ${detail}</span>
