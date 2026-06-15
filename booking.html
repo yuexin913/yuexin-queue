@@ -19,6 +19,18 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
+     v5.8.12-doctor-display-r1 (2026-06-14)
+     (基於 v5.8.11-elderly-ui-r2;本輪兩項「醫師顯示」調整,與 backend v6.3.4 同批:
+      1. 代診公告改「原醫師→代診醫師」箭頭(L2421 renderAnnouncements):
+         - originalDoctor 由 backend v6.3.4 getUpcomingAnnouncements 帶入
+         - fallback:後端查不到原醫師(回 "")或原醫師=代診醫師 → 只顯示代診醫師
+         - 順手移除舊的「醫師看診」字樣(對齊純姓名美學)
+      2. 醫師欄移除「 醫師」尾巴、只顯示姓名 — 兩處對稱修補(紀律 6 同 pattern 多 instance):
+         - 成功小卡 successCard(L4304/4310)
+         - 查詢詳情卡 cardModal(L4626/4632)
+         - 理由:row 標籤已是「醫師」,值再寫「粟寧醫師」即重複;且確認頁與 LINE 本就純姓名
+         - 代診仍保留「(代診)」標籤;不指定仍整列隱藏)
+
      v5.8.11-elderly-ui-r2 (2026-06-14)
      (基於 v5.8.8-marathon3-dual-clinic-r9 / 雙診上線版,本輪 cleanup:
       楠梓心寬轉介入口卡 + handler 移除 / 王麟祥初診 1115 隱藏邏輯移除)
@@ -2418,9 +2430,14 @@ function _drawAnnouncements() {
     const badge = a.type === "停診"
       ? `<span class="announcement-badge-closed">停診</span>`
       : `<span class="announcement-badge-sub">代診</span>`;
+    // v5.8.12: 代診顯示「原醫師→代診醫師」(originalDoctor 由後端 v6.3.4 帶入)
+    //   fallback:後端查不到原醫師(回 "")或原醫師=代診醫師 → 只顯示代診醫師,不印半截箭頭
+    const subArrow = (a.originalDoctor && a.originalDoctor !== a.reason)
+      ? `${a.originalDoctor}→${a.reason}`
+      : a.reason;
     const detail = a.type === "停診"
       ? (a.reason ? `<span class="announcement-reason">（${a.reason}）</span>` : "")
-      : (a.reason ? `<span class="announcement-reason">（${a.reason}醫師看診）</span>` : "");
+      : (a.reason ? `<span class="announcement-reason">（${subArrow}）</span>` : "");
     return `<div class="announcement-item">
       ${badge}
       <span class="announcement-text">${dateLabel} ${a.session} ${detail}</span>
@@ -4296,13 +4313,14 @@ function renderSuccessCard(data) {
     if (doctorRow) doctorRow.style.display = "";
     if (isSubstitute) {
       // 用 textContent 安全處理姓名後再 append 標籤(避免 XSS)
-      doctorEl.textContent = doctor + " 醫師";
+      // v5.8.12: 醫師欄只顯示姓名(row 標籤已是「醫師」,不重複),代診仍掛標籤
+      doctorEl.textContent = doctor;
       const tag = document.createElement("span");
       tag.className = "substitute-tag";
       tag.textContent = "(代診)";
       doctorEl.appendChild(tag);
     } else {
-      doctorEl.textContent = (doctor || "-") + (doctor ? " 醫師" : "");
+      doctorEl.textContent = doctor || "-";
     }
   }
 }
@@ -4618,13 +4636,14 @@ function populateCardModal(b) {
     if (doctorRow) doctorRow.style.display = "";
     doctorEl.textContent = "";
     if (isSubstitute) {
-      doctorEl.textContent = doctor + " 醫師";
+      // v5.8.12: 醫師欄只顯示姓名(對齊成功小卡 / row 標籤已是「醫師」)
+      doctorEl.textContent = doctor;
       const tag = document.createElement("span");
       tag.className = "substitute-tag";
       tag.textContent = "(代診)";
       doctorEl.appendChild(tag);
     } else {
-      doctorEl.textContent = (doctor || "-") + (doctor ? " 醫師" : "");
+      doctorEl.textContent = doctor || "-";
     }
   }
 }
