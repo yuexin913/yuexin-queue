@@ -9,9 +9,19 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
 悅心診所 心理治療系統 therapy.html
-v0.8-r8-room-occupancy (2026-06-16)
+v0.8-r9-merge-end-action (2026-06-16)
 
 Designed by Su Ning | Powered by Claude & Gemini 2026
+
+v0.8-r9-merge-end-action changelog:
+- 2026-06-16 長期治療(L1)操作按鈕合併 — 修排版 + 簡化:
+  · 原本兩顆按鈕([即刻終止][移除] / 退場中 [恢復][移除])在窄機把右欄撐寬,擠到左欄文字(房間/費用/since)折行。
+    → 各併成「一顆」:進行中 [終止/移除]、退場中 [恢復/移除](terminated 殘留維持單顆 [移除])。右欄變窄,版面還原。
+  · 點合併鈕 → 跳「選擇」(chooser):進行中給 [即刻終止]/[移除]、退場中給 [恢復]/[移除];
+    選完仍各自跳原本的確認(移除保留強警告)→ 不省 tap,行為可預期。移除文案改為「完全刪去治療,包括帳單紀錄。」
+  · 純前台:chooser 只是路由到既有 confirmCloseNow / confirmRemoveActive / confirmStage1,**backend 不動(維持 v6.3.6,不需重佈)**。
+  · 實作:actionsFn 三態各回單顆鈕(onclick→chooseEndAction);新 chooseEndAction 重用 modalConfirm,
+    暫藏「確定」鈕改用兩個 .choice-btn,選項點下後既有 confirm 再顯示確定鈕(closeConfirmModal + 三個 confirm 函式各補 display 還原)。
 
 v0.8-r8-room-occupancy changelog:
 - 2026-06-16 治療室占用 — 排診時房間下拉顯示「跨治療師」占用並封鎖,避免兩位治療師搶同一間房:
@@ -1680,6 +1690,28 @@ body {
   gap: var(--space-sm);
   justify-content: flex-end;
 }
+
+/* v0.8-r9 L1 [終止/移除] 合併鈕 → 點了再選的 chooser 選項 */
+.choice-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 14px 0 0;
+}
+.choice-btn {
+  text-align: left;
+  padding: 14px 16px;
+  border: 1px solid var(--line-2);
+  background: var(--paper);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-sans);
+}
+.choice-btn:hover { border-color: var(--ink); background: var(--paper-2); }
+.choice-btn .ttl { display: block; font-size: 14px; color: var(--ink); font-weight: 500; letter-spacing: 1px; }
+.choice-btn .sub { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--concrete); letter-spacing: 0.5px; margin-top: 4px; line-height: 1.6; }
+.choice-btn.danger:hover { border-color: var(--warn); }
+.choice-btn.danger .ttl { color: var(--warn); }
 
 /* loading overlay 局部覆蓋(送單中) */
 .local-loading {
@@ -5088,29 +5120,29 @@ function renderOpLayer1() {
     //   · 已設結束日(未來/過期退場中)→ [恢復](撤銷結束日,打到 end-from layerId)+ [移除]
     //   · 無結束日(進行中)→ [即刻終止](設今天為最後治療日,status 維持 active)+ [移除]
     actionsFn: function(e, ctx) {
-      function removeBtn() {
+      // v0.8-r9:兩顆按鈕([即刻終止][移除] / [恢復][移除])各併成一顆 →
+      //   點了跳 chooser 再選。解決窄機被兩顆擠到折行 + 簡化操作。
+      //   terminated(舊機制殘留,僅供清理)維持單顆 [移除]。
+      if (e.status === "terminated") {
         return ctx.readonly
           ? '<button class="btn-action btn-action-stage2" disabled title="OWNER 唯讀檢視,不可操作他人 case">移除</button>'
           : '<button class="btn-action btn-action-stage2" onclick="confirmRemoveActive(\'' + ctx.encLayerId + '\',\'' + ctx.encLabel + '\')">移除</button>';
       }
-      if (e.status === "terminated") {
-        return removeBtn();  // 舊機制殘留,僅供清理
-      }
       const ef = endFromMap[e.name + "|" + e.startTime];
       if (ef) {
-        // 已設結束日 → [恢復]:撤銷結束日(打到 end-from 的 layerId,複用 restoreLayer1_5)
+        // 退場中(已設結束日)→ [恢復/移除]:chooser 內 [恢復](撤銷結束日)/ [移除]
+        if (ctx.readonly) {
+          return '<button class="btn-action btn-action-stage2" disabled title="OWNER 唯讀檢視,不可操作他人 case">恢復/移除</button>';
+        }
         const encEndId = encodeURIComponent(ef.layerId);
         const encReMsg = encodeURIComponent('撤銷結束日後,該長期治療將繼續無限延伸,直到再次設定結束日。');
-        const recoverBtn = ctx.readonly
-          ? '<button class="btn-action" disabled title="OWNER 唯讀檢視,不可操作他人 case">恢復</button>'
-          : '<button class="btn-action" onclick="confirmStage1(\'restoreLayer1_5\',\'' + encEndId + '\',\'' + ctx.encLabel + '\',\'' + encodeURIComponent('恢復') + '\',\'' + encReMsg + '\')">恢復</button>';
-        return recoverBtn + removeBtn();
+        return '<button class="btn-action btn-action-stage2" onclick="chooseEndAction(\'recover\',\'' + ctx.encLayerId + '\',\'' + ctx.encLabel + '\',\'' + encEndId + '\',\'' + encReMsg + '\')">恢復/移除</button>';
       }
-      // 無結束日 → [即刻終止]:設今天為最後治療日(status 維持 active)
-      const closeBtn = ctx.readonly
-        ? '<button class="btn-action" disabled title="OWNER 唯讀檢視,不可操作他人 case">即刻終止</button>'
-        : '<button class="btn-action" onclick="confirmCloseNow(\'' + ctx.encLayerId + '\',\'' + ctx.encLabel + '\')">即刻終止</button>';
-      return closeBtn + removeBtn();
+      // 進行中(無結束日)→ [終止/移除]:chooser 內 [即刻終止] / [移除]
+      if (ctx.readonly) {
+        return '<button class="btn-action btn-action-stage2" disabled title="OWNER 唯讀檢視,不可操作他人 case">終止/移除</button>';
+      }
+      return '<button class="btn-action btn-action-stage2" onclick="chooseEndAction(\'close\',\'' + ctx.encLayerId + '\',\'' + ctx.encLabel + '\')">終止/移除</button>';
     },
     renderInfo: function(e) {
       // v0.6-r19:line2 三段 (每週N次 / 費用千分位 / since startDate) 空欄連 dot 一起省略
@@ -5351,6 +5383,7 @@ function confirmStage1(action, layerIdEnc, labelEnc, actionLabelEnc, msgEnc) {
     customMsg = decodeURIComponent(msgEnc || "");
   } catch (e) { return; }
   _pendingConfirm = { action: action, layerId: layerId, label: label };
+  document.getElementById("btnConfirmGo").style.display = "";  // chooser(恢復路徑)可能藏過,還原
   document.getElementById("modalConfirmTitle").textContent = actionLabel;
   // 預設文案 vs caller 自訂文案(L1.5 end-from 撤銷結束日用)
   const bodyMsg = customMsg
@@ -5391,6 +5424,50 @@ function confirmStage2(action, layerIdEnc, labelEnc) {
 }
 
 // ── L1-ending redesign:[即刻終止] / [移除誤建] 自訂 confirm 流程 ──────────
+// v0.8-r9:[終止/移除] / [恢復/移除] 合併鈕 → 第一層「選擇」(點了再選)。
+//   本身不做確認 — 選完路由到既有 confirmCloseNow / confirmRemoveActive / confirmStage1。
+//   重用 modalConfirm:暫藏「確定」鈕(改用兩個選項按鈕),選項點下後既有 confirm 會再顯示它。
+function chooseEndAction(mode, encLayerId, encLabel, encEndId, encReMsg) {
+  let label = "";
+  try { label = decodeURIComponent(encLabel || ""); } catch (e) {}
+  const isRecover = (mode === "recover");
+  document.getElementById("modalConfirmTitle").textContent = isRecover ? "恢復 / 移除" : "終止 / 移除";
+  document.getElementById("modalConfirmError").style.display = "none";
+  document.getElementById("btnConfirmGo").style.display = "none";  // chooser 無單一「確定」
+
+  const primaryTtl = isRecover ? "恢復" : "即刻終止";
+  const primarySub = isRecover
+    ? "撤銷結束日,療程繼續延伸。"
+    : "設今天為最後治療日,之後不再排診。仍保留於帳單(可帳),可再 [恢復]。";
+
+  document.getElementById("modalConfirmMsg").innerHTML =
+    '<span style="font-family:var(--font-mono);font-size:12px;color:var(--ash);letter-spacing:1px;">'
+    + esc(label) + '</span>'
+    + '<div class="choice-row">'
+    +   '<button type="button" class="choice-btn" id="choiceEndPrimary">'
+    +     '<span class="ttl">' + primaryTtl + '</span>'
+    +     '<span class="sub">' + primarySub + '</span>'
+    +   '</button>'
+    +   '<button type="button" class="choice-btn danger" id="choiceEndRemove">'
+    +     '<span class="ttl">移除</span>'
+    +     '<span class="sub">⚠️ 完全刪去治療,包括帳單紀錄。</span>'
+    +   '</button>'
+    + '</div>';
+
+  document.getElementById("choiceEndPrimary").onclick = function() {
+    if (isRecover) {
+      confirmStage1("restoreLayer1_5", encEndId, encLabel, encodeURIComponent("恢復"), encReMsg);
+    } else {
+      confirmCloseNow(encLayerId, encLabel);
+    }
+  };
+  document.getElementById("choiceEndRemove").onclick = function() {
+    confirmRemoveActive(encLayerId, encLabel);
+  };
+
+  document.getElementById("modalConfirm").classList.add("visible");
+}
+
 // [即刻終止]:設今天為最後治療日(end-from),status 維持 active(非舊的改 status 終止)。
 //   走自訂流程而非通用 dispatch — 因 addLayer1_5Entry 需 name/date/time,非 {action,layerId}。
 function confirmCloseNow(layerIdEnc, labelEnc) {
@@ -5402,6 +5479,7 @@ function confirmCloseNow(layerIdEnc, labelEnc) {
   const today = ymdParts(new Date());
   _pendingConfirm = { action: "__closeNow", layerId: layerId, label: label, today: today };
   document.getElementById("modalConfirmTitle").textContent = "即刻終止";
+  document.getElementById("btnConfirmGo").style.display = "";  // chooser 可能藏過,還原
   document.getElementById("modalConfirmMsg").innerHTML =
     '確認 <strong>即刻終止</strong>?<br>'
     + '<span style="color:var(--ash);font-size:12px;letter-spacing:1px;">'
@@ -5426,6 +5504,7 @@ function confirmRemoveActive(layerIdEnc, labelEnc) {
   } catch (e) { return; }
   _pendingConfirm = { action: "removeLayer1", layerId: layerId, label: label };
   document.getElementById("modalConfirmTitle").textContent = "移除";
+  document.getElementById("btnConfirmGo").style.display = "";  // chooser 可能藏過,還原
   document.getElementById("modalConfirmMsg").innerHTML =
     '⚠️ 確認 <strong>移除</strong> 此筆?<br>'
     + '<span style="color:var(--ash);font-size:12px;letter-spacing:1px;">'
@@ -5505,6 +5584,7 @@ function closeConfirmModal() {
   // v0.4-loading-c r2:加 fade-out 過渡
   overlay.classList.add("closing");
   overlay.classList.remove("visible");
+  document.getElementById("btnConfirmGo").style.display = "";  // 還原(chooser 取消後,下個 confirm 才有確定鈕)
   setTimeout(function() {
     overlay.classList.remove("closing", "busy");
   }, 200);
