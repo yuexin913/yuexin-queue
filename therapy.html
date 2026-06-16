@@ -9,9 +9,38 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
 悅心診所 心理治療系統 therapy.html
-v0.8-r5-squiggle-login (2026-05-25)
+v0.8-r7-l1ending (2026-06-16)
 
 Designed by Su Ning | Powered by Claude & Gemini 2026
+
+v0.8-r7-l1ending changelog:
+- 2026-06-16 長期治療(L1)結束機制重構 — 消除「終止 = 從所有帳單月份消失」的計費陷阱:
+  · 舊 [終止](status→terminated,連過去真實治療月份都從帳單消失)整個退役。
+  · 新 [即刻終止]:設「今天」為最後治療日(end-from),status 維持 active → 帳單完全不受影響
+    (帳單碼對 active + end-from 早已正確);若已有結束日 → 提示「請先 [恢復] 再設」(沿用後端 Q5)。
+  · 退場視覺:結束日當天之後(today > endDate)→ 刪除線(is-staged 樣式),動作 = [恢復](撤銷結束日)。
+  · 自動隱藏:今天 ≥ 結束日「次月 1 日」→ 從操作頁隱藏(view-only,status 仍 active,帳單照算)。
+  · [移除] 改為「誤建更正」專用(一鍵 + 強警告框,從帳單完全移除);其餘正常結束一律走 [即刻終止]。
+  · L1.5 end-from 列同步:由泛黃改刪除線 + 次月 1 日自動隱藏,與對應 L1 entry 連動。
+  · 共用 engine(_renderEntriesGeneric)以 additive optional hooks 擴充(hideFn / strikeFn / actionsFn);
+    L1.5 single / L2 / L3 不傳新參數 → 行為一字不變。泛黃(isTintedFn)已全面退役。
+  · ⚠️ 需搭配後端 v6.3.5(removeLayer1 放寬成可移除 active);上線時請手動 [移除] 殘留的舊 terminated 幾筆。
+
+v0.8-r6-autohide changelog:
+- 2026-06-16 過期單次/暫停自動隱藏(view-only,純前台,零後端、零帳單影響):
+  · 單次治療(L2,renderOpLayer2):今天 ≥ 治療日「之後第一個週一」→ 從操作頁隱藏
+  · 暫停(L1.5 single,renderOpLayer1_5):今天 ≥ 暫停日「次月 1 日」→ 從操作頁隱藏
+  · 不改 status / 不刪資料 → status 維持 active;帳單頁獨立讀並顯示實際治療日,故不受影響
+  · 新增 helper firstMondayAfter / firstOfNextMonth(回 YYYY/MM/DD 字串,可直接字串比較)
+  · L1.5 meta 與「全空 fallback」改用「顯示中數量」(扣除被隱藏的過期暫停)
+  · end-from(結束治療)不套此規則 — 它有「終止」待辦,維持泛黃直到手動處理(L1 結束 redesign 另案)
+  · day/週檢視、帳單、後端皆未動;無 timer(渲染時依今天即時推算)
+
+v0.8-r5e changelog:
+- 2026-06-14 安全強化:移除 bootstrap() 內的 devLineId 開發後門 + placeholder 分支
+  (原 ?devLineId=Uxxx 可在 LIFF_ID 未填時繞過 LINE 身分驗證;雖有密碼第二關
+   且 LIFF_ID 已填真值使後門失效,但上公開 GitHub 前徹底刪除,杜絕未來誤改復活)
+  bootstrap() 改為直接走正常 LIFF init 流程,LIFF_ID 異常時落 catch 顯示連線錯誤。
 
 v0.8-r5 changelog:
   - mobile case-row 第一欄改 auto(原 80px,時間字串 11 字溢出蓋姓名)
@@ -2735,20 +2764,6 @@ function weekdayName(jsDay) {
    ══════════════════════════════════════════════════════════════════════════════ */
 async function bootstrap() {
   try {
-    // 警示 placeholder LIFF ID(粟醫師上線前必填)
-    if (LIFF_ID === "REPLACE_WITH_THERAPY_LIFF_ID") {
-      // 開發階段允許跳過 LIFF(用 URL ?devLineId=Uxxx 直接測)
-      const params = new URLSearchParams(location.search);
-      const devLineId = params.get("devLineId");
-      if (devLineId) {
-        state.lineId = devLineId;
-        proceedAfterLineId();
-        return;
-      }
-      authShowError("尚未設定 LIFF", "請先在 LINE Developers 申請 LIFF 並填入 LIFF_ID。或用 ?devLineId=Uxxx 開發測試。");
-      return;
-    }
-
     await liff.init({ liffId: LIFF_ID });
     if (!liff.isLoggedIn()) { liff.login(); return; }
     const profile = await liff.getProfile();
@@ -3573,6 +3588,25 @@ function parseYMD(ymd) {
   const d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
   d.setHours(0, 0, 0, 0);
   return d;
+}
+
+// v0.8.9: 過期自動隱藏的日期門檻 helper(回 YYYY/MM/DD 字串,可直接與 ymdParts(today) 字串比較)
+//   firstMondayAfter:該日「之後」嚴格的下一個週一(週一為週首 → 等於下一週的週一)
+//     Sun→+1 / Mon→+7 / Tue→+6 / Wed→+5 / Thu→+4 / Fri→+3 / Sat→+2
+//   firstOfNextMonth:該日所在月份的次月 1 日
+//   parseYMD 失敗回 null → 呼叫端守則:門檻為 null 時不隱藏(安全預設)
+function firstMondayAfter(ymd) {
+  const d = parseYMD(ymd);
+  if (!d) return null;
+  const dow = d.getDay();                  // 0=Sun..6=Sat
+  const add = ((8 - (dow || 7)) % 7) || 7; // 嚴格大於 → 下一個週一
+  d.setDate(d.getDate() + add);
+  return ymdParts(d);
+}
+function firstOfNextMonth(ymd) {
+  const d = parseYMD(ymd);
+  if (!d) return null;
+  return ymdParts(new Date(d.getFullYear(), d.getMonth() + 1, 1));
 }
 
 /**
@@ -4795,7 +4829,11 @@ function _renderEntriesGeneric(opts) {
   //   v0.8: isTintedFn = function(e) → bool,過期 end-from 泛黃判斷
   const list = document.getElementById(opts.listEl);
   const meta = opts.metaEl ? document.getElementById(opts.metaEl) : null;
-  const visibleEntries = opts.entries.filter(function(e) { return e.status !== "removed"; });
+  const visibleEntries = opts.entries.filter(function(e) {
+    if (e.status === "removed") return false;
+    if (opts.hideFn && opts.hideFn(e)) return false;  // L1-ending: 過期自動隱藏(僅傳 hideFn 的 caller 生效,如 L1)
+    return true;
+  });
   if (meta) meta.textContent = visibleEntries.length; /* v0.5:純數字,v2 設計用 CSS ::before/::after 包 — */
   if (visibleEntries.length === 0) {
     list.innerHTML = '<div class="empty-hint">— empty —</div>';
@@ -4806,9 +4844,15 @@ function _renderEntriesGeneric(opts) {
   const secondarySort = opts.sortComparator || function(a, b) {
     return a.layerId < b.layerId ? -1 : 1;
   };
+  // staged(狀態)或退場中(strikeFn 日期驅動)都排在後段
+  function _leavingKey(e) {
+    if (opts.stagedStatuses.indexOf(e.status) !== -1) return 1;
+    if (opts.strikeFn && opts.strikeFn(e)) return 1;  // L1-ending: 退場中(刪除線)亦排後
+    return 0;
+  }
   visibleEntries.sort(function(a, b) {
-    const aStaged = opts.stagedStatuses.indexOf(a.status) !== -1 ? 1 : 0;
-    const bStaged = opts.stagedStatuses.indexOf(b.status) !== -1 ? 1 : 0;
+    const aStaged = _leavingKey(a);
+    const bStaged = _leavingKey(b);
     if (aStaged !== bStaged) return aStaged - bStaged;
     return secondarySort(a, b);
   });
@@ -4816,16 +4860,18 @@ function _renderEntriesGeneric(opts) {
   let html = "";
   visibleEntries.forEach(function(e, idx) {
     const isStaged = opts.stagedStatuses.indexOf(e.status) !== -1;
+    // L1-ending: 日期驅動的退場中(刪除線),非 status-staged。僅傳 strikeFn 的 caller 生效
+    const isDateStrike = (opts.strikeFn && !isStaged) ? !!opts.strikeFn(e) : false;
     const info = opts.renderInfo(e);
     // v0.6 r11:衝堂偵測 — 只對相鄰兩列且都是 active 做檢查
     //   - opts.conflictCheck(a, b) 由 caller 定義,回傳 boolean
     //   - staged 列不參與衝堂判斷(已終止的 case 不算佔時段)
     //   - 衝堂兩列獨立不警告,只用 1px 灰線連結(對齊 case-row pattern)
     let isConflict = false;
-    if (opts.conflictCheck && !isStaged) {
+    if (opts.conflictCheck && !isStaged && !isDateStrike) {
       const next = visibleEntries[idx + 1];
-      const nextIsStaged = next && opts.stagedStatuses.indexOf(next.status) !== -1;
-      if (next && !nextIsStaged) {
+      const nextLeaving = next && (opts.stagedStatuses.indexOf(next.status) !== -1 || (opts.strikeFn && !!opts.strikeFn(next)));
+      if (next && !nextLeaving) {
         isConflict = opts.conflictCheck(e, next);
       }
     }
@@ -4838,34 +4884,42 @@ function _renderEntriesGeneric(opts) {
     //   給 L1.5 end-from「撤銷結束日」用的特殊文案分流
     //   其他層不傳 → confirmStage1 走預設「完成後該筆會以刪除線顯示」文案
     const encStage1Msg = (opts.stage1MsgFn ? encodeURIComponent(opts.stage1MsgFn(e)) : "");
-    const stageBtn = isStaged
-      ? '<button class="btn-action btn-action-stage2" '
-        + (readonly ? 'disabled title="OWNER 唯讀檢視,不可操作他人 case"' : 'onclick="confirmStage2(\'' + opts.stage2Action + '\',\'' + encLayerId + '\',\'' + encLabel + '\')"')
-        + '>移除</button>'
-      : '<button class="btn-action" '
-        + (readonly ? 'disabled title="OWNER 唯讀檢視,不可操作他人 case"' : 'onclick="confirmStage1(\'' + opts.stage1Action + '\',\'' + encLayerId + '\',\'' + encLabel + '\',\'' + encStage1Label + '\',\'' + encStage1Msg + '\')"')
-        + '>' + esc(opts.stage1Label) + '</button>';
-
-    // v0.8: 額外 action(L1 entry 的「結束日期」button)
-    //   只在非 staged 狀態顯示(staged 表示已 terminate / restore,結束日期失去意義)
-    //   readonly(OWNER 跨治療師檢視)時 disabled
-    let extraBtnHtml = '';
-    if (opts.extraActions && !isStaged) {
-      extraBtnHtml = opts.extraActions.map(function(act) {
-        if (readonly) {
-          return '<button class="btn-action" disabled title="OWNER 唯讀檢視,不可操作他人 case">' + esc(act.label) + '</button>';
-        }
-        return '<button class="btn-action" onclick="' + esc(act.handler) + '(\'' + encLayerId + '\',\'' + encLabel + '\')">' + esc(act.label) + '</button>';
-      }).join('');
+    // L1-ending: actionsFn 由 caller 完全接管按鈕(目前僅 L1,因其狀態/動作較複雜)。
+    //   其他層不傳 actionsFn → 走下方原有 stageBtn + extraBtnHtml 邏輯,行為一字不變
+    let actionsHtml;
+    if (opts.actionsFn) {
+      actionsHtml = opts.actionsFn(e, {
+        readonly: readonly,
+        encLayerId: encLayerId,
+        encLabel: encLabel,
+        isStrike: isDateStrike
+      });
+    } else {
+      const stageBtn = isStaged
+        ? '<button class="btn-action btn-action-stage2" '
+          + (readonly ? 'disabled title="OWNER 唯讀檢視,不可操作他人 case"' : 'onclick="confirmStage2(\'' + opts.stage2Action + '\',\'' + encLayerId + '\',\'' + encLabel + '\')"')
+          + '>移除</button>'
+        : '<button class="btn-action" '
+          + (readonly ? 'disabled title="OWNER 唯讀檢視,不可操作他人 case"' : 'onclick="confirmStage1(\'' + opts.stage1Action + '\',\'' + encLayerId + '\',\'' + encLabel + '\',\'' + encStage1Label + '\',\'' + encStage1Msg + '\')"')
+          + '>' + esc(opts.stage1Label) + '</button>';
+      // 額外 action(通用 infra,v0.8-r3 起無 caller,保留供未來使用)
+      let extraBtnHtml = '';
+      if (opts.extraActions && !isStaged) {
+        extraBtnHtml = opts.extraActions.map(function(act) {
+          if (readonly) {
+            return '<button class="btn-action" disabled title="OWNER 唯讀檢視,不可操作他人 case">' + esc(act.label) + '</button>';
+          }
+          return '<button class="btn-action" onclick="' + esc(act.handler) + '(\'' + encLayerId + '\',\'' + encLabel + '\')">' + esc(act.label) + '</button>';
+        }).join('');
+      }
+      actionsHtml = extraBtnHtml + stageBtn;
     }
 
-    // v0.8: isTinted callback(舊書頁泛黃)
-    //   L1 entry — 有對應 active end-from L1.5 且 today > endDate
-    //   L1.5 end-from row — 本身 active + type=end-from + today > date
-    const isTinted = (opts.isTintedFn && !isStaged) ? !!opts.isTintedFn(e) : false;
+    // 泛黃(tinted)— L1-ending 後 L1/end-from 已改用刪除線(strikeFn),isTintedFn 目前無 caller(保留 infra)
+    const isTinted = (opts.isTintedFn && !isStaged && !isDateStrike) ? !!opts.isTintedFn(e) : false;
 
     const rowClasses = 'entry-row'
-      + (isStaged ? ' is-staged' : '')
+      + ((isStaged || isDateStrike) ? ' is-staged' : '')
       + (isTinted ? ' tinted' : '')
       + (isConflict ? ' conflict-with-next' : '');
     html += '<div class="' + rowClasses + '" data-layer-id="' + esc(e.layerId) + '">'
@@ -4873,7 +4927,7 @@ function _renderEntriesGeneric(opts) {
          +      '<div class="entry-line-1">' + info.line1 + '</div>'
          +      (info.line2 ? '<div class="entry-line-2">' + info.line2 + '</div>' : '')
          +    '</div>'
-         +    '<div class="entry-actions">' + extraBtnHtml + stageBtn + '</div>'
+         +    '<div class="entry-actions">' + actionsHtml + '</div>'
          +  '</div>';
   });
   list.innerHTML = html;
@@ -4883,24 +4937,28 @@ function renderOpLayer1() {
   const wdNames = ["", "週一", "週二", "週三", "週四", "週五", "週六"];
   // v0.8: 預算今天日期(用於 till 顯示判斷 + 泛黃判斷)
   const todayStr = ymdParts(new Date());
-  // v0.8: 預算「該 L1 對應的 active end-from L1.5 row」(用於 line2 till + 泛黃)
-  //   index 一次,O(L1.5)。renderInfo / isTintedFn 都用同個 index 查 O(1)
-  const endFromMap = {}; // key = `${name}|${startTime}`, value = sh.date (YYYY/MM/DD)
+  // v0.8: 預算「該 L1 對應的 active end-from L1.5 row」(用於 line2 till + 退場判斷 + [恢復] 目標)
+  //   index 一次,O(L1.5)。renderInfo / strikeFn / hideFn / actionsFn 都用同個 index 查 O(1)
+  //   L1-ending: value 由單純 date 改為 { date, layerId },layerId 供 [恢復] 打到 end-from
+  const endFromMap = {}; // key = `${name}|${startTime}`, value = { date: YYYY/MM/DD, layerId }
   (state.rawEntries && state.rawEntries.layer1_5 || []).forEach(function(s) {
     if (s.status !== "active") return;
     const sType = s.type || "single";
     if (sType !== "end-from") return;
-    endFromMap[s.name + "|" + s.startTime] = s.date;
+    endFromMap[s.name + "|" + s.startTime] = { date: s.date, layerId: s.layerId };
   });
 
   _renderEntriesGeneric({
     entries: (state.rawEntries && state.rawEntries.layer1) || [],
     listEl: "opLayer1List",
     metaEl: "opLayer1Meta",
-    stage1Action: "terminateLayer1",
+    // L1-ending: 按鈕已由下方 actionsFn 完全接管,以下 stage1Action / stage1Label 不再被使用
+    //   (保留不刪以免動到 config 結構)。terminateLayer1 已退役 — 前台不再呼叫。
+    //   stagedStatuses 仍需保留:舊 terminated 殘留資料靠它上 is-staged + 排到後段
+    stage1Action: "terminateLayer1",  // 已退役 · vestigial(實際按鈕見 actionsFn)
     stage2Action: "removeLayer1",
-    stage1Label: "終止", /* v0.5:「終止治療」→「終止」短動詞 */
-    stagedStatuses: ["terminated"],
+    stage1Label: "終止",              // 已退役 · vestigial
+    stagedStatuses: ["terminated"],   // 保留:舊 terminated 的 is-staged + 排序
     // v0.6 r11:L1 按 weekday → startTime 排序(對齊治療師排程 perspective)
     // 同 weekday + 同 startTime 視為衝堂,layerId tiebreaker 確保穩定排序
     sortComparator: function(a, b) {
@@ -4916,14 +4974,49 @@ function renderOpLayer1() {
       if (a.weekday !== b.weekday) return false;
       return a.startTime < b.endTime && b.startTime < a.endTime;
     },
-    // v0.8: L1 entry 泛黃判斷(對齊 Q4 拍板 B 舊書頁泛黃)
-    //   條件:有對應 active end-from L1.5 且 today > endDate(嚴格大於)
-    //   為什麼嚴格大於:結束日當天仍是治療,系統當天閉嘴(不該影響當次 session 氛圍)
-    //   為什麼永久至 terminate:對齊舊書頁不可逆比喻 — 紙不會變回白
-    isTintedFn: function(e) {
-      const endDate = endFromMap[e.name + "|" + e.startTime];
-      if (!endDate) return false;
-      return todayStr > endDate;  // 嚴格大於,對齊 backend isShadowed end-from 邏輯
+    // L1-ending: 退場中(刪除線)判斷 — 有對應 active end-from 且 today > endDate(嚴格大於)
+    //   結束日當天仍是最後一次治療,系統當天不劃掉(對齊 backend isShadowed end-from 邏輯)
+    strikeFn: function(e) {
+      const ef = endFromMap[e.name + "|" + e.startTime];
+      if (!ef) return false;
+      return todayStr > ef.date;
+    },
+    // L1-ending: 自動隱藏 — 有對應 active end-from 且 today ≥ 結束日的次月 1 日(對齊 L1.5 暫停門檻)
+    //   隱藏 = view-only,status 維持 active,帳單不受影響;parse 失敗 → 安全不隱藏
+    hideFn: function(e) {
+      const ef = endFromMap[e.name + "|" + e.startTime];
+      if (!ef) return false;
+      const cut = firstOfNextMonth(ef.date);
+      return !!(cut && todayStr >= cut);
+    },
+    // L1-ending: 按鈕完全接管(取代舊 [終止]→[移除] 兩階段)
+    //   · 舊 terminated 殘留 → 僅 [移除](清理用,redesign 後不再產生)
+    //   · 已設結束日(未來/過期退場中)→ [恢復](撤銷結束日,打到 end-from layerId)+ [移除]
+    //   · 無結束日(進行中)→ [即刻終止](設今天為最後治療日,status 維持 active)+ [移除]
+    actionsFn: function(e, ctx) {
+      function removeBtn() {
+        return ctx.readonly
+          ? '<button class="btn-action btn-action-stage2" disabled title="OWNER 唯讀檢視,不可操作他人 case">移除</button>'
+          : '<button class="btn-action btn-action-stage2" onclick="confirmRemoveActive(\'' + ctx.encLayerId + '\',\'' + ctx.encLabel + '\')">移除</button>';
+      }
+      if (e.status === "terminated") {
+        return removeBtn();  // 舊機制殘留,僅供清理
+      }
+      const ef = endFromMap[e.name + "|" + e.startTime];
+      if (ef) {
+        // 已設結束日 → [恢復]:撤銷結束日(打到 end-from 的 layerId,複用 restoreLayer1_5)
+        const encEndId = encodeURIComponent(ef.layerId);
+        const encReMsg = encodeURIComponent('撤銷結束日後,該長期治療將繼續無限延伸,直到再次設定結束日。');
+        const recoverBtn = ctx.readonly
+          ? '<button class="btn-action" disabled title="OWNER 唯讀檢視,不可操作他人 case">恢復</button>'
+          : '<button class="btn-action" onclick="confirmStage1(\'restoreLayer1_5\',\'' + encEndId + '\',\'' + ctx.encLabel + '\',\'' + encodeURIComponent('恢復') + '\',\'' + encReMsg + '\')">恢復</button>';
+        return recoverBtn + removeBtn();
+      }
+      // 無結束日 → [即刻終止]:設今天為最後治療日(status 維持 active)
+      const closeBtn = ctx.readonly
+        ? '<button class="btn-action" disabled title="OWNER 唯讀檢視,不可操作他人 case">即刻終止</button>'
+        : '<button class="btn-action" onclick="confirmCloseNow(\'' + ctx.encLayerId + '\',\'' + ctx.encLabel + '\')">即刻終止</button>';
+      return closeBtn + removeBtn();
     },
     renderInfo: function(e) {
       // v0.6-r19:line2 三段 (每週N次 / 費用千分位 / since startDate) 空欄連 dot 一起省略
@@ -4946,10 +5039,10 @@ function renderOpLayer1() {
         parts2.push('since ' + esc(e.startDate));
       }
       // v0.8: till 段 — 若有 active end-from L1.5 對應此 entry,印「till YYYY/MM/DD」
-      //   對齊 Q2 拍板:since / till 介詞鏡像對仗
-      const endDate = endFromMap[e.name + "|" + e.startTime];
-      if (endDate) {
-        parts2.push('till ' + esc(endDate));
+      //   對齊 Q2 拍板:since / till 介詞鏡像對仗(L1-ending: endFromMap 值改物件,取 .date)
+      const ef = endFromMap[e.name + "|" + e.startTime];
+      if (ef) {
+        parts2.push('till ' + esc(ef.date));
       }
       // terminated 段:獨立判斷
       if (e.status === "terminated") {
@@ -4970,40 +5063,59 @@ function renderOpLayer1() {
 
 function renderOpLayer1_5() {
   // v0.8: 分兩 sub-section render(對齊 Q3 拍板 A — 單次 / 結束治療)
-  //   single   row: 「請假」語意,日期過了不需動作,不泛黃
-  //   end-from row: 「結束治療」語意,結束日過了等治療師 terminate,泛黃
+  //   single   row: 「請假」語意,日期過了不需動作,不劃掉,次月 1 日自動隱藏
+  //   end-from row: 「結束治療」語意(L1-ending redesign):結束日過了 → 刪除線退場中,
+  //                 次月 1 日自動隱藏,與對應 L1 entry 同步;status 維持 active(帳單照算)
   // 兩 sub 都空 → 顯示既有 — empty — fallback
   // 一個 sub 空 → 該 sub 整段(含 header)隱藏,另一個正常 render
   // meta 總數仍顯示在 #opLayer1_5Meta(對齊既有 section-meta pattern)
 
   const allEntries = (state.rawEntries && state.rawEntries.layer1_5) || [];
   const visibleAll = allEntries.filter(function(e) { return e.status !== "removed"; });
-  document.getElementById("opLayer1_5Meta").textContent = visibleAll.length;
+
+  // 預算今天(end-from 泛黃 + 過期暫停隱藏判斷共用)
+  const todayStr = ymdParts(new Date());
 
   // 分流
-  const singleEntries = [];
-  const endFromEntries = [];
+  const singleEntriesRaw = [];
+  const endFromEntriesRaw = [];
   visibleAll.forEach(function(e) {
     const t = e.type || "single";
-    if (t === "end-from") endFromEntries.push(e);
-    else singleEntries.push(e);
+    if (t === "end-from") endFromEntriesRaw.push(e);
+    else singleEntriesRaw.push(e);
   });
+
+  // v0.8.9: 過期暫停自動隱藏(view-only;不改 status、不動資料、帳單不受影響)
+  //   今天 ≥ 暫停日「次月 1 日」→ 從操作頁隱藏(帳單頁仍正確算該日請假,不受影響)
+  const singleEntries = singleEntriesRaw.filter(function(e) {
+    if (!e.date) return true;                 // 無日期 → 不隱藏(安全預設)
+    const cut = firstOfNextMonth(e.date);
+    return !(cut && todayStr >= cut);
+  });
+
+  // L1-ending: end-from 也比照暫停自動隱藏(今天 ≥ 結束日次月 1 日)
+  //   與對應 L1 entry 同步退場;帳單不受影響(end-from shadow 仍在 raw data 中)
+  const endFromEntries = endFromEntriesRaw.filter(function(e) {
+    if (!e.date) return true;
+    const cut = firstOfNextMonth(e.date);
+    return !(cut && todayStr >= cut);
+  });
+
+  // meta = 實際顯示中的總數(已扣除被隱藏的過期暫停)
+  document.getElementById("opLayer1_5Meta").textContent = singleEntries.length + endFromEntries.length;
 
   const subSingle = document.getElementById("opLayer1_5SubSingle");
   const subEndFrom = document.getElementById("opLayer1_5SubEndFrom");
   const emptyAll = document.getElementById("opLayer1_5EmptyAll");
 
-  // 全空 → 顯示既有 fallback
-  if (visibleAll.length === 0) {
+  // 全空(或顯示中皆已被隱藏)→ 顯示既有 fallback
+  if (singleEntries.length === 0 && endFromEntries.length === 0) {
     subSingle.style.display = "none";
     subEndFrom.style.display = "none";
     emptyAll.style.display = "";
     return;
   }
   emptyAll.style.display = "none";
-
-  // 預算今天日期(end-from 泛黃判斷用)
-  const todayStr = ymdParts(new Date());
 
   // ─── single sub-section ─────────────
   if (singleEntries.length > 0) {
@@ -5040,17 +5152,15 @@ function renderOpLayer1_5() {
       stage2Action: "removeLayer1_5",
       stage1Label: "恢復", // 對齊 spec:restore 對 end-from 語意 = 「療程延長,結束日撤銷」
       stagedStatuses: ["restored"],
-      // 泛黃判斷:row 本身 active + type=end-from + today > date
-      //   isShadowed 邏輯一致 — 結束日當天不泛黃(治療師那天還在治療,系統閉嘴)
-      isTintedFn: function(e) {
+      // L1-ending: 退場中(刪除線)判斷 — row 本身 active + type=end-from + today > date
+      //   與對應 L1 entry 同步;結束日當天不劃掉(那天仍是最後一次治療,系統閉嘴)
+      strikeFn: function(e) {
         return todayStr > e.date;
       },
-      // v0.8 (Gemini Finding 3): 自訂 modal 文案 — 撤銷結束日語意跟「請假恢復」不同
-      //   single: 「完成後該筆會以刪除線顯示」(預設文案,適用)
-      //   end-from: 「撤銷結束日,療程將繼續無限延伸」(語意更精準)
+      // 自訂 modal 文案 — 撤銷結束日語意跟「請假恢復」不同
       stage1MsgFn: function(e) {
         return '撤銷結束日後,該長期治療將繼續無限延伸,'
-             + '直到再次設定結束日 或 手動 [終止]。';
+             + '直到再次設定結束日。';
       },
       renderInfo: function(e) {
         // end-from row 的 line1 顯示用「till YYYY/MM/DD」對齊 L1 entry line2 的 till
@@ -5071,8 +5181,17 @@ function renderOpLayer1_5() {
 }
 
 function renderOpLayer2() {
+  // v0.8.9: 過期單次治療自動隱藏(view-only;不改 status、不動資料、帳單不受影響)
+  //   今天 ≥ 治療日「之後的第一個週一」→ 從操作頁清單隱藏
+  //   (帳單頁獨立讀 layer2 並顯示實際治療日,故隱藏不影響計費)
+  const todayStr = ymdParts(new Date());
+  const visL2 = ((state.rawEntries && state.rawEntries.layer2) || []).filter(function(e) {
+    if (!e.date) return true;                 // 無日期 → 不隱藏(安全預設)
+    const cut = firstMondayAfter(e.date);
+    return !(cut && todayStr >= cut);
+  });
   _renderEntriesGeneric({
-    entries: (state.rawEntries && state.rawEntries.layer2) || [],
+    entries: visL2,
     listEl: "opLayer2List",
     metaEl: "opLayer2Meta",
     stage1Action: "cancelLayer2",
@@ -5177,6 +5296,116 @@ function confirmStage2(action, layerIdEnc, labelEnc) {
   document.getElementById("modalConfirm").classList.add("visible");
 }
 
+// ── L1-ending redesign:[即刻終止] / [移除誤建] 自訂 confirm 流程 ──────────
+// [即刻終止]:設今天為最後治療日(end-from),status 維持 active(非舊的改 status 終止)。
+//   走自訂流程而非通用 dispatch — 因 addLayer1_5Entry 需 name/date/time,非 {action,layerId}。
+function confirmCloseNow(layerIdEnc, labelEnc) {
+  let layerId, label;
+  try {
+    layerId = decodeURIComponent(layerIdEnc || "");
+    label = decodeURIComponent(labelEnc || "");
+  } catch (e) { return; }
+  const today = ymdParts(new Date());
+  _pendingConfirm = { action: "__closeNow", layerId: layerId, label: label, today: today };
+  document.getElementById("modalConfirmTitle").textContent = "即刻終止";
+  document.getElementById("modalConfirmMsg").innerHTML =
+    '確認 <strong>即刻終止</strong>?<br>'
+    + '<span style="color:var(--ash);font-size:12px;letter-spacing:1px;">'
+    + esc(label) + '</span><br><br>'
+    + '<span style="color:var(--concrete);font-size:12px;">'
+    + '最後治療日設為今天(' + esc(today) + '),之後不再排診。<br>'
+    + '該筆仍保留於帳單(active)。若已有結束日需改期,請先 [恢復] 再設。'
+    + '</span>';
+  document.getElementById("modalConfirmError").style.display = "none";
+  document.getElementById("btnConfirmGo").disabled = false;
+  document.getElementById("btnConfirmGo").textContent = "確定";
+  document.getElementById("modalConfirm").classList.add("visible");
+}
+
+// [移除]:誤建更正 — 從帳單完全移除(status→removed)。強警告守門。
+//   重用通用 executeConfirmAction(removeLayer1 在 isStage2 清單 → 移除動畫 + toast)
+function confirmRemoveActive(layerIdEnc, labelEnc) {
+  let layerId, label;
+  try {
+    layerId = decodeURIComponent(layerIdEnc || "");
+    label = decodeURIComponent(labelEnc || "");
+  } catch (e) { return; }
+  _pendingConfirm = { action: "removeLayer1", layerId: layerId, label: label };
+  document.getElementById("modalConfirmTitle").textContent = "移除";
+  document.getElementById("modalConfirmMsg").innerHTML =
+    '⚠️ 確認 <strong>移除</strong> 此筆?<br>'
+    + '<span style="color:var(--ash);font-size:12px;letter-spacing:1px;">'
+    + esc(label) + '</span><br><br>'
+    + '<span style="color:var(--concrete);font-size:12px;">'
+    + '此筆將<strong>從帳單完全移除</strong>,僅供「誤建更正」。<br>'
+    + '正常結束病患請用 [即刻終止](會保留帳單)。資料仍留試算表供 audit。'
+    + '</span>';
+  document.getElementById("modalConfirmError").style.display = "none";
+  document.getElementById("btnConfirmGo").disabled = false;
+  document.getElementById("btnConfirmGo").textContent = "確定移除";
+  document.getElementById("modalConfirm").classList.add("visible");
+}
+
+// [即刻終止] 執行 — 對該 L1 設 end-from = 今天(複用既有 addLayer1_5Entry payload)
+async function executeCloseNow() {
+  if (!_pendingConfirm) return;
+  const layerId = _pendingConfirm.layerId;
+  const today = _pendingConfirm.today;
+  const overlay = document.getElementById("modalConfirm");
+  const btn = document.getElementById("btnConfirmGo");
+  const errEl = document.getElementById("modalConfirmError");
+  errEl.style.display = "none";
+
+  // 從 layerId 找回該 L1 的 name / startTime / endTime
+  const e = ((state.rawEntries && state.rawEntries.layer1) || []).find(function(x) { return x.layerId === layerId; });
+  if (!e) { errEl.textContent = "找不到該筆資料"; errEl.style.display = "block"; return; }
+
+  overlay.classList.add("busy");
+  btn.disabled = true;
+  btn.dataset.label = btn.textContent;
+  btn.innerHTML = '<span class="btn-dots"><span></span><span></span><span></span></span>';
+
+  const start = Date.now();
+  const MIN_DURATION_MS = 600;
+
+  try {
+    const data = await xhrPost(API_URL, {
+      action: "addLayer1_5Entry",
+      lineId: state.lineId,
+      therapist: state.selectedTherapist,
+      name: e.name,
+      date: today,
+      startTime: e.startTime,
+      endTime: e.endTime,
+      type: "end-from"
+    });
+    if (data.success) {
+      const elapsed = Date.now() - start;
+      if (elapsed < MIN_DURATION_MS) {
+        await new Promise(function(r) { setTimeout(r, MIN_DURATION_MS - elapsed); });
+      }
+      closeConfirmModal();
+      showToast("已設最後治療日 · " + today);
+      setTimeout(async function() {
+        try { await loadAndRenderEntries(); } catch (e2) { /* loadAndRenderEntries 內部已處理 */ }
+      }, 0);
+    } else {
+      overlay.classList.remove("busy");
+      errEl.textContent = data.error || "操作失敗";
+      errEl.style.display = "block";
+      btn.disabled = false;
+      btn.innerHTML = btn.dataset.label || "確定";
+    }
+  } catch (e2) {
+    if (e2.isSessionExpired) return;
+    overlay.classList.remove("busy");
+    errEl.textContent = e2.message || "連線異常";
+    errEl.style.display = "block";
+    btn.disabled = false;
+    btn.innerHTML = btn.dataset.label || "確定";
+  }
+}
+
 function closeConfirmModal() {
   const overlay = document.getElementById("modalConfirm");
   // v0.4-loading-c r2:加 fade-out 過渡
@@ -5191,6 +5420,8 @@ function closeConfirmModal() {
 async function executeConfirmAction() {
   if (!_pendingConfirm) return;
   const { action, layerId, label } = _pendingConfirm;
+  // L1-ending: [即刻終止] 走自訂流程(payload 為 addLayer1_5Entry,非通用 {action,layerId})
+  if (action === "__closeNow") { return executeCloseNow(); }
   const overlay = document.getElementById("modalConfirm");
   const btn = document.getElementById("btnConfirmGo");
   const errEl = document.getElementById("modalConfirmError");
