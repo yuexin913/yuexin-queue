@@ -9,9 +9,22 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
 悅心診所 心理治療系統 therapy.html
-v0.8-r7-l1ending (2026-06-16)
+v0.8-r8-room-occupancy (2026-06-16)
 
 Designed by Su Ning | Powered by Claude & Gemini 2026
+
+v0.8-r8-room-occupancy changelog:
+- 2026-06-16 治療室占用 — 排診時房間下拉顯示「跨治療師」占用並封鎖,避免兩位治療師搶同一間房:
+  · 占用的房 → disabled(不可選)+ 標「房（治療師-狀態 時間…）」,例:大（粟寧-長期 14:00–14:50）。
+    全封鎖(連臨時空位也封),只顯示治療師讓你知道「找誰喬」(系統防撞+點名,借不借留給人協調)。
+  · 三態:長期(常態 L1)/ 單次(L2)/ 長期/臨時空位(常態 L1 該日請假,房暫空但仍是他的格)。
+  · L2 表單(綁日期)= 完整三態;L1 表單(週期)= 只有 長期/空(無單一日,套不上請假/單次)。
+  · 占用 = 區間重疊(s1<e2 && s2<e1),非固定格 → 自訂時段(「使用非排班時段」)自然涵蓋;
+    同房多筆重疊逗號並列。改星期/日期/時段 → 即時重算(race guard 只認最後一次)。
+  · 失敗/連線異常 → 不封鎖(寧鬆勿誤擋);占用 option 的 value 仍是 大/中/小(送出不受標註影響)。
+  · 唯一新後端 getRoomOccupancy(唯讀,跨治療師):回各房 [{治療師,狀態,起,迄}];只回房間+治療師+時段,
+    不回病患姓名(隱私)。複用 getTherapyCases 的 L1.5 shadow 邏輯(single→臨時空位 / end-from→排除)。
+  · ⚠️ 需搭配後端 v6.3.6。已知限制:目前為「前台封鎖」,後端未硬擋撞房送出(race 視窗極小);若仍撞房可再加後端 backstop。
 
 v0.8-r7-l1ending changelog:
 - 2026-06-16 長期治療(L1)結束機制重構 — 消除「終止 = 從所有帳單月份消失」的計費陷阱:
@@ -2207,16 +2220,16 @@ body.is-submitting-entry #addSection {
                 </div>
                 <div class="form-field">
                   <label class="form-label">時段</label>
-                  <select class="form-select" id="l1_slot"></select>
+                  <select class="form-select" id="l1_slot" onchange="refreshRoomOccupancy('l1')"></select>
                   <span class="field-toggle" onclick="toggleCustomSlot('l1')">使用非排班時段</span>
                 </div>
                 <div class="form-field" id="l1_customStartWrap" style="display:none;">
                   <label class="form-label">開始時間(自訂)</label>
-                  <input type="time" class="form-input" id="l1_customStart">
+                  <input type="time" class="form-input" id="l1_customStart" onchange="refreshRoomOccupancy('l1')">
                 </div>
                 <div class="form-field" id="l1_customEndWrap" style="display:none;">
                   <label class="form-label">結束時間(自訂)</label>
-                  <input type="time" class="form-input" id="l1_customEnd">
+                  <input type="time" class="form-input" id="l1_customEnd" onchange="refreshRoomOccupancy('l1')">
                 </div>
                 <div class="form-field">
                   <label class="form-label">每週次數</label>
@@ -2340,16 +2353,16 @@ body.is-submitting-entry #addSection {
                 </div>
                 <div class="form-field">
                   <label class="form-label">時段</label>
-                  <select class="form-select" id="l2_slot"></select>
+                  <select class="form-select" id="l2_slot" onchange="refreshRoomOccupancy('l2')"></select>
                   <span class="field-toggle" onclick="toggleCustomSlot('l2')">使用非排班時段</span>
                 </div>
                 <div class="form-field" id="l2_customStartWrap" style="display:none;">
                   <label class="form-label">開始時間(自訂)</label>
-                  <input type="time" class="form-input" id="l2_customStart">
+                  <input type="time" class="form-input" id="l2_customStart" onchange="refreshRoomOccupancy('l2')">
                 </div>
                 <div class="form-field" id="l2_customEndWrap" style="display:none;">
                   <label class="form-label">結束時間(自訂)</label>
-                  <input type="time" class="form-input" id="l2_customEnd">
+                  <input type="time" class="form-input" id="l2_customEnd" onchange="refreshRoomOccupancy('l2')">
                 </div>
                 <div class="form-field">
                   <label class="form-label">費用</label>
@@ -4144,6 +4157,7 @@ function initAddForm(layer) {
     document.getElementById("l1_startDate").value = today.toISOString().slice(0, 10);
     // 重置自訂時段切換
     resetCustomSlot("l1");
+    refreshRoomOccupancy("l1");  // 開窗即依預設星期+時段算占用(或還原乾淨)
   } else if (layer === "layer1_5") {
     initLayer1_5NameDropdown(); /* v0.8-r3: 含重置三步驟逐步開放 */
   } else if (layer === "layer1_5_end_from") {
@@ -4155,6 +4169,7 @@ function initAddForm(layer) {
     document.getElementById("l2_room").value = "";
     document.getElementById("l2_slot").innerHTML = '<option value="">— 請先選日期 —</option>';
     resetCustomSlot("l2");
+    refreshRoomOccupancy("l2");  // 還原乾淨(日期未選 → 不封鎖,選日期後 onL2DateChange 重算)
   } else if (layer === "layer3") {
     document.getElementById("l3_name").value = "";
     document.getElementById("l3_freq").value = "1";
@@ -4215,6 +4230,7 @@ async function initLayer1SlotDropdown() {
 // 切換 L1 weekday 時要重 load slots
 function onL1WeekdayChange() {
   initLayer1SlotDropdown();
+  refreshRoomOccupancy("l1");
 }
 
 // L2 日期變化 → load 該天的排班 slots
@@ -4223,6 +4239,7 @@ async function onL2DateChange() {
   const dateStr = document.getElementById("l2_date").value; // YYYY-MM-DD
   if (!dateStr) {
     document.getElementById("l2_slot").innerHTML = '<option value="">— 請先選日期 —</option>';
+    renderRoomOptions("l2", null);  // 無日期 → 房間還原乾淨可選
     return;
   }
   // 用 split 解析,避免時區問題(new Date(YYYY-MM-DD) 是 UTC midnight,在某些時區會差一天)
@@ -4243,6 +4260,7 @@ async function onL2DateChange() {
       sel.appendChild(opt);
     });
   }
+  refreshRoomOccupancy("l2");  // 日期變 → 重算該日占用
 }
 
 // 自訂時段切換鈕(L1 / L2 共用)
@@ -4263,6 +4281,7 @@ function toggleCustomSlot(prefix) {
     slotSel.disabled = true;
     if (toggle) toggle.textContent = "改回排班內時段";
   }
+  refreshRoomOccupancy(prefix);  // 切換時段來源 → 重算占用
 }
 
 function resetCustomSlot(prefix) {
@@ -4577,6 +4596,81 @@ function readSlot(prefix) {
   if (!val) return { startTime: "", endTime: "", isCustom: false };
   const parts = val.split("-");
   return { startTime: parts[0] || "", endTime: parts[1] || "", isCustom: false };
+}
+
+// ── 治療室占用:排診時房間下拉顯示跨治療師占用 + 封鎖 ──────────────────────
+//   L1 用 weekday、L2 用 date(後端由 date 推 weekday)。占用 = 區間重疊(含部分重疊)。
+//   占用的房 disabled + 標「房(治療師-狀態 時間…)」;空房可選。
+//   失敗 / 連線異常 → 不封鎖(寧鬆勿誤擋,房間衝突屬營運便利非醫療事故)。
+let _roomOccReq = 0; // race guard:只認最後一次請求
+async function refreshRoomOccupancy(prefix) {
+  const sel = document.getElementById(prefix + "_room");
+  if (!sel) return;
+  const slot = readSlot(prefix);
+  let enough = !!(slot.startTime && slot.endTime);
+  const payload = {
+    action: "getRoomOccupancy",
+    lineId: state.lineId,
+    startTime: slot.startTime,
+    endTime: slot.endTime
+  };
+  if (prefix === "l1") {
+    const wd = document.getElementById("l1_weekday").value;
+    if (!wd) enough = false;
+    payload.weekday = parseInt(wd, 10);
+  } else {
+    const dateStr = document.getElementById("l2_date").value; // YYYY-MM-DD
+    if (!dateStr) enough = false;
+    else payload.date = dateStr.replace(/-/g, "/");           // → YYYY/MM/DD
+  }
+  if (!enough) { renderRoomOptions(prefix, null); return; }   // 資訊不足 → 還原乾淨可選
+  const myReq = ++_roomOccReq;
+  try {
+    const data = await xhrPost(API_URL, payload);
+    if (myReq !== _roomOccReq) return;                        // 過期請求丟棄(race guard)
+    renderRoomOptions(prefix, (data && data.success) ? data.rooms : null);
+  } catch (e) {
+    if (myReq !== _roomOccReq) return;
+    renderRoomOptions(prefix, null);                          // 連線異常 → 不封鎖
+  }
+}
+
+// 依占用資料重繪房間 <option>。rooms = null → 全部乾淨可選(預設 / 還原)
+//   option value 永遠是 大/中/小/""(送出讀值不受標註影響);只改顯示字 + disabled
+function renderRoomOptions(prefix, rooms) {
+  const sel = document.getElementById(prefix + "_room");
+  if (!sel) return;
+  const prev = sel.value;
+  const ROOM_KEYS = ["大", "中", "小"];
+  sel.innerHTML = "";
+  const blank = document.createElement("option");
+  blank.value = "";
+  blank.textContent = "(留白)";
+  sel.appendChild(blank);
+  let prevOk = (prev === "");
+  ROOM_KEYS.forEach(function(rk) {
+    const occ = (rooms && rooms[rk]) ? rooms[rk] : [];
+    const opt = document.createElement("option");
+    opt.value = rk;
+    if (occ.length === 0) {
+      opt.textContent = rk;
+      if (prev === rk) prevOk = true;
+    } else {
+      // 「治療師-狀態 時間」逗號並列(自訂時段下同房可能多筆重疊)
+      const label = occ.map(function(o) {
+        return o.therapist + "-" + o.state + " " + o.start + "–" + o.end;
+      }).join(", ");
+      opt.textContent = rk + "（" + label + "）";
+      opt.disabled = true;
+    }
+    sel.appendChild(opt);
+  });
+  if (prevOk) {
+    sel.value = prev;
+  } else {
+    sel.value = "";                        // 先前選的房現在被占 → 改回留白(避免送出撞房)
+    if (prev) showToast("「" + prev + "」室此時段已被占用,已改回留白");
+  }
 }
 
 async function submitAddLayer1() {
