@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.8.8-marathon3-dual-clinic-r9">
+  <meta name="version" content="5.8.13-announce-carousel">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -19,6 +19,16 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
+     v5.8.13-announce-carousel (2026-06-17)
+     (基於 v5.8.12-doctor-display-r1;本輪純前台,公告 API / backend 不動:
+      門診公告「收起態」改成單行交叉淡化輪播(原本前 3 則疊著太佔上方空間,搶下方服務項目焦點):
+        - 收起 = 單行,兩層 .ann-slide 交叉淡化(淡入淡出 1.2s / 切換 2.4s),輪完全部公告
+        - 標題列右側小圓點 ●●● = 共幾則 + 進度,可點跳到該則
+        - 點到 / 滑到暫停輪播;只有 1 則時不輪播、不顯示圓點
+        - 「▼ 看全部」展開成靜止清單(輪播暫停)、「▲ 收合」收回
+        - 單行強制 nowrap + ellipsis(過長截斷,完整內容在展開檢視)
+        - 重構:renderAnnouncements / _drawAnnouncements 改寫 + 新增 _annItemHTML / _annCrossfadeTo 等;
+          移除舊的 ANNOUNCE_SHOW_MAX「前 N 則」邏輯)
      v5.8.12-doctor-display-r1 (2026-06-14)
      (基於 v5.8.11-elderly-ui-r2;本輪兩項「醫師顯示」調整,與 backend v6.3.4 同批:
       1. 代診公告改「原醫師→代診醫師」箭頭(L2421 renderAnnouncements):
@@ -1462,6 +1472,23 @@
     font-size: 12px; color: #8a5f0a; text-align: center;
     padding-top: 8px; cursor: pointer; font-weight: 400; letter-spacing: 1px;
   }
+  /* 公告輪播(收起 = 單行交叉淡化) */
+  .ann-dots { display: inline-flex; gap: 5px; margin-left: auto; align-items: center; }
+  .ann-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: rgba(138,95,10,0.22);
+    cursor: pointer; transition: background .3s ease;
+  }
+  .ann-dot.active { background: #c2860a; }
+  .ann-stage { position: relative; min-height: 40px; }
+  .ann-slide {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; align-items: baseline; gap: 8px; padding: 6px 0;
+    opacity: 0; transition: opacity 1.2s ease; pointer-events: none;
+  }
+  .ann-slide.show { opacity: 1; pointer-events: auto; }
+  .ann-slide .announcement-text {
+    flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
 
   /* ── 自訂 Modal ── */
   .modal-overlay {
@@ -1835,8 +1862,14 @@
   <div class="page" id="pageEntry">
     <!-- 門診公告 -->
     <div class="announcement-box" id="announcementBox">
-      <div class="announcement-title"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg> 門診公告</div>
-      <div id="announcementList"></div>
+      <div class="announcement-title"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg> 門診公告<span class="ann-dots" id="announcementDots"></span></div>
+      <div id="announcementCarousel">
+        <div class="ann-stage">
+          <div class="ann-slide" id="annSlideA"></div>
+          <div class="ann-slide" id="annSlideB"></div>
+        </div>
+      </div>
+      <div id="announcementList" style="display:none;"></div>
       <div class="announcement-toggle" id="announcementToggle" style="display:none;" onclick="toggleAnnouncements()"></div>
     </div>
     <!-- 樂觀載入預留區 -->
@@ -2403,53 +2436,120 @@ async function initLiff() {
 // ===================================
 // 門診公告渲染
 // ===================================
-const ANNOUNCE_SHOW_MAX = 3; // 預設顯示前 3 則，超過才顯示「展開」
+const ANN_INTERVAL = 2400;      // 輪播切換間隔(ms);淡入淡出時間由 CSS .ann-slide 控制(1.2s)
 let _allAnnouncements = [];
 let _announceExpanded = false;
+let _annIdx = 0, _annFront = 0, _annTimer = null, _annListenersReady = false;
+
+function _annItemHTML(a) {
+  const dateParts = a.date.split("/");
+  const dateLabel = parseInt(dateParts[1]) + "/" + parseInt(dateParts[2]) + "（週" + a.weekday + "）";
+  const badge = a.type === "停診"
+    ? `<span class="announcement-badge-closed">停診</span>`
+    : `<span class="announcement-badge-sub">代診</span>`;
+  // v5.8.12: 代診顯示「原醫師→代診醫師」(originalDoctor 由後端 v6.3.4 帶入)
+  //   fallback:後端查不到原醫師(回 "")或原醫師=代診醫師 → 只顯示代診醫師,不印半截箭頭
+  const subArrow = (a.originalDoctor && a.originalDoctor !== a.reason)
+    ? `${a.originalDoctor}→${a.reason}`
+    : a.reason;
+  const detail = a.type === "停診"
+    ? (a.reason ? `<span class="announcement-reason">（${a.reason}）</span>` : "")
+    : (a.reason ? `<span class="announcement-reason">（${subArrow}）</span>` : "");
+  return `${badge}<span class="announcement-text">${dateLabel} ${a.session} ${detail}</span>`;
+}
 
 function renderAnnouncements(list) {
-  _allAnnouncements = list;
+  _allAnnouncements = list || [];
   _announceExpanded = false;
+  _annIdx = 0; _annFront = 0;
+  _annStopRotate();
   _drawAnnouncements();
+}
+
+function _annStopRotate() { if (_annTimer) { clearInterval(_annTimer); _annTimer = null; } }
+function _annStartRotate() {
+  _annStopRotate();
+  if (_allAnnouncements.length > 1 && !_announceExpanded) _annTimer = setInterval(_annNext, ANN_INTERVAL);
+}
+function _annNext() { _annCrossfadeTo((_annIdx + 1) % _allAnnouncements.length); }
+
+function _annRenderDots() {
+  const dots = document.getElementById("announcementDots");
+  if (!dots) return;
+  if (_allAnnouncements.length <= 1 || _announceExpanded) { dots.innerHTML = ""; dots.style.display = "none"; return; }
+  dots.style.display = "inline-flex";
+  dots.innerHTML = _allAnnouncements.map(function(_, i) {
+    return `<span class="ann-dot ${i === _annIdx ? "active" : ""}" data-i="${i}"></span>`;
+  }).join("");
+}
+
+function _annCrossfadeTo(i) {
+  const a = document.getElementById("annSlideA"), b = document.getElementById("annSlideB");
+  if (!a || !b) return;
+  const slides = [a, b];
+  _annIdx = i;
+  const cur = slides[_annFront], nxt = slides[1 - _annFront];
+  nxt.innerHTML = _annItemHTML(_allAnnouncements[_annIdx]);
+  void nxt.offsetWidth;            // 強制 reflow → 確保 transition 觸發
+  nxt.classList.add("show");       // 新層淡入
+  cur.classList.remove("show");    // 舊層同時淡出 → 交叉淡化
+  _annFront = 1 - _annFront;
+  _annRenderDots();
 }
 
 function _drawAnnouncements() {
   const box = document.getElementById("announcementBox");
+  const carousel = document.getElementById("announcementCarousel");
   const listEl = document.getElementById("announcementList");
   const toggle = document.getElementById("announcementToggle");
-  if (!box || !listEl) return;
+  const a = document.getElementById("annSlideA"), b = document.getElementById("annSlideB");
+  if (!box || !carousel || !listEl) return;
+
   if (!_allAnnouncements || _allAnnouncements.length === 0) {
-    box.style.display = "none";
-    return;
+    box.style.display = "none"; _annStopRotate(); return;
   }
   box.style.display = "block";
-  const items = _announceExpanded ? _allAnnouncements : _allAnnouncements.slice(0, ANNOUNCE_SHOW_MAX);
-  listEl.innerHTML = items.map(function(a) {
-    const dateParts = a.date.split("/");
-    const dateLabel = parseInt(dateParts[1]) + "/" + parseInt(dateParts[2]) + "（週" + a.weekday + "）";
-    const badge = a.type === "停診"
-      ? `<span class="announcement-badge-closed">停診</span>`
-      : `<span class="announcement-badge-sub">代診</span>`;
-    // v5.8.12: 代診顯示「原醫師→代診醫師」(originalDoctor 由後端 v6.3.4 帶入)
-    //   fallback:後端查不到原醫師(回 "")或原醫師=代診醫師 → 只顯示代診醫師,不印半截箭頭
-    const subArrow = (a.originalDoctor && a.originalDoctor !== a.reason)
-      ? `${a.originalDoctor}→${a.reason}`
-      : a.reason;
-    const detail = a.type === "停診"
-      ? (a.reason ? `<span class="announcement-reason">（${a.reason}）</span>` : "")
-      : (a.reason ? `<span class="announcement-reason">（${subArrow}）</span>` : "");
-    return `<div class="announcement-item">
-      ${badge}
-      <span class="announcement-text">${dateLabel} ${a.session} ${detail}</span>
-    </div>`;
-  }).join("");
-  // 展開/收合按鈕
-  if (_allAnnouncements.length > ANNOUNCE_SHOW_MAX) {
-    const remaining = _allAnnouncements.length - ANNOUNCE_SHOW_MAX;
+
+  // 綁定一次:點到 / 滑到暫停、點圓點跳到該則
+  if (!_annListenersReady) {
+    carousel.addEventListener("mouseenter", _annStopRotate);
+    carousel.addEventListener("mouseleave", function() { if (!_announceExpanded) _annStartRotate(); });
+    carousel.addEventListener("touchstart", _annStopRotate, { passive: true });
+    carousel.addEventListener("touchend", function() { if (!_announceExpanded) _annStartRotate(); });
+    const dots = document.getElementById("announcementDots");
+    if (dots) dots.addEventListener("click", function(e) {
+      const d = e.target.closest(".ann-dot"); if (!d) return;
+      _annStopRotate(); _annCrossfadeTo(parseInt(d.dataset.i, 10)); _annStartRotate();
+    });
+    _annListenersReady = true;
+  }
+
+  if (_announceExpanded) {
+    // 展開:全部疊著(靜止)
+    _annStopRotate();
+    carousel.style.display = "none";
+    listEl.style.display = "block";
+    listEl.innerHTML = _allAnnouncements.map(function(x) {
+      return `<div class="announcement-item">${_annItemHTML(x)}</div>`;
+    }).join("");
+  } else {
+    // 收起:單行交叉淡化輪播(目前則放 front 層,另一層清空)
+    listEl.style.display = "none";
+    carousel.style.display = "block";
+    if (b) { b.classList.remove("show"); b.innerHTML = ""; }
+    _annFront = 0;
+    a.classList.remove("show");
+    a.innerHTML = _annItemHTML(_allAnnouncements[_annIdx]);
+    void a.offsetWidth;
+    a.classList.add("show");
+    _annStartRotate();
+  }
+  _annRenderDots();
+
+  // 展開/收合按鈕(>1 則才有意義)
+  if (_allAnnouncements.length > 1) {
     toggle.style.display = "block";
-    toggle.textContent = _announceExpanded
-      ? "▲ 收合"
-      : `▼ 還有 ${remaining} 則，點此展開`;
+    toggle.textContent = _announceExpanded ? "▲ 收合" : `▼ 看全部（${_allAnnouncements.length} 則）`;
   } else {
     toggle.style.display = "none";
   }
@@ -2457,6 +2557,7 @@ function _drawAnnouncements() {
 
 function toggleAnnouncements() {
   _announceExpanded = !_announceExpanded;
+  if (!_announceExpanded) { _annIdx = 0; _annFront = 0; }   // 收回時從第一則開始輪播
   _drawAnnouncements();
 }
 
