@@ -9,9 +9,20 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
 悅心診所 心理治療系統 therapy.html
-v0.8-r9-merge-end-action (2026-06-16)
+v0.8-r10-stepform-room-required (2026-06-17)
 
 Designed by Su Ning | Powered by Claude & Gemini 2026
+
+v0.8-r10-stepform-room-required changelog:
+- 2026-06-17 排診表單逐步開放 + 治療室改必選 + 修占用時機 bug:
+  · 修 bug:換星期 / 開 L1 表單時治療室占用算不出來、房間沒開放(先前只有手動改時段下拉才觸發)。
+    根因 = initLayer1SlotDropdown(async)填完時段後沒接 refreshRoomOccupancy + applyL1Gates;補上後與 L2 一致。
+  · L1 / L2 改「逐步開放」(比照 L1.5 既有三步驟):姓名 →(填了開)星期/日期 →(選了開)時段 →
+    (選了開)治療室 →(選了開)費用 / 每週次數 / 開始日。治療室移到時段後、費用前 → 占用一定先算好。
+  · 治療室改「必選」:拿掉「(留白)」預設,改不可選 placeholder「— 請選擇 —」;submitAddLayer1 / submitAddLayer2
+    各加 if(!room) 擋「請選擇治療室」。極端(某時段三間全占)= 無法送出,無逃生口(罕見,真正防撞房;粟寧同意)。
+  · L1.5(暫停/結束)本就三步驟、無房無費 — 不動;L3(候補)不排房 — 不動。
+  · 純前台:backend 不動(維持 v6.3.6,不需重佈)。
 
 v0.8-r9-merge-end-action changelog:
 - 2026-06-16 長期治療(L1)操作按鈕合併 — 修排版 + 簡化:
@@ -1466,6 +1477,7 @@ body {
   user-select: none;
 }
 .field-toggle:hover { color: var(--concrete); }
+.field-toggle.toggle-disabled { pointer-events: none; opacity: 0.4; }
 
 /* 表單錯誤訊息 */
 .form-error {
@@ -2237,11 +2249,12 @@ body.is-submitting-entry #addSection {
               <div class="form-grid">
                 <div class="form-field span-2">
                   <label class="form-label">姓名</label>
-                  <input type="text" class="form-input" id="l1_name" maxlength="50">
+                  <input type="text" class="form-input" id="l1_name" maxlength="50" oninput="applyL1Gates()">
                 </div>
                 <div class="form-field">
                   <label class="form-label">星期幾</label>
-                  <select class="form-select" id="l1_weekday" onchange="onL1WeekdayChange()">
+                  <select class="form-select" id="l1_weekday" onchange="onL1WeekdayChange()" disabled>
+                    <option value="">— 選擇 —</option>
                     <option value="1">週一</option>
                     <option value="2">週二</option>
                     <option value="3">週三</option>
@@ -2252,37 +2265,34 @@ body.is-submitting-entry #addSection {
                 </div>
                 <div class="form-field">
                   <label class="form-label">時段</label>
-                  <select class="form-select" id="l1_slot" onchange="refreshRoomOccupancy('l1')"></select>
-                  <span class="field-toggle" onclick="toggleCustomSlot('l1')">使用非排班時段</span>
+                  <select class="form-select" id="l1_slot" onchange="onL1SlotChange()" disabled></select>
+                  <span class="field-toggle" id="l1_customToggle" onclick="toggleCustomSlot('l1')">使用非排班時段</span>
                 </div>
                 <div class="form-field" id="l1_customStartWrap" style="display:none;">
                   <label class="form-label">開始時間(自訂)</label>
-                  <input type="time" class="form-input" id="l1_customStart" onchange="refreshRoomOccupancy('l1')">
+                  <input type="time" class="form-input" id="l1_customStart" onchange="onL1SlotChange()">
                 </div>
                 <div class="form-field" id="l1_customEndWrap" style="display:none;">
                   <label class="form-label">結束時間(自訂)</label>
-                  <input type="time" class="form-input" id="l1_customEnd" onchange="refreshRoomOccupancy('l1')">
-                </div>
-                <div class="form-field">
-                  <label class="form-label">每週次數</label>
-                  <input type="number" class="form-input" id="l1_freq" min="1" max="7" value="1">
-                </div>
-                <div class="form-field">
-                  <label class="form-label">單次費用</label>
-                  <input type="number" class="form-input" id="l1_fee" min="0" step="100">
+                  <input type="time" class="form-input" id="l1_customEnd" onchange="onL1SlotChange()">
                 </div>
                 <div class="form-field">
                   <label class="form-label">治療室</label>
-                  <select class="form-select" id="l1_room">
-                    <option value="">(留白)</option>
-                    <option value="大">大</option>
-                    <option value="中">中</option>
-                    <option value="小">小</option>
+                  <select class="form-select" id="l1_room" onchange="applyL1Gates()" disabled>
+                    <option value="">— 請先選時段 —</option>
                   </select>
                 </div>
                 <div class="form-field">
+                  <label class="form-label">單次費用</label>
+                  <input type="number" class="form-input" id="l1_fee" min="0" step="100" disabled>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">每週次數</label>
+                  <input type="number" class="form-input" id="l1_freq" min="1" max="7" value="1" disabled>
+                </div>
+                <div class="form-field">
                   <label class="form-label">開始治療日</label>
-                  <input type="date" class="form-input" id="l1_startDate">
+                  <input type="date" class="form-input" id="l1_startDate" disabled>
                 </div>
               </div>
               <div class="form-actions">
@@ -2377,37 +2387,34 @@ body.is-submitting-entry #addSection {
               <div class="form-grid">
                 <div class="form-field span-2">
                   <label class="form-label">姓名</label>
-                  <input type="text" class="form-input" id="l2_name" maxlength="50">
+                  <input type="text" class="form-input" id="l2_name" maxlength="50" oninput="applyL2Gates()">
                 </div>
                 <div class="form-field">
                   <label class="form-label">日期</label>
-                  <input type="date" class="form-input" id="l2_date" onchange="onL2DateChange()">
+                  <input type="date" class="form-input" id="l2_date" onchange="onL2DateChange()" disabled>
                 </div>
                 <div class="form-field">
                   <label class="form-label">時段</label>
-                  <select class="form-select" id="l2_slot" onchange="refreshRoomOccupancy('l2')"></select>
-                  <span class="field-toggle" onclick="toggleCustomSlot('l2')">使用非排班時段</span>
+                  <select class="form-select" id="l2_slot" onchange="onL2SlotChange()" disabled></select>
+                  <span class="field-toggle" id="l2_customToggle" onclick="toggleCustomSlot('l2')">使用非排班時段</span>
                 </div>
                 <div class="form-field" id="l2_customStartWrap" style="display:none;">
                   <label class="form-label">開始時間(自訂)</label>
-                  <input type="time" class="form-input" id="l2_customStart" onchange="refreshRoomOccupancy('l2')">
+                  <input type="time" class="form-input" id="l2_customStart" onchange="onL2SlotChange()">
                 </div>
                 <div class="form-field" id="l2_customEndWrap" style="display:none;">
                   <label class="form-label">結束時間(自訂)</label>
-                  <input type="time" class="form-input" id="l2_customEnd" onchange="refreshRoomOccupancy('l2')">
-                </div>
-                <div class="form-field">
-                  <label class="form-label">費用</label>
-                  <input type="number" class="form-input" id="l2_fee" min="0" step="100">
+                  <input type="time" class="form-input" id="l2_customEnd" onchange="onL2SlotChange()">
                 </div>
                 <div class="form-field">
                   <label class="form-label">治療室</label>
-                  <select class="form-select" id="l2_room">
-                    <option value="">(留白)</option>
-                    <option value="大">大</option>
-                    <option value="中">中</option>
-                    <option value="小">小</option>
+                  <select class="form-select" id="l2_room" onchange="applyL2Gates()" disabled>
+                    <option value="">— 請先選時段 —</option>
                   </select>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">費用</label>
+                  <input type="number" class="form-input" id="l2_fee" min="0" step="100" disabled>
                 </div>
               </div>
               <div class="form-actions">
@@ -4182,14 +4189,17 @@ function initAddForm(layer) {
   if (errEl) errEl.style.display = "none";
 
   if (layer === "layer1") {
-    initLayer1SlotDropdown();
     document.getElementById("l1_name").value = "";
+    document.getElementById("l1_weekday").value = "";   // placeholder(逐步開放起點)
+    document.getElementById("l1_fee").value = "";
+    document.getElementById("l1_freq").value = "1";
     // 預填開始治療日 = 今天
     const today = new Date();
     document.getElementById("l1_startDate").value = today.toISOString().slice(0, 10);
-    // 重置自訂時段切換
     resetCustomSlot("l1");
-    refreshRoomOccupancy("l1");  // 開窗即依預設星期+時段算占用(或還原乾淨)
+    initLayer1SlotDropdown();          // 依(空)星期重置時段下拉
+    renderRoomOptions("l1", null);     // 房間還原為「— 請選擇 —」
+    applyL1Gates();                    // 套逐步開放(此時只開姓名)
   } else if (layer === "layer1_5") {
     initLayer1_5NameDropdown(); /* v0.8-r3: 含重置三步驟逐步開放 */
   } else if (layer === "layer1_5_end_from") {
@@ -4198,10 +4208,10 @@ function initAddForm(layer) {
     document.getElementById("l2_name").value = "";
     document.getElementById("l2_date").value = "";
     document.getElementById("l2_fee").value = "";
-    document.getElementById("l2_room").value = "";
     document.getElementById("l2_slot").innerHTML = '<option value="">— 請先選日期 —</option>';
     resetCustomSlot("l2");
-    refreshRoomOccupancy("l2");  // 還原乾淨(日期未選 → 不封鎖,選日期後 onL2DateChange 重算)
+    renderRoomOptions("l2", null);     // 房間還原為「— 請選擇 —」
+    applyL2Gates();                    // 套逐步開放(此時只開姓名)
   } else if (layer === "layer3") {
     document.getElementById("l3_name").value = "";
     document.getElementById("l3_freq").value = "1";
@@ -4257,12 +4267,16 @@ async function initLayer1SlotDropdown() {
       sel.appendChild(opt);
     });
   }
+  // v0.8-r10:排班填好(第一格自動選取)後才算占用 + 套逐步開放。
+  //   修 async 時機 bug:換星期 / 開表單走這條路時占用算不出來、房間沒開放
+  //   (先前只有「手動改時段下拉」才觸發)。比照 onL1SlotChange / onL2DateChange。
+  refreshRoomOccupancy("l1");
+  applyL1Gates();
 }
 
 // 切換 L1 weekday 時要重 load slots
 function onL1WeekdayChange() {
-  initLayer1SlotDropdown();
-  refreshRoomOccupancy("l1");
+  initLayer1SlotDropdown();  // async:載排班→填時段→(結尾)refreshRoomOccupancy + 套 gating
 }
 
 // L2 日期變化 → load 該天的排班 slots
@@ -4630,6 +4644,67 @@ function readSlot(prefix) {
   return { startTime: parts[0] || "", endTime: parts[1] || "", isCustom: false };
 }
 
+// ── 逐步開放(step-by-step):單一權威設各欄 disabled,尊重自訂時段模式 ─────────
+//   L1:姓名→星期→時段→治療室→(費用/每週次數/開始日)
+//   L2:姓名→日期→時段→治療室→費用
+//   房間在時段「有時間」後才開;尾段在房間選定後才開。房間改必選(送出另驗)。
+function _gateToggle(id, on) {
+  const t = document.getElementById(id);
+  if (!t) return;
+  t.style.pointerEvents = on ? "" : "none";
+  t.style.opacity = on ? "" : "0.4";
+}
+function applyL1Gates() {
+  const name = document.getElementById("l1_name").value.trim();
+  const wd   = document.getElementById("l1_weekday").value;
+  const slot = readSlot("l1");
+  const hasTime = !!(slot.startTime && slot.endTime);
+  const room = document.getElementById("l1_room").value;
+  const nameOk = !!name, wdOk = nameOk && !!wd, timeOk = wdOk && hasTime, roomOk = timeOk && !!room;
+
+  document.getElementById("l1_weekday").disabled = !nameOk;
+  const customOn = document.getElementById("l1_customStartWrap").style.display !== "none";
+  _gateToggle("l1_customToggle", wdOk);
+  if (customOn) {
+    document.getElementById("l1_customStart").disabled = !wdOk;
+    document.getElementById("l1_customEnd").disabled = !wdOk;
+  } else {
+    document.getElementById("l1_slot").disabled = !wdOk;   // 自訂模式時 slot 由 toggleCustomSlot 管
+  }
+  document.getElementById("l1_room").disabled = !timeOk;
+  document.getElementById("l1_fee").disabled = !roomOk;
+  document.getElementById("l1_freq").disabled = !roomOk;
+  document.getElementById("l1_startDate").disabled = !roomOk;
+}
+function onL1SlotChange() {
+  refreshRoomOccupancy("l1");  // 時段變 → 重算占用(內含 renderRoomOptions → applyL1Gates)
+  applyL1Gates();              // 即時:時段有值 → 開放治療室
+}
+function applyL2Gates() {
+  const name = document.getElementById("l2_name").value.trim();
+  const dv   = document.getElementById("l2_date").value;
+  const slot = readSlot("l2");
+  const hasTime = !!(slot.startTime && slot.endTime);
+  const room = document.getElementById("l2_room").value;
+  const nameOk = !!name, dateOk = nameOk && !!dv, timeOk = dateOk && hasTime, roomOk = timeOk && !!room;
+
+  document.getElementById("l2_date").disabled = !nameOk;
+  const customOn = document.getElementById("l2_customStartWrap").style.display !== "none";
+  _gateToggle("l2_customToggle", dateOk);
+  if (customOn) {
+    document.getElementById("l2_customStart").disabled = !dateOk;
+    document.getElementById("l2_customEnd").disabled = !dateOk;
+  } else {
+    document.getElementById("l2_slot").disabled = !dateOk;
+  }
+  document.getElementById("l2_room").disabled = !timeOk;
+  document.getElementById("l2_fee").disabled = !roomOk;
+}
+function onL2SlotChange() {
+  refreshRoomOccupancy("l2");
+  applyL2Gates();
+}
+
 // ── 治療室占用:排診時房間下拉顯示跨治療師占用 + 封鎖 ──────────────────────
 //   L1 用 weekday、L2 用 date(後端由 date 推 weekday)。占用 = 區間重疊(含部分重疊)。
 //   占用的房 disabled + 標「房(治療師-狀態 時間…)」;空房可選。
@@ -4677,7 +4752,7 @@ function renderRoomOptions(prefix, rooms) {
   sel.innerHTML = "";
   const blank = document.createElement("option");
   blank.value = "";
-  blank.textContent = "(留白)";
+  blank.textContent = "— 請選擇 —";   // 房間改必選:placeholder(送出另驗,非「留白」)
   sel.appendChild(blank);
   let prevOk = (prev === "");
   ROOM_KEYS.forEach(function(rk) {
@@ -4700,9 +4775,12 @@ function renderRoomOptions(prefix, rooms) {
   if (prevOk) {
     sel.value = prev;
   } else {
-    sel.value = "";                        // 先前選的房現在被占 → 改回留白(避免送出撞房)
-    if (prev) showToast("「" + prev + "」室此時段已被占用,已改回留白");
+    sel.value = "";                        // 先前選的房現在被占 → 退回未選(避免送出撞房)
+    if (prev) showToast("「" + prev + "」室此時段已被占用,請改選其他房間");
   }
+  // 房間選擇可能變動 → 重新套用逐步開放(尾段是否開放隨房間有無)
+  if (prefix === "l1") applyL1Gates();
+  else if (prefix === "l2") applyL2Gates();
 }
 
 async function submitAddLayer1() {
@@ -4717,6 +4795,7 @@ async function submitAddLayer1() {
   const startDate = document.getElementById("l1_startDate").value; // YYYY-MM-DD,可空
   if (!name) return showFormError("layer1", "姓名必填");
   if (!slot.startTime || !slot.endTime) return showFormError("layer1", "時段必填");
+  if (!room) return showFormError("layer1", "請選擇治療室");
   // v0.6-r19:有填才驗範圍,空 = pass
   // v0.6-r19-r2:改用 Number + Number.isInteger(Gemini Finding 7)
   //   parseInt("1.5") 靜默截斷成 1,在醫療系統 fail-silent 是禁忌
@@ -4845,6 +4924,7 @@ async function submitAddLayer2() {
   if (!name) return showFormError("layer2", "姓名必填");
   if (!date) return showFormError("layer2", "日期必填");
   if (!slot.startTime || !slot.endTime) return showFormError("layer2", "時段必填");
+  if (!room) return showFormError("layer2", "請選擇治療室");
   // v0.6-r19:fee 有填才驗
   // v0.6-r19-r2:同 L1,改 Number + Number.isInteger(Gemini Finding 7)
   let fee = "";
