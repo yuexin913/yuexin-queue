@@ -9,9 +9,18 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
 悅心診所 心理治療系統 therapy.html
-v0.8-r10-stepform-room-required (2026-06-17)
+v0.8-r11-room-occ-loading (2026-06-17)
 
 Designed by Su Ning | Powered by Claude & Gemini 2026
+
+v0.8-r11-room-occ-loading changelog:
+- 2026-06-17 治療室占用查詢期間先鎖房(修「選時間後房間先可選、占用晚幾秒才標」的空窗):
+  · 問題:選時段後 applyGates 同步就把治療室 enable,但占用 xhr 要幾秒才回 → 空窗期可選到其實被占的房。
+  · 修法:refreshRoomOccupancy 查詢前設 _roomOccLoading[prefix]=true、房間顯示「查詢佔用中…」且鎖住;
+    占用回來(成功 / 失敗)才解鎖。applyL1Gates / applyL2Gates 的房間 disabled 改 = !timeOk || _roomOccLoading。
+  · 順手:資訊不足分支 ++_roomOccReq 讓在途請求作廢(避免清掉時間後舊回應誤繪);loading 期間用
+    _roomOccPrev 暫存先前選的房,回來後仍盡量還原(空房保留 / 被占退回未選)。
+  · 純前台:backend 不動(維持 v6.3.6)。
 
 v0.8-r10-stepform-room-required changelog:
 - 2026-06-17 排診表單逐步開放 + 治療室改必選 + 修占用時機 bug:
@@ -4671,7 +4680,7 @@ function applyL1Gates() {
   } else {
     document.getElementById("l1_slot").disabled = !wdOk;   // 自訂模式時 slot 由 toggleCustomSlot 管
   }
-  document.getElementById("l1_room").disabled = !timeOk;
+  document.getElementById("l1_room").disabled = !timeOk || _roomOccLoading.l1;
   document.getElementById("l1_fee").disabled = !roomOk;
   document.getElementById("l1_freq").disabled = !roomOk;
   document.getElementById("l1_startDate").disabled = !roomOk;
@@ -4697,7 +4706,7 @@ function applyL2Gates() {
   } else {
     document.getElementById("l2_slot").disabled = !dateOk;
   }
-  document.getElementById("l2_room").disabled = !timeOk;
+  document.getElementById("l2_room").disabled = !timeOk || _roomOccLoading.l2;
   document.getElementById("l2_fee").disabled = !roomOk;
 }
 function onL2SlotChange() {
@@ -4710,6 +4719,8 @@ function onL2SlotChange() {
 //   占用的房 disabled + 標「房(治療師-狀態 時間…)」;空房可選。
 //   失敗 / 連線異常 → 不封鎖(寧鬆勿誤擋,房間衝突屬營運便利非醫療事故)。
 let _roomOccReq = 0; // race guard:只認最後一次請求
+let _roomOccLoading = { l1: false, l2: false }; // 占用查詢進行中 → 房間先鎖住(不讓選到還沒確認的房)
+let _roomOccPrev = { l1: null, l2: null };       // loading 期間暫存先前選的房,回來後盡量還原
 async function refreshRoomOccupancy(prefix) {
   const sel = document.getElementById(prefix + "_room");
   if (!sel) return;
@@ -4730,14 +4741,22 @@ async function refreshRoomOccupancy(prefix) {
     if (!dateStr) enough = false;
     else payload.date = dateStr.replace(/-/g, "/");           // → YYYY/MM/DD
   }
-  if (!enough) { renderRoomOptions(prefix, null); return; }   // 資訊不足 → 還原乾淨可選
+  if (!enough) { _roomOccLoading[prefix] = false; ++_roomOccReq; renderRoomOptions(prefix, null); return; } // 資訊不足 → 還原乾淨可選(並讓在途請求作廢)
+  // 進入查詢:房間先鎖住、顯示「查詢佔用中…」,等占用回來才開放(避免空窗期選到其實被占的房)
+  _roomOccPrev[prefix] = sel.value;
+  _roomOccLoading[prefix] = true;
+  sel.innerHTML = '<option value="">查詢佔用中…</option>';
+  sel.value = "";
+  if (prefix === "l1") applyL1Gates(); else applyL2Gates();
   const myReq = ++_roomOccReq;
   try {
     const data = await xhrPost(API_URL, payload);
     if (myReq !== _roomOccReq) return;                        // 過期請求丟棄(race guard)
+    _roomOccLoading[prefix] = false;
     renderRoomOptions(prefix, (data && data.success) ? data.rooms : null);
   } catch (e) {
     if (myReq !== _roomOccReq) return;
+    _roomOccLoading[prefix] = false;
     renderRoomOptions(prefix, null);                          // 連線異常 → 不封鎖
   }
 }
@@ -4747,7 +4766,8 @@ async function refreshRoomOccupancy(prefix) {
 function renderRoomOptions(prefix, rooms) {
   const sel = document.getElementById(prefix + "_room");
   if (!sel) return;
-  const prev = sel.value;
+  const prev = (_roomOccPrev[prefix] != null) ? _roomOccPrev[prefix] : sel.value; // loading 期間 value 被清空 → 用暫存還原
+  _roomOccPrev[prefix] = null;
   const ROOM_KEYS = ["大", "中", "小"];
   sel.innerHTML = "";
   const blank = document.createElement("option");
