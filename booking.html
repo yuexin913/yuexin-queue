@@ -22,7 +22,7 @@
      v5.8.13-announce-carousel (2026-06-17)
      (基於 v5.8.12-doctor-display-r1;本輪純前台,公告 API / backend 不動:
       門診公告「收起態」改成單行交叉淡化輪播(原本前 3 則疊著太佔上方空間,搶下方服務項目焦點):
-        - 收起 = 單行,兩層 .ann-slide 交叉淡化(淡入淡出 1.2s / 切換 2.4s),輪完全部公告
+        - 收起 = 單行,兩層 .ann-slide 交叉淡化(淡入淡出 2.4s / 切換 4.8s),輪完全部公告
         - 標題列右側小圓點 ●●● = 共幾則 + 進度,可點跳到該則
         - 點到 / 滑到暫停輪播;只有 1 則時不輪播、不顯示圓點
         - 「▼ 看全部」展開成靜止清單(輪播暫停)、「▲ 收合」收回
@@ -1483,7 +1483,7 @@
   .ann-slide {
     position: absolute; top: 0; left: 0; right: 0;
     display: flex; align-items: baseline; gap: 8px; padding: 6px 0;
-    opacity: 0; transition: opacity 1.2s ease; pointer-events: none;
+    opacity: 0; transition: opacity 2.4s ease; pointer-events: none;
   }
   .ann-slide.show { opacity: 1; pointer-events: auto; }
   .ann-slide .announcement-text {
@@ -2436,7 +2436,7 @@ async function initLiff() {
 // ===================================
 // 門診公告渲染
 // ===================================
-const ANN_INTERVAL = 2400;      // 輪播切換間隔(ms);淡入淡出時間由 CSS .ann-slide 控制(1.2s)
+const ANN_INTERVAL = 4800;      // 輪播切換間隔(ms);淡入淡出時間由 CSS .ann-slide 控制(2.4s)
 let _allAnnouncements = [];
 let _announceExpanded = false;
 let _annIdx = 0, _annFront = 0, _annTimer = null, _annListenersReady = false;
