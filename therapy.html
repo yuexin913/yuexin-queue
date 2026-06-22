@@ -9,9 +9,22 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
 悅心診所 心理治療系統 therapy.html
-v0.8-r11-room-occ-loading (2026-06-17)
+v0.8-r12-recurring-vs-single-warn (2026-06-17)
 
 Designed by Su Ning | Powered by Claude & Gemini 2026
+
+v0.8-r12-recurring-vs-single-warn changelog:
+- 2026-06-17 長期治療占用:新增「未來上課日的單次衝突」警告 + 開始日提前(需 backend v6.3.7):
+  · 問題:長期占用只用 weekday 查,看不到單次(L2)。長期會佔開始日之後每一個該星期,
+    若那些日子已有單次 → 撞,但原本不提示。
+  · 規則:單次「日期星期 == 長期星期 且 日期 ≥ 開始日 且 時段重疊 且 同房」→ 衝突。
+  · 處理:長期撞長期 = 擋(每週都撞);長期撞單次 = 警告(只撞那一週,房仍可選)。
+    占用房 label 加日期,如「⚠ 大(王麟祥-單次 0840-0930 6/23)」。
+  · 前台:開始日移到「星期之後、時段之前」(它是查單次的下界,得先設好查詢才準);
+    gating 鏈 = 姓名→星期→開始日→時段→治療室→費用 / 次數;開始日 onchange 重查占用;
+    refreshRoomOccupancy L1 帶 startDate;renderRoomOptions 區分 warn(可選 +⚠)/ block(擋)。
+  · 後端 v6.3.7:getRoomOccupancy L1 模式多掃 active 單次(weekday + date≥floor + 時段重疊)標 warn:true;
+    floor = startDate || 今天。L2 模式不變。
 
 v0.8-r11-room-occ-loading changelog:
 - 2026-06-17 治療室占用查詢期間先鎖房(修「選時間後房間先可選、占用晚幾秒才標」的空窗):
@@ -2273,6 +2286,10 @@ body.is-submitting-entry #addSection {
                   </select>
                 </div>
                 <div class="form-field">
+                  <label class="form-label">開始治療日</label>
+                  <input type="date" class="form-input" id="l1_startDate" onchange="onL1StartDateChange()" disabled>
+                </div>
+                <div class="form-field">
                   <label class="form-label">時段</label>
                   <select class="form-select" id="l1_slot" onchange="onL1SlotChange()" disabled></select>
                   <span class="field-toggle" id="l1_customToggle" onclick="toggleCustomSlot('l1')">使用非排班時段</span>
@@ -2298,10 +2315,6 @@ body.is-submitting-entry #addSection {
                 <div class="form-field">
                   <label class="form-label">每週次數</label>
                   <input type="number" class="form-input" id="l1_freq" min="1" max="7" value="1" disabled>
-                </div>
-                <div class="form-field">
-                  <label class="form-label">開始治療日</label>
-                  <input type="date" class="form-input" id="l1_startDate" disabled>
                 </div>
               </div>
               <div class="form-actions">
@@ -4666,28 +4679,34 @@ function _gateToggle(id, on) {
 function applyL1Gates() {
   const name = document.getElementById("l1_name").value.trim();
   const wd   = document.getElementById("l1_weekday").value;
+  const sd   = document.getElementById("l1_startDate").value;   // 開始日(下界,占用查單次衝突用)
   const slot = readSlot("l1");
   const hasTime = !!(slot.startTime && slot.endTime);
   const room = document.getElementById("l1_room").value;
-  const nameOk = !!name, wdOk = nameOk && !!wd, timeOk = wdOk && hasTime, roomOk = timeOk && !!room;
+  const nameOk = !!name, wdOk = nameOk && !!wd, startOk = wdOk && !!sd,
+        timeOk = startOk && hasTime, roomOk = timeOk && !!room;
 
   document.getElementById("l1_weekday").disabled = !nameOk;
+  document.getElementById("l1_startDate").disabled = !wdOk;       // 星期選了才開放開始日
   const customOn = document.getElementById("l1_customStartWrap").style.display !== "none";
-  _gateToggle("l1_customToggle", wdOk);
+  _gateToggle("l1_customToggle", startOk);
   if (customOn) {
-    document.getElementById("l1_customStart").disabled = !wdOk;
-    document.getElementById("l1_customEnd").disabled = !wdOk;
+    document.getElementById("l1_customStart").disabled = !startOk;
+    document.getElementById("l1_customEnd").disabled = !startOk;
   } else {
-    document.getElementById("l1_slot").disabled = !wdOk;   // 自訂模式時 slot 由 toggleCustomSlot 管
+    document.getElementById("l1_slot").disabled = !startOk;   // 自訂模式時 slot 由 toggleCustomSlot 管
   }
   document.getElementById("l1_room").disabled = !timeOk || _roomOccLoading.l1;
   document.getElementById("l1_fee").disabled = !roomOk;
   document.getElementById("l1_freq").disabled = !roomOk;
-  document.getElementById("l1_startDate").disabled = !roomOk;
 }
 function onL1SlotChange() {
   refreshRoomOccupancy("l1");  // 時段變 → 重算占用(內含 renderRoomOptions → applyL1Gates)
   applyL1Gates();              // 即時:時段有值 → 開放治療室
+}
+function onL1StartDateChange() {
+  refreshRoomOccupancy("l1");  // 開始日是「占用查單次衝突」的下界 → 變更要重算
+  applyL1Gates();
 }
 function applyL2Gates() {
   const name = document.getElementById("l2_name").value.trim();
@@ -4736,6 +4755,8 @@ async function refreshRoomOccupancy(prefix) {
     const wd = document.getElementById("l1_weekday").value;
     if (!wd) enough = false;
     payload.weekday = parseInt(wd, 10);
+    const sd = document.getElementById("l1_startDate").value; // YYYY-MM-DD
+    if (sd) payload.startDate = sd.replace(/-/g, "/");        // 空 → 後端用今天當下界
   } else {
     const dateStr = document.getElementById("l2_date").value; // YYYY-MM-DD
     if (!dateStr) enough = false;
@@ -4761,6 +4782,9 @@ async function refreshRoomOccupancy(prefix) {
   }
 }
 
+// YYYY/MM/DD → M/D(占用 label 用:單次衝突標哪一週)
+function _shortDate(ymd) { const p = String(ymd).split("/"); return p.length === 3 ? (parseInt(p[1], 10) + "/" + parseInt(p[2], 10)) : ymd; }
+
 // 依占用資料重繪房間 <option>。rooms = null → 全部乾淨可選(預設 / 還原)
 //   option value 永遠是 大/中/小/""(送出讀值不受標註影響);只改顯示字 + disabled
 function renderRoomOptions(prefix, rooms) {
@@ -4783,12 +4807,18 @@ function renderRoomOptions(prefix, rooms) {
       opt.textContent = rk;
       if (prev === rk) prevOk = true;
     } else {
-      // 「治療師-狀態 時間」逗號並列(自訂時段下同房可能多筆重疊)
+      // warn:true(單次)= 只撞那一週 → 警告但可選;其餘(長期 / L2)= 擋
+      const hasBlock = occ.some(function(o) { return o.warn !== true; });
       const label = occ.map(function(o) {
-        return o.therapist + "-" + o.state + " " + o.start + "–" + o.end;
+        return o.therapist + "-" + o.state + " " + o.start + "–" + o.end + (o.date ? " " + _shortDate(o.date) : "");
       }).join(", ");
-      opt.textContent = rk + "（" + label + "）";
-      opt.disabled = true;
+      if (hasBlock) {
+        opt.textContent = rk + "（" + label + "）";
+        opt.disabled = true;
+      } else {
+        opt.textContent = "⚠ " + rk + "（" + label + "）";   // 單次衝突:可選,提醒那一週要喬
+        if (prev === rk) prevOk = true;
+      }
     }
     sel.appendChild(opt);
   });
