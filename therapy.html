@@ -9,9 +9,20 @@
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
 悅心診所 心理治療系統 therapy.html
-v0.8-r12-recurring-vs-single-warn (2026-06-17)
+v0.8-r13-sphinx-gazing (2026-06-17)
 
 Designed by Su Ning | Powered by Claude & Gemini 2026
+
+v0.8-r13-sphinx-gazing changelog:
+- 2026-06-17 塗鴉登入驗證中央狀態(純前台,不動 backend):
+  · 驗證那 0.5–1.5 秒原本靜默,使用者不確定送出了沒 → 在畫布正中央加狀態覆蓋層回饋。
+  · 三種狀態全置中於畫布(半透明遮罩蓋住畫布、內容替換不重閃):
+    驗證中 = 「SPHINX GAZING…」(slate + 動態省略號,sphinx 定睛微前傾);
+    正確   = 「✓ ENTERING…」(slate,短暫顯示後進主頁);
+    答錯   = 「密 碼 錯 誤 ( 剩 餘 N 次 )」(鏽橘、手動分行兩行,sphinx 怒目)。
+  · 語氣分層:GAZING(平靜端詳、未下判斷)留給驗證中;怒目(.angry)留給答錯,不打架。
+  · 最短顯示 ~500ms 防凝視一閃而過;答錯訊息讀完 2.2 秒自動清,或下次落筆即清(resetStrokes 回乾淨可重畫)。
+  · 僅塗鴉模式(有 pad);文字模式維持原本下方 showSquiggleError。Squiggle 物件新增 showGazing/showEntering/showError/clearCenter。
 
 v0.8-r12-recurring-vs-single-warn changelog:
 - 2026-06-17 長期治療占用:新增「未來上課日的單次衝突」警告 + 開始日提前(需 backend v6.3.7):
@@ -479,6 +490,23 @@ body {
   stroke-linejoin: round;
 }
 .squiggle-pad.has-content .squiggle-hint { opacity: 0; }
+
+/* v0.8-r13:登入驗證中央狀態 — GAZING / ENTERING / 錯誤,全置中於畫布
+   凝視 = sphinx 定睛微前傾(平靜端詳);怒目(.angry)仍留給答錯 */
+.sphinx-mark { transition: transform 0.4s ease; }
+.sphinx-mark.gazing { transform: scale(1.04); }
+.sphinx-mark.gazing .sphinx-eye { animation: none; opacity: 1; }
+.squiggle-center {
+  position: absolute; inset: 0; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(250, 250, 250, 0.85); z-index: 2;   /* 半透明遮罩蓋住畫布 */
+  font-family: var(--font-mono); font-size: 13px; letter-spacing: 2px;
+  color: var(--slate); text-align: center; padding: 0 14px; line-height: 1.7;
+}
+.squiggle-center.show { display: flex; animation: sq-center-in 0.25s ease; }
+@keyframes sq-center-in { from { opacity: 0; } to { opacity: 1; } }
+.squiggle-center.err { color: var(--warn); font-size: 12px; }   /* 答錯 = 鏽橘 */
+.squiggle-center .sq-dots { display: inline-block; width: 1.6em; text-align: left; }
 
 /* 進度提示 4-2-3 — Sphinx 謎語的隱喻 */
 .squiggle-progress {
@@ -2120,6 +2148,7 @@ body.is-submitting-entry #addSection {
             <path d="M14 6l4 4"/>
           </svg>
         </div>
+        <div class="squiggle-center" id="squiggleCenter"></div>
       </div>
 
       <div class="squiggle-progress" id="squiggleProgress">
@@ -2919,6 +2948,9 @@ async function doTherapistLogin(password, mode) {
     return { success: false };
   }
   isLoggingIn = true;
+  const isSq = (mode === "squiggle");
+  const t0 = Date.now();
+  if (isSq) Squiggle.showGazing();    // 驗證中:畫布中央「SPHINX GAZING…」+ 鎖住(定睛)
 
   try {
     const data = await xhrPost(API_URL, {
@@ -2926,6 +2958,10 @@ async function doTherapistLogin(password, mode) {
       lineId: state.lineId,
       password: password
     });
+    if (isSq) {                       // 最短顯示 ~500ms,避免極快回應時凝視一閃而過
+      const w = 500 - (Date.now() - t0);
+      if (w > 0) await new Promise(function(r) { setTimeout(r, w); });
+    }
     if (data.success) {
       state.sessionToken = data.token;
       state.myName = data.name || "";
@@ -2933,26 +2969,38 @@ async function doTherapistLogin(password, mode) {
       state.loginTime = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
       saveSessionToStorage();
       hideSquiggleError();
-      Squiggle.onSuccess();
-      enterMainPage();
+      if (isSq) {
+        Squiggle.showEntering();      // 中央「✓ ENTERING…」短暫顯示後直接進主頁
+        setTimeout(function() { Squiggle.onSuccess(); enterMainPage(); }, 550);
+      } else {
+        Squiggle.onSuccess();
+        enterMainPage();
+      }
       return { success: true };
     } else if (data.error === "locked") {
+      if (isSq) Squiggle.clearCenter();
       Squiggle.triggerMeditation();
       return { success: false, locked: true };
     } else if (data.error === "wrong_password") {
       const rem = data.remaining || 0;
-      showSquiggleError("密 碼 錯 誤 ( 剩 餘 " + rem + " 次 )");
-      Squiggle.onFail(mode);
+      if (isSq) {
+        Squiggle.onFail(mode);                                          // sphinx 怒目 + 進度抖動
+        Squiggle.showError("密 碼 錯 誤<br>( 剩 餘 " + rem + " 次 )");   // 置中、手動分行、鏽橘
+      } else {
+        showSquiggleError("密 碼 錯 誤 ( 剩 餘 " + rem + " 次 )");
+        Squiggle.onFail(mode);
+      }
       return { success: false, wrong: true };
     } else {
-      showSquiggleError(data.error || "登入失敗");
-      Squiggle.onFail(mode);
+      const msg = data.error || "登入失敗";
+      if (isSq) { Squiggle.onFail(mode); Squiggle.showError(msg); }
+      else { showSquiggleError(msg); Squiggle.onFail(mode); }
       return { success: false };
     }
   } catch (e) {
     if (e.isSessionExpired) return { success: false };
-    showSquiggleError("連線異常,請稍後再試");
-    Squiggle.onFail(mode);
+    if (isSq) { Squiggle.onFail(mode); Squiggle.showError("連線異常,請稍後再試"); }
+    else { showSquiggleError("連線異常,請稍後再試"); Squiggle.onFail(mode); }
     return { success: false };
   } finally {
     isLoggingIn = false;
@@ -2994,6 +3042,8 @@ const Squiggle = (function() {
 
   let canvas, ctx, pad, progress, groupEls, sphinx;
   let textInput, textStage, squiggleStage, veil, countdownEl;
+  let center;                            // v0.8-r13:登入驗證中央狀態覆蓋層
+  let _dotsTimer = null, _errorTimer = null;
   let isDrawing = false;
   let currentStroke = [];
   let strokeIndex = 0;
@@ -3017,6 +3067,7 @@ const Squiggle = (function() {
     squiggleStage = document.getElementById("squiggleStage");
     veil          = document.getElementById("meditationVeil");
     countdownEl   = document.getElementById("meditationCountdown");
+    center        = document.getElementById("squiggleCenter");
 
     setupCanvas();
     bindEvents();
@@ -3066,6 +3117,7 @@ const Squiggle = (function() {
 
   function startDraw(e) {
     e.preventDefault();
+    if (_errorTimer) { dismissError(); }   // v0.8-r13:重新作答 → 立刻清掉錯誤覆蓋 + 重置(在開始畫之前)
     if (strokeIndex >= 3 || isLoggingIn) return;
     isDrawing = true;
     pad.classList.add("has-content");
@@ -3253,12 +3305,52 @@ const Squiggle = (function() {
     }, 1000);
   }
 
+  // ── v0.8-r13:登入驗證中央狀態覆蓋(GAZING / ENTERING / 錯誤,全置中於畫布)──
+  function _setCenter(html, cls) {
+    if (!center) return;
+    center.className = "squiggle-center show" + (cls ? " " + cls : "");
+    center.innerHTML = html;
+  }
+  function _clearDots() { if (_dotsTimer) { clearInterval(_dotsTimer); _dotsTimer = null; } }
+  function showGazing() {                          // 驗證中:定睛 + 「SPHINX GAZING…」動態省略號
+    sphinx.classList.remove("angry");
+    sphinx.classList.add("gazing");
+    _setCenter('SPHINX&nbsp;GAZING<span class="sq-dots"></span>', "");
+    const d = center ? center.querySelector(".sq-dots") : null;
+    let n = 0; _clearDots();
+    _dotsTimer = setInterval(function() { n = (n + 1) % 4; if (d) d.textContent = ".".repeat(n); }, 380);
+  }
+  function showEntering() {                         // 正確:中央「✓ ENTERING…」(短暫後進主頁)
+    _clearDots(); sphinx.classList.remove("gazing");
+    _setCenter("✓ ENTERING…", "ok");
+  }
+  function showError(html) {                         // 答錯:中央鏽橘訊息(可含 <br> 手動分行)
+    _clearDots(); sphinx.classList.remove("gazing");
+    _setCenter(html, "err");
+    if (_errorTimer) clearTimeout(_errorTimer);
+    _errorTimer = setTimeout(dismissError, 2200);    // 讀完自動清;或下次落筆即清(見 startDraw)
+  }
+  function clearCenter() {                            // 收掉覆蓋(locked 前用)
+    _clearDots(); sphinx.classList.remove("gazing");
+    if (center) { center.className = "squiggle-center"; center.innerHTML = ""; }
+  }
+  function dismissError() {                           // 清錯誤 → 回到乾淨可重畫狀態
+    if (_errorTimer) { clearTimeout(_errorTimer); _errorTimer = null; }
+    clearCenter();
+    sphinx.classList.remove("angry");
+    resetStrokes();                                  // 清畫布 + 重置 strokeIndex/groups
+  }
+
   // 公開 API
   return {
     init: init,
     onFail: onFail,
     onSuccess: onSuccess,
     triggerMeditation: triggerMeditation,
+    showGazing: showGazing,
+    showEntering: showEntering,
+    showError: showError,
+    clearCenter: clearCenter,
     getSubmitString: function() {
       return strokeResults.map(function(s) { return s.join(""); }).join("|");
     }
