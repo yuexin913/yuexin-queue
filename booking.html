@@ -19,6 +19,18 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
+     v5.8.17-retry-init-fix (2026-06-24)
+     (基於 v5.8.16;純前台,backend / 送出邏輯不動:
+        🐞 修 v5.8.15 重試在「初始載入」失效的 bug:
+          - initLiff 的 checkBlacklist 雖走 xhrGet(會重試),外層卻又用 8 秒競賽(blTimeoutPromise)
+            → 8 秒一到就判 _timeout、直接 showPage('pageNetworkError'),xhrGet 重試 + 文案根本沒機會跑
+            → 病患看到「沒出現人數較多文案、直接錯誤頁」。
+          - 修:blacklist 不再 race 8 秒,交給 xhrGet 自身 timeout(30s)+ 重試(最多 2 次),全失敗才 {_error}→錯誤頁。
+            fail-closed 原則維持(最終失敗仍不放行)。移除已無用的 blTimeoutPromise。
+        ✨ 載入逾時安撫文案(delay-based,更即時):
+          - initLiff:載入 6 秒仍未完成 → showRetryNotice() 切「目前系統人數較多　請耐心等候」。
+          - showOverlay/hideOverlay:動作遮罩(載入門診資訊/確認中…)6 秒仍未完成 → 同樣切安撫文案;hideOverlay 清計時器。
+        (xhrGet 的 on-retry showRetryNotice 保留為後援,與上述 delay 計時器並存,皆 idempotent)
      v5.8.16-confirm-tweaks (2026-06-24)
      (基於 v5.8.15;純前台,backend / 送出邏輯不動:
         - 移除確認頁兩顆「✎ 修改」按鈕(預約資料 / 患者資料 grp head)→ 確認頁更單純(檢視 + 送出 / 取消重來)
@@ -2269,13 +2281,21 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxfbtWB6tyWUvFY1r_d26yx
 const LIFF_ID = "2009340533-JKP6Q8Qg";
 let isSubmitting = false; // 防連點全域旗標
 
+var _overlaySlowTimer = null;
 function showOverlay(text) {
   const el = document.getElementById("bookingOverlay");
   document.getElementById("bookingOverlayText").textContent = text || "";
   el.style.display = "flex";
+  // v5.8.17:動作遮罩 6 秒仍未完成 → 切「人數較多」安撫文案(xhrGet 同時在背景重試)
+  if (_overlaySlowTimer) clearTimeout(_overlaySlowTimer);
+  _overlaySlowTimer = setTimeout(function() {
+    var t = document.getElementById("bookingOverlayText");
+    if (t) t.textContent = "目前系統人數較多，請耐心等候…";
+  }, 6000);
 }
 function hideOverlay() {
   document.getElementById("bookingOverlay").style.display = "none";
+  if (_overlaySlowTimer) { clearTimeout(_overlaySlowTimer); _overlaySlowTimer = null; }
 }
 
 let state = {
@@ -2386,25 +2406,27 @@ async function initLiff() {
     //   · 真的被封鎖 → pageLoadError(無法使用線上預約,給診所電話)
     //   · Timeout / 網路錯誤 → pageNetworkError(連線逾時,給重新載入按鈕)
     const blPromise = xhrGet(`${API_URL}?action=checkBlacklist&lineId=${state.lineId}`).catch(() => ({ _error: true }));
-    const blTimeoutPromise = new Promise(function(resolve) {
-      setTimeout(function() { resolve({ _timeout: true }); }, 8000);
-    });
 
-    // v5.8.7-r2: 公告 API 從 fire-and-forget 改成並行 await(各自 8s timeout 保護)
-    //   舊行為:公告 fire-and-forget → 首頁先出現,公告遲到擠進來(視覺跳動)
-    //   新行為:公告跟黑名單並行 await → 兩者都回才顯示首頁,公告跟首頁同步出現
-    //   實際延遲成本接近 0 — animation 保底 1500ms 永遠是瓶頸,API ~300-500ms 藏在動畫內
-    //   公告 API 失敗或 timeout → fallback null,當無公告處理(首頁仍正常顯示)
+    // v5.8.7-r2: 公告 API 並行 await(8s timeout 保護;非關鍵,逾時 / 失敗當無公告,首頁仍正常顯示)
     const annPromise = xhrGet(`${API_URL}?action=getUpcomingAnnouncements`).catch(() => null);
     const annTimeoutPromise = new Promise(function(resolve) {
       setTimeout(function() { resolve(null); }, 8000);
     });
 
-    // 並行 await 兩個請求(各自 race 自己的 timeout)
-    const [blResult, annResult] = await Promise.all([
-      Promise.race([blPromise, blTimeoutPromise]),
-      Promise.race([annPromise, annTimeoutPromise])
-    ]);
+    // v5.8.17 修:原本 blacklist 用 8 秒競賽(blTimeoutPromise),會在 xhrGet 還在重試時就於 8 秒判 _timeout
+    //   → 直接 showPage(pageNetworkError),導致 v5.8.15 的「重試 + 人數較多文案」在初始載入完全沒機會跑。
+    //   改:blacklist 不再競賽,交給 xhrGet 自身 timeout(30s)+ 重試處理;全失敗才回 {_error}(fail-closed 維持)。
+    //   另:載入逾時提示 — 6 秒仍在載入 → 切「目前系統人數較多　請耐心等候」安撫文案(不中斷流程)。
+    var _loadingSlowTimer = setTimeout(function() { showRetryNotice(); }, 6000);
+    let blResult, annResult;
+    try {
+      [blResult, annResult] = await Promise.all([
+        blPromise,                                       // ← 不再 race 8 秒,讓 xhrGet 完整重試
+        Promise.race([annPromise, annTimeoutPromise])    // 公告非關鍵,維持 8 秒上限
+      ]);
+    } finally {
+      clearTimeout(_loadingSlowTimer);
+    }
 
     // 公告:有就渲染,失敗 / 空陣列 / null 都靜默 fallback
     if (annResult && annResult.success && annResult.announcements) {
