@@ -27,7 +27,7 @@
           預約資料(預約日期 / 報到時間 / 診次 / 類別 / 醫師)+ 患者資料(姓名 / 出生年月日 / 電話)
         - 每組標題列右側「✎ 修改」可分別直接編輯(預約資料 → pageTime、患者資料 → pageInfo)
         - 色塊自適應寬度(flex-wrap);關鍵欄(日期/報到/醫師)用 sage 襯線字 highlight
-        - 醫師只顯示姓名(去後綴)、患者姓名→姓名(去前綴)、時段→診次、就診類型→類別
+        - 醫師只顯示姓名(去後綴)、患者姓名→姓名(去前綴)、時段→診次、就診類型→類別、出生年月日顯示民國年(formatBirthROCDisplay)
         - 同意條款改字、續留送出鈕下方;原「← 修改預約日期」→「← 取消預約／回到首頁」(showPage pageEntry)
         - 渲染:summaryContent 列 → 改填 chipsBooking / chipsPatient;新增 .confirm-pending/.confirm-grp/.confirm-chip 等 CSS(舊 .confirm-card/.summary-row 保留未用)
         - emoji 僅討論示意,實作全用既有 line-icon SVG;送出/取消沿用文字箭頭(→ ←))
@@ -4271,7 +4271,7 @@ async function goToConfirm() {
     ${state.isUnspecified ? '' : `<div class="confirm-chip hl"><span class="cc-k">醫師</span><span class="cc-v">${esc(state.doctor || "-")}</span></div>`}`;
   document.getElementById("chipsPatient").innerHTML = `
     <div class="confirm-chip"><span class="cc-k">姓名</span><span class="cc-v">${esc(state.name)}</span></div>
-    <div class="confirm-chip"><span class="cc-k">出生年月日</span><span class="cc-v">${esc(state.birth)}</span></div>
+    <div class="confirm-chip"><span class="cc-k">出生年月日</span><span class="cc-v">${esc(formatBirthROCDisplay(state.birth))}</span></div>
     <div class="confirm-chip"><span class="cc-k">電話</span><span class="cc-v">${esc(state.phone)}</span></div>`;
   // r4(2026-05-23):不指定 case 隱藏醫師欄,對齊 backend r6 LINE 訊息
   //   業務模型「不指定不該綁醫師」:病患不知道誰開藥(來現場才分派)
