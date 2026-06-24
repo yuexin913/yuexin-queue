@@ -19,6 +19,18 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
+     v5.8.15-get-retry (2026-06-24)
+     (基於 v5.8.14;本輪純前台,backend / 送出邏輯不動:
+      症狀:共用單一 GAS Web App + 單一 Google Sheet,並發時偶有「整支沒回應」壞窗
+            (伺服器端 Executions 觀測到單筆 doGet 卡 117 秒;同時 admin/booking 會一起中),
+            病患重新整理 / 載入 / 按「下一步」偶發紅框。非病患量問題(單人重整即可重現)。
+      對策:GET 自動重試 + backoff(GET 皆冪等,可安全重試)——
+        - xhrGet 拆成 xhrGetOnce + 重試包裝;逾時 / 網路錯 / GAS 回 HTML 錯誤頁 → 600ms、1500ms 後最多重試 2 次
+        - 重試期間把「目前可見的載入指示器」切成安撫文案「目前系統人數較多　請耐心等候 / Reconnecting…」
+          (#pageLoading 呼吸 logo 畫面 + #bookingOverlay 動作遮罩,哪個在顯示切哪個;showRetryNotice)
+        - 失敗頁不動(仍為「系統暫時無法回應…07-363-1313」);xhrPost 不自動重試(submitBooking 重複預約風險,另以 requestId 處理)
+      涵蓋:初始載入(checkBlacklist / 公告)、選日期(getAvailableSlots)、按下一步(checkLimit)等所有 GET。
+      未涵蓋(待辦):最後「確認送出預約」submitBooking(POST)需 requestId 冪等;admin / queue 前台需比照加重試)
      v5.8.14-confirm-redesign (2026-06-17)
      (基於 v5.8.13-announce-carousel;本輪純前台,backend / 送出邏輯不動:
       有人把「確認預約資料」頁誤認為「已完成」(其實要捲到底再點「確認送出預約」)。重做確認頁:
@@ -4872,7 +4884,7 @@ function xhrParseResponse(text) {
   return JSON.parse(text);
 }
 
-function xhrGet(url) {
+function xhrGetOnce(url) {
   return new Promise(function(resolve, reject) {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
@@ -4884,6 +4896,56 @@ function xhrGet(url) {
     xhr.onerror = function() { reject(new Error("Network error")); };
     xhr.ontimeout = function() { reject(new Error("Timeout")); };
     xhr.send();
+  });
+}
+
+// v5.8.15:GET 重試期間,把「目前可見的載入指示器」切成「人數較多」安撫文案
+//   #pageLoading(初始載入·呼吸 logo)與 #bookingOverlay(動作遮罩)哪個在顯示就切哪個。
+//   單向切換:同一次載入過程內只切一次;新的載入(showOverlay 重新帶文字 / 重新進 pageLoading)會自帶預設文案。
+function showRetryNotice() {
+  try {
+    var lp = document.getElementById("pageLoading");
+    if (lp && lp.classList.contains("active")) {
+      var box = document.getElementById("loadingText");
+      if (box) {
+        var zh = box.querySelector(".loading-text-zh");
+        var en = box.querySelector(".loading-text-en");
+        if (zh) zh.textContent = "目前系統人數較多　請耐心等候";
+        if (en) en.innerHTML = 'Reconnecting<span class="loading-dots"><span>·</span><span>·</span><span>·</span></span>';
+      }
+    }
+  } catch(e) {}
+  try {
+    var ov = document.getElementById("bookingOverlay");
+    if (ov && ov.style.display && ov.style.display !== "none") {
+      var t = document.getElementById("bookingOverlayText");
+      if (t) t.textContent = "目前系統人數較多，請耐心等候…";
+    }
+  } catch(e) {}
+}
+
+// v5.8.15:GET 自動重試 + backoff(GET 皆冪等,可安全重試)
+//   逾時 / 網路錯 / GAS 回 HTML 錯誤頁 → 短暫 backoff 後自動重試,多半能在下一個無壅塞窗口成功。
+//   不套用於 POST(submitBooking 重複預約風險,另以 requestId 處理)。
+//   注意:對外簽章與回傳與舊 xhrGet 完全一致,呼叫端無須改動。
+var XHR_GET_MAX_RETRIES = 2;
+var XHR_GET_BACKOFF_MS = [600, 1500];
+function xhrGet(url) {
+  return new Promise(function(resolve, reject) {
+    var attempt = 0;
+    function attemptOnce() {
+      xhrGetOnce(url).then(resolve).catch(function(err) {
+        if (attempt < XHR_GET_MAX_RETRIES) {
+          attempt++;
+          showRetryNotice();
+          try { console.warn("[xhrGet] retry " + attempt + "/" + XHR_GET_MAX_RETRIES + " — " + (err && err.message)); } catch(e) {}
+          setTimeout(attemptOnce, XHR_GET_BACKOFF_MS[attempt - 1] || 1500);
+        } else {
+          reject(err);
+        }
+      });
+    }
+    attemptOnce();
   });
 }
 
