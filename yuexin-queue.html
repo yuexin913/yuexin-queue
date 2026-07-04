@@ -4,6 +4,43 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>悅心診所 · 看診進度</title>
+<!-- ==========================================================
+     悅心診所 · 看診進度(mainpi WebSocket 直連版)
+     mainpi-v2-checkin-notice (2026-07-04)
+     (基於 3/6 原版;此檔首次補 header,版本系譜與 v1.x 應急 GAS 版分開。
+      mock v1–v7 七輪迭代定案,mainpi WebSocket 資料邏輯完全不動:
+
+      🕐 報到提示動態面板(純前端讀裝置時間,零後端零網路):
+        [A] 看診時段 → 三行身分別:
+            預約|依 LINE 確認訊息時間報到
+            現場複診|最晚報到 HH:MM(X診)
+            現場初診|請事先來電 07-363-1313(tel: 9 碼)
+        [B] 其餘時段統一顯示,不分身分(定案理由:入口為 LINE 圖文選單,
+            初診規則已由其他按鈕傳達):
+            準備中/休息中 · 次診 HH:MM 開始
+            tail1(截止後~結束前10分):已過 · 次診開始 +
+              「若需加診請來電(詢問制,依現場人數)」+
+              「(領取相同處方-拿藥-請於 結束前10分 前報到)」
+            tail2(結束前10分~結束):僅「已過 · 次診開始」
+            今日門診已結束/今日休診
+        時段表:平日 早 09:00–11:30(尾至12:00)/午 14:00–16:30(尾至17:00)
+               /晚 17:30–20:00(尾至20:30);週六僅早診;週日休診
+        拿藥截止 = 結束−10 分(11:50/16:50/20:20;該分鐘起歸 tail2)
+        分鐘解析度無縫隙(狀態機 25 邊界案例單元測試);每 60 秒重算;
+        fail-safe:JS 失效顯示靜態三行+通用規則;render 全包 try-catch;
+        國定假日不處理(以 LINE 公告蓋過)
+
+      💚 狀態列重設計(方案 A:標題脈點 + 卡片註腳):
+        標題「即時看診進度」→「看診進度 ●」,綠點呼吸 = 即時的視覺化
+        (連線中灰/已連線綠脈動/中斷紅定格);時間戳降為卡片下極淡註腳
+        「更新 HH:MM:SS」,中斷時原位換紅字「連線中斷,重試中…」;
+        移除頁尾 status-bar/last-update 兩行(setStatus/updateTime 重構,
+        呼叫點不變);面板下方淨空,頁面以面板收尾
+
+      🎨 blob 相容:面板加底色暈圈(box-shadow 0 0 0 8px var(--bg),
+        blob 永遠停在面板外 8px)+ 左下 blob 退位 30px,解同色系相鄰暈污
+      Designed by Su Ning | Powered by Claude & Gemini 2026
+     ========================================================== -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&family=DM+Sans:wght@200;300;400&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -13,6 +50,7 @@
     --green-light: #EBF3E4;
     --green-mid: #C5DEB0;
     --gray: #A8A8A0;
+    --warn: #C8893E;
     --text: #3A3A35;
     --bg: #F5F7F2;
   }
@@ -43,7 +81,7 @@
   body::after {
     content: '';
     position: fixed;
-    bottom: -100px; left: -80px;
+    bottom: -130px; left: -105px; /* v2:退位 30px,降低與面板相遇頻率 */
     width: 260px; height: 260px;
     background: var(--green-mid);
     opacity: 0.2;
@@ -144,43 +182,75 @@
     100%{ transform: scale(1); }
   }
 
-  .status-bar {
-    margin-top: 24px;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    animation: fadeIn 0.8s ease 0.3s both;
-  }
-
-  .dot {
-    width: 7px; height: 7px;
+  /* ── v2 方案 A:標題脈點(即時的視覺化)── */
+  .live-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
     border-radius: 50%;
-    background: #ccc;
-    transition: background 0.3s;
-    flex-shrink: 0;
-  }
-  .dot.connected {
     background: var(--green);
+    margin-left: 4px;
+    vertical-align: 1px;
     animation: pulse 2.5s ease infinite;
   }
-  .dot.error { background: #E07070; }
+  .live-dot.wait { background: #ccc; animation: none; }
+  .live-dot.err  { background: #E07070; animation: none; }
 
   @keyframes pulse {
     0%,100%{ opacity:1 } 50%{ opacity:0.3 }
   }
 
-  .status-text {
-    font-size: 11px;
-    color: var(--gray);
-    letter-spacing: 0.08em;
-  }
-
-  .last-update {
-    margin-top: 6px;
+  /* ── v2 方案 A:卡片註腳(時間戳/斷線訊息原位切換)── */
+  .data-caption {
+    margin-top: 10px;
     font-size: 10px;
     color: #C0C0BA;
     letter-spacing: 0.06em;
+    text-align: center;
+    position: relative; z-index: 1;
+    animation: fadeIn 0.8s ease 0.3s both;
   }
+  .data-caption.err { font-size: 11px; color: #E07070; }
+
+  /* ── v2:報到提示面板 ── */
+  .checkin-note {
+    margin-top: 16px;
+    width: 100%;
+    max-width: 320px;
+    background: var(--green-light);
+    border-radius: 16px 6px 16px 6px;
+    padding: 15px 16px;
+    position: relative; z-index: 1;
+    animation: fadeIn 0.8s ease 0.3s both;
+    /* 底色暈圈:平時隱形,blob 經過時吃掉其邊緣,保證不與面板相碰 */
+    box-shadow: 0 0 0 8px var(--bg);
+  }
+  .note-row { display: flex; align-items: baseline; gap: 9px; }
+  .note-row + .note-row { margin-top: 9px; }
+  .note-chip {
+    flex-shrink: 0; min-width: 58px; text-align: center;
+    font-size: 10.5px; letter-spacing: 0.1em; color: var(--green);
+    background: #fff; border: 1px solid var(--green-mid);
+    border-radius: 999px; padding: 2px 8px; line-height: 1.5;
+  }
+  .note-text { font-size: 13px; color: var(--text); letter-spacing: 0.03em; line-height: 1.6; }
+  .note-accent { color: var(--warn); font-weight: 500; font-family: 'DM Sans','Noto Sans TC',sans-serif; }
+  .note-sess { font-size: 11px; color: var(--gray); }
+  .note-dim { color: var(--gray); }
+  .note-tel {
+    color: var(--green); text-decoration: none;
+    border-bottom: 1px dotted var(--green-mid);
+    font-family: 'DM Sans','Noto Sans TC',sans-serif;
+  }
+  /* [B] 統一狀態區(單行或 tail 多行) */
+  .note-status { text-align: center; }
+  .st-line { font-size: 12.5px; color: var(--gray); letter-spacing: 0.05em; line-height: 1.7; }
+  .st-line .st-dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: #C9CDC2; margin-right: 7px; vertical-align: 1px;
+  }
+  .st-line .st-hint { color: var(--text); }
+  .st-line2 { font-size: 12.5px; color: var(--text); letter-spacing: 0.04em; line-height: 1.8; margin-top: 5px; }
+  .st-line3 { font-size: 11px; color: var(--gray); letter-spacing: 0.03em; line-height: 1.7; margin-top: 4px; }
 
   @keyframes fadeDown {
     from { opacity:0; transform: translateY(-16px); }
@@ -199,7 +269,7 @@
 
 <div class="header">
   <div class="clinic-name">悅心診所</div>
-  <div class="page-title">即時看診進度</div>
+  <div class="page-title">看診進度 <span class="live-dot wait" id="liveDot"></span></div>
 </div>
 
 <div class="cards">
@@ -225,21 +295,43 @@
   </div>
 </div>
 
-<div class="status-bar">
-  <div class="dot" id="status-dot"></div>
-  <span class="status-text" id="status-text">連線中…</span>
+<div class="data-caption" id="dataCaption">連線中…</div>
+
+<!-- 報到提示面板:fail-safe 預設 = 三行 + 通用規則(JS 失效時病患仍看到正確規則) -->
+<div class="checkin-note">
+  <div class="note-status" id="statusLine" style="display:none;"></div>
+  <div id="noteRows">
+    <div class="note-row">
+      <span class="note-chip">預約</span>
+      <span class="note-text">依 LINE 確認訊息時間報到</span>
+    </div>
+    <div class="note-row">
+      <span class="note-chip">現場複診</span>
+      <span class="note-text" id="walkinDeadline">最晚報到:門診結束前 30 分鐘</span>
+    </div>
+    <div class="note-row">
+      <span class="note-chip">現場初診</span>
+      <span class="note-text">請事先來電 <a class="note-tel" href="tel:073631313">07-363-1313</a></span>
+    </div>
+  </div>
 </div>
-<div class="last-update" id="last-update"></div>
 
 <script>
   var ws_socket = null;
   var WS_CLOSED = 3;
 
+  /* v2 方案 A:狀態改由「標題脈點 + 卡片註腳」承載(原介面保留,呼叫點不變) */
   function setStatus(state) {
-    var dot = document.getElementById('status-dot');
-    var txt = document.getElementById('status-text');
-    dot.className = 'dot ' + state;
-    txt.textContent = state === 'connected' ? '即時連線中' : '連線中斷，重試中…';
+    var dot = document.getElementById('liveDot');
+    var cap = document.getElementById('dataCaption');
+    if (!dot || !cap) return;
+    if (state === 'connected') {
+      dot.className = 'live-dot'; // 綠色脈動;註腳交給 updateTime 寫時間戳
+    } else {
+      dot.className = 'live-dot err';
+      cap.className = 'data-caption err';
+      cap.textContent = '連線中斷，重試中…';
+    }
   }
 
   function updateTime() {
@@ -247,7 +339,10 @@
     var h = String(now.getHours()).padStart(2,'0');
     var m = String(now.getMinutes()).padStart(2,'0');
     var s = String(now.getSeconds()).padStart(2,'0');
-    document.getElementById('last-update').textContent = '最後更新 ' + h + ':' + m + ':' + s;
+    var cap = document.getElementById('dataCaption');
+    if (!cap) return;
+    cap.className = 'data-caption'; // 自動從 err 樣式復原
+    cap.textContent = '更新 ' + h + ':' + m + ':' + s;
   }
 
   function ws_onmessage(e) {
@@ -300,6 +395,80 @@
 
   QueryCaller();
   setInterval(QueryCaller, 30000);
+
+  /* ── v2 報到提示狀態機(定案版,mock v5–v7 驗證)──
+     sessions: [報到開始, 最晚報到, 門診結束, 診名, 開始字串]
+     平日:早 09:00/11:30/12:00、午 14:00/16:30/17:00、晚 17:30/20:00/20:30
+     週六:僅早診;週日:休診
+     tail 雙段(以早診為例):tail1 = 11:31–11:49(已過+加診+拿藥 11:50 前)
+       tail2 = 11:50–12:00(僅已過;11:50 歸 tail2,因文案「11:50 前」該分鐘起不可行)
+     [B] 統一顯示:prep/rest/tail1/tail2/ended/closed;僅 ok 為 [A] 三行
+     分鐘解析度、區間半開 → 無縫隙(11:30:59 仍算來得及) */
+  function getClinicState(now) {
+    var day = now.getDay();
+    var m = now.getHours() * 60 + now.getMinutes();
+    if (day === 0) return { mode: "closed" };
+    var S = [[540, 690, 720, "早診", "09:00"]];
+    if (day >= 1 && day <= 5) {
+      S.push([840, 990, 1020, "午診", "14:00"], [1050, 1200, 1230, "晚診", "17:30"]);
+    }
+    for (var i = 0; i < S.length; i++) {
+      var s = S[i], nx = S[i + 1] || null;
+      if (m < s[0]) return { mode: (i === 0 && m >= 480) ? "prep" : "rest", next: s };
+      if (m <= s[1]) return { mode: "ok", sess: s };
+      if (m < s[2] - 10) return { mode: "tail1", sess: s, next: nx, pickup: s[2] - 10 };
+      if (m <= s[2]) return { mode: "tail2", sess: s, next: nx };
+    }
+    return { mode: "ended" };
+  }
+
+  function fmtMin(t) {
+    var h = Math.floor(t / 60), mm = t % 60;
+    return (h < 10 ? "0" + h : h) + ":" + (mm < 10 ? "0" + mm : mm);
+  }
+
+  function tailLine1(st) {
+    return '<div class="st-line"><span class="note-dim">' + st.sess[3] + '報到時間已過</span>'
+      + (st.next ? ' <span class="st-hint">· ' + st.next[3] + ' ' + st.next[4] + ' 開始</span>' : '')
+      + '</div>';
+  }
+
+  function renderCheckinNote() {
+    try {
+      var st = getClinicState(new Date());
+      var statusLine = document.getElementById("statusLine");
+      var noteRows = document.getElementById("noteRows");
+      var walkinEl = document.getElementById("walkinDeadline");
+
+      var showRows = (st.mode === "ok");
+      noteRows.style.display = showRows ? "" : "none";
+      statusLine.style.display = showRows ? "none" : "block";
+
+      if (st.mode === "ok") {
+        walkinEl.innerHTML = '最晚報到:<span class="note-accent">' + fmtMin(st.sess[1])
+          + '</span> <span class="note-sess">(' + st.sess[3] + ')</span>';
+      } else if (st.mode === "tail1") {
+        statusLine.innerHTML = tailLine1(st)
+          + '<div class="st-line2">若需加診請來電 <a class="note-tel" href="tel:073631313">07-363-1313</a> 確認</div>'
+          + '<div class="st-line3">(領取相同處方-拿藥-請於 ' + fmtMin(st.pickup) + ' 前報到)</div>';
+      } else if (st.mode === "tail2") {
+        statusLine.innerHTML = tailLine1(st);
+      } else if (st.mode === "prep") {
+        statusLine.innerHTML = '<div class="st-line"><span class="st-dot"></span>準備中 <span class="st-hint">· '
+          + st.next[3] + ' ' + st.next[4] + ' 開始</span></div>';
+      } else if (st.mode === "rest") {
+        statusLine.innerHTML = '<div class="st-line"><span class="st-dot"></span>休息中 <span class="st-hint">· '
+          + st.next[3] + ' ' + st.next[4] + ' 開始</span></div>';
+      } else if (st.mode === "ended") {
+        statusLine.innerHTML = '<div class="st-line"><span class="st-dot"></span>今日門診已結束</div>';
+      } else {
+        statusLine.innerHTML = '<div class="st-line"><span class="st-dot"></span>今日休診</div>';
+      }
+    } catch (e) {} // 任一步出錯 → 維持 fail-safe 靜態內容
+  }
+
+  renderCheckinNote();
+  setInterval(renderCheckinNote, 60000);
 </script>
 </body>
 </html>
