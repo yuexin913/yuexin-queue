@@ -15,7 +15,12 @@
 <style>
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
-     Current Version: v5.5.29-read-retry (2026-08-04)
+     Current Version: v5.5.30-load-timer (2026-08-05)
+     本版:單一變更 — 診表載入讀秒(純前端,零請求)
+        · 5 秒內載完不顯示;超過 5 秒浮現「載入中… N 秒」並每秒跳動。
+        · 兼作量測工具:櫃檯回報可從「有時候很慢」變成具體秒數,供決策使用。
+        · 不寫「人數較多」等推測文案 — 已證實深夜無人時同樣發作。
+     基於 v5.5.29-read-retry (2026-08-04)
      本版:單一變更 — 純讀 POST 納入重試(xhrPostRead),治「系統暫時無法使用」誤報
         · 病灶:GAS 瞬間併發時先回自家 HTML 錯誤頁(未進 doGet/doPost,執行紀錄無此筆、零失敗)
           → xhrParseResponse 丟 SERVER_HTML。GET 路徑本有重試會自癒,但 admin 診表等查詢走
@@ -3901,6 +3906,41 @@ function xhrGetOnce(fullUrl) {
   });
 }
 
+/* ── v5.5.30-load-timer:診表載入讀秒 ──
+   目的有二:(1)使用者回饋 — 慢的時候給明確進度感,不再只是一片 skeleton 乾等;
+            (2)量測工具 — 櫃檯回報從「有時候很慢」變成「等了 34 秒」,可作為決策數據。
+   設計:5 秒內載完完全不顯示(順的時候畫面乾淨),超過 5 秒才浮現並每秒跳動。
+   刻意不寫「人數較多」等推測性文案 — 半夜無人時仍會發作,已證實與人數無關(病灶在
+   Google 端請求分派),數字本身比編造的原因誠實。
+   純前端計時,不發任何請求;renderSchedule/錯誤處理前一律 stop,不會殘留。 */
+var _schedElapsedTimer = null;
+var SCHED_ELAPSED_SHOW_AFTER = 5; // 秒:超過才顯示
+
+function startSchedElapsed() {
+  stopSchedElapsed();
+  var t0 = Date.now();
+  _schedElapsedTimer = setInterval(function() {
+    var sec = Math.floor((Date.now() - t0) / 1000);
+    if (sec < SCHED_ELAPSED_SHOW_AFTER) return;
+    var host = document.getElementById("scheduleContent");
+    if (!host) return;
+    var el = document.getElementById("schedElapsed");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "schedElapsed";
+      el.style.cssText = "grid-column:1/-1;padding:10px 12px;text-align:center;font-size:13px;letter-spacing:0.08em;color:var(--text-light);";
+      host.insertBefore(el, host.firstChild);
+    }
+    el.textContent = "載入中… " + sec + " 秒";
+  }, 1000);
+}
+
+function stopSchedElapsed() {
+  if (_schedElapsedTimer) { clearInterval(_schedElapsedTimer); _schedElapsedTimer = null; }
+  var el = document.getElementById("schedElapsed");
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+}
+
 // 重試期間的安撫文案:哪個 loading 指示器在畫面上就換哪個(皆 idempotent)
 function showAdminRetryNotice() {
   // 1) 動作遮罩(adminOverlay)可見 → 換 overlay 文字
@@ -4046,12 +4086,15 @@ async function loadSchedule(preferredSession) {
   const _therapyDotEl = document.getElementById("therapyTodayDot");
   if (_therapyDotEl) _therapyDotEl.style.display = "none";
   loadTherapyTileDot();
+  startSchedElapsed(); // v5.5.30:開始讀秒(5 秒後才會浮現)
   try {
     const data = await xhrPostRead(API_URL, { action: "adminGetTodaySchedule", date: dateToYMD(state.viewDate), lineId: state.lineId });
     if (myLoadId !== _scheduleLoadId) return; // 已有更新的請求，忽略此結果
+    stopSchedElapsed(); // v5.5.30
     renderSchedule(data.bookings || [], preferredSession, data.openSessions || null);
     hideAdminOverlay();
   } catch(e) {
+    stopSchedElapsed(); // v5.5.30
     if (e.isSessionExpired) return;
     if (myLoadId !== _scheduleLoadId) return;
     hideAdminOverlay();

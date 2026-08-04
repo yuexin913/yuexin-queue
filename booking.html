@@ -7,7 +7,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>悅心診所 線上預約系統</title>
   <meta name="description" content="悅心診所線上預約系統，支援初診及複診預約。">
-  <meta name="version" content="5.8.13-announce-carousel">
   <meta name="author" content="Dr. Su Ning">
   <meta property="og:title" content="悅心診所 線上預約">
   <meta property="og:description" content="初診、複診線上預約，快速方便。">
@@ -19,176 +18,19 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
-     v5.8.17-retry-init-fix (2026-06-24)
-     (基於 v5.8.16;純前台,backend / 送出邏輯不動:
-        🐞 修 v5.8.15 重試在「初始載入」失效的 bug:
-          - initLiff 的 checkBlacklist 雖走 xhrGet(會重試),外層卻又用 8 秒競賽(blTimeoutPromise)
-            → 8 秒一到就判 _timeout、直接 showPage('pageNetworkError'),xhrGet 重試 + 文案根本沒機會跑
-            → 病患看到「沒出現人數較多文案、直接錯誤頁」。
-          - 修:blacklist 不再 race 8 秒,交給 xhrGet 自身 timeout(30s)+ 重試(最多 2 次),全失敗才 {_error}→錯誤頁。
-            fail-closed 原則維持(最終失敗仍不放行)。移除已無用的 blTimeoutPromise。
-        ✨ 載入逾時安撫文案(delay-based,更即時):
-          - initLiff:載入 6 秒仍未完成 → showRetryNotice() 切「目前系統人數較多　請耐心等候」。
-          - showOverlay/hideOverlay:動作遮罩(載入門診資訊/確認中…)6 秒仍未完成 → 同樣切安撫文案;hideOverlay 清計時器。
-        (xhrGet 的 on-retry showRetryNotice 保留為後援,與上述 delay 計時器並存,皆 idempotent)
-     v5.8.16-confirm-tweaks (2026-06-24)
-     (基於 v5.8.15;純前台,backend / 送出邏輯不動:
-        - 移除確認頁兩顆「✎ 修改」按鈕(預約資料 / 患者資料 grp head)→ 確認頁更單純(檢視 + 送出 / 取消重來)
-          (.cg-edit CSS 保留未用,無風險;要回退把兩顆 button 加回即可)
-        - 修「取消預約／回到首頁」殘留 state bug:onclick 由 showPage('pageEntry')(不清 state)→ goToEntry()
-          (goToEntry 為既有 SSoT 完整重置:type/name/phone/birth/date/session/timeSlot/doctor/isUnspecified/slotsData/sessionSelected/bookingId 全清 + resetPatientList)
-          → 解決「取消後重新預約會帶出上次日期」。與全站其他「返回首頁/再次預約」按鈕一致)
-     v5.8.15-get-retry (2026-06-24)
-     (基於 v5.8.14;本輪純前台,backend / 送出邏輯不動:
-      症狀:共用單一 GAS Web App + 單一 Google Sheet,並發時偶有「整支沒回應」壞窗
-            (伺服器端 Executions 觀測到單筆 doGet 卡 117 秒;同時 admin/booking 會一起中),
-            病患重新整理 / 載入 / 按「下一步」偶發紅框。非病患量問題(單人重整即可重現)。
-      對策:GET 自動重試 + backoff(GET 皆冪等,可安全重試)——
-        - xhrGet 拆成 xhrGetOnce + 重試包裝;逾時 / 網路錯 / GAS 回 HTML 錯誤頁 → 600ms、1500ms 後最多重試 2 次
-        - 重試期間把「目前可見的載入指示器」切成安撫文案「目前系統人數較多　請耐心等候 / Reconnecting…」
-          (#pageLoading 呼吸 logo 畫面 + #bookingOverlay 動作遮罩,哪個在顯示切哪個;showRetryNotice)
-        - 失敗頁不動(仍為「系統暫時無法回應…07-363-1313」);xhrPost 不自動重試(submitBooking 重複預約風險,另以 requestId 處理)
-      涵蓋:初始載入(checkBlacklist / 公告)、選日期(getAvailableSlots)、按下一步(checkLimit)等所有 GET。
-      未涵蓋(待辦):最後「確認送出預約」submitBooking(POST)需 requestId 冪等;admin / queue 前台需比照加重試)
-     v5.8.14-confirm-redesign (2026-06-17)
-     (基於 v5.8.13-announce-carousel;本輪純前台,backend / 送出邏輯不動:
-      有人把「確認預約資料」頁誤認為「已完成」(其實要捲到底再點「確認送出預約」)。重做確認頁:
-        - 頂部金框「⏳ 尚未完成預約 / 請點選最下方的『確認送出預約』」(SVG 時鐘),明示尚未送出
-        - 摘要 confirm-card(綠頭單據,太像成功頁)→ 改兩組「輕鬆色塊」:
-          預約資料(預約日期 / 報到時間 / 診次 / 類別 / 醫師)+ 患者資料(姓名 / 出生年月日 / 電話)
-        - 每組標題列右側「✎ 修改」可分別直接編輯(預約資料 → pageTime、患者資料 → pageInfo)
-        - 色塊自適應寬度(flex-wrap);關鍵欄(日期/報到/醫師)用 sage 襯線字 highlight
-        - 醫師只顯示姓名(去後綴)、患者姓名→姓名(去前綴)、時段→診次、就診類型→類別、出生年月日顯示民國年(formatBirthROCDisplay)
-        - 同意條款改字、續留送出鈕下方;原「← 修改預約日期」→「← 取消預約／回到首頁」(showPage pageEntry)
-        - 渲染:summaryContent 列 → 改填 chipsBooking / chipsPatient;新增 .confirm-pending/.confirm-grp/.confirm-chip 等 CSS(舊 .confirm-card/.summary-row 保留未用)
-        - emoji 僅討論示意,實作全用既有 line-icon SVG;送出/取消沿用文字箭頭(→ ←))
-     v5.8.13-announce-carousel (2026-06-17)
-     (基於 v5.8.12-doctor-display-r1;本輪純前台,公告 API / backend 不動:
-      門診公告「收起態」改成單行交叉淡化輪播(原本前 3 則疊著太佔上方空間,搶下方服務項目焦點):
-        - 收起 = 單行,兩層 .ann-slide 交叉淡化(淡入淡出 2.4s / 切換 4.8s),輪完全部公告
-        - 標題列右側小圓點 ●●● = 共幾則 + 進度,可點跳到該則
-        - 點到 / 滑到暫停輪播;只有 1 則時不輪播、不顯示圓點
-        - 「▼ 看全部」展開成靜止清單(輪播暫停)、「▲ 收合」收回
-        - 單行強制 nowrap + ellipsis(過長截斷,完整內容在展開檢視)
-        - 重構:renderAnnouncements / _drawAnnouncements 改寫 + 新增 _annItemHTML / _annCrossfadeTo 等;
-          移除舊的 ANNOUNCE_SHOW_MAX「前 N 則」邏輯)
-     v5.8.12-doctor-display-r1 (2026-06-14)
-     (基於 v5.8.11-elderly-ui-r2;本輪兩項「醫師顯示」調整,與 backend v6.3.4 同批:
-      1. 代診公告改「原醫師→代診醫師」箭頭(L2421 renderAnnouncements):
-         - originalDoctor 由 backend v6.3.4 getUpcomingAnnouncements 帶入
-         - fallback:後端查不到原醫師(回 "")或原醫師=代診醫師 → 只顯示代診醫師
-         - 順手移除舊的「醫師看診」字樣(對齊純姓名美學)
-      2. 醫師欄移除「 醫師」尾巴、只顯示姓名 — 兩處對稱修補(紀律 6 同 pattern 多 instance):
-         - 成功小卡 successCard(L4304/4310)
-         - 查詢詳情卡 cardModal(L4626/4632)
-         - 理由:row 標籤已是「醫師」,值再寫「粟寧醫師」即重複;且確認頁與 LINE 本就純姓名
-         - 代診仍保留「(代診)」標籤;不指定仍整列隱藏)
-
-     v5.8.11-elderly-ui-r2 (2026-06-14)
-     (基於 v5.8.8-marathon3-dual-clinic-r9 / 雙診上線版,本輪 cleanup:
-      楠梓心寬轉介入口卡 + handler 移除 / 王麟祥初診 1115 隱藏邏輯移除)
-
-     r9 改動(2026-05-24 stage 實機 visual hierarchy 修補):
-       1. selectDate 已選日期後隱藏「或 直接選擇日期」/「或 輸入剩餘藥物天數」
-          toggle 連結 + 餘藥區
-          → 對齊既有 reopenCalendar 復原邏輯的 mirror image:選了日期就不需切換
-          → 病患要改日期應透過「重選日期」按鈕(reopenCalendar 已對齊完整復原)
-       2. Root cause:現役 selectDate L3430 註解「餘藥區塊維持顯示」
-          是 booking 早期決策,沒對齊「已選 = 不需切日選法」業務邏輯
-          → 表面症狀是「session 區跟上方視覺擁擠」,
-            真正原因是「不該存在的元素還在頁面上佔位」
-       3. 教訓 12:設計決策該先問「該不該存在?」而非「該怎麼存在?」
-          對應 Iki 美學的「節制」與工程紀律的「最小化」同源
-
-     r8 改動(2026-05-23 stage 實機 UI 3 bug 修補):
-       1. Bug 1 — 餘藥輸入框 vs「計算回診日」按鈕比例失衡(被截斷)
-          → 改 display:grid + grid-template-columns:1fr auto
-          → input 自動 stretch / button auto 內容寬,文字永遠完整
-       2. Bug 2 — toggleCalendar 切換選日期模式時 session 清單殘留
-          → 加 resetDateSelection() helper SSoT(對齊 reopenCalendar 既有清除邏輯)
-          → toggleCalendar 與 reopenCalendar 都用此 helper(對齊紀律 6)
-          → 病患切換選日期模式時,既有 session 清單跟 state 一起清乾淨
-       3. Bug 3 — goToConfirm 抓錯按鈕(potential race condition)
-          → 原 querySelector("#pageTime .btn-primary") 抓第 1 個 .btn-primary
-            實際抓到「計算回診日」(L2003),不是真正的「下一步」(L2014)
-          → 後果:點下一步後「計算回診日」按鈕被改文字 + disabled,
-            真正的「下一步」按鈕完全沒 disabled → 病患快速雙擊有 race 隱患
-          → L2014 加 id="btnNextConfirm",L3999 改用 getElementById 精準抓
-          → 同時 audit 整個 booking 中所有可能誤抓 .btn-primary 的位置
-
-     r7 改動(2026-05-23 stage 實機 deep audit + 資訊隱藏徹底化):
-       1. 新 helper getSessionDisplayNameForUnspecAware(b):
-          - b.slot === "不指定" + 雙診 session("早上一診"/"早上二診")
-            → 強制降「上午診」alias 不洩漏分診
-          - 其他 case → 走 getSessionDisplayNameForSave(維持原行為)
-       2. 3 處 caller 改用新 helper:
-          - pageSuccess 預約成功小卡(L4176)
-          - cardModal 預約查詢卡(L4490)
-          - renderBookingPage 列表卡 mainLine(L4301)
-       3. 預約成功小卡 / cardModal 主題色:不指定 case 強制走 fallback 綠
-          - 原 r4-r6 仍因 state.doctor="粟寧" 走 SUCCESS_CARD_DOCTOR_THEME["粟寧"](紫)
-          - 即使醫師欄已隱,主題色仍洩漏粟醫師身份
-          - 修補後不指定 case 走 SUCCESS_CARD_FALLBACK 綠(對齊代診通用色)
-       4. 對齊 backend r7:LINE 訊息也降「上午診」alias(getSessionDisplayName
-          加 slotRaw 參數,buildConfirmationMessage + sendReminders 兩處 caller)
-
-       教訓 8(本輪暴露):資訊隱藏 audit 要 **semantic 層級**,不只看欄位名稱
-       也要看 displayName / 視覺顏色 / 排版等所有「指向同樣資訊」的位置
-       「不指定不該綁醫師」semantic 邊界至少涵蓋 4 個維度:
-         - 醫師欄(明顯)— r4/r6 已修
-         - session displayName 一/二診(中等)— **r7 修補**
-         - 卡片主題色(隱性)— **r7 修補**
-         - LINE 訊息(明顯)— backend r6 隱藏醫師欄,r7 補 displayName 降級
-
-     r6 改動(2026-05-23 Gemini Round 6 review BLOCK + CONCERN 修補):
-       1. selectQuickUnspecified 加停診 fallback:
-          - 原 r4/r5 hardcode state.session = "早上一診"
-          - 若早一停診(粟醫師臨時請假),自動 fallback 早二(王伯元)
-          - 修補 Gemini Bug 11:病患會卡死在確認頁無法送出不指定預約
-       2. renderBookingPage 列表卡 mainLine 不指定 case 隱藏醫師:
-          - 原 r4 audit 只看 cardModal,漏掉「我的預約」列表頁 mainLine
-          - 病患在列表卡看到「6/13 上午診 · 粟寧 醫師」會打破 r4 隱藏醫師體驗
-       3. reopenSessionSelect 補 state.doctor = null(architectural fix):
-          - 對齊 Gemini CONCERN 10:Stale State 是 bug 萬惡之源
-          - 避免依賴渲染層 isUnspecified 遮掩
-
-     r5 改動(2026-05-23 r4 stage 實機暴露 + 邏輯一致性):
-       1. renderSlots 雙診週六上午 path 隱藏不指定卡
-          → 因為 session 層級已有快捷不指定卡(r4),slot 層級不該再重複
-          → 病患選了某位醫師 session = 「我要這位醫師看診」,不該再被 nudge 走不指定
-       2. 雙診週六上午 allFull 引導文案動態化:
-          - 不指定 pool 仍有額度 → 「請『重選診次』後改『不指定報到時間/例行領藥』」
-          - 不指定 pool 也滿 → 「請於門診時間來電:07-363-1313」(對齊現役 fallback)
-       3. 平日 / 一般週六 slot 頁:行為不變(仍顯示不指定卡作 fallback)
-
-       為何 r4 沒抓到:r4 patch 只 audit session 選擇頁,沒同步 audit slot 頁的
-         不指定卡是否還需要 → stage 實機暴露雙入口 / dead-end
-       教訓:**改一處邏輯要 audit 全系統對應的 read 路徑**(對齊本輪暴露的方法論)
-
-     r4 改動(2026-05-23 雙診共享 quota 對齊 + 不指定獨立概念):
-       1. renderSessions 雙診週六上午加「不指定報到時間/例行領藥」快捷卡
-          (上移 + 「或」分隔線,完全複用 r3 不指定卡視覺語言)
-       2. 新 handler selectQuickUnspecified:
-          - state.session = "早上一診"(預設 assign 早一,粟醫師主診)
-          - state.isUnspecified = true
-          - 直接跳到下一步(Path A flow:跳過 slot 頁,對齊「快速」承諾)
-       3. 預約確認頁 / 預約查詢頁 不指定 case 隱藏醫師欄
-          (對齊 backend r6 LINE 訊息不顯示醫師)
-       4. 平日 / 一般週六:行為不變(不顯示快捷卡)
-
-       背景:對齊「不指定不該綁醫師」業務模型(粟醫師 2026-05-23 sign-off)
-       - 病人選不指定本來就不在乎誰開藥(現場才分派)
-       - r3 已在 slot 層級主推不指定,r4 在 session 層級也對齊主推
-       - Frontend 仍 assign 早一(粟為主診,default 一致),病患全程不顯示醫師
-
-     r3 改動(2026-05-23 病患 feedback「沒注意到不指定按鈕」+ 粟醫師營運意圖反轉):
-       1. renderSlots:不指定卡上移到時段卡之前 + 加「或」分隔線
-       2. 不指定卡 CSS 升級:dashed → solid 邊框 / title 改襯線體 16px sage-deep
-       3. Title 文案改:「現場排號:不指定時段」→「不指定報到時間/例行領藥」
-       4. Label 文案微調:去掉「例行」二字避免跟 title 重複
-       5. L3716 allFull 引導文案對齊新 title
-       6. L3802 預約成功頁 arrivalDisplay 簡化(去掉「現場排號」改用直接時間)
-       營運意圖:主推「例行回診直接領藥」(複診本來就不需挑時段),指定時段轉次推
+     Current Version: v5.8.21-conn-note (2026-08-05)
+     本版:慢載入提示改「附加」不「取代」+ 門檻 6s → 8s + 維護頁文案精簡
+        · 舊文案「目前系統人數較多」歸因錯誤:深夜無人時同樣發作,病灶在 Google 端
+          請求分派(已用空腳本/換帳號/換部署/換網路反覆驗證),與線上人數無關。
+        · 新行為:原載入文字與動畫持續,下方附加「系統連線中，請稍候」一行。
+        · 對應 admin v5.5.30(診表讀秒)同一波體驗修正。
+     基於 v5.8.20-comment-slim (2026-07-09)
+     基底 v5.8.18-meta-cleanup:純前台、送出/backend 邏輯不動,version meta 已移除;
+     功能與 v5.8.18 完全一致(零行為變更三重驗證:acorn token stream 15,016 逐一比對
+     + CSS 剝註解 byte 一致 + node --check 兩個 script 區塊)。
+     本輪濃縮此檔頭版本史,前版完整 changelog → handoff.md「booking 版本史附錄」。
+     ⚠️ 作廢:早前 v5.8.19-comment-slim(錯基底 v5.8.17 產物、未含 meta 移除)
+        已由本檔取代,勿部署;版本查證一律以本 header 為準。
 
      Designed by Su Ning | Powered by Claude & Gemini 2026
      ========================================================== */
@@ -1858,6 +1700,8 @@
 <div id="bookingOverlay" style="display:none;position:fixed;inset:0;background:rgba(244,242,236,0.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:18px;">
   <div class="spinner" style="width:32px;height:32px;border-width:2px;border-color:rgba(74,74,68,0.15);border-top-color:var(--sage-dark);"></div>
   <div id="bookingOverlayText" style="font-size:14px;font-weight:400;color:var(--ink-mid);letter-spacing:3px;"></div>
+  <!-- v5.8.21:連線提示 — 附加一行,不取代原文字、spinner 持續轉 -->
+  <div id="bookingOverlayNote" style="display:none;font-size:13px;font-weight:300;color:var(--ink-light);letter-spacing:2px;">系統連線中，請稍候</div>
 </div>
 
 <div class="container">
@@ -1872,6 +1716,8 @@
       <div class="loading-text" id="loadingText">
         <div class="loading-text-zh">載入中請稍候</div>
         <div class="loading-text-en">Loading<span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
+        <!-- v5.8.21:連線提示 — 附加一行,不取代「載入中請稍候」、呼吸動畫持續 -->
+        <div id="loadingConnNote" style="display:none;margin-top:12px;font-size:13px;font-weight:300;color:var(--ink-light);letter-spacing:2px;">系統連線中，請稍候</div>
       </div>
     </div>
   </div>
@@ -1925,9 +1771,11 @@
         </svg>
       </div>
       <div class="status-title status-info-text">系統維護中</div>
+      <!-- v5.8.21:文案精簡 + 電話獨立成行(手機不再折行折斷號碼) -->
       <div class="status-sub" style="max-width:340px;">
-        線上預約系統暫停服務，造成不便敬請見諒。<br>
-        若需協助，請於門診時間來電：<strong style="color:var(--sage-dark);font-size:19px;letter-spacing:1px;">07-363-1313</strong>
+        線上預約系統暫停服務。<br>
+        若需協助請於門診時間來電：
+        <div style="margin-top:10px;"><strong style="color:var(--sage-dark);font-size:19px;letter-spacing:1px;">07-363-1313</strong></div>
       </div>
     </div>
   </div>
@@ -2286,16 +2134,47 @@ function showOverlay(text) {
   const el = document.getElementById("bookingOverlay");
   document.getElementById("bookingOverlayText").textContent = text || "";
   el.style.display = "flex";
-  // v5.8.17:動作遮罩 6 秒仍未完成 → 切「人數較多」安撫文案(xhrGet 同時在背景重試)
+  hideConnNote(); // v5.8.21 安全網:每次開遮罩都從乾淨狀態起算,避免上一次的提示殘留
+  // v5.8.21:動作遮罩 8 秒仍未完成 → 「附加」一行連線提示(原文字與 spinner 均保留)
+  //   舊版(v5.8.17)是把文字「換成」「目前系統人數較多」,有兩個問題:
+  //   (1) 歸因錯誤 — 深夜無人時同樣發作,已證實與線上人數無關(病灶在 Google 端請求分派);
+  //   (2) 語意變成「你等的事出問題了」→ 改為附加後,語意是「還在進行,只是慢一點」。
+  //   門檻 6s → 8s:原本太早,把正常的慢載入也判成異常。
   if (_overlaySlowTimer) clearTimeout(_overlaySlowTimer);
   _overlaySlowTimer = setTimeout(function() {
-    var t = document.getElementById("bookingOverlayText");
-    if (t) t.textContent = "目前系統人數較多，請耐心等候…";
-  }, 6000);
+    showConnNote();
+  }, 8000);
 }
 function hideOverlay() {
   document.getElementById("bookingOverlay").style.display = "none";
   if (_overlaySlowTimer) { clearTimeout(_overlaySlowTimer); _overlaySlowTimer = null; }
+  hideConnNote(); // v5.8.21:關閉遮罩時一併收起提示,下次不會殘留
+}
+
+// v5.8.21:連線提示的顯示/隱藏 — 兩個載入指示器哪個在畫面上就顯示哪個(皆 idempotent)
+function showConnNote() {
+  try {
+    var lp = document.getElementById("pageLoading");
+    if (lp && lp.classList.contains("active")) {
+      var n1 = document.getElementById("loadingConnNote");
+      if (n1) n1.style.display = "block";
+    }
+  } catch(e) {}
+  try {
+    var ov = document.getElementById("bookingOverlay");
+    if (ov && ov.style.display && ov.style.display !== "none") {
+      var n2 = document.getElementById("bookingOverlayNote");
+      if (n2) n2.style.display = "block";
+    }
+  } catch(e) {}
+}
+function hideConnNote() {
+  try {
+    var n1 = document.getElementById("loadingConnNote");
+    if (n1) n1.style.display = "none";
+    var n2 = document.getElementById("bookingOverlayNote");
+    if (n2) n2.style.display = "none";
+  } catch(e) {}
 }
 
 let state = {
@@ -2416,8 +2295,8 @@ async function initLiff() {
     // v5.8.17 修:原本 blacklist 用 8 秒競賽(blTimeoutPromise),會在 xhrGet 還在重試時就於 8 秒判 _timeout
     //   → 直接 showPage(pageNetworkError),導致 v5.8.15 的「重試 + 人數較多文案」在初始載入完全沒機會跑。
     //   改:blacklist 不再競賽,交給 xhrGet 自身 timeout(30s)+ 重試處理;全失敗才回 {_error}(fail-closed 維持)。
-    //   另:載入逾時提示 — 6 秒仍在載入 → 切「目前系統人數較多　請耐心等候」安撫文案(不中斷流程)。
-    var _loadingSlowTimer = setTimeout(function() { showRetryNotice(); }, 6000);
+    //   另:載入逾時提示 — v5.8.21 改為 8 秒仍在載入 → 「附加」一行連線提示(不中斷流程、不取代原文案)。
+    var _loadingSlowTimer = setTimeout(function() { showRetryNotice(); }, 8000);
     let blResult, annResult;
     try {
       [blResult, annResult] = await Promise.all([
@@ -4926,29 +4805,13 @@ function xhrGetOnce(url) {
   });
 }
 
-// v5.8.15:GET 重試期間,把「目前可見的載入指示器」切成「人數較多」安撫文案
-//   #pageLoading(初始載入·呼吸 logo)與 #bookingOverlay(動作遮罩)哪個在顯示就切哪個。
-//   單向切換:同一次載入過程內只切一次;新的載入(showOverlay 重新帶文字 / 重新進 pageLoading)會自帶預設文案。
+// v5.8.15 / v5.8.21:GET 重試期間,在「目前可見的載入指示器」上附加連線提示
+//   #pageLoading(初始載入·呼吸 logo)與 #bookingOverlay(動作遮罩)哪個在顯示就加哪個。
+//   v5.8.21 起不再取代原文案(見 showConnNote);提示於 hideOverlay / 重進 pageLoading 時收起。
 function showRetryNotice() {
-  try {
-    var lp = document.getElementById("pageLoading");
-    if (lp && lp.classList.contains("active")) {
-      var box = document.getElementById("loadingText");
-      if (box) {
-        var zh = box.querySelector(".loading-text-zh");
-        var en = box.querySelector(".loading-text-en");
-        if (zh) zh.textContent = "目前系統人數較多　請耐心等候";
-        if (en) en.innerHTML = 'Reconnecting<span class="loading-dots"><span>·</span><span>·</span><span>·</span></span>';
-      }
-    }
-  } catch(e) {}
-  try {
-    var ov = document.getElementById("bookingOverlay");
-    if (ov && ov.style.display && ov.style.display !== "none") {
-      var t = document.getElementById("bookingOverlayText");
-      if (t) t.textContent = "目前系統人數較多，請耐心等候…";
-    }
-  } catch(e) {}
+  // v5.8.21:改為「附加一行」而非取代原文案 — 原本的載入文字與動畫(呼吸 logo / spinner)持續,
+  //   語意從「你等的事出問題了」轉為「還在進行,只是慢一點」。實作見 showConnNote。
+  showConnNote();
 }
 
 // v5.8.15:GET 自動重試 + backoff(GET 皆冪等,可安全重試)
