@@ -22,7 +22,7 @@
      本版:慢載入提示改「附加」不「取代」+ 門檻 6s → 8s + 維護頁文案精簡
         · 舊文案「目前系統人數較多」歸因錯誤:深夜無人時同樣發作,病灶在 Google 端
           請求分派(已用空腳本/換帳號/換部署/換網路反覆驗證),與線上人數無關。
-        · 新行為:原載入文字與動畫持續,下方附加「系統連線中，請稍候」一行。
+        · 新行為:原載入文字與動畫持續,下方附加「等待系統連線 / Connecting···」(沿用同組點點動畫)。
         · 對應 admin v5.5.30(診表讀秒)同一波體驗修正。
      基於 v5.8.20-comment-slim (2026-07-09)
      基底 v5.8.18-meta-cleanup:純前台、送出/backend 邏輯不動,version meta 已移除;
@@ -1701,7 +1701,10 @@
   <div class="spinner" style="width:32px;height:32px;border-width:2px;border-color:rgba(74,74,68,0.15);border-top-color:var(--sage-dark);"></div>
   <div id="bookingOverlayText" style="font-size:14px;font-weight:400;color:var(--ink-mid);letter-spacing:3px;"></div>
   <!-- v5.8.21:連線提示 — 附加一行,不取代原文字、spinner 持續轉 -->
-  <div id="bookingOverlayNote" style="display:none;font-size:13px;font-weight:300;color:var(--ink-light);letter-spacing:2px;">系統連線中，請稍候</div>
+  <div id="bookingOverlayNote" style="display:none;text-align:center;">
+    <div style="font-size:13px;color:var(--ink-light);letter-spacing:4px;font-weight:400;margin-bottom:6px;">等待系統連線</div>
+    <div style="font-size:11px;color:var(--ink-light);letter-spacing:2px;font-weight:300;opacity:0.7;">Connecting<span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
+  </div>
 </div>
 
 <div class="container">
@@ -1717,7 +1720,10 @@
         <div class="loading-text-zh">載入中請稍候</div>
         <div class="loading-text-en">Loading<span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
         <!-- v5.8.21:連線提示 — 附加一行,不取代「載入中請稍候」、呼吸動畫持續 -->
-        <div id="loadingConnNote" style="display:none;margin-top:12px;font-size:13px;font-weight:300;color:var(--ink-light);letter-spacing:2px;">系統連線中，請稍候</div>
+        <div id="loadingConnNote" style="display:none;margin-top:14px;">
+          <div style="font-size:13px;color:var(--ink-light);letter-spacing:4px;font-weight:400;margin-bottom:6px;">等待系統連線</div>
+          <div style="font-size:11px;color:var(--ink-light);letter-spacing:2px;font-weight:300;opacity:0.7;">Connecting<span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
+        </div>
       </div>
     </div>
   </div>
