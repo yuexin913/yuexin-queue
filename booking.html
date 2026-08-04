@@ -22,7 +22,8 @@
      本版:慢載入提示改「附加」不「取代」+ 門檻 6s → 8s + 維護頁文案精簡
         · 舊文案「目前系統人數較多」歸因錯誤:深夜無人時同樣發作,病灶在 Google 端
           請求分派(已用空腳本/換帳號/換部署/換網路反覆驗證),與線上人數無關。
-        · 新行為:原載入文字與動畫持續,下方附加「等待系統連線 / Connecting···」(沿用同組點點動畫);首頁心理治療欄位文案補完。
+        · 新行為:原載入文字與動畫持續,下方分兩階段附加提示(8s 等待系統連線 / 16s 等待系統回應,沿用同組點點動畫);
+          GET 改「總預算 32 秒」制(取代舊的單趟 30s×3 趟 ≈ 92 秒);首頁心理治療欄位改標籤式。
         · 對應 admin v5.5.30(診表讀秒)同一波體驗修正。
      基於 v5.8.20-comment-slim (2026-07-09)
      基底 v5.8.18-meta-cleanup:純前台、送出/backend 邏輯不動,version meta 已移除;
@@ -1702,8 +1703,8 @@
   <div id="bookingOverlayText" style="font-size:14px;font-weight:400;color:var(--ink-mid);letter-spacing:3px;"></div>
   <!-- v5.8.21:連線提示 — 附加一行,不取代原文字、spinner 持續轉 -->
   <div id="bookingOverlayNote" style="display:none;text-align:center;">
-    <div style="font-size:13px;color:var(--ink-light);letter-spacing:4px;font-weight:400;margin-bottom:6px;">等待系統連線</div>
-    <div style="font-size:11px;color:var(--ink-light);letter-spacing:2px;font-weight:300;opacity:0.7;">Connecting<span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
+    <div id="bookingOverlayNoteZh" style="font-size:13px;color:var(--ink-light);letter-spacing:4px;font-weight:400;margin-bottom:6px;">等待系統連線</div>
+    <div style="font-size:11px;color:var(--ink-light);letter-spacing:2px;font-weight:300;opacity:0.7;"><span id="bookingOverlayNoteEn">Connecting</span><span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
   </div>
 </div>
 
@@ -1721,8 +1722,8 @@
         <div class="loading-text-en">Loading<span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
         <!-- v5.8.21:連線提示 — 附加一行,不取代「載入中請稍候」、呼吸動畫持續 -->
         <div id="loadingConnNote" style="display:none;margin-top:14px;">
-          <div style="font-size:13px;color:var(--ink-light);letter-spacing:4px;font-weight:400;margin-bottom:6px;">等待系統連線</div>
-          <div style="font-size:11px;color:var(--ink-light);letter-spacing:2px;font-weight:300;opacity:0.7;">Connecting<span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
+          <div id="loadingConnNoteZh" style="font-size:13px;color:var(--ink-light);letter-spacing:4px;font-weight:400;margin-bottom:6px;">等待系統連線</div>
+          <div style="font-size:11px;color:var(--ink-light);letter-spacing:2px;font-weight:300;opacity:0.7;"><span id="loadingConnNoteEn">Connecting</span><span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
         </div>
       </div>
     </div>
@@ -1835,8 +1836,11 @@
         <div class="entry-btn" style="opacity:0.45;pointer-events:none;cursor:not-allowed;">
           <div class="entry-icon"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"/><path d="M2 11v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H6v-2a2 2 0 0 0-4 0Z"/><path d="M4 18v2"/><path d="M20 18v2"/></svg>️</div>
           <div class="entry-text">
-            <div class="entry-title">心理治療預約</div>
-            <div class="entry-desc">尚未開放線上預約　→　<span style="color:var(--sage-dark);">傳訊／來電</span></div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="entry-title">心理治療預約</span>
+              <span class="announcement-badge-sub">傳訊／來電</span>
+            </div>
+            <div class="entry-desc">尚未開放線上預約</div>
           </div>
         </div>
       </div>
@@ -2135,7 +2139,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxfbtWB6tyWUvFY1r_d26yx
 const LIFF_ID = "2009340533-JKP6Q8Qg";
 let isSubmitting = false; // 防連點全域旗標
 
-var _overlaySlowTimer = null;
+var _overlaySlowTimer = null, _overlaySlowTimer2 = null;
 function showOverlay(text) {
   const el = document.getElementById("bookingOverlay");
   document.getElementById("bookingOverlayText").textContent = text || "";
@@ -2146,31 +2150,54 @@ function showOverlay(text) {
   //   (1) 歸因錯誤 — 深夜無人時同樣發作,已證實與線上人數無關(病灶在 Google 端請求分派);
   //   (2) 語意變成「你等的事出問題了」→ 改為附加後,語意是「還在進行,只是慢一點」。
   //   門檻 6s → 8s:原本太早,把正常的慢載入也判成異常。
-  if (_overlaySlowTimer) clearTimeout(_overlaySlowTimer);
-  _overlaySlowTimer = setTimeout(function() {
-    showConnNote();
-  }, 8000);
+  if (_overlaySlowTimer)  clearTimeout(_overlaySlowTimer);
+  if (_overlaySlowTimer2) clearTimeout(_overlaySlowTimer2);
+  _overlaySlowTimer  = setTimeout(function() { showConnNote(0); },  8000);
+  _overlaySlowTimer2 = setTimeout(function() { showConnNote(1); }, 16000);
 }
 function hideOverlay() {
   document.getElementById("bookingOverlay").style.display = "none";
-  if (_overlaySlowTimer) { clearTimeout(_overlaySlowTimer); _overlaySlowTimer = null; }
+  if (_overlaySlowTimer)  { clearTimeout(_overlaySlowTimer);  _overlaySlowTimer = null; }
+  if (_overlaySlowTimer2) { clearTimeout(_overlaySlowTimer2); _overlaySlowTimer2 = null; }
   hideConnNote(); // v5.8.21:關閉遮罩時一併收起提示,下次不會殘留
 }
 
-// v5.8.21:連線提示的顯示/隱藏 — 兩個載入指示器哪個在畫面上就顯示哪個(皆 idempotent)
-function showConnNote() {
+/* v5.8.21:連線提示 — 兩階段文案(皆 idempotent,純畫面,不發任何請求)
+     0s  載入中請稍候 / Loading···      ← 原有
+     8s  等待系統連線 / Connecting···   ← stage 1
+    16s  等待系統回應 / Awaiting···     ← stage 2(已連上但後端尚未回覆的語氣)
+   兩個載入指示器(#pageLoading 呼吸 logo / #bookingOverlay 動作遮罩)哪個在畫面上就更新哪個。*/
+var CONN_NOTE_STAGES = [
+  { zh: "等待系統連線", en: "Connecting" },
+  { zh: "等待系統回應", en: "Awaiting"   }
+];
+
+function showConnNote(stage) {
+  var st = CONN_NOTE_STAGES[stage || 0] || CONN_NOTE_STAGES[0];
   try {
     var lp = document.getElementById("pageLoading");
     if (lp && lp.classList.contains("active")) {
       var n1 = document.getElementById("loadingConnNote");
-      if (n1) n1.style.display = "block";
+      if (n1) {
+        var z1 = document.getElementById("loadingConnNoteZh");
+        var e1 = document.getElementById("loadingConnNoteEn");
+        if (z1) z1.textContent = st.zh;
+        if (e1) e1.textContent = st.en;
+        n1.style.display = "block";
+      }
     }
   } catch(e) {}
   try {
     var ov = document.getElementById("bookingOverlay");
     if (ov && ov.style.display && ov.style.display !== "none") {
       var n2 = document.getElementById("bookingOverlayNote");
-      if (n2) n2.style.display = "block";
+      if (n2) {
+        var z2 = document.getElementById("bookingOverlayNoteZh");
+        var e2 = document.getElementById("bookingOverlayNoteEn");
+        if (z2) z2.textContent = st.zh;
+        if (e2) e2.textContent = st.en;
+        n2.style.display = "block";
+      }
     }
   } catch(e) {}
 }
@@ -2301,8 +2328,9 @@ async function initLiff() {
     // v5.8.17 修:原本 blacklist 用 8 秒競賽(blTimeoutPromise),會在 xhrGet 還在重試時就於 8 秒判 _timeout
     //   → 直接 showPage(pageNetworkError),導致 v5.8.15 的「重試 + 人數較多文案」在初始載入完全沒機會跑。
     //   改:blacklist 不再競賽,交給 xhrGet 自身 timeout(30s)+ 重試處理;全失敗才回 {_error}(fail-closed 維持)。
-    //   另:載入逾時提示 — v5.8.21 改為 8 秒仍在載入 → 「附加」一行連線提示(不中斷流程、不取代原文案)。
-    var _loadingSlowTimer = setTimeout(function() { showRetryNotice(); }, 8000);
+    //   另:載入提示分兩階段(v5.8.21) — 8s「等待系統連線」/ 16s「等待系統回應」,均不中斷流程。
+    var _loadingSlowTimer  = setTimeout(function() { showConnNote(0); },  8000);
+    var _loadingSlowTimer2 = setTimeout(function() { showConnNote(1); }, 16000);
     let blResult, annResult;
     try {
       [blResult, annResult] = await Promise.all([
@@ -2311,6 +2339,7 @@ async function initLiff() {
       ]);
     } finally {
       clearTimeout(_loadingSlowTimer);
+      clearTimeout(_loadingSlowTimer2); // v5.8.21
     }
 
     // 公告:有就渲染,失敗 / 空陣列 / null 都靜默 fallback
@@ -4796,11 +4825,11 @@ function xhrParseResponse(text) {
   return JSON.parse(text);
 }
 
-function xhrGetOnce(url) {
+function xhrGetOnce(url, timeoutMs) {
   return new Promise(function(resolve, reject) {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
-    xhr.timeout = XHR_TIMEOUT;
+    xhr.timeout = timeoutMs || XHR_TIMEOUT; // v5.8.21:由總預算決定本趟上限
     xhr.onload = function() {
       try { resolve(xhrParseResponse(xhr.responseText)); }
       catch(e) { reject(e); }
@@ -4815,9 +4844,9 @@ function xhrGetOnce(url) {
 //   #pageLoading(初始載入·呼吸 logo)與 #bookingOverlay(動作遮罩)哪個在顯示就加哪個。
 //   v5.8.21 起不再取代原文案(見 showConnNote);提示於 hideOverlay / 重進 pageLoading 時收起。
 function showRetryNotice() {
-  // v5.8.21:改為「附加一行」而非取代原文案 — 原本的載入文字與動畫(呼吸 logo / spinner)持續,
-  //   語意從「你等的事出問題了」轉為「還在進行,只是慢一點」。實作見 showConnNote。
-  showConnNote();
+  // v5.8.21:保留供相容(目前無呼叫端 — 提示改由 8s/16s 兩階段計時器驅動,見 showConnNote)。
+  //   重試本身已不再觸發文案:秒回失敗的重試多在 2 秒內完成,病患不該看到任何異常提示。
+  showConnNote(0);
 }
 
 // v5.8.15:GET 自動重試 + backoff(GET 皆冪等,可安全重試)
@@ -4826,16 +4855,29 @@ function showRetryNotice() {
 //   注意:對外簽章與回傳與舊 xhrGet 完全一致,呼叫端無須改動。
 var XHR_GET_MAX_RETRIES = 2;
 var XHR_GET_BACKOFF_MS = [600, 1500];
+/* v5.8.21:改為「總預算制」— 整體最多 XHR_TOTAL_BUDGET_MS,用完即放棄並顯示連線逾時頁。
+   為什麼不是「單趟 30s × 3 趟」(舊行為,最壞 ~92 秒):沒有病患會等 90 秒。
+   為什麼也不是「只跑一趟就放棄」:已證實 GAS 瞬間併發拒絕是「秒回失敗」而非慢慢逾時
+   (見 admin v5.5.29 同一病灶),那種情況重試一次多半就成功、病患無感;一趟就放棄
+   等於把這些原本救得回來的請求全變成錯誤頁。
+   總預算制兩者兼得:秒回失敗 → 預算幾乎沒消耗,立刻重試;真的卡住 → 一趟吃完預算,直接收工。
+   每趟上限 = 剩餘預算(最多 XHR_TIMEOUT);剩餘不足 XHR_MIN_ATTEMPT_MS 就不再開新趟。*/
+var XHR_TOTAL_BUDGET_MS = 32000;
+var XHR_MIN_ATTEMPT_MS  = 3000;
+
 function xhrGet(url) {
   return new Promise(function(resolve, reject) {
+    var t0 = Date.now();
     var attempt = 0;
+    function remaining() { return XHR_TOTAL_BUDGET_MS - (Date.now() - t0); }
     function attemptOnce() {
-      xhrGetOnce(url).then(resolve).catch(function(err) {
-        if (attempt < XHR_GET_MAX_RETRIES) {
+      var budget = Math.min(XHR_TIMEOUT, Math.max(remaining(), 1));
+      xhrGetOnce(url, budget).then(resolve).catch(function(err) {
+        var backoff = XHR_GET_BACKOFF_MS[attempt] || 1500;
+        if (attempt < XHR_GET_MAX_RETRIES && remaining() - backoff > XHR_MIN_ATTEMPT_MS) {
           attempt++;
-          showRetryNotice();
-          try { console.warn("[xhrGet] retry " + attempt + "/" + XHR_GET_MAX_RETRIES + " — " + (err && err.message)); } catch(e) {}
-          setTimeout(attemptOnce, XHR_GET_BACKOFF_MS[attempt - 1] || 1500);
+          try { console.warn("[xhrGet] retry " + attempt + " — 剩餘 " + remaining() + "ms — " + (err && err.message)); } catch(e) {}
+          setTimeout(attemptOnce, backoff);
         } else {
           reject(err);
         }
