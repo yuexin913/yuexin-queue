@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>悅心診所 JOIN System</title>
   <meta name="description" content="悅心診所管理員後台">
-  <meta name="version" content="5.5.19-marathon2-dual-clinic-r10">
   <meta name="author" content="Dr. Su Ning">
   <meta name="robots" content="noindex, nofollow">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -16,11 +15,21 @@
 <style>
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
-     Current Version: v5.5.22-ui-fixes-r2 (2026-05-28)
-     (基於 v5.5.21-ui-fixes / 上一輪 5/28 ship,Bug 1 補完整:
-      v5.5.21 只改了單診週六,雙診週六(每月第 2/4 個週六)session 下拉
-      仍出現下午/晚上 — 粟醫師實機 catch。本版改完雙診週六也只回「早上一診/早上二診」。
-      Bug 2(停診醫師 tile 主文字)維持 v5.5.21 修補不變。)
+     Current Version: v5.5.29-read-retry (2026-08-04)
+     本版:單一變更 — 純讀 POST 納入重試(xhrPostRead),治「系統暫時無法使用」誤報
+        · 病灶:GAS 瞬間併發時先回自家 HTML 錯誤頁(未進 doGet/doPost,執行紀錄無此筆、零失敗)
+          → xhrParseResponse 丟 SERVER_HTML。GET 路徑本有重試會自癒,但 admin 診表等查詢走
+          xhrPost,而「POST 一律不重試」(防寫入重複送出)→ 一撞上就把錯誤攤在櫃檯畫面。
+        · 修法:新增 xhrPostRead 重試包裝,只給後端驗證過「零寫入」的 7 支查詢用;
+          真正的寫入 POST 完全不動,重複送出風險維持零。詳見 xhrPostRead 註解。
+     基於 v5.5.28-admin-timeout-relief(2026-08-04):XHR_TIMEOUT 30s → 60s(並發佇列止痛,非根治)
+        · 並發鎖競爭下 GAS 執行 <13s 但請求排隊,端到端破 30s → 前端誤判 Timeout;
+          60s 讓請求等得過佇列(GAS 都「已完成」),多數逾時轉為慢載入。
+        · 根治待後端:adminGetTodaySchedule 加短 TTL 快取(鏡像 getAvailableSlots)+ 拆全域鎖。
+     基於 v5.5.27-sys-tools(2026-07-09):🔧 系統 modal 新增「工具」區 — 門診公告產生器外連(零 JS/零 CSS)。
+     v5.5.26 = v5.5.24-get-retry 註解精簡版(get-retry + eq failclosed 完整保留);
+     完整版本史 → handoff.md「admin 版本史附錄」。
+     ⚠️ 作廢勿部署:v5.5.25-comment-slim 與 v5.5.26-admin-timeout-relief(皆錯基底、缺 get-retry/failclosed)。
 
      Designed by Su Ning | Powered by Claude & Gemini 2026
      ════════════════════════════════════════════════════════ */
@@ -751,6 +760,14 @@
   .tile.disabled { background: var(--bg-2) !important; cursor: not-allowed; border-color: var(--border-soft) !important; pointer-events: none; }
   .tile.disabled .tile-title { color: var(--text-dim) !important; }
   .tile.disabled .tile-subtitle { color: var(--text-dim) !important; }
+
+  /* v5.5.23-eq-failclosed:.muted — 視覺同 .disabled(灰底沉默),但**保留點擊**。
+     用於「連線中…/連線異常」的 fail-closed 狀態:不誤導視覺(不亮),但不鎖功能
+     (仍可點開應急叫號控制台,modal 內自行 fetch = 天然的手動重試入口)。
+     「已停用」(Kill Switch)維持 .disabled(pointer-events:none)不變。 */
+  .tile.muted { background: var(--bg-2) !important; border-color: var(--border-soft) !important; }
+  .tile.muted .tile-title { color: var(--text-dim) !important; }
+  .tile.muted .tile-subtitle { color: var(--text-dim) !important; }
 
   /* ── Row 2:醫師 + 時段 — 醫師用 Pearl 彩色底(功能性 tile)── */
   .tile-doctor {
@@ -2266,9 +2283,10 @@
   <div class="tile tile-1 tile-nav today-btn" onclick="goToToday()" style="position:relative;">
     <div class="tile-title" style="font-size:16px;">今日</div>
   </div>
-  <div class="tile tile-1 tile-marigold" onclick="openEmergencyQueueModal()" style="position:relative;grid-column:2;grid-row:1;">
+  <!-- v5.5.23-eq-failclosed:預設 muted +「連線中…」,loadEqTileSubtitle 成功取回才點亮 -->
+  <div class="tile tile-1 tile-marigold muted" onclick="openEmergencyQueueModal()" style="position:relative;grid-column:2;grid-row:1;">
     <div class="tile-title" style="font-size:16px;">叫號</div>
-    <div class="tile-subtitle" id="eqTileSubtitle" style="font-size:11px;color:rgba(255,134,1,0.65);">—</div>
+    <div class="tile-subtitle" id="eqTileSubtitle" style="font-size:11px;color:rgba(255,134,1,0.65);">連線中…</div>
   </div>
   <div class="tile tile-1 tile-nav" id="btnPrev" onclick="changeDate(-1)" style="position:relative;">
     <div class="tile-title" style="font-size:18px;color:var(--text-light);">＜</div>
@@ -2680,6 +2698,20 @@
       </div>
       <div id="lookupError" class="alert alert-error" style="display:none;font-size:11px;padding:6px 8px;margin-bottom:8px;"></div>
       <div id="lookupResults" style="font-size:12px;"></div>
+    </div>
+
+    <!-- v5.5.27 [sys-tools] 工具外連 — 門診公告產生器(純 HTML anchor,零 JS;新分頁開啟) -->
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border-soft);">
+      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">工具</div>
+      <a href="https://yuexin913official.github.io/clinicnotice/" target="_blank" rel="noopener"
+         style="display:flex;align-items:center;gap:12px;padding:13px 14px;background:rgba(255,255,255,0.03);border:1px solid var(--border-soft);border-radius:6px;text-decoration:none;color:var(--text);">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--marigold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;letter-spacing:1px;">門診公告產生器</div>
+          <div style="font-size:11px;color:var(--text-dim);font-weight:300;margin-top:3px;">休/代/停診 A4 公告・PNG / PDF 輸出</div>
+        </div>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+      </a>
     </div>
 
     <!-- v5.5.17 [step3c] 邀請加入 — 僅 ADMIN_OWNER 看得到,openModal 時依 state.isOwner 顯隱 -->
@@ -3457,7 +3489,7 @@ async function initLiff() {
   }
 }
 
-var XHR_TIMEOUT = 30000; // 30秒（暖機後 GAS 回應應在 1-2 秒內，30秒足夠且避免用戶等太久）
+var XHR_TIMEOUT = 60000; // 60秒（v5.5.28:並發佇列止痛 — GAS 執行 <13s 但併發時請求排隊,端到端破 30s;拉到 60s 讓其等得過佇列、避免誤判逾時。群發/停診仍走 options.timeout=120000。根治待後端快取+拆鎖）
 
 /* ── 登入／登出 ── */
 let isLoggingIn = false;
@@ -3842,15 +3874,19 @@ function xhrParseResponse(text) {
   return data;
 }
 
-function xhrGet(url) {
-  // 自動附加 token（登入前的請求如 requestSession 不帶 token 也沒關係）
-  if (state.sessionToken) {
-    const sep = url.includes("?") ? "&" : "?";
-    url += sep + "token=" + encodeURIComponent(state.sessionToken);
-  }
+/* ── v5.5.24-get-retry:GET 重試層(移植 booking v5.8.15 模式)──
+   xhrGetOnce = 純傳輸單趟;xhrGet = token 附加一次 + 重試包裝。
+   重試對象:逾時 / 網路錯 / GAS 回 HTML 錯誤頁(SERVER_HTML)/ 回應解析失敗
+   不重試:session_expired(明確答案,且 handleSessionExpired 已觸發,重試會重複跳登入)
+   xhrPost 不重試(寫入路徑,重複送出風險 — 對齊 booking 紀律)。
+   最壞等待:3 趟 × 30s + backoff ≈ 92s(常見短暫壅塞 <35s 內即重試成功)。 */
+var XHR_GET_MAX_RETRIES = 2;
+var XHR_GET_BACKOFF_MS = [600, 1500];
+
+function xhrGetOnce(fullUrl) {
   return new Promise(function(resolve, reject) {
     var xhr = new XMLHttpRequest();
-    xhr.open("GET", url, true);
+    xhr.open("GET", fullUrl, true);
     xhr.timeout = XHR_TIMEOUT;
     xhr.onload = function() {
       try {
@@ -3863,6 +3899,48 @@ function xhrGet(url) {
     xhr.ontimeout = function() { reject(new Error("Timeout")); };
     xhr.send();
   });
+}
+
+// 重試期間的安撫文案:哪個 loading 指示器在畫面上就換哪個(皆 idempotent)
+function showAdminRetryNotice() {
+  // 1) 動作遮罩(adminOverlay)可見 → 換 overlay 文字
+  var ov = document.getElementById("adminOverlay");
+  if (ov && ov.style.display !== "none" && ov.style.display !== "") {
+    var t = document.getElementById("adminOverlayText");
+    if (t) t.textContent = "目前系統人數較多,請耐心等候…";
+    return;
+  }
+  // 2) 啟動驗證階段(pageAuth 可見,如 verifyAdmin 壞窗)→ 換 authSub
+  var pageAuth = document.getElementById("pageAuth");
+  var authSub = document.getElementById("authSub");
+  if (pageAuth && authSub && pageAuth.style.display !== "none") {
+    authSub.innerHTML =
+      '<div class="auth-sub-zh">目前系統人數較多　請耐心等候</div>' +
+      '<div class="auth-sub-en">Reconnecting…</div>';
+  }
+}
+
+async function xhrGet(url) {
+  // 自動附加 token(登入前的請求如 verifyAdmin 不帶 token 也沒關係)
+  // token 只附加一次(在重試迴圈外),避免重試時重複串接
+  if (state.sessionToken) {
+    const sep = url.includes("?") ? "&" : "?";
+    url += sep + "token=" + encodeURIComponent(state.sessionToken);
+  }
+  var lastErr;
+  for (var attempt = 0; attempt <= XHR_GET_MAX_RETRIES; attempt++) {
+    try {
+      return await xhrGetOnce(url);
+    } catch(e) {
+      if (e && e.isSessionExpired) throw e; // 明確答案,不重試
+      lastErr = e;
+      if (attempt < XHR_GET_MAX_RETRIES) {
+        showAdminRetryNotice();
+        await new Promise(function(r) { setTimeout(r, XHR_GET_BACKOFF_MS[attempt] || 1500); });
+      }
+    }
+  }
+  throw lastErr;
 }
 
 function xhrPost(url, payload, options) {
@@ -3896,6 +3974,40 @@ function xhrPost(url, payload, options) {
     xhr.ontimeout = function() { reject(new Error("Timeout")); };
     xhr.send(JSON.stringify(payload));
   });
+}
+
+/* ── v5.5.29-read-retry:純讀 POST 的重試包裝 ──
+   為什麼需要:GAS 在瞬間併發時,會在請求進到 doGet/doPost 之前就回自家 HTML 錯誤頁
+   (所以 GAS 執行紀錄裡看不到這筆、也不會顯示失敗)→ xhrParseResponse 丟 SERVER_HTML
+   → 櫃檯畫面直接跳「系統暫時無法使用」。GET 路徑(xhrGet)本來就有重試會自動自癒,
+   但 admin 的診表/查詢類雖是純讀,走的是 POST 通道,被「POST 一律不重試」的紀律一併排除。
+
+   安全性:重試僅套用於後端逐一驗證過「零 setValue/appendRow/deleteRow/insertRow/getScriptLock」
+   的查詢類 action(7 支,見下方呼叫點)。這些請求冪等,重試不會產生任何副作用。
+   真正的寫入 POST(submitBooking/cancelBooking/adminUpdateStatus/toggleNotified/群發停診…)
+   一律維持 xhrPost 不重試 — 重複送出風險不變,紀律不鬆動。
+
+   ⚠️ 新增查詢功能要改用 xhrPostRead 前,務必先確認該後端函式完全不寫表。
+
+   參數與回傳同 xhrPost(含 options.timeout),呼叫端只需改函式名。
+   最壞等待:3 趟 × 60s + backoff ≈ 182s;常見瞬間併發在 600ms 後的第二趟即成功。 */
+var XHR_POST_READ_MAX_RETRIES = 2;
+
+async function xhrPostRead(url, payload, options) {
+  var lastErr;
+  for (var attempt = 0; attempt <= XHR_POST_READ_MAX_RETRIES; attempt++) {
+    try {
+      return await xhrPost(url, payload, options);
+    } catch(e) {
+      if (e && e.isSessionExpired) throw e; // 明確答案,不重試(handleSessionExpired 已觸發)
+      lastErr = e;
+      if (attempt < XHR_POST_READ_MAX_RETRIES) {
+        showAdminRetryNotice();
+        await new Promise(function(r) { setTimeout(r, XHR_GET_BACKOFF_MS[attempt] || 1500); });
+      }
+    }
+  }
+  throw lastErr;
 }
 function getTodayStr() { const n = new Date(); return n.getFullYear() + "/" + String(n.getMonth()+1).padStart(2,"0") + "/" + String(n.getDate()).padStart(2,"0"); }
 function esc(str) { return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
@@ -3935,7 +4047,7 @@ async function loadSchedule(preferredSession) {
   if (_therapyDotEl) _therapyDotEl.style.display = "none";
   loadTherapyTileDot();
   try {
-    const data = await xhrPost(API_URL, { action: "adminGetTodaySchedule", date: dateToYMD(state.viewDate), lineId: state.lineId });
+    const data = await xhrPostRead(API_URL, { action: "adminGetTodaySchedule", date: dateToYMD(state.viewDate), lineId: state.lineId });
     if (myLoadId !== _scheduleLoadId) return; // 已有更新的請求，忽略此結果
     renderSchedule(data.bookings || [], preferredSession, data.openSessions || null);
     hideAdminOverlay();
@@ -5657,7 +5769,7 @@ function openDoctorModal() {
 async function loadSubstituteList() {
   const el = document.getElementById('subList');
   try {
-    const data = await xhrPost(API_URL, { action: "getSubstituteList", lineId: state.lineId });
+    const data = await xhrPostRead(API_URL, { action: "getSubstituteList", lineId: state.lineId });
     const list = data.list || [];
     const sn = function(s) { return getSessionTileLabel(s); };  // v5.5.19 marathon 2:用 helper 支援雙診
     if (list.length === 0) { el.innerHTML = `<div style="font-size:12px;color:var(--text-light)">目前無門診異動</div>`; return; }
@@ -5800,7 +5912,7 @@ async function doQuery() {
   btn.disabled = true; btn.textContent = "查詢中...";
   showAdminOverlay("查詢中...");
   try {
-    const data = await xhrPost(API_URL, { action: "adminQueryBookings", name, phone, birth, lineId: state.lineId });
+    const data = await xhrPostRead(API_URL, { action: "adminQueryBookings", name, phone, birth, lineId: state.lineId });
     renderQueryResults(data.bookings || []);
   } catch(e) { if (e.isSessionExpired) return; errEl.textContent = "查詢未完成，請稍後再試。"; errEl.style.display = "block"; }
   finally {
@@ -6055,7 +6167,7 @@ async function doFuLookup() {
   const btn = document.getElementById("btnFuLookup");
   btn.disabled = true; btn.textContent = "查詢中...";
   try {
-    const data = await xhrPost(API_URL, { action: "adminLookupPatient", name: name, birth: birthAd, strict: useStrict, lineId: state.lineId });
+    const data = await xhrPostRead(API_URL, { action: "adminLookupPatient", name: name, birth: birthAd, strict: useStrict, lineId: state.lineId });
     if (!data.success) { errEl.textContent = data.error || "查詢失敗"; errEl.style.display = "block"; return; }
     const matches = data.matches || [];
     if (matches.length === 0) {
@@ -6127,7 +6239,7 @@ async function loadFollowUpList() {
   if (!container) return;
   container.innerHTML = '<div class="loading" style="padding:16px;">載入中...</div>';
   try {
-    const data = await xhrPost(API_URL, { action: "getPendingFollowUpList", lineId: state.lineId });
+    const data = await xhrPostRead(API_URL, { action: "getPendingFollowUpList", lineId: state.lineId });
     if (!data.success) {
       container.innerHTML = '<div class="fu-list-empty">載入失敗:' + esc(data.error || "") + '</div>';
       return;
@@ -6195,7 +6307,7 @@ async function doFuCancel(lineIdEnc, dateEnc, name, btn) {
 /* ── 系統異常 caution 檢查 ── */
 async function checkSecurityCaution() {
   try {
-    const data = await xhrPost(API_URL, { action: "getSecurityLog", lineId: state.lineId });
+    const data = await xhrPostRead(API_URL, { action: "getSecurityLog", lineId: state.lineId });
     const dot = document.getElementById("securityUnreadDot");
     if (dot) dot.style.display = data.hasUnread ? "block" : "none";
   } catch(e) { if (e.isSessionExpired) return; /* 靜默失敗，不影響主流程 */ }
@@ -6206,7 +6318,7 @@ async function loadSecurity() {
   const el = document.getElementById("securityContent");
   el.innerHTML = `<div class="loading">載入中...</div>`;
   try {
-    const data = await xhrPost(API_URL, { action: "getSecurityLog", lineId: state.lineId });
+    const data = await xhrPostRead(API_URL, { action: "getSecurityLog", lineId: state.lineId });
     const allLogs = data.logs || [];
     // v5.4.3: 只顯示未讀 log。已讀歷史仍保留在試算表(E 欄已讀時間、F 欄已讀管理員),
     // 粟醫師若要看歷史可直接查試算表。前端 UI 保持乾淨,避免標記已讀後還看到一堆灰色 log 的困惑。
@@ -6261,23 +6373,24 @@ let _eqCurrentNumber = null; // v1.2-atomic:純 View-Model,僅用於 UI 顯示(�
 // v5.5.18-eq-killswitch:加 Kill Switch 處理 — data.enabled === false 時 tile
 //                       套 .disabled class + subtitle 顯示「已停用」(灰底沉默)
 async function loadEqTileSubtitle() {
+  const subEl = document.getElementById("eqTileSubtitle");
+  const tileEl = subEl && subEl.closest(".tile");
   try {
     const data = await xhrGet(API_URL + "?action=getEmergencyQueueNumber");
-    const subEl = document.getElementById("eqTileSubtitle");
     if (!subEl) return;
-    const tileEl = subEl.closest(".tile");
 
     // v5.5.18-eq-killswitch:flag 優先檢查,disabled 狀態壓制其他顯示
     // 設計理由:flag 是「功能級別狀態」,優先級高於資料層級的 number/empty 區分
     if (data && data.success && data.enabled === false) {
       _eqCurrentNumber = null;
       subEl.textContent = "已停用";
-      if (tileEl) tileEl.classList.add("disabled");
+      if (tileEl) { tileEl.classList.remove("muted"); tileEl.classList.add("disabled"); }
       return;
     }
 
     // flag enabled(或舊版 backend 無 enabled 欄位)→ 走原有 3 路徑
-    if (tileEl) tileEl.classList.remove("disabled");
+    // v5.5.23-eq-failclosed:成功取回才解除 muted(HTML 預設灰),tile 至此才點亮
+    if (tileEl) { tileEl.classList.remove("disabled"); tileEl.classList.remove("muted"); }
     if (data && data.success && data.number !== null && data.number !== undefined) {
       _eqCurrentNumber = parseInt(data.number, 10);
       subEl.textContent = _eqCurrentNumber;
@@ -6286,7 +6399,10 @@ async function loadEqTileSubtitle() {
       subEl.textContent = "尚未啟用";
     }
   } catch(e) {
-    // 失敗靜默,subtitle 維持「—」即可,不影響主流程
+    // v5.5.23-eq-failclosed:失敗不再靜默維持預設亮(fail-open),
+    // 改為 muted +「連線異常」— 不誤導「叫號開著」,但仍可點開控制台手動重試。
+    if (subEl) subEl.textContent = "連線異常";
+    if (tileEl) { tileEl.classList.remove("disabled"); tileEl.classList.add("muted"); }
   }
 }
 
@@ -6515,8 +6631,13 @@ async function loadEqNumber() {
         : (data.updatedAt || "—");
       document.getElementById("eqLastUpdate").textContent = updateText;
       // 同步 admin 主畫面 tile subtitle
+      // v5.5.23-eq-failclosed:成功取回號碼 = 天然的手動重試成功 → 一併解除 muted 點亮 tile
       const subEl = document.getElementById("eqTileSubtitle");
-      if (subEl) subEl.textContent = _eqCurrentNumber;
+      if (subEl) {
+        subEl.textContent = _eqCurrentNumber;
+        const tileEl = subEl.closest(".tile");
+        if (tileEl) { tileEl.classList.remove("muted"); tileEl.classList.remove("disabled"); }
+      }
     } else {
       _eqCurrentNumber = null;
       document.getElementById("eqBigNumber").textContent = "—";
@@ -6597,8 +6718,13 @@ async function sendEqUpdate(req) {
     const updateText = (data.updatedBy || "") + " · " + (data.updatedAt || "");
     document.getElementById("eqLastUpdate").textContent = updateText;
     // 同步 tile subtitle
+    // v5.5.23-eq-failclosed:更新成功 → 一併解除 muted(涵蓋「連線異常後直接進 modal 操作」路徑)
     const subEl = document.getElementById("eqTileSubtitle");
-    if (subEl) subEl.textContent = _eqCurrentNumber;
+    if (subEl) {
+      subEl.textContent = _eqCurrentNumber;
+      const tileEl = subEl.closest(".tile");
+      if (tileEl) { tileEl.classList.remove("muted"); tileEl.classList.remove("disabled"); }
+    }
 
     showToast("✓ 已更新為 " + _eqCurrentNumber + " 號");
   } catch(e) {
@@ -6911,7 +7037,7 @@ async function openPreviewModal() {
   document.getElementById("previewContent").innerHTML = '<div class="loading">載入中...</div>';
   document.getElementById("modalPreview").classList.add("active");
   try {
-    const data = await xhrPost(API_URL, { action: "adminGetRangeSummary", lineId: state.lineId });
+    const data = await xhrPostRead(API_URL, { action: "adminGetRangeSummary", lineId: state.lineId });
     if (!data.success) throw new Error(data.error);
     renderPreview(data.days);
   } catch(e) {
