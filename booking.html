@@ -18,7 +18,33 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
-     Current Version: v5.9.0-read-hedge (2026-08-13)
+     Current Version: v5.10.0-idem-submit (2026-08-14)
+     本版:號碼牌前端(第二階段)— 讓「送出預約」也能安全連發
+        · 後端 v6.3.13-idem 已於 2026-08-13 部署並觀察無副作用,本版開始送號碼、開始連發。
+        · 發號:以「內容指紋」實作 —— 指紋 = 不含號碼的 payload。與上次發號時一致 → 沿用;
+          任一欄不同 → 換新的。如此「往回改時段/日期/姓名 → 換新號」自動成立。
+          成功即作廢;頁面重載 state 歸零 → 自然換新。號碼用 crypto.randomUUID()。
+        · 連發:沿用 v5.9.0 的 xhrHedge 引擎,門檻改 8 秒(寫入較重),最多 3 張,總預算 32 秒。
+        · ⚠️ 關鍵設計:「系統忙碌中」(取鎖失敗/頻率限制)在引擎眼中必須算「這張落空」。
+          否則第一張帶著它回來會被當成答案,反而 abort 掉可能成功的第二張 —— 連發自己掐死活路。
+          成功/額滿/黑名單/停診則是真答案,立刻採用不再等。
+        · 順修 bug:錯誤過濾器原寫 includes("timeout") 全小寫,實際丟的是 "Timeout"/"Network error",
+          大小寫對不上 → 過濾從未生效,病患一直看到英文字。改正則加 i flag,一併涵蓋 "Abort"。
+          (與本版共用同一段程式,分開改反而要動兩次,故合併;OWNER 已知悉。)
+        · 回退:XHR_SUBMIT_HEDGE_ENABLED = false → 不送號碼、不連發,逐字回到 v5.9.0。
+          後端沒收到號碼即整段跳過,兩端各自可獨立回退。
+        · r2(Gemini 二審後):
+          [阻擋級] 修正頻率限制的自我阻斷(Self-DOS)迴圈。「系統忙碌中」現在會設 __noMoreLanes,
+                   引擎收到即停止開新車道(但不動已在飛的)。
+                   原因:該訊息有兩個來源且字串完全相同 —— 取鎖失敗(可能有救)與頻率限制(必死)。
+                   分不出來,故取保守解:不再補牌。頻率限制擋在號碼牌查詢之前,被擋的請求
+                   根本走不到號碼牌,再送只會延長計數器的 60 秒 TTL,讓病患更難取回已成功的結果。
+                   代價:取鎖失敗後不再補新牌(已在飛的仍保留機會)。詳見該處註解。
+          [建議級] goToEntry() 補 clearIdemKey_(),回首頁即作廢號碼,不倚賴「指紋自然改變」。
+          [清理]   移除死碼 __retryable(只設不讀),改為真正被引擎讀取的 __noMoreLanes。
+        · 不含:取消預約連發(風險不對稱,重複取消無副作用,本階段不做)、
+          loadPatientList 第二道「不 await」閘。
+     基於 v5.9.0-read-hedge (2026-08-13)
      本版:讀取連發(hedged request) — 治「開頁卡住/打不開」
         · 病灶:Google 分派層排隊(請求送達 → doGet 開始執行之間),不可觀測、不可優化。
           2026-08-07 以 Cloudflare Worker 探針實測三時段共 181 組成對樣本:
@@ -2247,7 +2273,11 @@ let state = {
   bookingId: null,
   calYear: new Date().getFullYear(),
   calMonth: new Date().getMonth(),
-  slotsData: null
+  slotsData: null,
+  // v5.10.0 號碼牌:idemKey = 這筆預約的號碼;idemFingerprint = 發號當時的 payload 內容。
+  //   兩者皆隨頁面重載歸零(交接文件:「頁面重新載入 → 換新的」)。
+  idemKey: null,
+  idemFingerprint: null
 };
 
 // ===================================
@@ -3372,6 +3402,7 @@ function goToEntry() {
   state.date = null; state.session = null; state.timeSlot = null; state.doctor = null;
   state.isUnspecified = false; state.slotsData = null; state.sessionSelected = false;
   state.bookingId = null;
+  clearIdemKey_();   // v5.10.0-r2(Gemini 二審建議):回首頁即作廢號碼,不倚賴「指紋自然改變」
   isSubmitting = false;
   // v5.4:重置家庭友善預填清單(回首頁後下次進複診會重新載入)
   resetPatientList();
@@ -4289,9 +4320,13 @@ async function submitBooking() {
       type: state.type,
       source: state.source || ""
     };
-    const data = await xhrPost(API_URL, payload);
+    // v5.10.0 號碼牌:先用「不含號碼的 payload」取號(內容一致 → 沿用),再把號碼掛上去。
+    //   指紋不含 idemKey 本身,否則每次指紋都不同、永遠沿用不到。
+    if (XHR_SUBMIT_HEDGE_ENABLED) payload.idemKey = acquireIdemKey_(payload);
+    const data = await xhrPostSubmit(API_URL, payload);
     if (!data.success) throw new Error(data.error);
     state.bookingId = data.bookingId;
+    clearIdemKey_();   // v5.10.0:成功即作廢,下次預約重新發號
 
     // ── v5.6 圖卡渲染 ──
     renderSuccessCard(data);
@@ -4301,7 +4336,11 @@ async function submitBooking() {
     showPage("pageSuccess");
   } catch(e) {
     // GAS 回傳的業務邏輯錯誤（data.error）直接顯示；網路/timeout/HTML錯誤顯示通用訊息
-    const msg = (e.message && !e.message.includes("XMLHttp") && !e.message.includes("timeout") && !e.message.includes("network") && !e.message.includes("SERVER_HTML"))
+    // v5.10.0 修 bug:原本寫 includes("timeout")/("network") 全小寫,但實際丟的是
+    //   new Error("Timeout") / ("Network error") / ("Abort") —— 大小寫對不上,
+    //   過濾器從未生效,病患一直看到英文字「Timeout」。準備好的中文訊息一次都沒顯示過。
+    //   改用正則加 i flag,一併涵蓋連發新增的 "Abort"。
+    const msg = (e.message && !/timeout|network|abort|XMLHttp|SERVER_HTML/i.test(e.message))
       ? e.message : "系統暫時無法使用，請稍後再試。";
     showError("errorPage3", msg);
     btn.disabled = false; btn.textContent = "確認送出預約 →";
@@ -4948,11 +4987,17 @@ var XHR_HEDGE_MAX_LANES    = 3;     // 最多幾張
 var XHR_HEDGE_FAST_RETRY_MS = 600;  // 全部落空時的補牌間隔(保留 v5.8.21「秒回失敗快速重試」的好處)
 
 // launchFn(timeoutMs, onXhr) → Promise。呼叫端只需提供「怎麼發一張」。
-function xhrHedge(launchFn, label) {
+// v5.10.0:第三參數 thresholdMs 為選用 — 送出預約用 8 秒(取鎖＋讀三次全表＋寫入＋發 LINE,
+//   比純讀重),讀取維持 6 秒。不傳則沿用 XHR_HEDGE_THRESHOLD_MS,舊呼叫端行為不變。
+function xhrHedge(launchFn, label, thresholdMs) {
+  var HEDGE_GAP_MS = thresholdMs || XHR_HEDGE_THRESHOLD_MS;
   return new Promise(function(resolve, reject) {
     var t0 = Date.now();
     var settled = false, launched = 0, inFlight = 0, lastErr = null;
     var nextTimer = null, budgetTimer = null, lanes = [];
+    // v5.10.0-r2:某一張明確回報「再送也沒用」(目前只有送出路徑的「系統忙碌中」會設)
+    //   → 停止開新車道,但不動已在飛的。讀取路徑不會設此旗標,行為與 v5.9.0 一致。
+    var noMoreLanes = false;
 
     function remaining() { return XHR_TOTAL_BUDGET_MS - (Date.now() - t0); }
 
@@ -4969,13 +5014,13 @@ function xhrHedge(launchFn, label) {
 
     function scheduleNext() {
       if (nextTimer) { clearTimeout(nextTimer); nextTimer = null; }
-      if (settled || launched >= XHR_HEDGE_MAX_LANES) return;
+      if (settled || noMoreLanes || launched >= XHR_HEDGE_MAX_LANES) return;
       if (remaining() <= XHR_MIN_ATTEMPT_MS) return;
-      nextTimer = setTimeout(function() { nextTimer = null; launch(); }, XHR_HEDGE_THRESHOLD_MS);
+      nextTimer = setTimeout(function() { nextTimer = null; launch(); }, HEDGE_GAP_MS);
     }
 
     function launch() {
-      if (settled || launched >= XHR_HEDGE_MAX_LANES) return;
+      if (settled || noMoreLanes || launched >= XHR_HEDGE_MAX_LANES) return;
       var budget = Math.min(XHR_TIMEOUT, Math.max(remaining(), 1));
       // v5.9.0-r2:預算不夠開新趟。若此刻也沒有任何一張在飛,就沒人會觸發收工,
       //   只能乾等 budgetTimer 到 32 秒 → 病患白等約 3 秒。故在此提早收工。
@@ -4991,8 +5036,9 @@ function xhrHedge(launchFn, label) {
           inFlight--;
           if (settled) return;
           lastErr = err;
+          if (err && err.__noMoreLanes) noMoreLanes = true;   // v5.10.0-r2
           if (inFlight > 0) return;                      // 還有別張在飛 → 繼續等
-          if (launched < XHR_HEDGE_MAX_LANES && remaining() > XHR_MIN_ATTEMPT_MS) {
+          if (!noMoreLanes && launched < XHR_HEDGE_MAX_LANES && remaining() > XHR_MIN_ATTEMPT_MS) {
             if (nextTimer) { clearTimeout(nextTimer); nextTimer = null; }
             nextTimer = setTimeout(function() { nextTimer = null; launch(); }, XHR_HEDGE_FAST_RETRY_MS);
           } else {
@@ -5052,6 +5098,87 @@ function xhrPostReadOnce(url, payload, timeoutMs, onXhr) {
 function xhrPostRead(url, payload) {
   if (!XHR_HEDGE_ENABLED) return xhrPost(url, payload);   // 回退＝完全等於 v5.8.21
   return xhrHedge(function(timeoutMs, onXhr) { return xhrPostReadOnce(url, payload, timeoutMs, onXhr); }, "POST-read");
+}
+
+/* ══════════════════════════════════════════════════════════════
+   v5.10.0:號碼牌(idempotency key)— 讓「送出預約」也能安全連發
+   ──────────────────────────────────────────────────────────────
+   為什麼要:現在送出卡住 = 等 30 秒 → 紅框 → 病患再按 → 撞後端 [C5] 防重複
+     → 看到「您當日已有預約紀錄」。這句話的實際意思是「你成功了」,
+     但它長得跟「額滿」「停診」一模一樣。病患以為失敗。
+   怎麼做:每一筆預約配一個獨一無二的號碼,重送皆帶同號碼。
+     職員(backend v6.3.13,2026-08-13 已部署)進鎖後第一件事查號碼牌,
+     認出已辦過 → 直接回傳當初那筆結果,不寫簿子、不發 LINE。
+   發號規則(交接文件定義,此處以「內容指紋」實作,語義完全等價):
+     指紋 = 這次要送的 payload 本身。與上次發號時一致 → 沿用;任一欄不同 → 換新的。
+     如此「往回改時段/日期/姓名 → 換新號」自動成立,不需在多處埋判斷。
+     送出成功 → 作廢;頁面重載 → state 歸零 → 自然換新。
+   ⚠️ 號碼必須是強亂數。後端的格式白名單只驗長度與字元,不保證亂度;
+     key 雖已綁 lineId,弱號碼仍會讓同一病患 10 分鐘內的兩筆不同預約撞號
+     → 第二筆被回放成第一筆的結果 → 病患以為約到了、實際沒有。
+   ══════════════════════════════════════════════════════════════ */
+var XHR_SUBMIT_HEDGE_ENABLED = true;   // ← 回退開關:改 false 即逐字回到 v5.9.0(不送號碼、不連發)
+var XHR_SUBMIT_THRESHOLD_MS  = 8000;   // 送出沒回音多久補一張(讀取是 6 秒;寫入較重)
+
+// 職員回「系統忙碌中」有兩種來源,而且回傳字串完全相同,窗口無從區分:
+//   (a) 取鎖失敗 —— 別人正在寫,等一下有機會成功
+//   (b) 頻率限制(15 次/60 秒)—— 已經被擋,再送幾張都不可能成功
+// 因為分不出來,一律當「這張落空」但「不要再補新牌」:
+//   · 已在飛的別張不受影響(可能是 (a),留給它們機會)
+//   · 但不再開新車道 —— 若是 (b),多送只是繼續餵養計數器
+//     (後端計數器 TTL 每次呼叫都重設 60 秒,是「安靜滿 60 秒才歸零」,不是「每分鐘歸零」)
+//   · 且頻率限制擋在號碼牌查詢之前 → 被擋的請求根本走不到號碼牌,
+//     再送只會讓病患更難取回那筆其實已經成功的結果。
+var SUBMIT_RETRYABLE_ERROR_RE = /系統忙碌中/;
+
+function makeIdemKey_() {
+  try {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID();               // 36 碼,符合後端 [A-Za-z0-9_-]{8,64}
+    }
+    if (window.crypto && typeof window.crypto.getRandomValues === "function") {
+      var a = new Uint8Array(16); window.crypto.getRandomValues(a);
+      var s = ""; for (var i = 0; i < a.length; i++) s += ("0" + a[i].toString(16)).slice(-2);
+      return s;                                        // 32 碼十六進位
+    }
+  } catch(e) {}
+  // 最後手段:僅在極舊 WebView 無 crypto 時使用。亂度較低,但仍綁 lineId 且只影響本人。
+  return "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+}
+
+// 取號:內容與上次發號時一致 → 沿用;不一致(或還沒發過)→ 換新的
+function acquireIdemKey_(payload) {
+  var fp;
+  try { fp = JSON.stringify(payload); } catch(e) { fp = null; }
+  if (!fp || state.idemFingerprint !== fp || !state.idemKey) {
+    state.idemKey = makeIdemKey_();
+    state.idemFingerprint = fp;
+    try { console.warn("[idem] 新號碼 " + state.idemKey); } catch(e) {}
+  } else {
+    try { console.warn("[idem] 沿用號碼 " + state.idemKey); } catch(e) {}
+  }
+  return state.idemKey;
+}
+
+function clearIdemKey_() { state.idemKey = null; state.idemFingerprint = null; }
+
+// 發一張送出。把「系統忙碌中」轉成 reject,讓 xhrHedge 視為落空、繼續等別張。
+function xhrPostSubmitOnce_(url, payload, timeoutMs, onXhr) {
+  return xhrPostReadOnce(url, payload, timeoutMs, onXhr).then(function(data) {
+    if (data && data.success === false && SUBMIT_RETRYABLE_ERROR_RE.test(String(data.error || ""))) {
+      var err = new Error(data.error);   // 保留原文,全部落空時直接顯示這句
+      err.__noMoreLanes = true;          // v5.10.0-r2:這張落空,且不要再開新車道(見上方說明)
+      throw err;
+    }
+    return data;   // 成功、額滿、黑名單、停診都是真答案 → 立刻採用,不再等
+  });
+}
+
+function xhrPostSubmit(url, payload) {
+  if (!XHR_SUBMIT_HEDGE_ENABLED) return xhrPost(url, payload);   // 回退＝完全等於 v5.9.0
+  return xhrHedge(function(timeoutMs, onXhr) {
+    return xhrPostSubmitOnce_(url, payload, timeoutMs, onXhr);
+  }, "POST-submit", XHR_SUBMIT_THRESHOLD_MS);
 }
 
 function xhrPost(url, payload) {
