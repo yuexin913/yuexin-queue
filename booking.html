@@ -18,7 +18,32 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
-     Current Version: v5.8.21-conn-note (2026-08-05)
+     Current Version: v5.9.0-read-hedge (2026-08-13)
+     本版:讀取連發(hedged request) — 治「開頁卡住/打不開」
+        · 病灶:Google 分派層排隊(請求送達 → doGet 開始執行之間),不可觀測、不可優化。
+          2026-08-07 以 Cloudflare Worker 探針實測三時段共 181 組成對樣本:
+          健康時真實讀取 2.4s(p90 5.0s、最慢 5.7s);中午中位 4.2s / 失敗 22.5%;早上中位 8.0s / 失敗 27.5%。
+        · 關鍵發現:卡頓是「這一發」的事,不是「這段時間」的事
+          (卡超過 3 秒後,下一發 5/5 全部正常)→ 連發成立的基礎。
+          實證對沖(門檻 6s):失敗率 22.5% → 5%、27.5% → 10%。
+        · v5.8.21 的「總預算 32 秒」是序列重試:等這張死透才發下一張。
+          但真的卡住時第一趟就吃滿 30 秒 → 剩餘 2s < XHR_MIN_ATTEMPT_MS(3000) → 重試從不發生
+          (原註解已自承「真的卡住 → 一趟吃完預算,直接收工」)。本版改為並行連發。
+        · 新行為:t=0 發第一張;6 秒沒回音再發一張(前一張繼續飛),最多 3 張;
+          任一張成功立刻採用並 abort 其餘;全部落空且無牌可發 → 立刻收工(不空等預算)。
+          總預算 32 秒不變。HTTP/2 已確認(h2),多工不受「每網域 6 條連線」限制。
+        · 涵蓋:getAvailableSlots / checkLimit / checkBlacklist / getUpcomingAnnouncements(改 xhrGet 內部,4 個呼叫端零改動)
+          + getMyPatientList(走 POST 但純讀,另立 xhrPostRead,送出預約的 xhrPost 完全不碰)。
+        · 附帶修好「點選帶入之前預約資料」名單時有時無:預熱兩處 10s race 放寬至 20s
+          (中位 4.2s、p75 11.3s 時,10 秒會吃掉四分之一的請求)。
+        · 回退:XHR_HEDGE_ENABLED = false → 逐字回到 v5.8.21 行為(舊邏輯原封保留於 xhrGetSequential)。
+        · r2(Gemini 二審後):
+          [阻擋級] GET 每一發加獨一無二的 _h 參數 — 破 WKWebView / Android WebView 的請求合併。
+                   未修則三張牌可能被瀏覽器合併成一條、全死在同一個塞車點,且完全無法察覺。
+          [建議級] xhrGetOnce / xhrPostReadOnce 補 onabort → 落敗車道的 Promise 不再永久懸置。
+          [建議級] launch() 預算不足且無車道在飛時提早收工 → 消除「白等 3 秒才顯示錯誤」的死角。
+        · 不含:號碼牌前端(第二階段)、4270 行大小寫 bug、loadPatientList 第二道「不 await」閘。
+     基於 v5.8.21-conn-note (2026-08-05)
      本版:慢載入提示改「附加」不「取代」+ 門檻 6s → 8s + 維護頁文案精簡
         · 舊文案「目前系統人數較多」歸因錯誤:深夜無人時同樣發作,病灶在 Google 端
           請求分派(已用空腳本/換帳號/換部署/換網路反覆驗證),與線上人數無關。
@@ -3069,16 +3094,25 @@ function startLoadingAnimation() {
   return new Promise(function(resolve) { setTimeout(resolve, 1500); });
 }
 
+/* v5.9.0:名單預熱的上限,v5.8.21 為 10000。
+   為什麼放寬:名單走背景預熱,原本 10 秒到就放棄。實測中位 4.2s、p75 11.3s ——
+   四分之一的請求會超過 10 秒,這正是「有人看得到名單、有人看不到、同一人這次有下次沒有」的成因。
+   為什麼是 20 秒:連發後名單多半 2～5 秒回來;超過 20 秒病患早已填完表,再等也沒意義。
+   ⚠️ 這是獨立的回退桿 —— XHR_HEDGE_ENABLED 改 false 不會把它變回 10000,要手動改。
+   ⚠️ 這只放寬「第一道閘」。loadPatientList 還有第二道「探頭看一眼就走」的賽跑(本版不動),
+      病患若在名單回來前就走到填表頁,名單仍不顯示。 */
+var PATIENT_LIST_RACE_MS = 20000;
+
 function prewarmPatientList() {
   if (!state.lineId) return;
   if (patientListPrewarm) return;  // 已經在跑或已完成,不重觸
 
-  const apiPromise = xhrPost(API_URL, {
+  const apiPromise = xhrPostRead(API_URL, {
     action: "getMyPatientList",
     lineId: state.lineId
   });
   const timeoutPromise = new Promise(function(_, reject) {
-    setTimeout(function() { reject(new Error("PREWARM_TIMEOUT")); }, 10000);
+    setTimeout(function() { reject(new Error("PREWARM_TIMEOUT")); }, PATIENT_LIST_RACE_MS);
   });
 
   // 把 Promise 本身存起來,loadPatientList 可以直接 await 同一個
@@ -3155,12 +3189,12 @@ async function refreshPatientListAfterDelete() {
   section.appendChild(overlay);
 
   try {
-    const apiPromise = xhrPost(API_URL, {
+    const apiPromise = xhrPostRead(API_URL, {
       action: "getMyPatientList",
       lineId: state.lineId
     });
     const timeoutPromise = new Promise(function(_, reject) {
-      setTimeout(function() { reject(new Error("TIMEOUT")); }, 10000);
+      setTimeout(function() { reject(new Error("TIMEOUT")); }, PATIENT_LIST_RACE_MS);
     });
     const data = await Promise.race([apiPromise, timeoutPromise]);
     if (!data || !data.success || !data.patients || data.patients.length === 0) {
@@ -4825,9 +4859,12 @@ function xhrParseResponse(text) {
   return JSON.parse(text);
 }
 
-function xhrGetOnce(url, timeoutMs) {
+// v5.9.0:第三參數 onXhr 為選用 — 連發時用來交出 xhr 物件供落敗車道 abort。
+//   舊呼叫端只傳兩個參數,onXhr 為 undefined,行為與 v5.8.21 逐字一致。
+function xhrGetOnce(url, timeoutMs, onXhr) {
   return new Promise(function(resolve, reject) {
     var xhr = new XMLHttpRequest();
+    if (typeof onXhr === "function") { try { onXhr(xhr); } catch(e) {} }
     xhr.open("GET", url, true);
     xhr.timeout = timeoutMs || XHR_TIMEOUT; // v5.8.21:由總預算決定本趟上限
     xhr.onload = function() {
@@ -4836,6 +4873,11 @@ function xhrGetOnce(url, timeoutMs) {
     };
     xhr.onerror = function() { reject(new Error("Network error")); };
     xhr.ontimeout = function() { reject(new Error("Timeout")); };
+    // v5.9.0-r2:abort() 觸發的是 abort 事件,不是 error/timeout。沒有這行,
+    //   連發時被 abort 的落敗車道其 Promise 永遠不會 settle,閉包無法回收。
+    //   cleanup() 是在 settled=true 之後才 abort,故此 reject 會被 catch 內的
+    //   if (settled) return 擋掉,不影響已經回傳的結果。
+    xhr.onabort = function() { reject(new Error("Abort")); };
     xhr.send();
   });
 }
@@ -4865,7 +4907,8 @@ var XHR_GET_BACKOFF_MS = [600, 1500];
 var XHR_TOTAL_BUDGET_MS = 32000;
 var XHR_MIN_ATTEMPT_MS  = 3000;
 
-function xhrGet(url) {
+// v5.9.0:舊的序列重試邏輯原封搬到此處(一行未改),供 XHR_HEDGE_ENABLED=false 時回退使用。
+function xhrGetSequential(url) {
   return new Promise(function(resolve, reject) {
     var t0 = Date.now();
     var attempt = 0;
@@ -4885,6 +4928,130 @@ function xhrGet(url) {
     }
     attemptOnce();
   });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   v5.9.0:讀取連發(hedged request)
+   ──────────────────────────────────────────────────────────────
+   為什麼要換掉序列重試:v5.8.21 只在前一趟「死透」後才重試。但真的卡住時
+   第一趟就吃滿 30 秒,剩餘 2s < XHR_MIN_ATTEMPT_MS(3000)→ 重試從不發生。
+   為什麼連發有效:2026-08-07 實測,卡超過 3 秒後「下一發」5/5 全部正常
+   ——卡頓是「這一發」的事,不是「這段時間」的事。連發等於換一條隊伍,不是等塞車過去。
+   為什麼門檻是 6 秒:健康群 p90 = 5.0s、最慢 5.7s,6 秒剛好蓋住而不誤觸發。
+   為什麼敢發 3 張:已確認 GAS 端點走 HTTP/2(h2),多工,不受「每網域 6 條連線」限制。
+   只用於純讀:GET 四支全無頻率限制;getMyPatientList 走 POST 但純讀(限 20 次/60 秒,已知吃緊)。
+   送出預約(submitBooking)不走這裡 —— 那是寫入,靠號碼牌(backend v6.3.13)另案處理。
+   ══════════════════════════════════════════════════════════════ */
+var XHR_HEDGE_ENABLED      = true;  // ← 回退開關:改 false 即逐字回到 v5.8.21 行為
+var XHR_HEDGE_THRESHOLD_MS = 6000;  // 沒回音多久補一張
+var XHR_HEDGE_MAX_LANES    = 3;     // 最多幾張
+var XHR_HEDGE_FAST_RETRY_MS = 600;  // 全部落空時的補牌間隔(保留 v5.8.21「秒回失敗快速重試」的好處)
+
+// launchFn(timeoutMs, onXhr) → Promise。呼叫端只需提供「怎麼發一張」。
+function xhrHedge(launchFn, label) {
+  return new Promise(function(resolve, reject) {
+    var t0 = Date.now();
+    var settled = false, launched = 0, inFlight = 0, lastErr = null;
+    var nextTimer = null, budgetTimer = null, lanes = [];
+
+    function remaining() { return XHR_TOTAL_BUDGET_MS - (Date.now() - t0); }
+
+    function cleanup() {
+      if (nextTimer)   { clearTimeout(nextTimer);   nextTimer = null; }
+      if (budgetTimer) { clearTimeout(budgetTimer); budgetTimer = null; }
+      for (var i = 0; i < lanes.length; i++) {
+        try { if (lanes[i] && lanes[i].readyState !== 4) lanes[i].abort(); } catch(e) {}
+      }
+      lanes.length = 0;
+    }
+    function win(data) { if (settled) return; settled = true; cleanup(); resolve(data); }
+    function lose(err) { if (settled) return; settled = true; cleanup(); reject(err || new Error("Timeout")); }
+
+    function scheduleNext() {
+      if (nextTimer) { clearTimeout(nextTimer); nextTimer = null; }
+      if (settled || launched >= XHR_HEDGE_MAX_LANES) return;
+      if (remaining() <= XHR_MIN_ATTEMPT_MS) return;
+      nextTimer = setTimeout(function() { nextTimer = null; launch(); }, XHR_HEDGE_THRESHOLD_MS);
+    }
+
+    function launch() {
+      if (settled || launched >= XHR_HEDGE_MAX_LANES) return;
+      var budget = Math.min(XHR_TIMEOUT, Math.max(remaining(), 1));
+      // v5.9.0-r2:預算不夠開新趟。若此刻也沒有任何一張在飛,就沒人會觸發收工,
+      //   只能乾等 budgetTimer 到 32 秒 → 病患白等約 3 秒。故在此提早收工。
+      if (launched > 0 && budget < XHR_MIN_ATTEMPT_MS) {
+        if (inFlight === 0) lose(lastErr);
+        return;
+      }
+      launched++; inFlight++;
+      try { console.warn("[hedge" + (label ? ":" + label : "") + "] 發第 " + launched + " 張 — 剩餘 " + remaining() + "ms"); } catch(e) {}
+      launchFn(budget, function(xhr) { lanes.push(xhr); })
+        .then(function(data) { inFlight--; win(data); })
+        .catch(function(err) {
+          inFlight--;
+          if (settled) return;
+          lastErr = err;
+          if (inFlight > 0) return;                      // 還有別張在飛 → 繼續等
+          if (launched < XHR_HEDGE_MAX_LANES && remaining() > XHR_MIN_ATTEMPT_MS) {
+            if (nextTimer) { clearTimeout(nextTimer); nextTimer = null; }
+            nextTimer = setTimeout(function() { nextTimer = null; launch(); }, XHR_HEDGE_FAST_RETRY_MS);
+          } else {
+            lose(lastErr);                               // 無牌可發且全落空 → 立刻收工,不空等預算
+          }
+        });
+      scheduleNext();
+    }
+
+    budgetTimer = setTimeout(function() { lose(lastErr); }, XHR_TOTAL_BUDGET_MS);
+    launch();
+  });
+}
+
+/* v5.9.0-r2:破 WebView 的請求合併(request coalescing) — Gemini 二審【阻擋級】
+   iOS WKWebView / Android WebView 的網路層,對「短時間內完全相同的 GET URL」
+   可能合併為單一底層請求,或讓後發的 XHR 直接掛在前一張 pending 的請求上。
+   若發生,三張牌會全死在同一個塞車點 —— 連發在客戶端被默默抵消,而且從外面完全看不出來。
+   ⚠️ 為什麼先前的實測沒有排除這個風險:2026-08-07 的探針是從 Cloudflare Worker 發的,
+      不經過瀏覽器網路層。那組數據證明的是「伺服器端連發有效」,不是「瀏覽器端不會合併」。
+   解法:每一發掛一個獨一無二的 _h 參數,強制底層建立獨立的 HTTP/2 stream。
+   後端安全性:doGet 逐一取具名參數(e.parameter.date / lineId 等),無白名單、不掃描全部參數
+      → _h 被完全忽略,後端零改動。
+   用全域遞增而非每次呼叫歸零:避免「同時對同一 URL 發兩次 xhrGet」時兩邊都產生 _h=1。
+   POST 依規範不會被合併 → xhrPostRead 不需要。
+   回退路徑 xhrGetSequential 也不加 → 序列重試永不同時在飛,保持與 v5.8.21 逐字一致。 */
+var _hedgeSeq = 0;
+
+function xhrGet(url) {
+  if (!XHR_HEDGE_ENABLED) return xhrGetSequential(url);
+  return xhrHedge(function(timeoutMs, onXhr) {
+    var hedgeUrl = url + (url.indexOf("?") > -1 ? "&" : "?") + "_h=" + (++_hedgeSeq);
+    return xhrGetOnce(hedgeUrl, timeoutMs, onXhr);
+  }, "GET");
+}
+
+// v5.9.0:純讀 POST 專用(目前僅 getMyPatientList)。
+//   刻意不改 xhrPost —— 送出預約走的是那一支,一個字都不能碰。寧可小幅重複也不冒險。
+function xhrPostReadOnce(url, payload, timeoutMs, onXhr) {
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    if (typeof onXhr === "function") { try { onXhr(xhr); } catch(e) {} }
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Content-Type", "text/plain");
+    xhr.timeout = timeoutMs || XHR_TIMEOUT;
+    xhr.onload = function() {
+      try { resolve(xhrParseResponse(xhr.responseText)); }
+      catch(e) { reject(e); }
+    };
+    xhr.onerror = function() { reject(new Error("Network error")); };
+    xhr.ontimeout = function() { reject(new Error("Timeout")); };
+    xhr.onabort = function() { reject(new Error("Abort")); };  // v5.9.0-r2:同 xhrGetOnce
+    xhr.send(JSON.stringify(payload));
+  });
+}
+
+function xhrPostRead(url, payload) {
+  if (!XHR_HEDGE_ENABLED) return xhrPost(url, payload);   // 回退＝完全等於 v5.8.21
+  return xhrHedge(function(timeoutMs, onXhr) { return xhrPostReadOnce(url, payload, timeoutMs, onXhr); }, "POST-read");
 }
 
 function xhrPost(url, payload) {
