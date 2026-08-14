@@ -18,7 +18,23 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
-     Current Version: v5.11.0-copy (2026-08-14)
+     Current Version: v5.12.0-wait-copy (2026-08-14)
+     本版:等待提示分讀取／送出兩套,零邏輯變更
+        · 為什麼分:號碼牌(v6.3.13)上線後,送出順利時約 10 秒內結束(8 秒補送、第二張約 10 秒回)。
+          舊的 8 秒提示正好卡在系統剛開始自救那一刻 —— 病患看到提示、兩秒後成功卡就出來,
+          那行字只是讓他白緊張兩秒。讀取最長要撐 32 秒,提示仍必要,故維持 8s/16s。
+        · 讀取(開頁載入 / 載入門診資訊 / 確認中 / 查詢中,共 5 處)— 8s / 16s:
+            等待系統連線  Connecting...
+            接收系統回應  Receiving...
+        · 送出預約(1 處)— 12s / 20s:
+            發送預約請求  Submitting...
+            請勿關閉頁面  Processing...
+        · 文案視角是「整個系統當下的狀態,病患也在其中」,不是「職員做到哪一步」——
+          故第二階段用 Receiving / Processing:病患正在接收、這件事正在進行中。
+        · 實作:showOverlay 加選用第二參數 submitMode,不傳則行為與 v5.11.0 逐字一致。
+          旗標於 hideOverlay 與開頁載入處各歸位一次,避免送出後回首頁誤用送出文案。
+        · 回退:傳回 v5.11.0 舊檔。
+     基於 v5.11.0-copy (2026-08-14)
      本版:病患看得到的文案 — 三處修正,零邏輯變更
         · [A] 錯誤顯示改白名單制。原本是「不在黑名單就把職員回的字原文顯示」,
           結果 2026-08-14 實測到內部訊息「未知的 action」跳在病患畫面上。
@@ -1774,9 +1790,11 @@
   <div class="spinner" style="width:32px;height:32px;border-width:2px;border-color:rgba(74,74,68,0.15);border-top-color:var(--sage-dark);"></div>
   <div id="bookingOverlayText" style="font-size:14px;font-weight:400;color:var(--ink-mid);letter-spacing:3px;"></div>
   <!-- v5.8.21:連線提示 — 附加一行,不取代原文字、spinner 持續轉 -->
+  <!-- v5.12.0:初始文字留空 — 文案分讀取/送出兩套(見 CONN_NOTE_STAGES),
+       寫死任一套都會在另一套的場景出錯。內容一律由 showConnNote 填入後才顯示。 -->
   <div id="bookingOverlayNote" style="display:none;text-align:center;">
-    <div id="bookingOverlayNoteZh" style="font-size:13px;color:var(--ink-light);letter-spacing:4px;font-weight:400;margin-bottom:6px;">等待系統連線</div>
-    <div style="font-size:11px;color:var(--ink-light);letter-spacing:2px;font-weight:300;opacity:0.7;"><span id="bookingOverlayNoteEn">Connecting</span><span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
+    <div id="bookingOverlayNoteZh" style="font-size:13px;color:var(--ink-light);letter-spacing:4px;font-weight:400;margin-bottom:6px;"></div>
+    <div style="font-size:11px;color:var(--ink-light);letter-spacing:2px;font-weight:300;opacity:0.7;"><span id="bookingOverlayNoteEn"></span><span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
   </div>
 </div>
 
@@ -1793,9 +1811,10 @@
         <div class="loading-text-zh">載入中請稍候</div>
         <div class="loading-text-en">Loading<span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
         <!-- v5.8.21:連線提示 — 附加一行,不取代「載入中請稍候」、呼吸動畫持續 -->
+        <!-- v5.12.0:初始文字留空,理由同 bookingOverlayNote -->
         <div id="loadingConnNote" style="display:none;margin-top:14px;">
-          <div id="loadingConnNoteZh" style="font-size:13px;color:var(--ink-light);letter-spacing:4px;font-weight:400;margin-bottom:6px;">等待系統連線</div>
-          <div style="font-size:11px;color:var(--ink-light);letter-spacing:2px;font-weight:300;opacity:0.7;"><span id="loadingConnNoteEn">Connecting</span><span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
+          <div id="loadingConnNoteZh" style="font-size:13px;color:var(--ink-light);letter-spacing:4px;font-weight:400;margin-bottom:6px;"></div>
+          <div style="font-size:11px;color:var(--ink-light);letter-spacing:2px;font-weight:300;opacity:0.7;"><span id="loadingConnNoteEn"></span><span class="loading-dots"><span>·</span><span>·</span><span>·</span></span></div>
         </div>
       </div>
     </div>
@@ -2212,7 +2231,9 @@ const LIFF_ID = "2009340533-JKP6Q8Qg";
 let isSubmitting = false; // 防連點全域旗標
 
 var _overlaySlowTimer = null, _overlaySlowTimer2 = null;
-function showOverlay(text) {
+// v5.12.0:true 時 showConnNote 改用送出那套文案。由 showOverlay 設定、hideOverlay 歸位。
+var _connNoteSubmitMode = false;
+function showOverlay(text, submitMode) {
   const el = document.getElementById("bookingOverlay");
   document.getElementById("bookingOverlayText").textContent = text || "";
   el.style.display = "flex";
@@ -2222,15 +2243,20 @@ function showOverlay(text) {
   //   (1) 歸因錯誤 — 深夜無人時同樣發作,已證實與線上人數無關(病灶在 Google 端請求分派);
   //   (2) 語意變成「你等的事出問題了」→ 改為附加後,語意是「還在進行,只是慢一點」。
   //   門檻 6s → 8s:原本太早,把正常的慢載入也判成異常。
+  // v5.12.0:送出預約傳 submitMode=true → 換另一套文案,門檻延後至 12s/20s(見 CONN_NOTE_STAGES_SUBMIT)。
+  _connNoteSubmitMode = !!submitMode;
+  var t1 = submitMode ? CONN_NOTE_SUBMIT_MS_1 :  8000;
+  var t2 = submitMode ? CONN_NOTE_SUBMIT_MS_2 : 16000;
   if (_overlaySlowTimer)  clearTimeout(_overlaySlowTimer);
   if (_overlaySlowTimer2) clearTimeout(_overlaySlowTimer2);
-  _overlaySlowTimer  = setTimeout(function() { showConnNote(0); },  8000);
-  _overlaySlowTimer2 = setTimeout(function() { showConnNote(1); }, 16000);
+  _overlaySlowTimer  = setTimeout(function() { showConnNote(0); }, t1);
+  _overlaySlowTimer2 = setTimeout(function() { showConnNote(1); }, t2);
 }
 function hideOverlay() {
   document.getElementById("bookingOverlay").style.display = "none";
   if (_overlaySlowTimer)  { clearTimeout(_overlaySlowTimer);  _overlaySlowTimer = null; }
   if (_overlaySlowTimer2) { clearTimeout(_overlaySlowTimer2); _overlaySlowTimer2 = null; }
+  _connNoteSubmitMode = false;  // v5.12.0:歸位,否則下次讀取的提示會誤用送出那套文案
   hideConnNote(); // v5.8.21:關閉遮罩時一併收起提示,下次不會殘留
 }
 
@@ -2239,13 +2265,29 @@ function hideOverlay() {
      8s  等待系統連線 / Connecting···   ← stage 1
     16s  等待系統回應 / Awaiting···     ← stage 2(已連上但後端尚未回覆的語氣)
    兩個載入指示器(#pageLoading 呼吸 logo / #bookingOverlay 動作遮罩)哪個在畫面上就更新哪個。*/
+/* v5.12.0:等待提示分讀取／送出兩套。
+   為什麼分:號碼牌(v6.3.13)上線後,送出順利時約 10 秒內結束(8 秒補送、第二張約 10 秒回)。
+     舊的 8 秒提示正好卡在系統剛開始自救那一刻 —— 病患看到提示、兩秒後成功卡就出來,
+     那行字只是讓他白緊張兩秒。故送出往後推到 12s/20s,讓自救先跑完,多數人根本不會看到。
+     讀取最長要撐 32 秒,維持 8s/16s 不動。
+   文案視角:描述的是「整個系統當下的狀態,病患也在其中」,不是「職員做到哪一步」。
+     故第二階段用 Receiving / Processing —— 病患正在接收、這件事正在進行中。 */
 var CONN_NOTE_STAGES = [
   { zh: "等待系統連線", en: "Connecting" },
-  { zh: "等待系統回應", en: "Awaiting"   }
+  { zh: "接收系統回應", en: "Receiving"  }
+];
+var CONN_NOTE_STAGES_SUBMIT = [
+  { zh: "發送預約請求", en: "Submitting" },
+  { zh: "請勿關閉頁面", en: "Processing" }
 ];
 
+// 送出流程的門檻(讀取沿用 8s/16s,見 showOverlay)
+var CONN_NOTE_SUBMIT_MS_1 = 12000;
+var CONN_NOTE_SUBMIT_MS_2 = 20000;
+
 function showConnNote(stage) {
-  var st = CONN_NOTE_STAGES[stage || 0] || CONN_NOTE_STAGES[0];
+  var set = _connNoteSubmitMode ? CONN_NOTE_STAGES_SUBMIT : CONN_NOTE_STAGES;
+  var st = set[stage || 0] || set[0];
   try {
     var lp = document.getElementById("pageLoading");
     if (lp && lp.classList.contains("active")) {
@@ -2405,6 +2447,7 @@ async function initLiff() {
     //   → 直接 showPage(pageNetworkError),導致 v5.8.15 的「重試 + 人數較多文案」在初始載入完全沒機會跑。
     //   改:blacklist 不再競賽,交給 xhrGet 自身 timeout(30s)+ 重試處理;全失敗才回 {_error}(fail-closed 維持)。
     //   另:載入提示分兩階段(v5.8.21) — 8s「等待系統連線」/ 16s「等待系統回應」,均不中斷流程。
+    _connNoteSubmitMode = false;  // v5.12.0:開頁載入是讀取,明示用讀取那套文案(不倚賴旗標殘留值)
     var _loadingSlowTimer  = setTimeout(function() { showConnNote(0); },  8000);
     var _loadingSlowTimer2 = setTimeout(function() { showConnNote(1); }, 16000);
     let blResult, annResult;
@@ -4328,7 +4371,7 @@ async function submitBooking() {
   isSubmitting = true;
   const btn = document.getElementById("btnSubmit");
   btn.disabled = true; btn.textContent = "送出中...";
-  showOverlay("送出預約中...");
+  showOverlay("送出預約中...", true);   // v5.12.0:true → 用送出那套文案、門檻 12s/20s
   try {
     // 複診送時段字串（"0900-1000" 等），GAS 自動發號；初診送時間碼；不指定送 "不指定"
     const slotParam = state.isUnspecified ? "不指定" : state.timeSlot;
