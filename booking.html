@@ -18,7 +18,19 @@
 <style>
   /* ==========================================================
      悅心診所 線上預約系統
-     Current Version: v5.12.0-wait-copy (2026-08-14)
+     Current Version: v5.13.0-return-start (2026-08-31)
+     本版:複診「起號」由醫師規則改為診次規則
+        · 舊:const minFirst = state.doctor === "郭玉柱" ? 11 : 6;
+          新:查 RETURN_START_RULES(星期 + 時段)。目前四筆 —
+             週二晚、週三晚、週五早、週五晚 → 從 11 號起(保留 1-10);其餘 → 從 6 號起(保留 1-5)。
+        · 週二晚 / 週五早原本就是郭玉柱的診,顯示行為不變;
+          週三晚 / 週五晚為本版新增(原保留 1-5)。
+        · 只影響每個時段的第一張卡;16-25 / 26-30 兩張卡與初診時間碼皆不受影響。
+        · ⚠️ 後端 v6.3.17 有一份逐字相同的 RETURN_START_RULES,兩端必須同版部署。
+          只上窗口 → 卡片灰掉但職員仍會發 6-10 號(不報錯,只是白白少發);
+          只上職員 → 卡片點得下去、送出卻可能說「已額滿」。
+        · 回退:傳回 v5.12.0 舊檔。
+     基於 v5.12.0-wait-copy (2026-08-14)
      本版:等待提示分讀取／送出兩套,零邏輯變更
         · 為什麼分:號碼牌(v6.3.13)上線後,送出順利時約 10 秒內結束(8 秒補送、第二張約 10 秒回)。
           舊的 8 秒提示正好卡在系統剛開始自救那一刻 —— 病患看到提示、兩秒後成功卡就出來,
@@ -4148,6 +4160,40 @@ const RETURN_TIME_CARDS = {
   ]
 };
 
+// 複診起號規則（v5.13.0）
+// 列在下表的診次保留 1-10（線上從 11 號起）；其餘保留 1-5（從 6 號起）。
+// 只影響第一張時段卡；16-25 / 26-30 兩張卡不受影響。
+//
+// ⚠️ 鑰匙是「星期 + 時段」，不看醫師。代診時保留張數不變。
+// ⚠️ 後端 RETURN_START_RULES 有一份逐字相同的表，兩端必須同版部署。
+//    只改一端會出現「卡片點得下去、送出卻說額滿」或「明明有號卻灰掉」。
+//
+// dow：0=週日 1=週一 … 6=週六
+const RETURN_START_RULES = [
+  { dow: 2, session: "晚上" },   // 週二晚
+  { dow: 3, session: "晚上" },   // 週三晚
+  { dow: 5, session: "早上" },   // 週五早
+  { dow: 5, session: "晚上" }    // 週五晚
+];
+const RETURN_START_DEFAULT  = 6;   // 保留 1-5
+const RETURN_START_RESERVED = 11;  // 保留 1-10
+
+// state.date 格式為 "YYYY/MM/DD"（斜線），new Date 以本地時間解讀，不會有時區位移。
+// 檔內另六處算星期也是同一寫法。
+function getReturnStartNumber(dateStr, sessionKey) {
+  if (!dateStr) return RETURN_START_DEFAULT;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return RETURN_START_DEFAULT;
+  const dow = d.getDay();
+  const sess = normSessionForTime(sessionKey);
+  for (let i = 0; i < RETURN_START_RULES.length; i++) {
+    if (RETURN_START_RULES[i].dow === dow && RETURN_START_RULES[i].session === sess) {
+      return RETURN_START_RESERVED;
+    }
+  }
+  return RETURN_START_DEFAULT;
+}
+
 function renderSlots() {
   const sessions = state.slotsData;
   const container = document.getElementById("slotsContainer");
@@ -4181,8 +4227,9 @@ function renderSlots() {
     }
   } else {
     const returnSlots = s.returnSlots || [];
-    // 郭玉柱醫師:複診從11號開始(6-10保留給現場),其他醫師從6號開始
-    const minFirst = state.doctor === "郭玉柱" ? 11 : 6;
+    // v5.13.0:起號改查 RETURN_START_RULES(星期 + 時段),取代原「醫師 === 郭玉柱 → 11」判斷
+    //   必須與後端 getReturnStartNumber_ 得出同樣的數字,否則卡片與實際發號會脫鉤
+    const minFirst = getReturnStartNumber(state.date, sessionKey);
     const cards = (RETURN_TIME_CARDS[normSessionForTime(sessionKey)] || []).map(function(card) {
       if (card.minNum === 6) return Object.assign({}, card, { minNum: minFirst });
       return card;

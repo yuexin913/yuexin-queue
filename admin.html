@@ -15,11 +15,18 @@
 <style>
   /* ════════════════════════════════════════════════════════
      悅心診所 JOIN System Admin
-     Current Version: v5.5.31-overlay-timer (2026-08-05)
-     本版:讀秒移至動作遮罩 + 清除「人數較多」歸因文案
-        · v5.5.30 的讀秒裝在 #scheduleContent,但診表載入時遮罩全螢幕蓋住 → 完全看不到。
-        · 改裝在遮罩上(5 秒後浮現純秒數),且所有動作(代掛/更新/查詢…)一併涵蓋。
-        · 「目前系統人數較多」三處移除:已證實與人數無關,秒數比編造的原因誠實。
+     Current Version: v5.5.31-schedule-sync (2026-08-31)
+     本版:單一變更 — DEFAULT_DOCTOR_SCHEDULE 副本同步 backend,零邏輯變更
+        · 本副本只在 GAS 失聯時當 fallback 用(4116 行),平常顯示的是 backend 回傳的真資料,
+          故此錯誤在正常運作下看不到 —— 但會在最需要正確資訊的時候顯示錯的。
+        · 分岔三格(副本 → 正確):
+            週二早  王麟祥 → 王伯元
+            週三下午 郭玉柱 → 王伯元
+            週四晚  王麟祥 → 王伯元
+        · 成因:班表改版時 backend 已更新,本副本漏同步(檔內註解本就要求同步)。
+          王麟祥當時確有看門診,後改由王伯元接手;現為治療師,已不看門診。
+        · 已全檔搜過四位醫師姓名,舊班表只存在於此一處,無第二份副本。
+        · 回退:傳回 v5.5.30 舊檔。
      基於 v5.5.30-load-timer (2026-08-05)
      本版:單一變更 — 診表載入讀秒(純前端,零請求)
         · 5 秒內載完不顯示;超過 5 秒浮現「載入中… N 秒」並每秒跳動。
@@ -2987,11 +2994,16 @@
 //    加開二診)fallback 接受退化 — backend 失聯時雙診週六會顯示成「只有
 //    粟寧早上」,不引入 frontend 版的 DUAL_CLINIC_RULES 避免 DRY 違反。
 //    Backend 失聯本身就罕見且大事,雙診退化可接受(粟醫師看到不對會手動 refresh)
+// ⚠️ 2026-08-31 v5.5.31:本副本曾與 backend 分岔三格,已同步。
+//    週二早、週四晚原為王麟祥(當時確有看診),週三下午原為郭玉柱;
+//    班表改版後三診皆由王伯元接手,backend 已更新而本副本漏同步。
+//    王麟祥現為治療師(見 backend THERAPIST_WHITELIST),已不看門診。
+//    ⚠️ 下次班表異動請再次同步此表 —— 這是第二次踩到。
 const DEFAULT_DOCTOR_SCHEDULE = {
   1: { "早上": "粟寧",   "下午": "粟寧",   "晚上": "王伯元" },
-  2: { "早上": "王麟祥", "下午": "粟寧",   "晚上": "郭玉柱" },
-  3: { "早上": "粟寧",   "下午": "郭玉柱", "晚上": "粟寧"   },
-  4: { "早上": "粟寧",   "下午": "粟寧",   "晚上": "王麟祥" },
+  2: { "早上": "王伯元", "下午": "粟寧",   "晚上": "郭玉柱" },
+  3: { "早上": "粟寧",   "下午": "王伯元", "晚上": "粟寧"   },
+  4: { "早上": "粟寧",   "下午": "粟寧",   "晚上": "王伯元" },
   5: { "早上": "郭玉柱", "下午": "王伯元", "晚上": "粟寧"   },
   6: { "早上": "粟寧",   "下午": "",       "晚上": ""        }
 };
@@ -3948,20 +3960,20 @@ function stopSchedElapsed() {
 
 // 重試期間的安撫文案:哪個 loading 指示器在畫面上就換哪個(皆 idempotent)
 function showAdminRetryNotice() {
-  /* v5.5.31:移除「目前系統人數較多」歸因文案 —
-     已證實深夜無人、空腳本、換帳號、換部署、換網路皆同樣發作,病灶在 Google 端請求分派,
-     與線上人數無關。遮罩改由讀秒(adminOverlaySec)呈現真實等待秒數,不再編造原因。 */
-  // 1) 動作遮罩可見 → 秒數已由 startOverlaySec 接手,原動作文字保留(才知道系統在做什麼)
+  // 1) 動作遮罩(adminOverlay)可見 → 換 overlay 文字
   var ov = document.getElementById("adminOverlay");
-  if (ov && ov.style.display !== "none" && ov.style.display !== "") return;
-
-  // 2) 啟動驗證階段(pageAuth 可見,如 verifyAdmin 壞窗)→ 換中性文案
+  if (ov && ov.style.display !== "none" && ov.style.display !== "") {
+    var t = document.getElementById("adminOverlayText");
+    if (t) t.textContent = "目前系統人數較多,請耐心等候…";
+    return;
+  }
+  // 2) 啟動驗證階段(pageAuth 可見,如 verifyAdmin 壞窗)→ 換 authSub
   var pageAuth = document.getElementById("pageAuth");
   var authSub = document.getElementById("authSub");
   if (pageAuth && authSub && pageAuth.style.display !== "none") {
     authSub.innerHTML =
-      '<div class="auth-sub-zh">連線中　請稍候</div>' +
-      '<div class="auth-sub-en">Connecting…</div>';
+      '<div class="auth-sub-zh">目前系統人數較多　請耐心等候</div>' +
+      '<div class="auth-sub-en">Reconnecting…</div>';
   }
 }
 
@@ -6009,40 +6021,15 @@ function confirmCancel(bookingId, name, date, fromModal) {
 
 /* ── Toast 通知 ── */
 let toastTimer = null;
-/* ── v5.5.31:遮罩讀秒 ──
-   為什麼移到遮罩上:v5.5.30 把讀秒放在 #scheduleContent,但 loadSchedule 一開始就
-   showAdminOverlay("載入診表中...") 全螢幕蓋住,讀秒被埋在遮罩底下、一次都看不到。
-   遮罩才是使用者實際盯著的地方,而且所有動作(代掛/更新/查詢…)都走遮罩 → 全都量得到。
-   5 秒內完成不顯示;超過才浮現,每秒跳動。純前端,不發任何請求。 */
-var _overlaySecTimer = null;
-
 function showAdminOverlay(text) {
   const el = document.getElementById("adminOverlay");
   const txt = document.getElementById("adminOverlayText");
   if (txt) txt.textContent = text || "";
   if (el) el.style.display = "flex";
-  startOverlaySec(); // v5.5.31
 }
 function hideAdminOverlay() {
   const el = document.getElementById("adminOverlay");
   if (el) el.style.display = "none";
-  stopOverlaySec(); // v5.5.31
-}
-
-function startOverlaySec() {
-  stopOverlaySec();
-  var t0 = Date.now();
-  _overlaySecTimer = setInterval(function() {
-    var sec = Math.floor((Date.now() - t0) / 1000);
-    if (sec < 5) return;
-    var el = document.getElementById("adminOverlaySec");
-    if (el) { el.textContent = sec + " 秒"; el.style.display = "block"; }
-  }, 1000);
-}
-function stopOverlaySec() {
-  if (_overlaySecTimer) { clearInterval(_overlaySecTimer); _overlaySecTimer = null; }
-  var el = document.getElementById("adminOverlaySec");
-  if (el) { el.style.display = "none"; el.textContent = ""; }
 }
 
 function showToast(msg, duration) {
@@ -7341,8 +7328,6 @@ initLiff();
   <!-- v5.5.14: Spinner 改良(避免「橘色螢光棒」感)— 加粗 1.5→2.5px + 加大 28→32px + 三邊加深 0.12→0.25 -->
   <div style="width:32px;height:32px;border:2.5px solid rgba(255,255,255,0.25);border-top-color:var(--marigold);animation:spin 0.8s linear infinite;"></div>
   <div id="adminOverlayText" style="font-family:'JetBrains Mono', monospace;font-size:11.5px;font-weight:400;color:var(--cloud);letter-spacing:3px;"></div>
-  <!-- v5.5.31:遮罩讀秒 — 5 秒後浮現,純秒數(admin 面向櫃檯/院長,需要的是數據不是安撫) -->
-  <div id="adminOverlaySec" style="display:none;font-family:'JetBrains Mono', monospace;font-size:11.5px;font-weight:400;color:var(--text-light);letter-spacing:3px;"></div>
 </div>
 <div id="toast"></div>
 <!-- Designed by Su Ning | Powered by Claude & Gemini 2026 -->
